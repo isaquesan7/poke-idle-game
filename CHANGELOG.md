@@ -2,12 +2,13 @@
 Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada aqui** e atualizar `docs/PROJECT_STATE.md` no mesmo trabalho. Não reescrever/ocultar histórico. Use data, escopo, commit, testes, deploy e pendências.
 
 ## [Unreleased]
-- **2026-11-16 · PR de GIFs Kanto em preparação:** branch \`feat/kanto-animated-gifs-v01\`
+- **2026-11-16 · PR de GIFs Kanto em preparação:** branch `feat/kanto-animated-gifs-v01`
   empilhada sobre a PR #1 de CSS. A interface passa a preferir
-  \`assets/pokemon-gifs/poke_ID.gif\` para #001–#151; fallback estático,
+  `assets/pokemon-gifs/poke_ID.gif` para #001–#151; fallback estático,
   rota HTTP allowlist, importador fixado em SHA, testes, verificador e
-  GitHub Actions para copiar os arquivos na branch. A importação dos
-  **151 binários precisa ser confirmada após o workflow**.
+  GitHub Actions para copiar os arquivos na branch. Importação **confirmada**
+  em `f33122df` (151/151 GIFs, 56.582.531 bytes); workflow
+  `43965699462` em `success`, verificador e testes aprovados.
   Salvas locais intocadas. **Deploy:** nenhum para esta branch.
   **Próxima ação:** validar o workflow, testes e as duas PRs antes de merge.
 - PR em revisão na branch `refactor/css-tokens-comments-v01`: CSS retirado do HTML, `:root` com tokens de cores/sombras/raios/espaçamentos, classes documentadas, rotas CSS explícitas e testes de contrato; sem alteração de lógica de jogo, sem deploy na `main`.
