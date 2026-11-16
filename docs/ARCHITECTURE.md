@@ -120,3 +120,10 @@ game-core -X-> UI, DOM, Railway, fetch, localStorage
 - `App.tsx` apresenta candidato/bloqueio como informação, sem ação para migrar. `candidate` não comprova ausência de corrida com o writer legado.
 - O fluxo de backup, nova chave oficial, writer único e rollback ainda depende de projeto/implementação futura. Plano de fases e riscos em `docs/SAVE_MIGRATION_PLAN.md`.
 - `.github/workflows/main-regression.yml` adiciona verificações permanentes de main/PR: testes de tipos, Vitest, build e E2E do jogo original, prévia React e simulação. Não muda o servidor público.
+
+## Contrato candidato de save oficial v0.2 e recuperação (pré-migração)
+- `apps/web/src/storage/officialSaveV02.ts`: tipos versionados `OfficialSaveV02`, `OriginBackupV02`, `RecoveryBundleV02`; criação/validação assíncrona via WebCrypto SHA-256, tamanho UTF-8 e extração dos bytes originais sem writes.
+- O `OfficialSaveV02` guarda um payload v0.1 intocado com `payloadFormat:'legacy-v01'`; é deliberadamente uma estrutura de COMPATIBILIDADE, não uma conversão já jogável nem a definição de ações/ economia definitivas.
+- `apps/web/src/storage/recoveryJournal.ts`: plano de três escritas para eventual commit (backup → candidato → marcador) e auditoria dos estados interrompidos, conflitos e corrupção; nenhuma operação é executada em localStorage. Integridade por SHA-256 detecta alterações não intencionais, não fraude ou adulteração intencional.
+- O marcador não garante atomicidade de três chaves. A v0.1 segue como writer não-cooperativo; é proibido ativar o plano sem estratégia de writer único, política de migração e testes multi-tab.
+- Nenhum módulo novo é importado pela UI/servidor. Testes Vitest simulam falhas de armazenamento, recuperação e preservação integral do save. A publicação do código no repositório não ativa migração.

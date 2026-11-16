@@ -57,3 +57,13 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 5. E2E + análise visual desktop/mobile; revisão da PR, documentação e monitoramento.
 
 **Próxima implementação:** schema oficial v0.2 e plano de backup recuperável em funções puras e testes; nenhuma escrita de save real até a fase C estar resolvida.
+
+## 2026-11-16 — Avanço de Fase B: contrato e journal de recuperação (branch de revisão)
+- Implementado somente em funções TypeScript sem efeitos de armazenamento: contrato candidato de save oficial v0.2 (`OfficialSaveV02`) com `revision:0`, `payloadFormat:'legacy-v01'` e o estado completo incluindo campos desconhecidos. **Não representa motor de progressão v0.2 pronto**.
+- `OriginBackupV02` armazena o texto original byte a byte, checksum SHA-256 de UTF-8 e comprimento. `RecoveryBundleV02` inclui backup e candidato; validação detecta corrupção da fonte e discrepâncias do progresso, devolvendo texto original para exportação/restauração manual.
+- `recoveryJournal.ts`: plano de escrever em FUTURO na ordem backup → candidato → marcador de commit. Apenas gera instruções, inspeciona snapshots fornecidos e extrai backup; **não acessa window.localStorage nem executa instruções**.
+- Simulações: erros antes de qualquer etapa, quota após backup, candidato sem commit, marcador danificado, versão desconhecida, save atualizado por writer legado. Mesmo sem marcador/sem candidato, backup íntegro pode ser exportado.
+- Reserva de chaves para futuro plano de transição: `kanto-idle-lab-save-v02`, `kanto-idle-lab-save-v02-origin-backup`, `kanto-idle-lab-save-v02-commit`. Não ocupadas nesta entrega.
+- **Limite de segurança:** checksums não são autenticação/antifraude; marcador não é transação real entre chaves; não haverá ativação antes de writer exclusivo e opt-in/rollback implementados.
+- Fase B **parcial**: ainda faltam política de quota real, UX de export/import, backup independente de dispositivo e persistência recuperável. Fase C writer único, Fase D ativação opt-in e Fase E paridade total continuam pendentes.
+- Próxima implementação após CI: desenho de coordenação de writers e UX de recuperação/exportação verificável, mantendo `kanto-idle-lab-save-v01` intocado.

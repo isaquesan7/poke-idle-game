@@ -107,3 +107,7 @@ Estado 2026-11-16: PRs #3–#6 já foram integradas à main e os deploys Railway
 
 ### Handoff de release — 2026-11-16
 As PRs #3 a #7 da Foundation foram integradas à `main` (SHA `b099e750`) com deploy Railway `SUCCESS` e testes de `main` aprovados em [GitHub Actions #43982463671](https://github.com/isaquesan7/poke-idle-game/actions/runs/43982463671). O público continua jogando a v0.1; as novas telas React, simulação e preflight não substituem nem alteram o save real. Próximo trabalho: contrato de save oficial v0.2 e backup recuperável, segundo `docs/SAVE_MIGRATION_PLAN.md`.
+
+
+## Ensaio do save oficial v0.2 e backup (sem migração real)
+A branch `feat/v02-official-save-backup-contract` prepara os contratos `OfficialSaveV02`, `OriginBackupV02` e `RecoveryBundleV02` e o plano de journal de recuperação, **somente em funções e testes**. O progresso do jogador não é movido e `kanto-idle-lab-save-v01` não recebe writes. O futuro snapshot v0.2 carrega o payload legado completo até que todas as mecânicas tenham sido portadas; backups preservam bytes exatos e podem ser inspecionados/extrair texto sem alterar dados. Execução de testes: `npm run typecheck:web` e `npm run test:web`. Ver limites em `docs/SAVE_MIGRATION_PLAN.md`.
