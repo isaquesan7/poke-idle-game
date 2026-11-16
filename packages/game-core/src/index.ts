@@ -8,3 +8,8 @@ export { xpThreshold, grantXp } from './progression/xp.js';
 export type { ProgressionKind, LevelProgress, XpResult } from './progression/xp.js';
 export { expeditionRewards, EXPEDITION_CYCLE_MS, MAX_EXPEDITION_CYCLES } from './rewards/expedition.js';
 export type { ExpeditionRewards } from './rewards/expedition.js';
+export {
+  LEGACY_ITEMS, LEGACY_BADGES, LEGACY_TITLES, LEGACY_STARTERS,
+  effectiveLegacyTitle
+} from './legacy/catalog.js';
+export type { LegacyItem, LegacyBadge, LegacyTitle, LegacySpecies } from './legacy/catalog.js';

@@ -165,3 +165,23 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Regressão de browser da prévia:** workflow `43971040708` em `SUCCESS`; testou desktop 1365px, mobile 390px, download fiel do JSON v0.1, storage não modificado, save versão futura preservado. Capturas no artifact `react-foundation-screenshots` (ID 14279555043). Capturas ainda não inspecionadas visualmente por pessoa.
 - **Produção:** nenhuma das PRs #3/#4 foi mesclada na `main`, que segue no commit `f410011fc6b490c0193acf97f2ce250744599d79` (Railway último deploy validado `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191`, `SUCCESS`).
 - **Continuidade:** revisar PRs na ordem #3 → #4 e seu impacto operacional; manter `server.mjs` e chaves de save. Próximo passo é conectar dashboard/treinador React ao game-core com testes de paridade sobre save v0.1 antes de substituir qualquer parte da UI publicada.
+
+## 2026-11-16 — Telas React e paridade de status (em revisão)
+- Branch: `feat/react-trainer-overview-v02`, criada no HEAD `291e6a85df60bd19bb0694a75ec5cc1c26ddc0e9` da PR #4; depende também da PR #3.
+- `packages/game-core/src/legacy/catalog.ts`: catálogo fiel da v0.1 de 14 itens demonstrativos, 4 títulos e 8 insígnias, sem criar novo balanceamento.
+- `apps/web/src/features/trainer/legacyProjection.ts`: projeção somente leitura usando trainerTotals, pokemonFinalStats, afinidade, XP e estimativa de expedições do core.
+- `OverviewPreview` e `TrainerPreview` com CSS Modules/tokens, navegação sem escrever no save; `index.html`/servidor e os GIFs permanecem intocados.
+- Somente 3 iniciais têm snapshot embutido; demais espécies precisam do cache local da PokéAPI. Sem cache, não inventar status-base.
+- Testes de paridade com `tests/fixtures/legacy-save-v01.json`, limite manual 40, bônus aditivos, títulos, insígnias e expedição com teto de 8h.
+- Workflow `trainer-overview-parity.yml` testa TypeScript, Vitest, build e Playwright desktop/mobile tanto da prévia quanto do legado.
+- Situação: ainda sem merge/deploy; produção verificada em `f410011fc6b490c0193acf97f2ce250744599d79`, deploy Railway `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191` SUCCESS.
+- Próxima ação: acompanhar CI e lockfile na feature branch; corrigir falhas, revisar screenshots, depois PR #3 → #4 → #5 na ordem. Ações de escrita do treinador/expedição exigem persistência versionada e testes antes de habilitar.
+
+### Validação da PR #5 — resultado confirmado (2026-11-16)
+- Workflow `43975797448`: `completed/success` para código/documentação do commit `49971de6e4853328ada574a36caa3ca15a37fb2d`.
+- Aprovaram as etapas `typecheck:core`, `test:core`, `typecheck:web`, `test:web`, `build:web`, `npm test`, `verify:gifs`, E2E da v0.1 e E2E da prévia React.
+- Lockfile de workspaces atualizado pelo GitHub Actions no commit `3754a5abf2be47281d9b845fa55c300309221244` (feature branch, sem publicação).
+- Capturas de tela disponíveis no artifact `trainer-overview-parity-screenshots` ID `14281131270` (cerca de 2,9 MB), ainda pendentes de revisão visual humana.
+- O repositório `main` permanece em `f410011fc6b490c0193acf97f2ce250744599d79` e Railway em `SUCCESS` para deploy `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191`; esta versão não foi publicada.
+- **Próxima ação concreta:** revisão humana/visual de capturas e código da PR #5, depois integrar #3 → #4 → #5 na ordem se aprovado. A migração de **ações de escrita** (distribuição de pontos e salva de equipamentos) exige adaptador versionado + teste de save de produção e não deve ser feita diretamente no objeto JSON.
+- **Observação:** commits históricos no início deste arquivo descrevem estados antigos de PRs; utilizar sempre este registro final junto do HEAD real do GitHub.

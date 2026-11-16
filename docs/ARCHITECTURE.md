@@ -100,3 +100,10 @@ game-core -X-> UI, DOM, Railway, fetch, localStorage
 - `apps/web/src/storage/legacySave.ts` fornece parsing e leitura somente de v0.1, sem gravar nem converter estado. Backup pode baixar o JSON original.
 - A prévia usa `styles/tokens.css` da raiz como fonte única de cores, raios e sombras; CSS Modules documentados na interface.
 - O `server.mjs` do Railway e o HTML jogável v0.1 permanecem intocados. Não há troca de produção, migração de schema ou sincronização de saves entre origens.
+
+## Telas React: visão geral e treinador (PR empilhada)
+- Fluxo: `App.tsx` → `features/trainer/legacyProjection.ts` → `@kanto/game-core`; catálogo de compatibilidade em `packages/game-core/src/legacy/catalog.ts`.
+- Salva/cache somente leitura; sem `setItem`, migração ou concessão de XP. A projeção retorna motivo se não for possível reproduzir cálculos fiéis.
+- O componente não copia fórmulas: totals/status/expedição são derivados do core. Falta de base_stat torna status indisponível, não zero.
+- Testes de paridade com fixture v0.1 e Playwright desktop/mobile também cobrem o jogo antigo. A UI v0.1 continua publicada.
+- PR #5 empilhada sobre #4, esta sobre #3; nenhuma etapa muda automaticamente a `main`.

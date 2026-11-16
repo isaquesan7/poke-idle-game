@@ -87,3 +87,40 @@
   color: var(--color-text-muted);
   font-size: .9rem;
 }
+
+
+/* .navigation: agrupamento responsivo das telas experimentais React. */
+.navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
+
+/* .navButton: botão de navegação não selecionado, com toque confortável. */
+.navButton {
+  min-height: 44px;
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-nav);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+/* .navActive: ressalta a seção atual sem hardcode de cores. */
+.navActive {
+  composes: navButton;
+  background: var(--color-primary);
+  color: var(--color-bg);
+  font-weight: 700;
+}
+
+/* .projectionWarning: alerta legível quando o save não permite cálculos seguros. */
+.projectionWarning {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}

@@ -20,7 +20,8 @@
     "types": [
       "vite/client",
       "vitest/globals"
-    ]
+    ],
+    "resolveJsonModule": true
   },
   "include": [
     "src/**/*.ts",

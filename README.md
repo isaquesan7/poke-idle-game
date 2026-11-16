@@ -85,3 +85,9 @@ respectivos titulares, não havendo permissão comercial implícita.
 
 ### Situação de validação da Foundation
 PR #3 e PR #4 permanecem em revisão, com GitHub Actions aprovado para core, build React e regressão Chromium do backup de save v0.1. A `main`/Railway ainda executa o jogo v0.1 com GIFs. Ver `docs/PROJECT_STATE.md` para commits, runs e próxima etapa.
+
+
+## Visão geral e treinador na prévia v0.2
+A branch `feat/react-trainer-overview-v02` prepara as telas React alimentadas pelo `@kanto/game-core`, mantendo os bônus, o limite manual e a afinidade da v0.1. `npm run dev:web` abre a prévia somente leitura do save/cache da própria origem. Não há treino, equipamento, resgate ou migração de dados; o pipeline está em `.github/workflows/trainer-overview-parity.yml`.
+
+Validação confirmada da PR #5: workflow `43975797448` (`SUCCESS`) e lockfile sincronizado na branch. A produção v0.1 permanece inalterada; migrar comandos de escrita requer desenho posterior de persistência versionada.
