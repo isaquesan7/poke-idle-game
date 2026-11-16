@@ -40,10 +40,12 @@ async function check(browser,label,viewport) {
     if (localStorage.getItem(saveKey) === null) localStorage.setItem(saveKey, content);
   }, { saveKey: SAVE_KEY, content: original });
   await page.goto(BASE, {waitUntil:'domcontentloaded'});
+  await page.getByText('Formato reconhecido · sem simulação').waitFor();
   const create = page.getByRole('button',{name:'Criar simulação v0.2'});
   await create.waitFor();
   await create.click();
   await page.getByText('Simulação separada ativa · revisão 0.').waitFor();
+  await page.getByText('Formato reconhecido · simulação compatível').waitFor();
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE_KEY),original);
 
   await page.getByRole('button',{name:'Treinador',exact:true}).click();
@@ -87,6 +89,7 @@ async function check(browser,label,viewport) {
     {key:SAVE_KEY,value:JSON.stringify({...json,coins:999})});
   await page.reload({waitUntil:'domcontentloaded'});
   await page.getByText('Save real mudou desde o início da simulação. Edições bloqueadas.').waitFor();
+  await page.getByText(/Migração indisponível · O save real mudou/).waitFor();
   assert.equal(await page.getByRole('button',{name:'Simular +1 ATK'}).count(),0);
   assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).revision,DRAFT_KEY),2);
 

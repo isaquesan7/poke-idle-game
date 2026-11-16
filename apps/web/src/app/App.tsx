@@ -7,6 +7,7 @@ import {
 } from '../storage/draftSave';
 import type { DraftRead, DraftWrite } from '../storage/draftSave';
 import { projectLegacyTrainer } from '../features/trainer/legacyProjection';
+import { inspectMigrationReadiness } from '../storage/migrationPreflight';
 import { OverviewPreview } from '../features/trainer/OverviewPreview';
 import { TrainerPreview } from '../features/trainer/TrainerPreview';
 import { TrainerDraftControls } from '../features/trainer/TrainerDraftControls';
@@ -55,6 +56,8 @@ export function App() {
   // O save original é sempre a fonte de backup; rascunho nunca o substitui.
   const simulated = draft.status === 'ready' ? parseLegacySave(draft.draft.workingRaw) : null;
   const displayed = simulated?.status === 'valid' ? simulated : result;
+  // Leitura pura: diagnóstico de estrutura, NÃO uma autorização de migração.
+  const migrationCheck = inspectMigrationReadiness(window.localStorage);
   const projected = displayed.status === 'valid'
     ? projectLegacyTrainer(displayed.save, cacheRaw, Date.now()) : null;
 
@@ -145,6 +148,19 @@ export function App() {
           </>
         )}
         <p className={styles.note}>A prévia não migra nem modifica saves v0.1. Armazenamentos de domínios diferentes não são compartilhados automaticamente.</p>
+      </section>
+      <section className={styles.migrationCheck} aria-labelledby="migration-heading">
+        <h2 id="migration-heading">Verificação de compatibilidade para migração futura</h2>
+        <p className={styles.migrationStatus} role="status">
+          {migrationCheck.status === 'candidate'
+            ? 'Formato reconhecido · ' + (migrationCheck.draft === 'aligned'
+              ? 'simulação compatível' : 'sem simulação')
+            : 'Migração indisponível · ' + migrationCheck.message}
+        </p>
+        <p className={styles.note}>
+          Esta análise não modifica, converte ou sincroniza saves. O jogo v0.1 ainda
+          grava sem participar de bloqueios entre abas. Não existe migração real habilitada.
+        </p>
       </section>
       {result.status === 'valid' && (
         <>

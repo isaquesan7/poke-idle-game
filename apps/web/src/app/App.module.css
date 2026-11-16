@@ -156,3 +156,24 @@
   border-radius: var(--radius-control);
   cursor: pointer;
 }
+
+
+/* .migrationCheck: relatório somente leitura separado do editor de rascunhos. */
+.migrationCheck {
+  padding: var(--space-5);
+  margin-top: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-raised);
+}
+
+/* .migrationCheck h2: nome da auditoria de compatibilidade futura. */
+.migrationCheck h2 {
+  margin: 0;
+}
+
+/* .migrationStatus: resultado textual sem sinalizar migração já liberada. */
+.migrationStatus {
+  color: var(--color-primary);
+  font-weight: 700;
+}
