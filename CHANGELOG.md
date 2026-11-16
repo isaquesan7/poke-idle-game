@@ -2,6 +2,7 @@
 Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada aqui** e atualizar `docs/PROJECT_STATE.md` no mesmo trabalho. Não reescrever/ocultar histórico. Use data, escopo, commit, testes, deploy e pendências.
 
 ## [Unreleased]
+- **2026-11-16 · Release foundation v0.2 no repositório (runtime v0.1 preservado):** PRs #3–#7 integradas à `main` até commit `b099e750`; último deploy Railway `13d5dd6f-e802-421a-8dc5-1e85ad37577f` em `SUCCESS`; CI permanente em `main` workflow `43982463671` em `SUCCESS` (TS, Vitest, Vite, 151 GIFs, E2E v0.1/React/draft). UI pública continua sendo a v0.1, sem migração de saves; análise de migração futura é apenas leitura.
 - 2026-11-16: branch `feat/v02-migration-preflight` adiciona análise somente leitura de prontidão estrutural de saves, testes de conflitos/falhas, relatório na prévia, CI duradouro para main e `docs/SAVE_MIGRATION_PLAN.md`. Não promove rascunho, não grava no progresso real e não está publicada.
 - 2026-11-16: PRs #3, #4, #5 e #6 integradas à main (`8fbaf415`, `48977b01`, `0d4bc823`, `af81fdb4`) com deploy Railway SUCCESS em cada etapa. Entrada pública segue sendo o jogo v0.1.
 - **2026-11-16 · PR #6 CI aprovado:** workflow `43978606016` em `SUCCESS` (TypeScript, Vitest, build, GIFs, regressão v0.1 e E2E React/draft desktop/mobile), screenshots artifact `14281376764`; SHA verificado `7e353da9`. A PR continua em revisão, sem merge e sem deploy; progresso v0.1 preservado.

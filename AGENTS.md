@@ -2,6 +2,7 @@
 
 > PONTO DE ENTRADA PARA NOVOS CHATS E AGENTES. Leia este arquivo antes de planejar ou alterar código.
 > Atualizado em 2026-11-16. A fonte final do estado técnico é o próprio GitHub/Railway; confira sempre os dados ao vivo.
+> **Handoff recente:** PRs #3–#7 Foundation v0.2 já estão integradas; `main` última verificada em `b099e750` com deploy Railway `SUCCESS`. A página pública ainda usa o runtime v0.1. Consulte SEMPRE a última seção de `docs/PROJECT_STATE.md` e confira GitHub/Railway, pois entradas históricas podem descrever PRs já mescladas.
 
 ## Identidade e limites
 - Projeto: **Poke Idle Game / Kanto Idle LAB** (protótipo v0.1; Season 1: Pokémon #001–#151).

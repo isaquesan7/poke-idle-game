@@ -103,3 +103,7 @@ Validação da simulação versionada: [GitHub Actions #43978606016](https://git
 A branch `feat/v02-migration-preflight` adiciona diagnóstico **somente leitura** do save v0.1, sem botão de migração. O plano detalhado de backup, coordenação de writers e rollback está em `docs/SAVE_MIGRATION_PLAN.md`. A validade estrutural não significa que abas antigas tenham parado de gravar; migração real permanece bloqueada até projeto separado. Workflow `.github/workflows/main-regression.yml` verificará continuamente main e PRs quando integrado.
 
 Estado 2026-11-16: PRs #3–#6 já foram integradas à main e os deploys Railway confirmaram SUCCESS. O jogo publicado continua v0.1; React ainda é workspace experimental sem rota pública.
+
+
+### Handoff de release — 2026-11-16
+As PRs #3 a #7 da Foundation foram integradas à `main` (SHA `b099e750`) com deploy Railway `SUCCESS` e testes de `main` aprovados em [GitHub Actions #43982463671](https://github.com/isaquesan7/poke-idle-game/actions/runs/43982463671). O público continua jogando a v0.1; as novas telas React, simulação e preflight não substituem nem alteram o save real. Próximo trabalho: contrato de save oficial v0.2 e backup recuperável, segundo `docs/SAVE_MIGRATION_PLAN.md`.
