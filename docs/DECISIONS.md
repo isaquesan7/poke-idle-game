@@ -22,6 +22,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-015 | 2026-11-16 | EM IMPLEMENTAÇÃO | Migrar primeiro as telas React de visão geral e treinador em modo somente leitura. Fórmulas no game-core e catálogo de compatibilidade fiel à v0.1; sem cache não inventar base_stat. Escrita do save requer persistência versionada e testes prévios. |
 
+| D-016 | 2026-11-16 | EM IMPLEMENTAÇÃO | Persistência experimental v0.2 deve usar rascunho independente versionado, com `sourceRaw` v0.1 imutável, revisão e conflito se o original mudar. Só distribuir pontos/equipar dentro da simulação, sem promover ao save real até existir mecanismo de persistência seguro aprovado. Escritas exigem Web Locks no navegador; sem suporte, somente leitura. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.
