@@ -34,6 +34,7 @@
 </div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <div id="starter-modal" class="modalbg" style="display:none"></div>
+<script src="scripts/pokemon-sprites.js"></script>
 <script>
 'use strict';
 const API = 'https://pokeapi.co/api/v2';
@@ -104,7 +105,7 @@ let toastTimer=null;
 const $=id=>document.getElementById(id);
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pretty=x=>String(x||'').split('-').map(y=>y[0]?.toUpperCase()+y.slice(1)).join(' ');
-const iconFor=id=>`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${Number(id)}.png`;
+const iconFor=id=>window.KantoSprites.sourceFor(id);
 const typeTags=types=>(types||[]).map(t=>`<span class="tag ${esc(t)}">${esc(TYPE_PT[t]||pretty(t))}</span>`).join('');
 const formatStats=x=>STATS.filter(k=>(x?.[k]||0)!==0).map(k=>`${SHORT[k]} +${x[k]}`).join(' · ')||'Sem bônus';
 const sum=(o)=>Object.values(o||{}).reduce((a,b)=>a+(Number(b)||0),0);

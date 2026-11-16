@@ -56,3 +56,17 @@ Na branch `refactor/css-tokens-comments-v01` a camada visual foi dividida em `st
 
 ## Repositório original intocado
 `isaquesan7/pokedex` é projeto separado de referência. **Não modificar** sem autorização expressa e específica.
+
+
+## GIFs animados de Kanto — [PR #2 em revisão](https://github.com/isaquesan7/poke-idle-game/pull/2)
+Na branch `feat/kanto-animated-gifs-v01`, as imagens de Pokémon #001–#151
+passam a apontar para `assets/pokemon-gifs/poke_ID.gif`; se o GIF não estiver
+disponível, a interface utiliza a arte estática da PokéAPI como fallback.
+O repositório original `isaquesan7/pokedex` é usado SOMENTE como fonte de leitura.
+Os 151 arquivos binários (56.582.531 bytes) foram importados na branch
+pelo workflow GitHub Actions `43965699462`, concluído com sucesso.
+
+Com Node >=18: `npm run sync:gifs`, `npm run verify:gifs`, `npm test`.
+A integração depende da PR #1 (tokens CSS); não publicar na `main` sem revisão
+e testes. A licença e os direitos sobre Pokémon e ilustrações continuam dos
+respectivos titulares, não havendo permissão comercial implícita.

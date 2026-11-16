@@ -85,3 +85,47 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Teste local preparatório: CSS analisado por parser, screenshots comparados no desktop (1365px) e mobile (390px), idênticos pixel a pixel em sessão de comparação de estilos; verificar novamente após revisão/merge.
 - **Status: PR pendente; não publicado em produção.** A branch `main` e o site Railway permanecem na versão jogável anterior. Conferir HEAD/deploy antes de retomar.
 - Próxima ação: revisar o PR, rodar `npm test`, validar CSS servido via HTTP e então, com aprovação, mesclar na `main` e observar deploy `SUCCESS`.
+
+
+## Continuidade — integração de GIFs Kanto (2026-11-16)
+- **Verificado antes de codar:** `main` HEAD `49f22f64ad6048b2aa0c2b13b993240e77958bf1`.
+  Railway `kanto-idle-web` deploy `cc948f22-66c7-4578-9f63-8f8bb05894de`,
+  status terminal `SUCCESS`, commit `49f22f64` (deploy anterior a esta mudança).
+- PR #1: `refactor/css-tokens-comments-v01`, HEAD
+  `02ff0c7a146b25f4641de62824c389d576edd1e5`, aberta e sem conflitos.
+- **Escopo nesta branch:** `feat/kanto-animated-gifs-v01` criada sobre a PR #1
+  (PR empilhada; não atualizar `main` por conta própria).
+- Fonte confirmada: `isaquesan7/pokedex/config/img/pokemons/poke_1.gif`
+  a `poke_151.gif`, 151 arquivos, ~56,6 MB; referência imutável
+  `d86ba82e1f6b2b0da708ff6c304b71e1f70aa139`.
+- Implementação preparada: resolver central de imagens (GIF local 1–151,
+  fallback PNG em erro), rota HTTP restrita de GIFs, script para copiar 151
+  arquivos para ESTA branch, verificador de GIF e testes unitários.
+- **Importação confirmada no GitHub:** workflow `43965699462` concluído com
+  `success` em 2026-11-16; commit de assets `f33122df1360e7d1959f36d97455c21af82876a7`.
+  Tree verificada: **151/151 GIFs presentes, sem faltantes, 56.582.531 bytes**.
+  Pipeline executou `npm run verify:gifs` e `npm test` com sucesso.
+- **Validação HTTP concluída:** workflow `43966345901` em `success` para
+  código `4f90c404f1328681b1faef4783b811ca88b63f5f`. Foram aprovados
+  `/health`, arquivo JavaScript de imagem, `poke_1.gif`, `poke_151.gif`,
+  cabeçalho real do GIF, além do bloqueio HTTP 404 para IDs 0 e 152.
+  Teste visual em navegador e regressão manual do jogo ainda pendentes.
+- Compatibilidade: `kanto-idle-lab-save-v01` e
+  `kanto-idle-lab-cache-v01` permanecem inalteradas, sem migração.
+- **Status de deploy:** nenhuma alteração desta branch foi publicada em
+  produção. `main` continua na v0.1 até revisão e merge.
+- **Próxima ação concreta:** revisar a PR #1 (CSS) e PR #2 (GIFs),
+  testar manualmente desktop/mobile e carregar um save v0.1 preexistente;
+  somente após essa validação aprovar merges em ordem (CSS, GIF),
+  verificar Railway `SUCCESS` e GET `/health`. A seguir iniciar v0.2
+  Foundation com migração gradual, preservando saves e regras do GDD.
+
+## Regressão Playwright na PR #2 (2026-11-16)
+- Fixture sintética de save v0.1 em `tests/fixtures/legacy-save-v01.json`, sem dados reais de jogadores.
+- `tests/e2e/browser-smoke.mjs` valida no Chromium: desktop 1365×768, mobile 390×844, CSS, GIF animado local, fallback estático, treinador (40 pontos manuais), telas, Pokédex 151, recarga de save e início de novo jogo.
+- `.github/workflows/browser-regression.yml` executa estes testes em GitHub Actions e anexa capturas. CI ainda precisa ser observado antes de merge.
+- **Próxima ação:** confirmar execução E2E e revisar capturas; corrigir qualquer regressão, depois revisar as duas PRs para integração na ordem CSS → GIFs.
+
+- Workflow E2E inicial `43967967387`: 9/9 unitários e GIFs passaram; navegador não iniciou pois `playwright@1.56.1 install --with-deps` não reconheceu Ubuntu 26.04. Ajustado para instalar Chromium sem gerenciamento automático de dependências SO; reexecutar e inspecionar logs. Sem problema de jogo confirmado nessa falha.
+
+- Diagnóstico adicional: o Playwright 1.56.1 não suporta Ubuntu 26.04 mesmo sem `--with-deps`; runner de navegador fixado em `ubuntu-24.04` e dependências instaladas nessa versão suportada. Aguardar nova execução antes de qualquer merge.

@@ -1,0 +1,70 @@
+name: Importar GIFs Kanto na branch de desenvolvimento
+
+on:
+  push:
+    branches:
+      - feat/kanto-animated-gifs-v01
+    paths:
+      - .github/workflows/import-kanto-gifs.yml
+      - scripts/sync-pokemon-gifs.mjs
+      - scripts/verify-pokemon-gifs.mjs
+      - scripts/pokemon-sprites.js
+      - index.html
+      - server.mjs
+      - docs/PROJECT_STATE.md
+      - CHANGELOG.md
+
+permissions:
+  contents: write
+
+jobs:
+  import-gifs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Importar 151 GIFs somente da origem autorizada
+        run: npm run sync:gifs
+      - name: Conferir arquivos, contratos e sintaxe
+        run: |
+          npm run verify:gifs
+          npm test
+      - name: Smoke-test HTTP dos GIFs e rotas públicas
+        shell: bash
+        run: |
+          set -euo pipefail
+          node server.mjs &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in {1..20}; do
+            if curl --silent --fail http://127.0.0.1:3000/health > /dev/null; then
+              ready=1
+              break
+            fi
+            sleep 0.3
+          done
+          test "$ready" -eq 1
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/scripts/pokemon-sprites.js)" = 200
+          curl --silent --fail http://127.0.0.1:3000/assets/pokemon-gifs/poke_1.gif --output /tmp/kanto-poke-1.gif
+          header="$(head -c 6 /tmp/kanto-poke-1.gif)"
+          test "$header" = GIF89a || test "$header" = GIF87a
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/assets/pokemon-gifs/poke_151.gif)" = 200
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/assets/pokemon-gifs/poke_152.gif)" = 404
+          test "$(curl --silent --output /dev/null --write-out '%{http_code}' http://127.0.0.1:3000/assets/pokemon-gifs/poke_0.gif)" = 404
+      - name: Registrar GIFs nesta branch (nunca na Pokédex original ou main)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/pokemon-gifs/
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração de GIF"
+            exit 0
+          fi
+          git commit -m "assets: importar 151 GIFs de Kanto com origem fixada"
+          git push origin HEAD:feat/kanto-animated-gifs-v01

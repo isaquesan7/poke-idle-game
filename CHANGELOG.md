@@ -2,6 +2,21 @@
 Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada aqui** e atualizar `docs/PROJECT_STATE.md` no mesmo trabalho. Não reescrever/ocultar histórico. Use data, escopo, commit, testes, deploy e pendências.
 
 ## [Unreleased]
+- CI E2E fixado no runner `ubuntu-24.04` compatível com Playwright 1.56.1; o ambiente `ubuntu-latest` usava 26.04 não suportado pela versão fixada.
+- Ajuste CI: evitar `--with-deps` do Playwright 1.56.1 em Ubuntu 26.04 (instalador incompatível), mantendo instalação de Chromium e testes E2E.
+- 2026-11-16: criados testes Chromium de regressão para desktop/mobile, GIFs e fallback, Pokédex 151, teto manual 40, compatibilidade de save v0.1 e novo jogo; screenshots anexáveis ao workflow. Aguardar CI antes de merge.
+- **2026-11-16 · PR de GIFs Kanto em preparação:** branch `feat/kanto-animated-gifs-v01`
+  empilhada sobre a PR #1 de CSS. A interface passa a preferir
+  `assets/pokemon-gifs/poke_ID.gif` para #001–#151; fallback estático,
+  rota HTTP allowlist, importador fixado em SHA, testes, verificador e
+  GitHub Actions para copiar os arquivos na branch. Importação **confirmada**
+  em `f33122df` (151/151 GIFs, 56.582.531 bytes); workflow
+  `43965699462` em `success`, verificador e testes aprovados.
+  Segundo workflow `43966345901` em `success`: smoke-test HTTP real de
+  `/health`, JS e GIFs 1/151, com HTTP 404 para IDs 0/152.
+  **Pendente:** navegador desktop/mobile e compatibilidade manual de save v0.1.
+  Salvas locais intocadas. **Deploy:** nenhum para esta branch.
+  **Próxima ação:** validar o workflow, testes e as duas PRs antes de merge.
 - PR em revisão na branch `refactor/css-tokens-comments-v01`: CSS retirado do HTML, `:root` com tokens de cores/sombras/raios/espaçamentos, classes documentadas, rotas CSS explícitas e testes de contrato; sem alteração de lógica de jogo, sem deploy na `main`.
 - Planejada a refatoração v0.2 Foundation: módulos, React/TS/Vite, game-core e testes; **nenhum código de v0.2 implantado ainda**.
 - Catálogo de raridades de itens, evolução, ginásios, motor completo de combate e backend pendentes.

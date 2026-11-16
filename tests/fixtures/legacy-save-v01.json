@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "mode": "demo",
+  "createdAt": 1794860000000,
+  "name": "Save legado v0.1",
+  "trainer": {
+    "level": 21,
+    "xp": 16,
+    "manual": {
+      "hp": 0,
+      "attack": 39,
+      "defense": 0,
+      "specialAttack": 0,
+      "specialDefense": 0,
+      "speed": 0
+    },
+    "equipped": {
+      "hat": "cap",
+      "jacket": "coat",
+      "gloves": "gloves",
+      "pants": "pants",
+      "shoes": "shoes",
+      "necklace": "necklace",
+      "ring1": "ring-a",
+      "ring2": "ring-c",
+      "earrings": "earrings"
+    },
+    "title": "aprendiz"
+  },
+  "coins": 321,
+  "wins": 1,
+  "losses": 0,
+  "seen": [
+    1,
+    4
+  ],
+  "badges": [
+    "boulder"
+  ],
+  "roster": [
+    {
+      "uid": 1,
+      "pokemonId": 1,
+      "level": 20,
+      "xp": 12,
+      "manual": {
+        "hp": 0,
+        "attack": 0,
+        "defense": 0,
+        "specialAttack": 0,
+        "specialDefense": 0,
+        "speed": 0
+      },
+      "affinity": 73,
+      "moveName": "vine-whip",
+      "upgrades": {}
+    }
+  ],
+  "team": [
+    1
+  ],
+  "nextUid": 2,
+  "expedition": null,
+  "lastClaim": null
+}
