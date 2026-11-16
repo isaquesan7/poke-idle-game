@@ -1,0 +1,65 @@
+name: Regressão v0.1 e Foundation v0.2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'index.html'
+      - 'server.mjs'
+      - 'scripts/**'
+      - 'styles/**'
+      - 'tests/**'
+      - 'assets/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/main-regression.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependências reproduzíveis do monorepo
+        run: npm ci
+      - name: TypeScript, regras, storage, build React, legacy e GIFs
+        run: |
+          npm run typecheck:core
+          npm run test:core
+          npm run typecheck:web
+          npm run test:web
+          npm run build:web
+          npm test
+          npm run verify:gifs
+      - name: Preparar Chromium compatível
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: E2E do jogo v0.1
+        run: node tests/e2e/browser-smoke.mjs
+      - name: E2E da prévia React
+        run: node apps/web/tests/e2e/react-preview.mjs
+      - name: E2E rascunho versionado v0.2
+        run: node apps/web/tests/e2e/draft-preview.mjs
+      - name: Guardar capturas para revisão visual
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-regression-screenshots
+          path: |
+            artifacts/browser/*.png
+            artifacts/react-preview/*.png
+            artifacts/draft-preview/*.png
+          if-no-files-found: ignore
