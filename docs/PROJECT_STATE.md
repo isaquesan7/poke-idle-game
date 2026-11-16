@@ -210,3 +210,19 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - PR #6: https://github.com/isaquesan7/poke-idle-game/pull/6, base branch `feat/react-trainer-overview-v02`, **aberta, sem merge ou deploy**.
 - Situação de produção verificada: `main` SHA `f410011fc6b490c0193acf97f2ce250744599d79`; Railway `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191` SUCCESS. Repositório fonte `isaquesan7/pokedex` não foi alterado.
 - Próxima ação recomendada: revisar visualmente screenshots e código, depois integrar PRs #3 → #4 → #5 → #6 em ordem com checagens e monitoramento do Railway. Antes de ativar progresso real na UI React, criar projeto de migração com backup imutável, detecção de corrida, controle de versões e recuperação sem perda; não fazer promoção automática do draft à chave v0.1.
+
+## 2026-11-16 — PRs Foundation integradas; preflight de migração em branch
+- GitHub `main` SHA `af81fdb45a9f9e3f78b4c7cdbf6b390b3bbd6dab`, depois de merges em ordem: PR #3 `8fbaf415862a027419b8526c9fe355c4cec5e971`; PR #4 `48977b01167b9eec6dfade548016d07b13d3f7aa`; PR #5 `0d4bc823bf2630523e7db8b0b30e53dcf88cb283`; PR #6 `af81fdb45a9f9e3f78b4c7cdbf6b390b3bbd6dab`.
+- Deploys Railway por commit todos em SUCCESS: #3 `9639fec5-3c5c-4b83-859a-60e53f2e91f6`, #4 `44d23185-bf2b-43f7-be39-25d2f74bc239`, #5 `054c8133-277a-4649-a8e1-3939b061431a`, #6 `3334e85e-e474-48aa-8628-b3f7801404d7`.
+- Logs #6 mostram `npm start`/`node server.mjs`, servidor ouvindo na porta 8080. Railway marcou SUCCESS após healthcheck configurado /health; GET externo manual ficou inacessível nas ferramentas, portanto não foi validado diretamente.
+- Captação de screenshots da PR #6 foi visualmente examinada: 1365px desktop e 390px mobile, sem cortes óbvios. Workflow `43978943156` SUCCESS no HEAD da PR antes do merge.
+- O runtime público segue o protótipo v0.1; React e o rascunho v0.2 fazem parte do monorepo mas não são disponibilizados como tela inicial nem gravam saves v0.1.
+
+### Em desenvolvimento — feat/v02-migration-preflight
+- Branch independente baseada em `af81fdb4`, sem mudança na produção.
+- `apps/web/src/storage/migrationPreflight.ts`: leitura apenas, conferência de integridade de save/draft, identificação de conflitos, motivo claro para bloqueio. Status candidate não autoriza commit.
+- A prévia React mostra relatório textual, sem nenhum comando para migração.
+- Novo workflow `.github/workflows/main-regression.yml` instala `npm ci`, verifica TypeScript, Vitest, build, GIFs e E2E v0.1/React/draft. Ativo para PRs contra main e, quando integrado, pushes main.
+- Plano de migração real e rollback em `docs/SAVE_MIGRATION_PLAN.md`. Writer legado v0.1 não usa Web Locks; não permitir overwrite ou promoção automática.
+- STATUS: CI deste novo PR ainda precisa ser verificado; screenshots e testes históricos não substituem nova execução.
+- PRÓXIMO: validar CI, revisar, depois desenvolver schema do save oficial v0.2 e backups recuperáveis, sem habilitar escrita real.

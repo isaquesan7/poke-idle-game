@@ -97,3 +97,9 @@ Validação confirmada da PR #5: workflow `43975797448` (`SUCCESS`) e lockfile s
 A branch `feat/versioned-trainer-drafts-v02` adiciona rascunho experimental separado para testar atributos e equipamentos no React. O progresso de verdade v0.1 nunca é escrito pela nova interface. Rascunho: `kanto-idle-lab-save-v02-draft` com versão, revisão e cópia original; pode ser descartado explicitamente. Web Locks controlam as edições; sem essa API, a interface deixa de editar. Não existe sincronização de dispositivos nem promoção automática da simulação ao jogo publicado. Testes no CI `draft-persistence.yml`.
 
 Validação da simulação versionada: [GitHub Actions #43978606016](https://github.com/isaquesan7/poke-idle-game/actions/runs/43978606016), `SUCCESS`. Não há migração de progresso nem publicação desta PR na `main`.
+
+
+## Pré-verificação de migração e proteção do progresso
+A branch `feat/v02-migration-preflight` adiciona diagnóstico **somente leitura** do save v0.1, sem botão de migração. O plano detalhado de backup, coordenação de writers e rollback está em `docs/SAVE_MIGRATION_PLAN.md`. A validade estrutural não significa que abas antigas tenham parado de gravar; migração real permanece bloqueada até projeto separado. Workflow `.github/workflows/main-regression.yml` verificará continuamente main e PRs quando integrado.
+
+Estado 2026-11-16: PRs #3–#6 já foram integradas à main e os deploys Railway confirmaram SUCCESS. O jogo publicado continua v0.1; React ainda é workspace experimental sem rota pública.
