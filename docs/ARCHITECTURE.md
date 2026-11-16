@@ -114,3 +114,9 @@ game-core -X-> UI, DOM, Railway, fetch, localStorage
 - UI: `App.tsx` sob Web Locks para todas as operações; `TrainerDraftControls` permite simulação opt-in, não grava progresso real. Se o jogo v0.1 alterar sua chave, a edição é interrompida e preservada para descarte explícito.
 - A comparação de revisão em localStorage não é transação atômica isoladamente. Web Locks sincronizam apenas clientes que cooperam; NÃO prometer segurança inter-aba contra o código v0.1 que não usa locks. Evitar promoção automática até implementar mecanismo versionado de produção.
 - Tests: Vitest do core e storage, Playwright da prévia e do legado, execução no CI dedicada. Sem mudança em `server.mjs`, GIFs, `index.html` ou schema salvo em produção.
+
+## Pré-verificação do save antes de futura migração real
+- `apps/web/src/storage/migrationPreflight.ts` lê apenas a chave v0.1 e o draft v0.2; valida formato, detecta conflitos e devolve motivo. Não executa escrita.
+- `App.tsx` apresenta candidato/bloqueio como informação, sem ação para migrar. `candidate` não comprova ausência de corrida com o writer legado.
+- O fluxo de backup, nova chave oficial, writer único e rollback ainda depende de projeto/implementação futura. Plano de fases e riscos em `docs/SAVE_MIGRATION_PLAN.md`.
+- `.github/workflows/main-regression.yml` adiciona verificações permanentes de main/PR: testes de tipos, Vitest, build e E2E do jogo original, prévia React e simulação. Não muda o servidor público.

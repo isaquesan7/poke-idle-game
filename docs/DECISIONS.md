@@ -24,6 +24,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-016 | 2026-11-16 | EM IMPLEMENTAÇÃO | Persistência experimental v0.2 deve usar rascunho independente versionado, com `sourceRaw` v0.1 imutável, revisão e conflito se o original mudar. Só distribuir pontos/equipar dentro da simulação, sem promover ao save real até existir mecanismo de persistência seguro aprovado. Escritas exigem Web Locks no navegador; sem suporte, somente leitura. |
 
+| D-017 | 2026-11-16 | DIRETRIZ DE SEGURANÇA EM IMPLEMENTAÇÃO | Migração v0.1→v0.2 exige pré-verificação não destrutiva, backup fiel e chave oficial distinta. Não promover rascunho diretamente para v0.1. A v0.1 não usa Web Locks, logo CAS localStorage/Web Locks só no React NÃO asseguram cooperação com abas antigas. Migração real depende de writer único/política de rollout e testes de falha/rollback (ver `docs/SAVE_MIGRATION_PLAN.md`). |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.
