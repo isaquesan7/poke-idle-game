@@ -83,8 +83,8 @@ async function check(browser,label,viewport) {
   assert.ok(overflow <= 1,'Overflow horizontal em '+label+': '+overflow);
 
   // Jogo legado em outra aba atualiza o save: rascunho fica stale e bloqueado.
-  await page.evaluate((key,value)=>localStorage.setItem(key,value),
-    SAVE_KEY, JSON.stringify({...json,coins:999}));
+  await page.evaluate(({key,value})=>localStorage.setItem(key,value),
+    {key:SAVE_KEY,value:JSON.stringify({...json,coins:999})});
   await page.reload({waitUntil:'domcontentloaded'});
   await page.getByText('Save real mudou desde o início da simulação. Edições bloqueadas.').waitFor();
   assert.equal(await page.getByRole('button',{name:'Simular +1 ATK'}).count(),0);

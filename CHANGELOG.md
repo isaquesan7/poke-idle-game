@@ -2,6 +2,7 @@
 Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada aqui** e atualizar `docs/PROJECT_STATE.md` no mesmo trabalho. Não reescrever/ocultar histórico. Use data, escopo, commit, testes, deploy e pendências.
 
 ## [Unreleased]
+- Corrigido invocador Playwright E2E de draft para usar um único argumento serializável em `page.evaluate`; sem alterar o runtime de jogo ou armazenamento.
 - Ajuste do type guard TS no editor puro de treinador para garantir `trainer.manual` como objeto antes da atribuição. CI da branch reexecutado; sem efeito em produção.
 - 2026-11-16 · **Simulação v0.2 versionada (PR #6 em revisão)**: core puro para distribuir pontos e trocar equipamentos, chave independente `kanto-idle-lab-save-v02-draft` com fonte original e revisão, bloqueio Web Locks, detecção de conflitos, descarte explícito e testes Vitest/Chromium. Nenhuma alteração no save v0.1, sem deploy; CI pendente.
 - 2026-11-16: workflow `43975797448` da PR #5 em `SUCCESS`; validações TypeScript, Vitest, build, GIFs e Playwright do jogo antigo e da prévia React aprovadas. Lockfile atualizado em `3754a5ab`, capturas arquivadas em artifact `14281131270`. PR aberta, sem deploy. Revisão visual humana pendente.
