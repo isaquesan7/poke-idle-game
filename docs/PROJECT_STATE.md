@@ -143,3 +143,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Workflow de teste `foundation-core.yml` valida typecheck, Vitest, npm test legado, 151 GIFs e gera lockfile.
 - **Status:** não publicado; verificar CI e PR antes de integração futura.
 - **Próxima ação concreta:** confirmar CI e lockfile; adicionar testes de paridade sobre fixtures de save v0.1, começar camada de storage versionado; depois scaffolding React/Vite e migração progressiva sem trocar a UI de produção abruptamente.
+
+- CI de Foundation `43969560115` identificou `structuredClone` nos testes sem tipos DOM/Node do pacote puro; substituído por cópia rasa do fixture escalar. A correção não modifica regras nem runtime. Revalidar pipeline.

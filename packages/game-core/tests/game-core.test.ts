@@ -57,7 +57,7 @@ describe('afinidade e status Pokémon — GDD', () => {
   });
   it('usa base_stat PokéAPI, arredondamento HP e bônus treinadores aditivos', () => {
     const base = { hp: 45, attack: 49, defense: 49, specialAttack: 65, specialDefense: 65, speed: 45 };
-    const before = structuredClone(base);
+    const before = { ...base };
     const manual = zeroStats();
     const own = pokemonOwnStats(base, 20, manual);
     expect(own.hp).toBe(48);
