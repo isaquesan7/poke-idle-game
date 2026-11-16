@@ -86,3 +86,11 @@ game-core -X-> UI, DOM, Railway, fetch, localStorage
 - Cache e save local (chaves v0.1) mantidos sem migração de schema.
 - A arquitetura React/TypeScript/game-core segue como próximo ciclo, após
   revisar e publicar com segurança as mudanças incrementais.
+
+## Foundation v0.2 — implementação inicial em branch (2026-11-16)
+- `packages/game-core` inicia a separação do domínio em TypeScript puro, sem DOM, React, storage ou fetch.
+- Módulos: `stats` (treinador, Pokémon), `affinity`, `progression` (XP), `rewards` (expedições).
+- Contratos replicam as fórmulas v0.1, sem mudar a versão de save ou o runtime de produção.
+- A raiz adota workspaces npm, `npm run test:core` e `npm run typecheck:core`; Vitest e TypeScript são exclusivos do package de domínio.
+- React/Vite e a substituição gradual das funções de `index.html` ainda NÃO estão implementados.
+- CI em `.github/workflows/foundation-core.yml` verifica compatibilidade e gera lockfile nesta branch; nenhuma publicação automática na `main`.

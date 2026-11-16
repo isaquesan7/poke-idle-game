@@ -70,3 +70,10 @@ Com Node >=18: `npm run sync:gifs`, `npm run verify:gifs`, `npm test`.
 A integração depende da PR #1 (tokens CSS); não publicar na `main` sem revisão
 e testes. A licença e os direitos sobre Pokémon e ilustrações continuam dos
 respectivos titulares, não havendo permissão comercial implícita.
+
+
+## Foundation v0.2 (branch de desenvolvimento)
+- Pacote `packages/game-core`: TypeScript puro, regras de status, afinidade, XP e recompensas; sem acesso ao navegador.
+- Com Node 22 para testes: `npm ci`, `npm run typecheck:core`, `npm run test:core`, `npm test`.
+- A página pública v0.1 continua servida por `server.mjs`; este pacote ainda não está ligado à interface.
+- PRs #1 e #2 já foram integradas à `main` e os GIFs estão em produção (Railway `SUCCESS`). Os parágrafos anteriores sobre revisão descrevem o histórico das PRs.

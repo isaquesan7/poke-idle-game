@@ -14,7 +14,9 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 | D-009 | 2026-11-16 | DIRETRIZ APROVADA, A IMPLEMENTAR | Design Kanto Dark, paleta em `docs/DESIGN_SYSTEM.md`. |
 | D-010 | 2026-11-16 | VIGENTE | Documentar TODAS as futuras atualizações em `CHANGELOG.md` e handoff `docs/PROJECT_STATE.md`, além dos arquivos técnicos afetados, para continuidade entre chats. |
 | D-011 | 2026-11-16 | VIGENTE | Mudanças de código devem preferir branch+PR+testes; publicar após validação; preservar saves locais v0.1. |
-| D-012 | 2026-11-16 | EM REVISÃO | Preferir GIF local para Pokémon #001–#151 com PNG estático da PokéAPI como fallback; sincronizar apenas por leitura da origem `isaquesan7/pokedex` em SHA fixado, mantendo o projeto original intocado. Importar via workflow no PR e validar binários antes de merge. |
+| D-012 | 2026-11-16 | APROVADA E PUBLICADA | Preferir GIF local para Pokémon #001–#151 com PNG estático da PokéAPI como fallback; sincronizar apenas por leitura da origem `isaquesan7/pokedex` em SHA fixado, mantendo o projeto original intocado. Importar via workflow no PR e validar binários antes de merge. |
+
+| D-013 | 2026-11-16 | EM IMPLEMENTAÇÃO | Iniciar a v0.2 com game-core TypeScript puro e Vitest em branch independente; manter servidor e save v0.1 sem alteração até obter paridade e testes de UI. Introduzir npm workspaces gradualmente. |
 
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
