@@ -125,3 +125,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - `tests/e2e/browser-smoke.mjs` valida no Chromium: desktop 1365×768, mobile 390×844, CSS, GIF animado local, fallback estático, treinador (40 pontos manuais), telas, Pokédex 151, recarga de save e início de novo jogo.
 - `.github/workflows/browser-regression.yml` executa estes testes em GitHub Actions e anexa capturas. CI ainda precisa ser observado antes de merge.
 - **Próxima ação:** confirmar execução E2E e revisar capturas; corrigir qualquer regressão, depois revisar as duas PRs para integração na ordem CSS → GIFs.
+
+- Workflow E2E inicial `43967967387`: 9/9 unitários e GIFs passaram; navegador não iniciou pois `playwright@1.56.1 install --with-deps` não reconheceu Ubuntu 26.04. Ajustado para instalar Chromium sem gerenciamento automático de dependências SO; reexecutar e inspecionar logs. Sem problema de jogo confirmado nessa falha.
