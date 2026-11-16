@@ -226,3 +226,14 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Plano de migração real e rollback em `docs/SAVE_MIGRATION_PLAN.md`. Writer legado v0.1 não usa Web Locks; não permitir overwrite ou promoção automática.
 - STATUS: CI deste novo PR ainda precisa ser verificado; screenshots e testes históricos não substituem nova execução.
 - PRÓXIMO: validar CI, revisar, depois desenvolver schema do save oficial v0.2 e backups recuperáveis, sem habilitar escrita real.
+
+## ESTADO MAIS RECENTE — Foundation v0.2 integrada e validada (2026-11-16)
+- **Fonte de verdade atual:** GitHub `main` SHA `b099e7500826a21ab40adfe5a9593a89c3608769` (PRs #3, #4, #5, #6 e #7 **todas mescladas**). Antes de retomar qualquer trabalho, reconferir SHA e Railway.
+- **Railway produção:** deploy `13d5dd6f-e802-421a-8dc5-1e85ad37577f` chegou a **SUCCESS** para esse commit. Logs mostram `npm start`/`node server.mjs` ouvindo em 8080; Railway está configurado com healthcheck `/health`. Requisições HTTP externas diretas não foram verificáveis por esta sessão.
+- **CI permanente:** workflow `.github/workflows/main-regression.yml` foi adicionado pela PR #7. Execução em `main`: `43982463671` em **completed/success**, cobrindo npm ci, TS core/web, Vitest core/storage, build Vite, GIFs Kanto 151, E2E jogo v0.1, prévia React e simulação em desktop/mobile.
+- **Revisão visual:** artifact `14283676316` do workflow PR #7 (`43982231169`) foi aberto e os screenshots de desktop/mobile da prévia, incluindo o novo relatório de migração, foram examinados; layout legível e sem cortes aparentes. Os E2E checaram overflow.
+- **O que está realmente em produção:** a URL pública ainda serve a interface **v0.1** do `index.html`. O pacote `@kanto/game-core`, workspace React, projeção de treinador e simulação v0.2 estão na `main`, mas a interface React é experimental e **não é publicada como rota**, tampouco escreve no save real.
+- **Chaves de progresso:** v0.1 `kanto-idle-lab-save-v01` e cache `kanto-idle-lab-cache-v01` preservados. Draft somente para simulação em `kanto-idle-lab-save-v02-draft`; sem promoção automática.
+- **Migração:** `inspectMigrationReadiness()` é apenas checagem de leitura e não migra. Problema conhecido e bloqueador: a v0.1 escreve no localStorage sem Web Locks, de modo que o React não pode garantir transação com abas legadas. `docs/SAVE_MIGRATION_PLAN.md` tem fases A–E.
+- **Próxima ação objetiva:** modelar contrato de **save oficial v0.2** e backup recuperável (funções puras + fixtures) em nova branch, sem gravar save real. Depois projetar política de writer único, convergência entre abas e rollout opt-in, antes de habilitar qualquer commit de progresso.
+- **Limites conhecidos:** sem backend/contas, sem sincronização multi-dispositivo, sem antifraude; resultados dos workflows não equivalem a teste de uso humano completo. Nunca modificar `isaquesan7/pokedex`.
