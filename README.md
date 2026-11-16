@@ -111,3 +111,5 @@ As PRs #3 a #7 da Foundation foram integradas à `main` (SHA `b099e750`) com dep
 
 ## Ensaio do save oficial v0.2 e backup (sem migração real)
 A branch `feat/v02-official-save-backup-contract` prepara os contratos `OfficialSaveV02`, `OriginBackupV02` e `RecoveryBundleV02` e o plano de journal de recuperação, **somente em funções e testes**. O progresso do jogador não é movido e `kanto-idle-lab-save-v01` não recebe writes. O futuro snapshot v0.2 carrega o payload legado completo até que todas as mecânicas tenham sido portadas; backups preservam bytes exatos e podem ser inspecionados/extrair texto sem alterar dados. Execução de testes: `npm run typecheck:web` e `npm run test:web`. Ver limites em `docs/SAVE_MIGRATION_PLAN.md`.
+
+Validação do contrato de backup na PR #9: [GitHub Actions #43983797980](https://github.com/isaquesan7/poke-idle-game/actions/runs/43983797980) `SUCCESS`. A implementação continua sem `setItem`/`removeItem` e sem migração automática.

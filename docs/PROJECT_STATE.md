@@ -249,3 +249,11 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Vitest `officialSaveV02.test.ts` e `recoveryJournal.test.ts` incluem SHA-256 conhecido, emojis/UTF-8, whitespace exato, múltiplas instâncias, campos extras, versões futuras, adulteração de XP/moedas/afinidade, crashes após cada etapa, quota/permissões simuladas, marcador corrompido e conflito com save atualizado.
 - **Validação:** CI ainda precisa executar na PR; registrar resultado terminal ao terminar. **Deploy:** nenhum na main por esta branch.
 - **Próxima ação concreta:** validar TS/Vitest/E2E no GitHub, corrigir erros encontrados e só integrar PR segura. Próximo ciclo: definir writer único/política de transição v0.1→v0.2, depois preparar importação opt-in + export do backup, SEM gravação do save legado.
+
+### Validação do contrato v0.2 — 2026-11-16
+- PR #9: https://github.com/isaquesan7/poke-idle-game/pull/9.
+- GitHub Actions workflow `43983797980` em `completed/success`, SHA de código e documentação testado `0f7ce34ee95cbeb2607648ac9d91be9fe41edd41`.
+- Passaram: `npm ci`, `typecheck:core`, `test:core`, `typecheck:web`, `test:web` (incluindo novos testes de recuperação), `build:web`, testes Node da v0.1, validação dos 151 GIFs e três regressões E2E Chromium: jogo antigo, React e simulação.
+- Revisão do diff confirma alterações somente nos módulos `officialSaveV02`/`recoveryJournal`, seus testes e documentação. UI, servidor, dados dos jogadores e binários Kanto não foram modificados.
+- Status: **ainda em PR**, sem merge/deploy até esta anotação. Trabalho de escrita e coordenação transacional segue bloqueado; não confundir com save oficial ativado.
+- Próximo: integrar PR #9 após checagem final, monitorar deploy e registrar SHA de produção. Em seguida desenhar mecanismo de coordenação com writers cooperativos, export/import opt-in e testes de integração.
