@@ -69,7 +69,7 @@ export function editLegacyTrainerJson(
   }
   const trainer = source.trainer;
   const manual = manualPoints(trainer);
-  if (!manual || !validBudget(trainer.level, manual) || !record(trainer.equipped)) {
+  if (!manual || !validBudget(trainer.level, manual) || !record(trainer.manual) || !record(trainer.equipped)) {
     return { status: 'invalid', reason: 'Distribuição ou equipamentos inválidos no save.' };
   }
   if (action.type === 'invest') {

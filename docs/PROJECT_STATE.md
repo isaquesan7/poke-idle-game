@@ -197,3 +197,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Workflow `draft-persistence.yml` roda TypeScript/Vitest/build, E2E legado, prévia React e E2E novo, em branch isolada; não faz deploy ou escrita de lockfile.
 - **Status inicial:** testes CI pendentes de conclusão; não mesclar até checks e revisão visual. Main/Railway último verificado no commit `f410011fc6b490c0193acf97f2ce250744599d79`, deployment `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191` SUCCESS.
 - **Próxima etapa:** confirmar CI e corrigir falhas; revisar PR #6, depois projetar promoção transacional/versionada para progresso real, com backups e testes de concorrência, antes de permitir escrita no save legado.
+
+- CI inicial da PR #6 `43978177308` apontou erro TypeScript de narrow de `trainer.manual` como unknown; validação explícita `record(trainer.manual)` adicionada. Reexecutar pipeline. Falha de compilação, não de regras de jogo.
