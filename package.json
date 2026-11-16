@@ -1,0 +1,12 @@
+{
+  "name": "kanto-idle-lab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Protótipo experimental de RPG idle baseado em dados da PokéAPI — Season 1 Kanto",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --check server.mjs"
+  },
+  "engines": { "node": ">=18" }
+}
