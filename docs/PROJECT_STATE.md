@@ -201,3 +201,12 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - CI inicial da PR #6 `43978177308` apontou erro TypeScript de narrow de `trainer.manual` como unknown; validação explícita `record(trainer.manual)` adicionada. Reexecutar pipeline. Falha de compilação, não de regras de jogo.
 
 - CI `43978349573`: TypeScript, Vitest, build, GIFs, jogo v0.1 e React E2E passaram. Novo E2E de draft chegou até os testes de recarga/backup e falhou na própria chamada Playwright por 3 argumentos em `page.evaluate`; corrigido para argumento único em objeto. Nenhum erro funcional do jogo confirmado nessa falha.
+
+### Resultado final da validação de rascunhos v0.2 — 2026-11-16
+- Workflow de CI `43978606016` em **completed/success**, SHA testado `7e353da906e64421d95d99c0a21a7a0f75685cbe`.
+- Passaram `npm ci`, `typecheck:core`, Vitest do core, `typecheck:web`, Vitest do storage, build React/Vite, `npm test` da v0.1, `verify:gifs`, E2E legado, E2E React e E2E novo de simulação (desktop 1365px / mobile 390px).
+- Novos testes validaram criação explícita, aplicação de um ponto, troca de luvas, leitura após reload, exportação do JSON original byte a byte, bloqueio após atualização do save v0.1, descarte da simulação, isolamento de moedas/XP/insígnias e revisão contra alterações entre abas.
+- Capturas do browser no artifact GitHub `versioned-draft-regression`, ID `14281376764`, tamanho 3.521.168 bytes; pendente inspeção visual humana.
+- PR #6: https://github.com/isaquesan7/poke-idle-game/pull/6, base branch `feat/react-trainer-overview-v02`, **aberta, sem merge ou deploy**.
+- Situação de produção verificada: `main` SHA `f410011fc6b490c0193acf97f2ce250744599d79`; Railway `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191` SUCCESS. Repositório fonte `isaquesan7/pokedex` não foi alterado.
+- Próxima ação recomendada: revisar visualmente screenshots e código, depois integrar PRs #3 → #4 → #5 → #6 em ordem com checagens e monitoramento do Railway. Antes de ativar progresso real na UI React, criar projeto de migração com backup imutável, detecção de corrida, controle de versões e recuperação sem perda; não fazer promoção automática do draft à chave v0.1.

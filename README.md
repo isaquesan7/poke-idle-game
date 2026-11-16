@@ -95,3 +95,5 @@ Validação confirmada da PR #5: workflow `43975797448` (`SUCCESS`) e lockfile s
 
 ## Simulação versionada v0.2 (somente branch de revisão)
 A branch `feat/versioned-trainer-drafts-v02` adiciona rascunho experimental separado para testar atributos e equipamentos no React. O progresso de verdade v0.1 nunca é escrito pela nova interface. Rascunho: `kanto-idle-lab-save-v02-draft` com versão, revisão e cópia original; pode ser descartado explicitamente. Web Locks controlam as edições; sem essa API, a interface deixa de editar. Não existe sincronização de dispositivos nem promoção automática da simulação ao jogo publicado. Testes no CI `draft-persistence.yml`.
+
+Validação da simulação versionada: [GitHub Actions #43978606016](https://github.com/isaquesan7/poke-idle-game/actions/runs/43978606016), `SUCCESS`. Não há migração de progresso nem publicação desta PR na `main`.
