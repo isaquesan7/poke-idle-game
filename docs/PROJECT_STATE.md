@@ -145,3 +145,12 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Próxima ação concreta:** confirmar CI e lockfile; adicionar testes de paridade sobre fixtures de save v0.1, começar camada de storage versionado; depois scaffolding React/Vite e migração progressiva sem trocar a UI de produção abruptamente.
 
 - CI de Foundation `43969560115` identificou `structuredClone` nos testes sem tipos DOM/Node do pacote puro; substituído por cópia rasa do fixture escalar. A correção não modifica regras nem runtime. Revalidar pipeline.
+
+## Nova prévia React/v0.2 em revisão (2026-11-16)
+- Branch empilhada `refactor/react-foundation-v0.2`, baseada na branch da PR #3 (`refactor/foundation-v0.2`).
+- Workspace React/Vite/TypeScript adicionado em `apps/web`, CSS Modules usando tokens globais sem duplicar a paleta.
+- Adaptador `legacySave.ts` apenas lê e valida save v0.1; exporta backup do JSON original por botão, sem escrever nem apagar progresso. Testes unitários de dados ausentes, inválidos, versões futuras e storage bloqueado.
+- `npm run dev:web` (porta 5173) e `npm run build:web` são independentes do `npm start` do jogo v0.1.
+- Não confundir a prévia técnica de React com jogo portado; Pokédex/Arena/treino ainda funcionam exclusivamente no legado.
+- **Pendente:** conferir CI, build e lockfile da nova branch; depois integrar game-core e a prévia React somente com revisão e sem regressões.
+- **Próximo passo:** portar o dashboard/treinador ao React com uso de funções do game-core e testes de paridade; migrar telas gradualmente antes da substituição do runtime.

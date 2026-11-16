@@ -10,7 +10,11 @@
     "sync:gifs": "node scripts/sync-pokemon-gifs.mjs",
     "verify:gifs": "node scripts/verify-pokemon-gifs.mjs",
     "test:core": "npm run test --workspace @kanto/game-core",
-    "typecheck:core": "npm run typecheck --workspace @kanto/game-core"
+    "typecheck:core": "npm run typecheck --workspace @kanto/game-core",
+    "dev:web": "npm run dev --workspace @kanto/web",
+    "build:web": "npm run build --workspace @kanto/web",
+    "test:web": "npm run test --workspace @kanto/web",
+    "typecheck:web": "npm run typecheck --workspace @kanto/web"
   },
   "engines": {
     "node": ">=18"

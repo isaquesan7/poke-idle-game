@@ -18,6 +18,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-013 | 2026-11-16 | EM IMPLEMENTAÇÃO | Iniciar a v0.2 com game-core TypeScript puro e Vitest em branch independente; manter servidor e save v0.1 sem alteração até obter paridade e testes de UI. Introduzir npm workspaces gradualmente. |
 
+| D-014 | 2026-11-16 | EM IMPLEMENTAÇÃO | Criar prévia React/Vite em workspace independente com adaptador de save v0.1 somente leitura e backup; não mudar `server.mjs` nem UI publicada até paridade comprovada. Usar CSS Modules e tokens globais existentes. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.
