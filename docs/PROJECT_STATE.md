@@ -176,3 +176,12 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Workflow `trainer-overview-parity.yml` testa TypeScript, Vitest, build e Playwright desktop/mobile tanto da prévia quanto do legado.
 - Situação: ainda sem merge/deploy; produção verificada em `f410011fc6b490c0193acf97f2ce250744599d79`, deploy Railway `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191` SUCCESS.
 - Próxima ação: acompanhar CI e lockfile na feature branch; corrigir falhas, revisar screenshots, depois PR #3 → #4 → #5 na ordem. Ações de escrita do treinador/expedição exigem persistência versionada e testes antes de habilitar.
+
+### Validação da PR #5 — resultado confirmado (2026-11-16)
+- Workflow `43975797448`: `completed/success` para código/documentação do commit `49971de6e4853328ada574a36caa3ca15a37fb2d`.
+- Aprovaram as etapas `typecheck:core`, `test:core`, `typecheck:web`, `test:web`, `build:web`, `npm test`, `verify:gifs`, E2E da v0.1 e E2E da prévia React.
+- Lockfile de workspaces atualizado pelo GitHub Actions no commit `3754a5abf2be47281d9b845fa55c300309221244` (feature branch, sem publicação).
+- Capturas de tela disponíveis no artifact `trainer-overview-parity-screenshots` ID `14281131270` (cerca de 2,9 MB), ainda pendentes de revisão visual humana.
+- O repositório `main` permanece em `f410011fc6b490c0193acf97f2ce250744599d79` e Railway em `SUCCESS` para deploy `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191`; esta versão não foi publicada.
+- **Próxima ação concreta:** revisão humana/visual de capturas e código da PR #5, depois integrar #3 → #4 → #5 na ordem se aprovado. A migração de **ações de escrita** (distribuição de pontos e salva de equipamentos) exige adaptador versionado + teste de save de produção e não deve ser feita diretamente no objeto JSON.
+- **Observação:** commits históricos no início deste arquivo descrevem estados antigos de PRs; utilizar sempre este registro final junto do HEAD real do GitHub.

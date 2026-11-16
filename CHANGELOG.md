@@ -2,6 +2,7 @@
 Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada aqui** e atualizar `docs/PROJECT_STATE.md` no mesmo trabalho. Não reescrever/ocultar histórico. Use data, escopo, commit, testes, deploy e pendências.
 
 ## [Unreleased]
+- 2026-11-16: workflow `43975797448` da PR #5 em `SUCCESS`; validações TypeScript, Vitest, build, GIFs e Playwright do jogo antigo e da prévia React aprovadas. Lockfile atualizado em `3754a5ab`, capturas arquivadas em artifact `14281131270`. PR aberta, sem deploy. Revisão visual humana pendente.
 - 2026-11-16: branch `feat/react-trainer-overview-v02` contém catálogo fiel de Kanto v0.1, projeção read-only usando `@kanto/game-core`, telas React de visão geral e treinador, paridade e CI desktop/mobile. Sem mudanças no save ou deploy; aguardar validação CI.
 - Foundation v0.2: workflows `43969729234` (core), `43970439739` (build React) e `43971040708` (Playwright React/backup) em `SUCCESS`; lockfile e screenshots versionados/arquivados nas branches. PRs #3/#4 seguem abertas; sem deploy de v0.2.
 - Ajuste de asserção em Playwright para rótulo real `Nível treinador` da prévia React. Não altera app nem save.
