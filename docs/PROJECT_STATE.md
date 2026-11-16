@@ -154,3 +154,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Não confundir a prévia técnica de React com jogo portado; Pokédex/Arena/treino ainda funcionam exclusivamente no legado.
 - **Pendente:** conferir CI, build e lockfile da nova branch; depois integrar game-core e a prévia React somente com revisão e sem regressões.
 - **Próximo passo:** portar o dashboard/treinador ao React com uso de funções do game-core e testes de paridade; migrar telas gradualmente antes da substituição do runtime.
+
+- Regresso de navegador adicional `apps/web/tests/e2e/react-preview.mjs`: desktop/mobile, backup JSON byte a byte, armazenamento local preservado, versão futura rejeitada sem perda e capturas de tela. Workflow React inclui Chromium no runner `ubuntu-24.04`. Confirmar execução antes de merge.
