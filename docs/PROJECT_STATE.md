@@ -127,3 +127,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Próxima ação:** confirmar execução E2E e revisar capturas; corrigir qualquer regressão, depois revisar as duas PRs para integração na ordem CSS → GIFs.
 
 - Workflow E2E inicial `43967967387`: 9/9 unitários e GIFs passaram; navegador não iniciou pois `playwright@1.56.1 install --with-deps` não reconheceu Ubuntu 26.04. Ajustado para instalar Chromium sem gerenciamento automático de dependências SO; reexecutar e inspecionar logs. Sem problema de jogo confirmado nessa falha.
+
+- Diagnóstico adicional: o Playwright 1.56.1 não suporta Ubuntu 26.04 mesmo sem `--with-deps`; runner de navegador fixado em `ubuntu-24.04` e dependências instaladas nessa versão suportada. Aguardar nova execução antes de qualquer merge.
