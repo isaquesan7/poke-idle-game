@@ -11,6 +11,8 @@ on:
       - scripts/pokemon-sprites.js
       - index.html
       - server.mjs
+      - docs/PROJECT_STATE.md
+      - CHANGELOG.md
 
 permissions:
   contents: write

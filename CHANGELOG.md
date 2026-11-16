@@ -9,6 +9,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
   GitHub Actions para copiar os arquivos na branch. Importação **confirmada**
   em `f33122df` (151/151 GIFs, 56.582.531 bytes); workflow
   `43965699462` em `success`, verificador e testes aprovados.
+  Segundo workflow `43966345901` em `success`: smoke-test HTTP real de
+  `/health`, JS e GIFs 1/151, com HTTP 404 para IDs 0/152.
+  **Pendente:** navegador desktop/mobile e compatibilidade manual de save v0.1.
   Salvas locais intocadas. **Deploy:** nenhum para esta branch.
   **Próxima ação:** validar o workflow, testes e as duas PRs antes de merge.
 - PR em revisão na branch `refactor/css-tokens-comments-v01`: CSS retirado do HTML, `:root` com tokens de cores/sombras/raios/espaçamentos, classes documentadas, rotas CSS explícitas e testes de contrato; sem alteração de lógica de jogo, sem deploy na `main`.

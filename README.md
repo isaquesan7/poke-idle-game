@@ -58,7 +58,7 @@ Na branch `refactor/css-tokens-comments-v01` a camada visual foi dividida em `st
 `isaquesan7/pokedex` é projeto separado de referência. **Não modificar** sem autorização expressa e específica.
 
 
-## GIFs animados de Kanto — alteração em revisão
+## GIFs animados de Kanto — [PR #2 em revisão](https://github.com/isaquesan7/poke-idle-game/pull/2)
 Na branch `feat/kanto-animated-gifs-v01`, as imagens de Pokémon #001–#151
 passam a apontar para `assets/pokemon-gifs/poke_ID.gif`; se o GIF não estiver
 disponível, a interface utiliza a arte estática da PokéAPI como fallback.

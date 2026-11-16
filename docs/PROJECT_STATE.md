@@ -105,13 +105,17 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
   `success` em 2026-11-16; commit de assets `f33122df1360e7d1959f36d97455c21af82876a7`.
   Tree verificada: **151/151 GIFs presentes, sem faltantes, 56.582.531 bytes**.
   Pipeline executou `npm run verify:gifs` e `npm test` com sucesso.
+- **Validação HTTP concluída:** workflow `43966345901` em `success` para
+  código `4f90c404f1328681b1faef4783b811ca88b63f5f`. Foram aprovados
+  `/health`, arquivo JavaScript de imagem, `poke_1.gif`, `poke_151.gif`,
+  cabeçalho real do GIF, além do bloqueio HTTP 404 para IDs 0 e 152.
   Teste visual em navegador e regressão manual do jogo ainda pendentes.
 - Compatibilidade: `kanto-idle-lab-save-v01` e
   `kanto-idle-lab-cache-v01` permanecem inalteradas, sem migração.
 - **Status de deploy:** nenhuma alteração desta branch foi publicada em
   produção. `main` continua na v0.1 até revisão e merge.
-- **Próxima ação concreta:** conferir smoke-test HTTP no novo GitHub Actions,
-  revisar PR #1 e PR #2; somente depois de testes mobile/desktop e save v0.1
-  aprovar merges em ordem (CSS, GIF),
+- **Próxima ação concreta:** revisar a PR #1 (CSS) e PR #2 (GIFs),
+  testar manualmente desktop/mobile e carregar um save v0.1 preexistente;
+  somente após essa validação aprovar merges em ordem (CSS, GIF),
   verificar Railway `SUCCESS` e GET `/health`. A seguir iniciar v0.2
   Foundation com migração gradual, preservando saves e regras do GDD.
