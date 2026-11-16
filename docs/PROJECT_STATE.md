@@ -158,3 +158,10 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Regresso de navegador adicional `apps/web/tests/e2e/react-preview.mjs`: desktop/mobile, backup JSON byte a byte, armazenamento local preservado, versão futura rejeitada sem perda e capturas de tela. Workflow React inclui Chromium no runner `ubuntu-24.04`. Confirmar execução antes de merge.
 
 - Primeira execução do browser test React `43970812875`: renderização e save identificados, falha apenas na asserção textual do teste (`Treinador` vs rótulo existente `Nível treinador`, diferenças de maiúsculas). Ajuste do teste; nenhuma alteração funcional necessária até aqui.
+
+## CI comprovado e handoff da Foundation (2026-11-16)
+- **PR #3 `refactor/foundation-v0.2`:** CI `43969729234` em `SUCCESS`; TypeScript strict, Vitest, testes Node legados e 151 GIFs passaram. `package-lock.json` registrado no commit `83ac22169605daa6476653494ad3bc55c288c1e1`.
+- **PR #4 `refactor/react-foundation-v0.2`:** build React/Vite e testes Vitest/typecheck aprovados no workflow `43970439739`.
+- **Regressão de browser da prévia:** workflow `43971040708` em `SUCCESS`; testou desktop 1365px, mobile 390px, download fiel do JSON v0.1, storage não modificado, save versão futura preservado. Capturas no artifact `react-foundation-screenshots` (ID 14279555043). Capturas ainda não inspecionadas visualmente por pessoa.
+- **Produção:** nenhuma das PRs #3/#4 foi mesclada na `main`, que segue no commit `f410011fc6b490c0193acf97f2ce250744599d79` (Railway último deploy validado `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191`, `SUCCESS`).
+- **Continuidade:** revisar PRs na ordem #3 → #4 e seu impacto operacional; manter `server.mjs` e chaves de save. Próximo passo é conectar dashboard/treinador React ao game-core com testes de paridade sobre save v0.1 antes de substituir qualquer parte da UI publicada.
