@@ -1,0 +1,45 @@
+name: Importar GIFs Kanto na branch de desenvolvimento
+
+on:
+  push:
+    branches:
+      - feat/kanto-animated-gifs-v01
+    paths:
+      - .github/workflows/import-kanto-gifs.yml
+      - scripts/sync-pokemon-gifs.mjs
+      - scripts/verify-pokemon-gifs.mjs
+      - scripts/pokemon-sprites.js
+      - index.html
+      - server.mjs
+
+permissions:
+  contents: write
+
+jobs:
+  import-gifs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Importar 151 GIFs somente da origem autorizada
+        run: npm run sync:gifs
+      - name: Conferir arquivos, contratos e sintaxe
+        run: |
+          npm run verify:gifs
+          npm test
+      - name: Registrar GIFs nesta branch (nunca na Pokédex original ou main)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/pokemon-gifs/
+          if git diff --cached --quiet; then
+            echo "Nenhuma alteração de GIF"
+            exit 0
+          fi
+          git commit -m "assets: importar 151 GIFs de Kanto com origem fixada"
+          git push origin HEAD:feat/kanto-animated-gifs-v01

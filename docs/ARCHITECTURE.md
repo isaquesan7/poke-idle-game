@@ -72,3 +72,17 @@ game-core -X-> UI, DOM, Railway, fetch, localStorage
 - Railway service: `203a6bdd-b6b7-4016-b7b9-208e390af794`.
 - Healthcheck: `GET /health`. GitHub `main` conectada, sem SHA fixado.
 - Github `isaquesan7/pokedex` é outro projeto: NÃO tocar.
+
+
+## Iteração de imagens animadas em revisão — 2026-11-16
+- Branch de feature \`feat/kanto-animated-gifs-v01\`, empilhada sobre
+  \`refactor/css-tokens-comments-v01\` (PR #1).
+- \`scripts/pokemon-sprites.js\` concentra o caminho local dos GIFs 1–151
+  e o fallback estático da PokéAPI, sem tocar no estado do jogo.
+- \`server.mjs\` tem allowlist estrita de IDs 1–151 e entrega GIFs por stream;
+  os arquivos binários ficam em \`assets/pokemon-gifs/\`.
+- Importador com origem fixada em SHA, validação offline e workflow GitHub
+  exclusivo da branch; **não altera \`isaquesan7/pokedex\` nem \`main\`**.
+- Cache e save local (chaves v0.1) mantidos sem migração de schema.
+- A arquitetura React/TypeScript/game-core segue como próximo ciclo, após
+  revisar e publicar com segurança as mudanças incrementais.

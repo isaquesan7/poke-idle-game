@@ -85,3 +85,31 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Teste local preparatório: CSS analisado por parser, screenshots comparados no desktop (1365px) e mobile (390px), idênticos pixel a pixel em sessão de comparação de estilos; verificar novamente após revisão/merge.
 - **Status: PR pendente; não publicado em produção.** A branch `main` e o site Railway permanecem na versão jogável anterior. Conferir HEAD/deploy antes de retomar.
 - Próxima ação: revisar o PR, rodar `npm test`, validar CSS servido via HTTP e então, com aprovação, mesclar na `main` e observar deploy `SUCCESS`.
+
+
+## Continuidade — integração de GIFs Kanto (2026-11-16)
+- **Verificado antes de codar:** \`main\` HEAD \`49f22f64ad6048b2aa0c2b13b993240e77958bf1\`.
+  Railway \`kanto-idle-web\` deploy \`cc948f22-66c7-4578-9f63-8f8bb05894de\`,
+  status terminal \`SUCCESS\`, commit \`49f22f64\` (deploy anterior a esta mudança).
+- PR #1: \`refactor/css-tokens-comments-v01\`, HEAD
+  \`02ff0c7a146b25f4641de62824c389d576edd1e5\`, aberta e sem conflitos.
+- **Escopo nesta branch:** \`feat/kanto-animated-gifs-v01\` criada sobre a PR #1
+  (PR empilhada; não atualizar \`main\` por conta própria).
+- Fonte confirmada: \`isaquesan7/pokedex/config/img/pokemons/poke_1.gif\`
+  a \`poke_151.gif\`, 151 arquivos, ~56,6 MB; referência imutável
+  \`d86ba82e1f6b2b0da708ff6c304b71e1f70aa139\`.
+- Implementação preparada: resolver central de imagens (GIF local 1–151,
+  fallback PNG em erro), rota HTTP restrita de GIFs, script para copiar 151
+  arquivos para ESTA branch, verificador de GIF e testes unitários.
+- Os binários serão adicionados pelo GitHub Actions após o push;
+  **verificar log, contagem no GitHub e execução dos testes antes de afirmar
+  que os assets estão importados**.
+- Compatibilidade: \`kanto-idle-lab-save-v01\` e
+  \`kanto-idle-lab-cache-v01\` permanecem inalteradas, sem migração.
+- **Status de deploy:** nenhuma alteração desta branch foi publicada em
+  produção. \`main\` continua na v0.1 até revisão e merge.
+- **Próxima ação concreta:** confirmar importação de 151 GIFs na branch,
+  conferir GitHub Actions e \`npm test\`; revisar PR #1 e a PR GIF; somente
+  depois de testes mobile/desktop aprovar merges em ordem (CSS, GIF),
+  verificar Railway \`SUCCESS\` e GET \`/health\`. A seguir iniciar v0.2
+  Foundation com migração gradual, preservando saves e regras do GDD.
