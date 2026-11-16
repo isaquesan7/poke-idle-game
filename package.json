@@ -8,9 +8,15 @@
     "start": "node server.mjs",
     "test": "node --check server.mjs && node --check scripts/pokemon-sprites.js && node --test tests/*.test.mjs",
     "sync:gifs": "node scripts/sync-pokemon-gifs.mjs",
-    "verify:gifs": "node scripts/verify-pokemon-gifs.mjs"
+    "verify:gifs": "node scripts/verify-pokemon-gifs.mjs",
+    "test:core": "npm run test --workspace @kanto/game-core",
+    "typecheck:core": "npm run typecheck --workspace @kanto/game-core"
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ]
 }

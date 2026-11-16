@@ -129,3 +129,17 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Workflow E2E inicial `43967967387`: 9/9 unitários e GIFs passaram; navegador não iniciou pois `playwright@1.56.1 install --with-deps` não reconheceu Ubuntu 26.04. Ajustado para instalar Chromium sem gerenciamento automático de dependências SO; reexecutar e inspecionar logs. Sem problema de jogo confirmado nessa falha.
 
 - Diagnóstico adicional: o Playwright 1.56.1 não suporta Ubuntu 26.04 mesmo sem `--with-deps`; runner de navegador fixado em `ubuntu-24.04` e dependências instaladas nessa versão suportada. Aguardar nova execução antes de qualquer merge.
+
+## v0.1 — PRs integradas e produção verificada em 2026-11-16
+- PR #1 CSS integrada, commit de merge `ec94f7ce0d2ba998b33ff0dfef5f52cf178d4555`; Railway deploy `07b1754a-6272-44c5-ad1c-576c0a4b4223` em `SUCCESS`.
+- PR #2 GIFs integrada, `main` commit `f410011fc6b490c0193acf97f2ce250744599d79`; Railway deploy `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191` em `SUCCESS`.
+- Regressão Chromium desktop/mobile e save v0.1 no workflow `43968276615` em `SUCCESS`; imagens e testes do navegador validados no GitHub Actions.
+- A origem `isaquesan7/pokedex` permanece intocada; nenhuma migração de save foi feita.
+
+## Iteração em desenvolvimento — Foundation v0.2
+- Branch independente: `refactor/foundation-v0.2`, base `f410011f` (production `main`).
+- Primeira entrega: pacote TypeScript puro de status treinador/Pokémon, afinidade, XP e expedições, com Vitest e tsconfig strict.
+- O JavaScript legada de `index.html` continua como executável atual; o `game-core` ainda NÃO está integrado à UI. React/Vite ainda pendentes.
+- Workflow de teste `foundation-core.yml` valida typecheck, Vitest, npm test legado, 151 GIFs e gera lockfile.
+- **Status:** não publicado; verificar CI e PR antes de integração futura.
+- **Próxima ação concreta:** confirmar CI e lockfile; adicionar testes de paridade sobre fixtures de save v0.1, começar camada de storage versionado; depois scaffolding React/Vite e migração progressiva sem trocar a UI de produção abruptamente.
