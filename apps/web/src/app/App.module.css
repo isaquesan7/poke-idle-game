@@ -124,3 +124,35 @@
   background: var(--color-surface);
   color: var(--color-text-muted);
 }
+
+
+/* .simulation: separa visivelmente o rascunho do progresso real. */
+.simulation {
+  padding: var(--space-5);
+  margin-top: var(--space-5);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+}
+
+/* .simulation h2: título da área de treino simulado. */
+.simulation h2 {
+  margin: 0;
+}
+
+/* .draftStatus: mensagem de versão e integridade do rascunho. */
+.draftStatus {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* .draftDiscard: descarte explícito somente do rascunho, não do save v0.1. */
+.draftDiscard {
+  min-height: 44px;
+  padding: var(--space-3) var(--space-5);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}

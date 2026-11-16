@@ -1,0 +1,51 @@
+name: Draft v0.2 — testes de preservação do save v0.1
+
+on:
+  push:
+    branches:
+      - feat/versioned-trainer-drafts-v02
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  draft-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar workspaces de forma reproduzível
+        run: npm ci
+      - name: Verificar core, storage, build, assets e runtime v0.1
+        run: |
+          npm run typecheck:core
+          npm run test:core
+          npm run typecheck:web
+          npm run test:web
+          npm run build:web
+          npm test
+          npm run verify:gifs
+      - name: Instalar Chromium para o E2E
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Verificar jogo legado no navegador
+        run: node tests/e2e/browser-smoke.mjs
+      - name: Verificar prévia React (desktop e mobile)
+        run: node apps/web/tests/e2e/react-preview.mjs
+      - name: Verificar isolamento do rascunho v0.2
+        run: node apps/web/tests/e2e/draft-preview.mjs
+      - name: Arquivar capturas para comparação
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: versioned-draft-regression
+          path: |
+            artifacts/browser/*.png
+            artifacts/react-preview/*.png
+            artifacts/draft-preview/*.png
+          if-no-files-found: ignore

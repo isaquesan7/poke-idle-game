@@ -91,3 +91,9 @@ PR #3 e PR #4 permanecem em revisão, com GitHub Actions aprovado para core, bui
 A branch `feat/react-trainer-overview-v02` prepara as telas React alimentadas pelo `@kanto/game-core`, mantendo os bônus, o limite manual e a afinidade da v0.1. `npm run dev:web` abre a prévia somente leitura do save/cache da própria origem. Não há treino, equipamento, resgate ou migração de dados; o pipeline está em `.github/workflows/trainer-overview-parity.yml`.
 
 Validação confirmada da PR #5: workflow `43975797448` (`SUCCESS`) e lockfile sincronizado na branch. A produção v0.1 permanece inalterada; migrar comandos de escrita requer desenho posterior de persistência versionada.
+
+
+## Simulação versionada v0.2 (somente branch de revisão)
+A branch `feat/versioned-trainer-drafts-v02` adiciona rascunho experimental separado para testar atributos e equipamentos no React. O progresso de verdade v0.1 nunca é escrito pela nova interface. Rascunho: `kanto-idle-lab-save-v02-draft` com versão, revisão e cópia original; pode ser descartado explicitamente. Web Locks controlam as edições; sem essa API, a interface deixa de editar. Não existe sincronização de dispositivos nem promoção automática da simulação ao jogo publicado. Testes no CI `draft-persistence.yml`.
+
+Validação da simulação versionada: [GitHub Actions #43978606016](https://github.com/isaquesan7/poke-idle-game/actions/runs/43978606016), `SUCCESS`. Não há migração de progresso nem publicação desta PR na `main`.

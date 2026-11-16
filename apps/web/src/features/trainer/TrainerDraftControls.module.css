@@ -1,0 +1,76 @@
+/* .panel: contêiner do editor de simulação, não do save real. */
+.panel {
+  margin-top: var(--space-5);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-raised);
+}
+
+/* .note: alerta persistente de que o progresso real não muda. */
+.note {
+  color: var(--color-text-muted);
+  font-size: .9rem;
+}
+
+/* .points: adapta os seis controles de pontos a qualquer viewport. */
+.points {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+/* .point: agrupa atributo e botão de incremento. */
+.point {
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  padding: var(--space-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* .point button: aplica somente uma edição no rascunho versionado. */
+.point button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-primary);
+  color: var(--color-bg);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* .point button:disabled: impede ações que excedem orçamento ou teto. */
+.point button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* .equipment: distribui os nove slots de equipamento. */
+.equipment {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+/* .equipmentRow: identifica explicitamente o slot que será simulado. */
+.equipmentRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* .equipmentRow select: menu legível, sem valores visuais hardcoded. */
+.equipmentRow select {
+  min-height: 44px;
+  max-width: 100%;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2);
+}

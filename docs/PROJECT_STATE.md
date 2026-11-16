@@ -185,3 +185,28 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - O repositório `main` permanece em `f410011fc6b490c0193acf97f2ce250744599d79` e Railway em `SUCCESS` para deploy `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191`; esta versão não foi publicada.
 - **Próxima ação concreta:** revisão humana/visual de capturas e código da PR #5, depois integrar #3 → #4 → #5 na ordem se aprovado. A migração de **ações de escrita** (distribuição de pontos e salva de equipamentos) exige adaptador versionado + teste de save de produção e não deve ser feita diretamente no objeto JSON.
 - **Observação:** commits históricos no início deste arquivo descrevem estados antigos de PRs; utilizar sempre este registro final junto do HEAD real do GitHub.
+
+## 2026-11-16 — Persistência versionada de simulação v0.2 (PR #6, em revisão)
+- Branch `feat/versioned-trainer-drafts-v02` derivada da PR #5 em `5ebcecb82ecb6f4bd5740ae19e731bec53f2f0c3`. Depende da cadeia PR #3 → #4 → #5; **não integrada à main**.
+- `packages/game-core/src/legacy/trainerDraft.ts`: regras puras para `invest` e `equip`, teto manual 40 e orçamento de 2 pontos por nível. Rejeita alterações externas a `trainer.manual` e `trainer.equipped` e mantém moedas, XP, Pokémon, insígnias e expedições intactos.
+- `apps/web/src/storage/draftSave.ts`: envelope `schemaVersion:2` na chave **independente** `kanto-idle-lab-save-v02-draft`, contendo origem v0.1 bruta, cópia de trabalho e revisão monotônica.
+- Nunca grava ou apaga `kanto-idle-lab-save-v01`. A criação é explícita; leitura valida invariantes e exige JSON original byte a byte igual ao atual. Se o legado mudar em outra aba, o rascunho torna-se `stale` e bloqueia edições; conflitos de revisão, versões futuras, dados corrompidos e quota são tratados sem redefinir nada.
+- No browser, criação/edição/descarte são serializadas por `navigator.locks.request` (Web Locks); sem suporte, a UI bloqueia escritas. Web Locks não integram o código legado da v0.1; sua escrita independente pode ocorrer a qualquer momento, por isso há verificações antes/depois e nenhuma promoção automática do rascunho.
+- `TrainerDraftControls.tsx`: permite testar incremento de atributo e troca de 9 slots **apenas na simulação**. A interface informa explicitamente que alterações não são progresso real; descarte requer confirmação e remove só o rascunho.
+- `apps/web/tests/e2e/draft-preview.mjs` acrescenta browser desktop/mobile: iniciar simulação, distribuir ponto, equipar, recarregar, baixar JSON v0.1, detectar save de outra aba e descartar sem perder progresso.
+- Workflow `draft-persistence.yml` roda TypeScript/Vitest/build, E2E legado, prévia React e E2E novo, em branch isolada; não faz deploy ou escrita de lockfile.
+- **Status inicial:** testes CI pendentes de conclusão; não mesclar até checks e revisão visual. Main/Railway último verificado no commit `f410011fc6b490c0193acf97f2ce250744599d79`, deployment `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191` SUCCESS.
+- **Próxima etapa:** confirmar CI e corrigir falhas; revisar PR #6, depois projetar promoção transacional/versionada para progresso real, com backups e testes de concorrência, antes de permitir escrita no save legado.
+
+- CI inicial da PR #6 `43978177308` apontou erro TypeScript de narrow de `trainer.manual` como unknown; validação explícita `record(trainer.manual)` adicionada. Reexecutar pipeline. Falha de compilação, não de regras de jogo.
+
+- CI `43978349573`: TypeScript, Vitest, build, GIFs, jogo v0.1 e React E2E passaram. Novo E2E de draft chegou até os testes de recarga/backup e falhou na própria chamada Playwright por 3 argumentos em `page.evaluate`; corrigido para argumento único em objeto. Nenhum erro funcional do jogo confirmado nessa falha.
+
+### Resultado final da validação de rascunhos v0.2 — 2026-11-16
+- Workflow de CI `43978606016` em **completed/success**, SHA testado `7e353da906e64421d95d99c0a21a7a0f75685cbe`.
+- Passaram `npm ci`, `typecheck:core`, Vitest do core, `typecheck:web`, Vitest do storage, build React/Vite, `npm test` da v0.1, `verify:gifs`, E2E legado, E2E React e E2E novo de simulação (desktop 1365px / mobile 390px).
+- Novos testes validaram criação explícita, aplicação de um ponto, troca de luvas, leitura após reload, exportação do JSON original byte a byte, bloqueio após atualização do save v0.1, descarte da simulação, isolamento de moedas/XP/insígnias e revisão contra alterações entre abas.
+- Capturas do browser no artifact GitHub `versioned-draft-regression`, ID `14281376764`, tamanho 3.521.168 bytes; pendente inspeção visual humana.
+- PR #6: https://github.com/isaquesan7/poke-idle-game/pull/6, base branch `feat/react-trainer-overview-v02`, **aberta, sem merge ou deploy**.
+- Situação de produção verificada: `main` SHA `f410011fc6b490c0193acf97f2ce250744599d79`; Railway `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191` SUCCESS. Repositório fonte `isaquesan7/pokedex` não foi alterado.
+- Próxima ação recomendada: revisar visualmente screenshots e código, depois integrar PRs #3 → #4 → #5 → #6 em ordem com checagens e monitoramento do Railway. Antes de ativar progresso real na UI React, criar projeto de migração com backup imutável, detecção de corrida, controle de versões e recuperação sem perda; não fazer promoção automática do draft à chave v0.1.

@@ -13,3 +13,6 @@ export {
   effectiveLegacyTitle
 } from './legacy/catalog.js';
 export type { LegacyItem, LegacyBadge, LegacyTitle, LegacySpecies } from './legacy/catalog.js';
+
+export { editLegacyTrainerJson, validLegacyTrainerDraft, LEGACY_EQUIPMENT_SLOTS } from './legacy/trainerDraft.js';
+export type { TrainerDraftAction, TrainerDraftEditResult } from './legacy/trainerDraft.js';

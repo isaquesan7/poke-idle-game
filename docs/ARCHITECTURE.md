@@ -107,3 +107,10 @@ game-core -X-> UI, DOM, Railway, fetch, localStorage
 - O componente não copia fórmulas: totals/status/expedição são derivados do core. Falta de base_stat torna status indisponível, não zero.
 - Testes de paridade com fixture v0.1 e Playwright desktop/mobile também cobrem o jogo antigo. A UI v0.1 continua publicada.
 - PR #5 empilhada sobre #4, esta sobre #3; nenhuma etapa muda automaticamente a `main`.
+
+## Simulação versionada em branch isolada — PR #6
+- Camada de domínio pura: `packages/game-core/src/legacy/trainerDraft.ts`, validando comandos e alterações de `trainer.manual`/`trainer.equipped` sem mudar recompensas ou estado de outros sistemas.
+- Adaptador `apps/web/src/storage/draftSave.ts`: somente chave `kanto-idle-lab-save-v02-draft`, envelope `{schemaVersion:2,revision,sourceRaw,workingRaw}`. `sourceRaw` é JSON exato v0.1 para detecção de divergência e backup; `workingRaw` contém apenas edição permitida.
+- UI: `App.tsx` sob Web Locks para todas as operações; `TrainerDraftControls` permite simulação opt-in, não grava progresso real. Se o jogo v0.1 alterar sua chave, a edição é interrompida e preservada para descarte explícito.
+- A comparação de revisão em localStorage não é transação atômica isoladamente. Web Locks sincronizam apenas clientes que cooperam; NÃO prometer segurança inter-aba contra o código v0.1 que não usa locks. Evitar promoção automática até implementar mecanismo versionado de produção.
+- Tests: Vitest do core e storage, Playwright da prévia e do legado, execução no CI dedicada. Sem mudança em `server.mjs`, GIFs, `index.html` ou schema salvo em produção.
