@@ -43,6 +43,18 @@ async function checkValid(browser, label, viewport) {
   await page.getByText('Progresso v0.1 encontrado neste navegador').waitFor();
   assert.match(await page.locator('main').innerText(), /Nível treinador/);
   assert.match(await page.locator('main').innerText(), /321/);
+  // As duas novas telas leem o mesmo save; nenhum clique deve gravar progresso.
+  await page.getByRole('heading', { name: /Centro de comando de Treinador de Kanto/ }).waitFor();
+  await page.getByText('Pokémon ativo: Bulbasaur').waitFor();
+  await page.getByRole('button', { name: 'Treinador', exact: true }).click();
+  await page.getByRole('heading', { name: 'Treinador de Kanto', exact: true }).waitFor();
+  await page.getByText('40 manual + 0 extra').waitFor();
+  await page.screenshot({
+    path: new URL(label+'-trainer.png', shots).pathname, animations:'disabled', fullPage:true
+  });
+  assert.equal(await page.evaluate(key => localStorage.getItem(key), SAVE), raw);
+  await page.getByRole('button', { name: 'Visão geral' }).click();
+  await page.getByRole('heading', { name: /Centro de comando de Treinador de Kanto/ }).waitFor();
   await page.screenshot({
     path: new URL(label+'.png', shots).pathname, animations:'disabled', fullPage:true
   });
