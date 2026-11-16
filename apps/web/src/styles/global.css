@@ -1,0 +1,33 @@
+/**
+ * Estilo global mínimo do app v0.2. As cores, tamanhos e sombras vêm de
+ * styles/tokens.css na raiz; componentes usam CSS Modules comentados.
+ */
+
+/* html: mantém o fundo escuro da prévia experimental. */
+html {
+  background: var(--color-bg);
+  color-scheme: dark;
+}
+
+/* body: aplica tipografia e remove margem padrão. */
+body {
+  margin: 0;
+  font: var(--font-body);
+  color: var(--color-text);
+}
+
+/* *: torna padding e border previsíveis nos componentes. */
+* {
+  box-sizing: border-box;
+}
+
+/* button e a: garante herança tipográfica e comportamento consistente. */
+button, a {
+  font: inherit;
+}
+
+/* :focus-visible: preserva navegação por teclado com cor oficial. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

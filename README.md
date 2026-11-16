@@ -77,3 +77,11 @@ respectivos titulares, não havendo permissão comercial implícita.
 - Com Node 22 para testes: `npm ci`, `npm run typecheck:core`, `npm run test:core`, `npm test`.
 - A página pública v0.1 continua servida por `server.mjs`; este pacote ainda não está ligado à interface.
 - PRs #1 e #2 já foram integradas à `main` e os GIFs estão em produção (Railway `SUCCESS`). Os parágrafos anteriores sobre revisão descrevem o histórico das PRs.
+
+
+## Prévia React independente (trabalho em branch)
+`npm run dev:web` inicia o workspace `apps/web` (Node 22); `npm run typecheck:web`, `npm run test:web` e `npm run build:web` validam os contratos. A UI atual ainda é o `index.html` legado e não é substituída por essa prévia. Para o backup de save v0.1, a prévia apenas lê e exporta o JSON; dados de domínios distintos não são compartilhados.
+
+
+### Situação de validação da Foundation
+PR #3 e PR #4 permanecem em revisão, com GitHub Actions aprovado para core, build React e regressão Chromium do backup de save v0.1. A `main`/Railway ainda executa o jogo v0.1 com GIFs. Ver `docs/PROJECT_STATE.md` para commits, runs e próxima etapa.

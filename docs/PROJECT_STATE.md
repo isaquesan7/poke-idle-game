@@ -145,3 +145,23 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Próxima ação concreta:** confirmar CI e lockfile; adicionar testes de paridade sobre fixtures de save v0.1, começar camada de storage versionado; depois scaffolding React/Vite e migração progressiva sem trocar a UI de produção abruptamente.
 
 - CI de Foundation `43969560115` identificou `structuredClone` nos testes sem tipos DOM/Node do pacote puro; substituído por cópia rasa do fixture escalar. A correção não modifica regras nem runtime. Revalidar pipeline.
+
+## Nova prévia React/v0.2 em revisão (2026-11-16)
+- Branch empilhada `refactor/react-foundation-v0.2`, baseada na branch da PR #3 (`refactor/foundation-v0.2`).
+- Workspace React/Vite/TypeScript adicionado em `apps/web`, CSS Modules usando tokens globais sem duplicar a paleta.
+- Adaptador `legacySave.ts` apenas lê e valida save v0.1; exporta backup do JSON original por botão, sem escrever nem apagar progresso. Testes unitários de dados ausentes, inválidos, versões futuras e storage bloqueado.
+- `npm run dev:web` (porta 5173) e `npm run build:web` são independentes do `npm start` do jogo v0.1.
+- Não confundir a prévia técnica de React com jogo portado; Pokédex/Arena/treino ainda funcionam exclusivamente no legado.
+- **Pendente:** conferir CI, build e lockfile da nova branch; depois integrar game-core e a prévia React somente com revisão e sem regressões.
+- **Próximo passo:** portar o dashboard/treinador ao React com uso de funções do game-core e testes de paridade; migrar telas gradualmente antes da substituição do runtime.
+
+- Regresso de navegador adicional `apps/web/tests/e2e/react-preview.mjs`: desktop/mobile, backup JSON byte a byte, armazenamento local preservado, versão futura rejeitada sem perda e capturas de tela. Workflow React inclui Chromium no runner `ubuntu-24.04`. Confirmar execução antes de merge.
+
+- Primeira execução do browser test React `43970812875`: renderização e save identificados, falha apenas na asserção textual do teste (`Treinador` vs rótulo existente `Nível treinador`, diferenças de maiúsculas). Ajuste do teste; nenhuma alteração funcional necessária até aqui.
+
+## CI comprovado e handoff da Foundation (2026-11-16)
+- **PR #3 `refactor/foundation-v0.2`:** CI `43969729234` em `SUCCESS`; TypeScript strict, Vitest, testes Node legados e 151 GIFs passaram. `package-lock.json` registrado no commit `83ac22169605daa6476653494ad3bc55c288c1e1`.
+- **PR #4 `refactor/react-foundation-v0.2`:** build React/Vite e testes Vitest/typecheck aprovados no workflow `43970439739`.
+- **Regressão de browser da prévia:** workflow `43971040708` em `SUCCESS`; testou desktop 1365px, mobile 390px, download fiel do JSON v0.1, storage não modificado, save versão futura preservado. Capturas no artifact `react-foundation-screenshots` (ID 14279555043). Capturas ainda não inspecionadas visualmente por pessoa.
+- **Produção:** nenhuma das PRs #3/#4 foi mesclada na `main`, que segue no commit `f410011fc6b490c0193acf97f2ce250744599d79` (Railway último deploy validado `c0d23c33-f3e7-4ad5-8e5c-cb2b21bb8191`, `SUCCESS`).
+- **Continuidade:** revisar PRs na ordem #3 → #4 e seu impacto operacional; manter `server.mjs` e chaves de save. Próximo passo é conectar dashboard/treinador React ao game-core com testes de paridade sobre save v0.1 antes de substituir qualquer parte da UI publicada.

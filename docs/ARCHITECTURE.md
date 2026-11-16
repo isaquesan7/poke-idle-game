@@ -94,3 +94,9 @@ game-core -X-> UI, DOM, Railway, fetch, localStorage
 - A raiz adota workspaces npm, `npm run test:core` e `npm run typecheck:core`; Vitest e TypeScript são exclusivos do package de domínio.
 - React/Vite e a substituição gradual das funções de `index.html` ainda NÃO estão implementados.
 - CI em `.github/workflows/foundation-core.yml` verifica compatibilidade e gera lockfile nesta branch; nenhuma publicação automática na `main`.
+
+## Prévia React (PR empilhada após game-core)
+- `apps/web` é um workspace React + TypeScript + Vite isolado; `npm run dev:web` abre a prévia em 5173, `npm run build:web` compila.
+- `apps/web/src/storage/legacySave.ts` fornece parsing e leitura somente de v0.1, sem gravar nem converter estado. Backup pode baixar o JSON original.
+- A prévia usa `styles/tokens.css` da raiz como fonte única de cores, raios e sombras; CSS Modules documentados na interface.
+- O `server.mjs` do Railway e o HTML jogável v0.1 permanecem intocados. Não há troca de produção, migração de schema ou sincronização de saves entre origens.

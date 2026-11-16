@@ -1,0 +1,89 @@
+/* .shell: contêiner central responsivo da prévia React. */
+.shell {
+  max-width: var(--layout-max-width);
+  margin: 0 auto;
+  padding: var(--space-6);
+}
+
+/* .header: apresentação e contextualização da versão experimental. */
+.header {
+  margin-bottom: var(--space-6);
+}
+
+/* .eyebrow: identificador da versão técnica, usando cor primária oficial. */
+.eyebrow {
+  color: var(--color-primary);
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+
+/* .panel: superfície elevada reutilizável para status de save. */
+.panel {
+  padding: var(--space-6);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-modal);
+}
+
+/* .status: realça a disponibilidade do save sem depender só de cor. */
+.status {
+  color: var(--color-primary);
+  font-weight: 650;
+}
+
+/* .stats: resumo responsivo dos dados existentes sem modificar o storage. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-6) 0;
+}
+
+/* .stats strong: valor de destaque em cada bloco de progresso. */
+.stats strong {
+  display: block;
+  font-size: 1.75rem;
+  color: var(--color-text);
+}
+
+/* .stats span: legenda de cada valor em cor secundária. */
+.stats span {
+  display: block;
+  color: var(--color-text-muted);
+}
+
+/* .button: ação de backup com contraste e alvo de toque confortável. */
+.button {
+  min-height: 44px;
+  padding: var(--space-3) var(--space-6);
+  color: var(--color-bg);
+  background: var(--color-primary);
+  border: 0;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+/* .button:hover: distingue interação sem nova cor hardcoded. */
+.button:hover {
+  filter: brightness(1.08);
+}
+
+/* .feedback: anúncio acessível da solicitação de exportação. */
+.feedback {
+  color: var(--color-success);
+}
+
+/* .note: alerta de compatibilidade e limites do storage. */
+.note {
+  margin-top: var(--space-4);
+  color: var(--color-text-muted);
+}
+
+/* .footer: aviso legal e separação visual ao fim da prévia. */
+.footer {
+  margin-top: var(--space-8);
+  color: var(--color-text-muted);
+  font-size: .9rem;
+}

@@ -1,0 +1,59 @@
+name: Foundation v0.2 — React + Vite e save legado
+
+on:
+  push:
+    branches:
+      - refactor/react-foundation-v0.2
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  react-foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Gerar lockfile e instalar workspaces
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm ci
+      - name: Testar core e storage, verificar tipos e build React
+        run: |
+          npm run typecheck:core
+          npm run test:core
+          npm run typecheck:web
+          npm run test:web
+          npm run build:web
+          npm test
+          npm run verify:gifs
+      - name: Instalar Chromium apenas no runner de testes
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Validar prévia React e backup no navegador
+        run: node apps/web/tests/e2e/react-preview.mjs
+      - name: Arquivar screenshots desktop/mobile para revisão
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-foundation-screenshots
+          path: artifacts/react-preview/*.png
+          if-no-files-found: ignore
+      - name: Sincronizar lockfile somente nesta branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfile já está sincronizado"
+            exit 0
+          fi
+          git commit -m "chore: fixar dependências React/Vite v0.2"
+          git push origin HEAD:refactor/react-foundation-v0.2
