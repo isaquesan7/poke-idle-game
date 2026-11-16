@@ -1,6 +1,6 @@
 # Design System — Kanto Dark (v1.0)
 
-**Situação:** paleta-base já existe na v0.1; padronização de tokens e CSS Modules aprovada como direção para a v0.2, ainda não implementada.
+**Situação:** tokens e estilos globais extraídos para `styles/tokens.css` e `styles/app.css` na branch de revisão `refactor/css-tokens-comments-v01` (ainda não mesclada). CSS Modules em componentes React continuam planejados para v0.2.
 
 ## Paleta oficial
 | Papel | Valor | Uso |
@@ -49,3 +49,10 @@ Cores de tipo Pokémon (Fogo, Água, etc.) devem ser tokens próprios, distintos
   --color-affinity: #b49aff;
 }
 ```
+
+## Implementação atual em revisão — v0.1
+- `styles/tokens.css`: um `:root` com tokens semânticos, tons especiais de cada componente, gradientes, sombras, raios, escala de espaçamento e tipografia. Valores preservam a aparência da v0.1.
+- `styles/app.css`: seletores com comentários explicando a função de cada classe e divisões por componentes/telas. **Cores e sombras não podem ficar hardcoded neste arquivo.**
+- O `index.html` importa os dois estilos. O servidor Node expõe apenas essas rotas CSS conhecidas, sem servir caminhos arbitrários.
+- Continuar usando tokens em futuras alterações. Ao migrar para React, componentes podem passar a CSS Modules, mas devem referenciar os mesmos tokens globais.
+- Nota: a paleta contém muitos tons legados específicos para preservar a comparação visual. Consolidar somente com validação explícita de contraste e screenshots.

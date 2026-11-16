@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --check server.mjs"
+    "test": "node --check server.mjs && node --test tests/style-contract.test.mjs"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }

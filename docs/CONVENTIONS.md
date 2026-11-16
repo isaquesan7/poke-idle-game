@@ -38,3 +38,10 @@
 5. PR revisado antes do merge para mudanças de código.
 6. Deploy monitorado até estado terminal; monitorar healthcheck e navegação.
 7. Informar exatamente o que foi feito, o que não foi e o próximo passo.
+
+## CSS e estilos — regra obrigatória (2026-11-16)
+- Tokens compartilhados ficam exclusivamente em `styles/tokens.css` no `:root`: cores, fundos/gradientes, sombras, bordas/raios, espaçamentos, tipografia, transições e limites.
+- `styles/app.css` e futuros CSS Modules devem usar `var(--token-semântico)`. Evitar códigos hexadecimais ou `rgb()/rgba()` fora de tokens.
+- Documentar cada seletor com um comentário curto e funcional em português: **o que controla**, e não a repetição literal de suas propriedades.
+- Agrupar estilos por área: base, navegação, componentes, treinador, Pokémon, Pokédex, combate, modais e responsividade.
+- Não mudar pixels/estados sem validar desktop/mobile; usar comparação visual e `npm test`.

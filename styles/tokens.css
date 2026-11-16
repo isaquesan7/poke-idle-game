@@ -1,0 +1,160 @@
+/**
+ * Design tokens — Kanto Dark.
+ * Fonte única para valores visuais; não usar hexadecimais soltos em app.css.
+ * Os tons específicos mantêm exatamente a aparência do protótipo existente.
+ */
+:root {
+  color-scheme: dark;
+  /* Tipografia principal. */
+  --font-body: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Paleta semântica e cor neutra reutilizável. */
+  --color-bg: #0c111b;
+  --color-surface: #151c29;
+  --color-surface-raised: #1c2635;
+  --color-border: #2a3648;
+  --color-text: #f2f5fa;
+  --color-text-muted: #9baec6;
+  --color-primary: #69d6e5;
+  --color-success: #55d5a8;
+  --color-gold: #f2c36e;
+  --color-danger: #fc7c86;
+  --color-affinity: #b49aff;
+  --color-white: #ffffff;
+  /* Escala de espaçamentos (4px), usada em grids, margens e paddings. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  /* Raios de cantos usados nos componentes. */
+  --radius-tight: 8px;
+  --radius-input-small: 9px;
+  --radius-control: 10px;
+  --radius-nav: 11px;
+  --radius-card: 12px;
+  --radius-pokemon: 13px;
+  --radius-avatar: 14px;
+  --radius-art: 15px;
+  --radius-large: 16px;
+  --radius-panel: 17px;
+  --radius-modal: 24px;
+  --radius-pill: 99px;
+  /* Durações e limites de layout. */
+  --duration-fast: .12s;
+  --layout-max-width: 1440px;
+  /* Cores específicas agrupadas por seletor; editar aqui, não nas classes. */
+  --color-body-background-1: #162c3b; /* body · background */
+  --color-body-background-2: #2a2036; /* body · background */
+  --color-ball-background-1: #f46f7c; /* .ball · background */
+  --color-ball-background-2: #19212f; /* .ball · background */
+  --color-ball-background-3: #f0f6ff; /* .ball · background */
+  --color-pill-background-1: #1c2938; /* .pill · background */
+  --color-pill-border-1: #344356; /* .pill · border */
+  --color-pill-text-1: #c9d6e5; /* .pill · color */
+  --color-pill-text-1-2: #fff; /* .pill b · color */
+  --color-pill-online-border-1: #3c896f; /* .pill.online · border-color */
+  --color-pill-online-text-1: #84e5c3; /* .pill.online · color */
+  --color-pill-warn-border-1: #866c43; /* .pill.warn · border-color */
+  --color-pill-warn-text-1: #f5d393; /* .pill.warn · color */
+  --color-navbtn-text-1: #b8c9da; /* .navbtn · color */
+  --color-navbtn-background-1: #1d2a39; /* .navbtn:hover · background */
+  --color-navbtn-active-background-1: #203f4a; /* .navbtn.active · background */
+  --color-navbtn-active-background-2: #182a3a; /* .navbtn.active · background */
+  --color-navbtn-active-border-1: #366374; /* .navbtn.active · border-color */
+  --color-navbtn-active-text-1: #a9f3ec; /* .navbtn.active · color */
+  --color-side-note-text-1: #dce9f6; /* .side-note strong · color */
+  --color-panel-gradient-1: rgba(28,38,53,.95); /* .panel · background */
+  --color-panel-gradient-2: rgba(19,27,40,.98); /* .panel · background */
+  --color-btn-border-1: #3e5366; /* .btn · border */
+  --color-btn-background-1: #26384b; /* .btn · background */
+  --color-btn-text-1: #eef7ff; /* .btn · color */
+  --color-btn-background-1-2: #32506a; /* .btn:hover:not(:disabled) · background */
+  --color-btn-primary-background-1: #63cdbc; /* .btn.primary · background */
+  --color-btn-primary-background-2: #47aeb6; /* .btn.primary · background */
+  --color-btn-primary-text-1: #0e2832; /* .btn.primary · color */
+  --color-btn-primary-background-1-2: #7ee6cc; /* .btn.primary:hover:not(:disabled) · background */
+  --color-btn-gold-background-1: #e6b65a; /* .btn.gold · background */
+  --color-btn-gold-background-2: #f0d48b; /* .btn.gold · background */
+  --color-btn-gold-text-1: #302210; /* .btn.gold · color */
+  --color-btn-danger-background-1: #442b36; /* .btn.danger · background */
+  --color-btn-danger-border-1: #824653; /* .btn.danger · border-color */
+  --color-btn-danger-text-1: #ffb4b9; /* .btn.danger · color */
+  --color-btn-ghost-border-1: #35465b; /* .btn.ghost · border-color */
+  --color-progress-background-1: #2c3a4b; /* .progress · background */
+  --color-progress-heart-background-1: #fb8387; /* .progress.heart>i · background */
+  --color-progress-heart-background-2: #fbabcc; /* .progress.heart>i · background */
+  --color-progress-hp-background-1: #4fcda7; /* .progress.hp>i · background */
+  --color-progress-hp-background-2: #a5ef9d; /* .progress.hp>i · background */
+  --color-notice-border-1: #3b5a63; /* .notice · border */
+  --color-notice-background-1: #152b37; /* .notice · background */
+  --color-notice-text-1: #c2e4e9; /* .notice · color */
+  --color-notice-warn-border-1: #6a5439; /* .notice.warn · border-color */
+  --color-notice-warn-background-1: #322819; /* .notice.warn · background */
+  --color-notice-warn-text-1: #efd9ad; /* .notice.warn · color */
+  --color-tag-background-1: #31445a; /* .tag · background */
+  --color-tag-text-1: #c7e8ef; /* .tag · color */
+  --color-tag-fire-background-1: #57312c; /* .tag.fire · background */
+  --color-tag-fire-text-1: #ffbeaa; /* .tag.fire · color */
+  --color-tag-water-background-1: #233e6b; /* .tag.water · background */
+  --color-tag-water-text-1: #accaff; /* .tag.water · color */
+  --color-tag-grass-background-1: #244934; /* .tag.grass · background */
+  --color-tag-grass-text-1: #abebc1; /* .tag.grass · color */
+  --color-tag-electric-background-1: #5c4f20; /* .tag.electric · background */
+  --color-tag-electric-text-1: #fbe799; /* .tag.electric · color */
+  --color-tag-poison-background-1: #443058; /* .tag.poison · background */
+  --color-tag-poison-text-1: #dfbff5; /* .tag.poison · color */
+  --color-tag-psychic-background-1: #60334d; /* .tag.psychic · background */
+  --color-tag-psychic-text-1: #f5b6d5; /* .tag.psychic · color */
+  --color-card-art-background-1: #39596d33; /* .card-art · background */
+  --color-statrow-border-1: #2a36484f; /* .statrow · border-bottom */
+  --color-badgeitem-background-1: #202e40; /* .badgeitem · background */
+  --color-badgeitem-border-1: #37475c; /* .badgeitem · border */
+  --color-itemrow-border-1: #34435466; /* .itemrow · border-bottom */
+  --color-itemrow-text-1: #c8d9e7; /* .itemrow label · color */
+  --color-itemrow-background-1: #111b29; /* .itemrow select,select,input[type=text],input[type=search] · background */
+  --color-itemrow-text-1-2: #e9f5ff; /* .itemrow select,select,input[type=text],input[type=search] · color */
+  --color-itemrow-border-1-2: #3b5064; /* .itemrow select,select,input[type=text],input[type=search] · border */
+  --color-trainer-avatar-border-1: #4c5362; /* .trainer-avatar · border */
+  --color-trainer-avatar-background-1: #334350; /* .trainer-avatar · background */
+  --color-trainer-avatar-background-2: #253144; /* .trainer-avatar · background */
+  --color-poke-card-border-1: #354255; /* .poke-card · border */
+  --color-poke-card-background-1: #1b2838; /* .poke-card · background */
+  --color-poke-card-border-1-2: #7bcbd2; /* .poke-card:hover,.poke-card.selected · border-color */
+  --color-poke-card-text-1: #ffb1bb; /* .poke-card .aff · color */
+  --color-poke-card-text-1-2: #9cd8d9; /* .poke-card .mini · color */
+  --color-team-slot-background-1: #203144; /* .team-slot · background */
+  --color-team-slot-border-1: #4a6479; /* .team-slot · border */
+  --color-stats-table-border-1: #34435480; /* .stats-table th,.stats-table td · border-bottom */
+  --color-dexentry-background-1: #1b2a3a; /* .dexentry · background */
+  --color-dexentry-border-1: #37465b; /* .dexentry · border */
+  --color-dexentry-text-1: #dbe6f2; /* .dexentry · color */
+  --color-dexentry-caught-border-1: #2e8b78; /* .dexentry.caught · border-color */
+  --color-dexentry-seen-border-1: #7c6b46; /* .dexentry.seen:not(.caught) · border-color */
+  --color-dexentry-background-1-2: #2d4154; /* .dexentry:hover · background */
+  --color-fightlog-background-1: #0e1824; /* .fightlog · background */
+  --color-fightlog-border-1: #2e4052; /* .fightlog · border */
+  --color-fightlog-text-1: #91e6bd; /* .fightlog p.good · color */
+  --color-fightlog-text-1-2: #ffb6a9; /* .fightlog p.bad · color */
+  --color-hero-background-1: #173c47; /* .hero · background */
+  --color-hero-background-2: #222c41; /* .hero · background */
+  --color-hero-border-1: #3b6978; /* .hero · border */
+  --color-toast-background-1: #233c49; /* .toast · background */
+  --color-toast-border-1: #6ba2a7; /* .toast · border */
+  --color-modalbg-background-1: #050b11e8; /* .modalbg · background */
+  --color-modal-background-1: #172336; /* .modal · background */
+  --color-modal-border-1: #3e5b73; /* .modal · border */
+  --color-starter-background-1: #263448; /* .starter · background */
+  --color-starter-border-1: #42576a; /* .starter · border */
+  --color-starter-text-1: #eaf3fc; /* .starter · color */
+  --color-help-border-1: #557a93; /* .help · border-bottom */
+  /* Sombras e elevação usadas pelos elementos visuais. */
+  --shadow-brand-ball: 0 10px 40px #ed5c6d30;
+  --shadow-pokemon-art: drop-shadow(0 10px 10px #0006);
+  --shadow-pokemon-selected: 0 0 0 1px #2e8183;
+  --shadow-fighter: drop-shadow(0 18px 10px #0005);
+  --shadow-toast: 0 18px 80px #000a;
+  --shadow-modal: 0 20px 100px #0008;
+}

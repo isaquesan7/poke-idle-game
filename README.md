@@ -30,6 +30,9 @@ npm start
 ```
 Opcionalmente, abrir `index.html` diretamente no navegador com internet.
 
+## Estilos organizados (revisão em branch)
+Na branch `refactor/css-tokens-comments-v01` a camada visual foi dividida em `styles/tokens.css` (variáveis globais) e `styles/app.css` (classes comentadas e organizadas). A mudança permanece em revisão até ser aprovada/mesclada. Detalhes em [Design System](docs/DESIGN_SYSTEM.md) e [Estado](docs/PROJECT_STATE.md).
+
 ## Como está publicada a versão atual
 - A branch **`main` está conectada ao Railway**, e novos pushes podem iniciar deploys automáticos.
 - Serviço: `kanto-idle-web`; start: `npm start`; healthcheck `/health`.
