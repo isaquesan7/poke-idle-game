@@ -119,3 +119,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
   somente após essa validação aprovar merges em ordem (CSS, GIF),
   verificar Railway `SUCCESS` e GET `/health`. A seguir iniciar v0.2
   Foundation com migração gradual, preservando saves e regras do GDD.
+
+## Regressão Playwright na PR #2 (2026-11-16)
+- Fixture sintética de save v0.1 em `tests/fixtures/legacy-save-v01.json`, sem dados reais de jogadores.
+- `tests/e2e/browser-smoke.mjs` valida no Chromium: desktop 1365×768, mobile 390×844, CSS, GIF animado local, fallback estático, treinador (40 pontos manuais), telas, Pokédex 151, recarga de save e início de novo jogo.
+- `.github/workflows/browser-regression.yml` executa estes testes em GitHub Actions e anexa capturas. CI ainda precisa ser observado antes de merge.
+- **Próxima ação:** confirmar execução E2E e revisar capturas; corrigir qualquer regressão, depois revisar as duas PRs para integração na ordem CSS → GIFs.
