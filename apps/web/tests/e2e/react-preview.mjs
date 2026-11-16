@@ -41,7 +41,7 @@ async function checkValid(browser, label, viewport) {
   await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: SAVE, value: raw });
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.getByText('Progresso v0.1 encontrado neste navegador').waitFor();
-  assert.match(await page.locator('main').innerText(), /Treinador/);
+  assert.match(await page.locator('main').innerText(), /Nível treinador/);
   assert.match(await page.locator('main').innerText(), /321/);
   await page.screenshot({
     path: new URL(label+'.png', shots).pathname, animations:'disabled', fullPage:true

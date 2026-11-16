@@ -156,3 +156,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Próximo passo:** portar o dashboard/treinador ao React com uso de funções do game-core e testes de paridade; migrar telas gradualmente antes da substituição do runtime.
 
 - Regresso de navegador adicional `apps/web/tests/e2e/react-preview.mjs`: desktop/mobile, backup JSON byte a byte, armazenamento local preservado, versão futura rejeitada sem perda e capturas de tela. Workflow React inclui Chromium no runner `ubuntu-24.04`. Confirmar execução antes de merge.
+
+- Primeira execução do browser test React `43970812875`: renderização e save identificados, falha apenas na asserção textual do teste (`Treinador` vs rótulo existente `Nível treinador`, diferenças de maiúsculas). Ajuste do teste; nenhuma alteração funcional necessária até aqui.
