@@ -49,7 +49,7 @@ export function TrainerPreview({ value }: Props) {
             : 'Nenhuma adquirida'}</p>
         </div>
       </div>
-      <p className={styles.note}>Visualização de compatibilidade: esta tela ainda não distribui pontos nem altera equipamentos.</p>
+      <p className={styles.note}>Dados do save v0.1 ou da simulação separada. Alterações de simulação não afetam o progresso real.</p>
     </section>
   );
 }

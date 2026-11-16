@@ -1,9 +1,15 @@
-import { useState } from 'react';
-import { LEGACY_CACHE_KEY, readLegacySave } from '../storage/legacySave';
+import { useEffect, useState } from 'react';
+import type { EquipmentSlot, Stat, TrainerDraftAction } from '@kanto/game-core';
+import { LEGACY_CACHE_KEY, LEGACY_SAVE_KEY, parseLegacySave, readLegacySave } from '../storage/legacySave';
+import type { LegacySaveResult } from '../storage/legacySave';
+import {
+  DRAFT_LOCK_NAME, DRAFT_SAVE_KEY, createDraft, discardDraft, editDraft, readDraft
+} from '../storage/draftSave';
+import type { DraftRead, DraftWrite } from '../storage/draftSave';
 import { projectLegacyTrainer } from '../features/trainer/legacyProjection';
 import { OverviewPreview } from '../features/trainer/OverviewPreview';
 import { TrainerPreview } from '../features/trainer/TrainerPreview';
-import type { LegacySaveResult } from '../storage/legacySave';
+import { TrainerDraftControls } from '../features/trainer/TrainerDraftControls';
 import styles from './App.module.css';
 
 function statusText(result: LegacySaveResult): string {
@@ -16,21 +22,41 @@ function statusText(result: LegacySaveResult): string {
   }
 }
 
-/** Primeira casca React da v0.2: observação e backup SEM regravar o save. */
+/** UI experimental: NUNCA escreve na chave de save v0.1 do jogo publicado. */
 export function App() {
-  const [result] = useState<LegacySaveResult>(() =>
+  const [result, setResult] = useState<LegacySaveResult>(() =>
     readLegacySave(key => window.localStorage.getItem(key))
   );
+  const [draft, setDraft] = useState<DraftRead>(() => readDraft(window.localStorage));
   const [feedback, setFeedback] = useState('');
+  const [draftFeedback, setDraftFeedback] = useState('');
   const [screen, setScreen] = useState<'overview' | 'trainer'>('overview');
-  // Lemos cache SOMENTE nesta origem. Sem novo fetch e sem gravação automática.
-  const [cacheRaw] = useState<string | null>(() => {
+  const [cacheRaw, setCacheRaw] = useState<string | null>(() => {
     try { return window.localStorage.getItem(LEGACY_CACHE_KEY); }
     catch { return null; }
   });
-  const projected = result.status === 'valid'
-    ? projectLegacyTrainer(result.save, cacheRaw, Date.now())
-    : null;
+
+  // Outras abas podem continuar jogando v0.1. Invalidar projeções desatualizadas.
+  useEffect(() => {
+    function changed(event: StorageEvent) {
+      if (event.key === DRAFT_SAVE_KEY || event.key === LEGACY_SAVE_KEY || event.key === null) {
+        setDraft(readDraft(window.localStorage));
+        setResult(readLegacySave(key => window.localStorage.getItem(key)));
+      }
+      if (event.key === LEGACY_CACHE_KEY || event.key === null) {
+        try { setCacheRaw(window.localStorage.getItem(LEGACY_CACHE_KEY)); }
+        catch { setCacheRaw(null); }
+      }
+    }
+    window.addEventListener('storage', changed);
+    return () => window.removeEventListener('storage', changed);
+  }, []);
+
+  // O save original é sempre a fonte de backup; rascunho nunca o substitui.
+  const simulated = draft.status === 'ready' ? parseLegacySave(draft.draft.workingRaw) : null;
+  const displayed = simulated?.status === 'valid' ? simulated : result;
+  const projected = displayed.status === 'valid'
+    ? projectLegacyTrainer(displayed.save, cacheRaw, Date.now()) : null;
 
   function exportSave(): void {
     if (result.status !== 'valid') return;
@@ -43,6 +69,56 @@ export function App() {
     link.remove();
     URL.revokeObjectURL(url);
     setFeedback('Backup do JSON original solicitado; nenhum progresso foi modificado.');
+  }
+
+  /**
+   * Web Locks serializam aba/guia no mesmo domínio. Sem suporte a Web Locks
+   * NÃO tentamos editar, pois localStorage sozinho não oferece CAS atômico.
+   */
+  async function locked(action: () => DraftWrite): Promise<void> {
+    if (!navigator.locks?.request) {
+      setDraftFeedback('Simulação indisponível: este navegador não oferece bloqueio seguro entre abas.');
+      return;
+    }
+    try {
+      const outcome = await navigator.locks.request(
+        DRAFT_LOCK_NAME, { mode: 'exclusive' }, action
+      );
+      setDraft(readDraft(window.localStorage));
+      setResult(readLegacySave(key => window.localStorage.getItem(key)));
+      setDraftFeedback(outcome.status === 'ok'
+        ? 'Simulação atualizada. O save v0.1 permanece intocado.'
+        : outcome.reason);
+    } catch {
+      setDraftFeedback('Não foi possível bloquear a edição. Nenhum comando foi aplicado ao save real.');
+      setDraft(readDraft(window.localStorage));
+    }
+  }
+
+  function startSimulation(): void {
+    if (result.status !== 'valid') return;
+    void locked(() => createDraft(window.localStorage, result.raw));
+  }
+
+  function editSimulation(action: TrainerDraftAction): void {
+    if (draft.status !== 'ready') return;
+    void locked(() => editDraft(window.localStorage, draft.draft.revision, action));
+  }
+
+  function dropSimulation(): void {
+    if (draft.status !== 'ready' && draft.status !== 'stale' && draft.status !== 'invalid') return;
+    if (!window.confirm('Descartar SOMENTE a simulação v0.2? Seu progresso real v0.1 será preservado.')) return;
+    void locked(() => discardDraft(window.localStorage, draft.raw));
+  }
+
+  function draftDescription(): string {
+    switch (draft.status) {
+      case 'absent': return 'Nenhuma simulação criada; progresso real v0.1 intocado.';
+      case 'ready': return 'Simulação separada ativa · revisão ' + draft.draft.revision + '.';
+      case 'stale': return 'Save real mudou desde o início da simulação. Edições bloqueadas.';
+      case 'invalid': return 'Rascunho inválido/desconhecido. Edições bloqueadas e conteúdo preservado.';
+      case 'unavailable': return 'Armazenamento de simulação indisponível.';
+    }
   }
 
   return (
@@ -68,10 +144,26 @@ export function App() {
             <p className={styles.feedback} role="status" aria-live="polite">{feedback}</p>
           </>
         )}
-        <p className={styles.note}>Esta prévia apenas lê o armazenamento deste domínio. Ela não modifica, migra nem exclui saves. Armazenamentos de domínios diferentes não são compartilhados automaticamente.</p>
+        <p className={styles.note}>A prévia não migra nem modifica saves v0.1. Armazenamentos de domínios diferentes não são compartilhados automaticamente.</p>
       </section>
       {result.status === 'valid' && (
         <>
+          <section className={styles.simulation} aria-labelledby="draft-heading">
+            <h2 id="draft-heading">Simulação isolada v0.2</h2>
+            <p className={styles.note}>O jogo real continua salvo em sua chave v0.1. Esta simulação usa outra chave e nunca aplica mudanças automaticamente ao jogo.</p>
+            <p className={styles.draftStatus} role="status">{draftDescription()}</p>
+            {draft.status === 'absent' && (
+              <button className={styles.button} type="button" onClick={startSimulation}>
+                Criar simulação v0.2
+              </button>
+            )}
+            {(draft.status === 'ready' || draft.status === 'stale' || draft.status === 'invalid') && (
+              <button className={styles.draftDiscard} type="button" onClick={dropSimulation}>
+                Descartar simulação
+              </button>
+            )}
+            <p className={styles.feedback} role="status" aria-live="polite">{draftFeedback}</p>
+          </section>
           <nav className={styles.navigation} aria-label="Telas da prévia">
             <button
               type="button"
@@ -89,7 +181,19 @@ export function App() {
           {projected?.status === 'ready'
             ? screen === 'overview'
               ? <OverviewPreview value={projected.value} />
-              : <TrainerPreview value={projected.value} />
+              : <>
+                  <TrainerPreview value={projected.value} />
+                  {draft.status === 'ready' && simulated?.status === 'valid' && (
+                    <TrainerDraftControls
+                      value={projected.value}
+                      save={simulated.save}
+                      revision={draft.draft.revision}
+                      onInvest={(stat: Stat) => editSimulation({ type: 'invest', stat })}
+                      onEquip={(slot: EquipmentSlot, itemId: string) =>
+                        editSimulation({ type: 'equip', slot, itemId })}
+                    />
+                  )}
+                </>
             : <p className={styles.projectionWarning} role="status">
                 {projected?.status === 'unavailable'
                   ? projected.reason
