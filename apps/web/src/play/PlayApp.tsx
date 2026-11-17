@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
-  LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget
+  LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
+  KANTO_BATTLE_SPECIES, KANTO_WILD_POOL
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
@@ -13,7 +14,7 @@ import {
 import type { PlayAction, PlayRead, PlayWrite } from './playSave';
 import styles from './PlayApp.module.css';
 
-type Tab = 'overview' | 'trainer' | 'pokemon' | 'expedition';
+type Tab = 'overview' | 'trainer' | 'pokemon' | 'arena' | 'expedition';
 const STARTERS = [
   { id: 1, type: 'Grama / Veneno', hint: 'Resistente e equilibrado' },
   { id: 4, type: 'Fogo', hint: 'Ataque e velocidade' },
@@ -45,7 +46,7 @@ function PokemonArt({ id, name, large = false }: {
 }
 
 function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', expedition: 'Expedição' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', arena: 'Arena', expedition: 'Expedição' }[tab];
 }
 
 /**
@@ -102,6 +103,16 @@ export function PlayApp() {
     void transact(() => updatePlaySave(window.localStorage, expected, action));
   }
 
+  /** Browser seguro: sorteia seed uint32, resolução real ocorre no game-core. */
+  function fight(): void {
+    const seed = window.crypto.getRandomValues(new Uint32Array(1))[0];
+    if (seed === undefined) {
+      setFeedback('Não foi possível sortear o encontro.');
+      return;
+    }
+    dispatch({type:'battle',seed});
+  }
+
   function restart() {
     if (!window.confirm('Reiniciar apenas este teste v0.2? O progresso de teste atual será apagado.')) return;
     if (!resetPlaySave(window.localStorage)) {
@@ -125,6 +136,18 @@ export function PlayApp() {
   const expedition = data?.expedition as { lastClaimAt: number; startedAt: number } | null | undefined;
   const pending = expedition
     ? expeditionRewards(Math.max(0, now - expedition.lastClaimAt)) : null;
+  const lastBattleRaw = data?.lastBattle;
+  const lastBattle=lastBattleRaw && typeof lastBattleRaw==='object'
+    && 'outcome' in lastBattleRaw && 'wildSpeciesId' in lastBattleRaw
+    && 'log' in lastBattleRaw && Array.isArray(lastBattleRaw.log)
+    ? lastBattleRaw as {
+        outcome:'win'|'loss'|'draw'; wildSpeciesId:number;
+        wildName:string;wildLevel:number;turns:number;
+        captured:boolean;affinityGain:number|null;log:string[];
+        rewardCoins:number;trainerXp:number;pokemonXp:number;
+        playerRemainingHp:number;wildRemainingHp:number
+      }
+    : null;
   const nextCycle = expedition
     ? Math.max(0, Math.ceil((EXPEDITION_CYCLE_MS - Math.max(0, now - expedition.lastClaimAt) % EXPEDITION_CYCLE_MS) / 1000))
     : 0;
@@ -189,7 +212,7 @@ export function PlayApp() {
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         <nav className={styles.menu} aria-label="Navegação do jogo">
-          {(['overview','trainer','pokemon','expedition'] as Tab[]).map(item => (
+          {(['overview','trainer','pokemon','arena','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
               onClick={() => { setTab(item); setFeedback(''); }}>{sectionName(item)}</button>
@@ -228,6 +251,7 @@ export function PlayApp() {
                       <button type="button" className={styles.primary} onClick={() => setTab('expedition')}>
                         {expedition ? 'Ver expedição ativa' : 'Iniciar expedição'}</button>
                       <button type="button" className={styles.secondary} onClick={() => setTab('trainer')}>Meu treinador</button>
+                      <button type="button" className={styles.secondary} onClick={() => setTab('arena')}>Explorar Arena</button>
                     </div>
                   </div>
                   <PokemonArt id={active.pokemonId} name={view.active.name} large />
@@ -236,7 +260,7 @@ export function PlayApp() {
                   <article className={styles.metric}><small>Treinador</small><strong>Lv. {view.level}</strong><span>{view.xpNext === null ? 'Nível máximo' : view.xp + ' / ' + view.xpNext + ' XP'}</span></article>
                   <article className={styles.metric}><small>Parceiro</small><strong>Lv. {active.level}</strong><span>{view.active.name}</span></article>
                   <article className={styles.metric}><small>Moedas</small><strong>{data.coins}</strong><span>Saldo da jornada</span></article>
-                  <article className={styles.metric}><small>Pokédex</small><strong>{view.capturedSpecies}/151</strong><span>Espécies capturadas</span></article>
+                  <article className={styles.metric}><small>Pokédex</small><strong>{view.capturedSpecies}/151</strong><span>{data.roster.length} indivíduos · {view.seenSpecies} vistos</span></article>
                 </div>
                 <div className={styles.twoColumn}>
                   <section className={styles.panel}>
@@ -335,6 +359,73 @@ export function PlayApp() {
                     Redistribuir pontos</button>
                 </section>
               </div>
+            )}
+
+            {tab === 'arena' && (
+              <>
+                <section className={styles.battleIntro}>
+                  <div>
+                    <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
+                    <h2>Arena de batalha</h2>
+                    <p>Seu Pokémon enfrenta automaticamente um encontro de Kanto em até 30 turnos. O motor calcula precisão, dano, críticos e efetividade de tipos. Vitória concede XP, moedas, afinidade e chance de captura de 35%.</p>
+                    <p>Vitórias: <strong>{data.wins ?? 0}</strong> · Derrotas/empates: <strong>{data.losses ?? 0}</strong> · Insígnias: <strong>{view.badges.length}/8</strong></p>
+                    <button className={styles.primary} type="button" disabled={busy} onClick={fight}>
+                      Batalhar contra Pokémon selvagem
+                    </button>
+                  </div>
+                  <div className={styles.battleScene}>
+                    <div>
+                      <PokemonArt id={active.pokemonId} name={view.active.name} large />
+                      <strong>{view.active.name} · Nv. {active.level}</strong>
+                      <small>Seu parceiro</small>
+                    </div>
+                    <span className={styles.vs}>VS</span>
+                    <div>
+                      {lastBattle && KANTO_BATTLE_SPECIES[lastBattle.wildSpeciesId]
+                        ? <PokemonArt id={lastBattle.wildSpeciesId} name={lastBattle.wildName} large />
+                        : <span className={styles.unknownEnemy}>?</span>}
+                      <strong>{lastBattle ? lastBattle.wildName + ' · Nv. ' + lastBattle.wildLevel : 'Encontro surpresa'}</strong>
+                      <small>Pokémon selvagem</small>
+                    </div>
+                  </div>
+                </section>
+                {lastBattle && (
+                  <div className={styles.twoColumn}>
+                    <section className={styles.panel} aria-label="Resultado da última batalha">
+                      <div className={styles.kicker}>ÚLTIMO COMBATE</div>
+                      <h2>{lastBattle.outcome === 'win' ? 'Vitória!' : lastBattle.outcome === 'draw' ? 'Empate' : 'Derrota'}</h2>
+                      <p>{lastBattle.wildName} · {lastBattle.turns} turno(s) · HP restante {lastBattle.playerRemainingHp}</p>
+                      {lastBattle.outcome === 'win' && (
+                        <div className={styles.battleRewards}>
+                          <div><small>Moedas</small><strong>+{lastBattle.rewardCoins}</strong></div>
+                          <div><small>XP treinador</small><strong>+{lastBattle.trainerXp}</strong></div>
+                          <div><small>XP Pokémon</small><strong>+{lastBattle.pokemonXp}</strong></div>
+                          <div><small>Afinidade</small><strong>+{lastBattle.affinityGain}</strong></div>
+                        </div>
+                      )}
+                      <p>{lastBattle.captured
+                        ? 'Captura realizada! O Pokémon foi adicionado à coleção.'
+                        : 'Nenhuma captura nesta batalha.'}</p>
+                    </section>
+                    <section className={styles.panel}>
+                      <h2>Diário de combate</h2>
+                      <ol className={styles.battleLog} aria-label="Diário de combate">
+                        {lastBattle.log.map((line,i)=><li key={i}>{line}</li>)}
+                      </ol>
+                    </section>
+                  </div>
+                )}
+                <section className={styles.panel}>
+                  <h2>Pokémon encontrados nesta arena</h2>
+                  <div className={styles.encounterGrid}>
+                    {KANTO_WILD_POOL.map(id=><div key={id} className={styles.encounterCard}>
+                      <PokemonArt id={id} name={KANTO_BATTLE_SPECIES[id]!.name} />
+                      <span>{KANTO_BATTLE_SPECIES[id]!.name}</span>
+                    </div>)}
+                  </div>
+                  <p className={styles.disclaimer}>A arena usa um catálogo inicial de 8 espécies selvagens. As demais espécies e habilidades serão ampliadas nas próximas etapas. A seed é sorteada no navegador: esta alfa não tem servidor antifraude.</p>
+                </section>
+              </>
             )}
             {tab === 'expedition' && (
               <div className={styles.twoColumn}>
