@@ -141,3 +141,7 @@ A PR #14 integrou o laboratório opt-in ao código da `main` SHA `455c29a9`, com
 
 ### Teste real de browser isolado (não disponível no jogo público)
 A branch `feat/v02-isolated-browser-cutover-tests` adiciona `browserSandboxCutover.ts` e E2E Chromium usando Vite na origem localhost:5174, rota `/__kanto_v02_browser_lab__` e chaves exclusivas `__kanto_lab__*`. Exercita erros reais de quota, Web Locks entre abas, crash/reload e rollback somente do candidato de teste. **Não é migração real nem backend de save**: o runtime online permanece v0.1 e as chaves oficiais nunca são acessadas por esse laboratório. Ver `docs/SAVE_MIGRATION_PLAN.md` e decisão D-021.
+
+
+### Handoff de testes reais de migração — 2026-11-16
+A PR #16 integrou o laboratório de browser isolado à `main` (SHA `977d14a9`). O deploy Railway `54ccff55` e [GitHub Actions pós-merge #43991985570](https://github.com/isaquesan7/poke-idle-game/actions/runs/43991985570) ficaram em `SUCCESS`. A função testa storage nativo em localhost, sem gravar nenhum save oficial; o jogo online continua v0.1. Para o próximo ciclo, ver `docs/CUTOVER_AUTHORITY_PROPOSAL.md` e a última seção de `docs/PROJECT_STATE.md`.
