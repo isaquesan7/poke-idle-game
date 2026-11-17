@@ -67,3 +67,9 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 - **Limite de segurança:** checksums não são autenticação/antifraude; marcador não é transação real entre chaves; não haverá ativação antes de writer exclusivo e opt-in/rollback implementados.
 - Fase B **parcial**: ainda faltam política de quota real, UX de export/import, backup independente de dispositivo e persistência recuperável. Fase C writer único, Fase D ativação opt-in e Fase E paridade total continuam pendentes.
 - Próxima implementação após CI: desenho de coordenação de writers e UX de recuperação/exportação verificável, mantendo `kanto-idle-lab-save-v01` intocado.
+
+### Resultado verificado da Fase B parcial — 2026-11-16
+- PR #9 merged em `bd530666` com deploy Railway `SUCCESS` e CI completo da main `43984189208` `SUCCESS`.
+- Backups SHA-256 e journal são SOMENTE contratos/validações/ensaios. Ainda não existem persistência canônica de produção, escrita transacional nem recuperação por interface.
+- Restrições pendentes: writer único e coordenação entre abas, quota real e UX de opt-in/exportação, rollback; não habilitar migração até fechar esses pontos.
+- Próximo primeiro arquivo a investigar: `index.html` função `save()` (writer não cooperativo), depois `apps/web/src/storage/recoveryJournal.ts` e `draftSave.ts` para conceber protocolo e testes sem tocar na chave v0.1.
