@@ -15,12 +15,13 @@ import type { StatValues } from '../stats/types.js';
 import { KANTO_POKEDEX } from '../catalog/kantoSpecies.js';
 import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
 import { kantoMoveSecondaryEffect } from './kantoStatusEffects.js';
+import {KANTO_SUPPORT_MOVES,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import type { KantoBattleStatus } from './kantoStatusEffects.js';
 
 export type KantoMove = Readonly<{
   name: string;
   type: string;
-  category: 'physical' | 'special';
+  category: 'physical' | 'special' | 'status';
   power: number;
   accuracy: number;
   priority: number;
@@ -102,6 +103,9 @@ export type Combatant = Readonly<{
   stats: Readonly<StatValues>;
   move: KantoMove;
   rank: number;
+  /** Opcional para progresso legado: primeiro item é o principal. */
+  moves?:readonly KantoMove[];
+  ranks?:Readonly<Record<string,number>>;
 }>;
 
 export type BattleOutcome = 'win' | 'loss' | 'draw';
@@ -154,6 +158,18 @@ export function kantoTypeMultiplier(moveType:string, defenderTypes:readonly stri
   ),1);
 }
 
+function validMove(m:KantoMove|undefined):boolean{
+  if(!m||typeof m.name!=='string'||m.name.length<1||m.name.length>100
+    ||!TYPES[m.type]||!Number.isFinite(m.accuracy)||m.accuracy<0||m.accuracy>100
+    ||!Number.isSafeInteger(m.priority)||m.priority< -7||m.priority>7)return false;
+  if(m.category==='status'){
+    const canonical=KANTO_SUPPORT_MOVES[m.name];
+    return !!canonical&&m.power===0&&m.type===canonical.type
+      &&m.accuracy===canonical.accuracy&&m.priority===canonical.priority;
+  }
+  return(m.category==='physical'||m.category==='special')
+    &&Number.isFinite(m.power)&&m.power>0&&m.power<=250;
+}
 function validateCombatant(monster:Combatant):void {
   if (!monster || !Number.isSafeInteger(monster.speciesId) || monster.speciesId<1 || monster.speciesId>151
     || typeof monster.name!=='string' || monster.name.length<1 || monster.name.length>80
@@ -161,12 +177,17 @@ function validateCombatant(monster:Combatant):void {
     || !Array.isArray(monster.types) || monster.types.length<1 || monster.types.length>2
     || monster.types.some(type=>!TYPES[type])
     || !Number.isSafeInteger(monster.rank) || monster.rank<0 || monster.rank>10
-    || !monster.stats || !monster.move || !TYPES[monster.move.type]
-    || !['physical','special'].includes(monster.move.category)
-    || !Number.isFinite(monster.move.power) || monster.move.power<=0 || monster.move.power>250
-    || !Number.isFinite(monster.move.accuracy) || monster.move.accuracy<0 || monster.move.accuracy>100
-    || !Number.isSafeInteger(monster.move.priority)
-    || monster.move.priority< -7 || monster.move.priority>7
+    || !monster.stats || !validMove(monster.move)
+    || (monster.moves!==undefined&&(
+      !Array.isArray(monster.moves)||monster.moves.length<1||monster.moves.length>4
+      ||monster.moves[0]?.name!==monster.move.name
+      ||new Set(monster.moves.map(m=>m.name)).size!==monster.moves.length
+      ||!monster.moves.every(validMove)
+    ))
+    || (monster.ranks!==undefined&&(
+      !monster.ranks||typeof monster.ranks!=='object'||Array.isArray(monster.ranks)
+      ||!Object.values(monster.ranks).every(r=>Number.isSafeInteger(r)&&r>=0&&r<=10)
+    ))
     || !['hp','attack','defense','specialAttack','specialDefense','speed'].every(stat=>{
       const value=monster.stats[stat as keyof StatValues];
       return Number.isSafeInteger(value) && value>0 && value<=100000;
@@ -180,6 +201,7 @@ export function kantoDamage(
   attackScale:number=1
 ): {readonly damage:number;readonly critical:boolean;readonly effectiveness:number} {
   validateCombatant(attacker);validateCombatant(defender);
+  if(attacker.move.category==='status')throw new RangeError('Golpe sem dano.');
   if (![criticalRoll,varianceRoll].every(v=>Number.isFinite(v)&&v>=0&&v<1)
     || (attackScale!==1&&attackScale!==0.5)) {
     throw new RangeError('Rolagens devem pertencer a [0,1).');
@@ -219,6 +241,9 @@ export function simulateKantoBattle(
   let playerHp=player.stats.hp,wildHp=wild.stats.hp,turns=0;
   let playerStatus:KantoBattleStatus|null=null,wildStatus:KantoBattleStatus|null=null;
   let playerSpeedDrops=0,wildSpeedDrops=0;
+  let playerAttackDrops=0,wildAttackDrops=0;
+  let playerDefenseDrops=0,wildDefenseDrops=0;
+  const pSupportUsed=new Set<string>(),wSupportUsed=new Set<string>();
   const log:string[]=[player.name+' (Nv. '+player.level+') vs '+wild.name+' (Nv. '+wild.level+')'];
   const speed=(actor:Combatant):number=>{
     const status=actor===player?playerStatus:wildStatus;
@@ -232,10 +257,39 @@ export function simulateKantoBattle(
     status==='burn'?!target.types.includes('fire')
       :status==='poison'?!target.types.some(type=>type==='poison'||type==='steel'):true;
 
+  /** Sem RNG: suporte é tentado no início e ataque depois, sem spammar debuff. */
+  const choose=(actor:Combatant,target:Combatant,ownHp:number,targetHp:number,
+    targetStatus:KantoBattleStatus|null,attackDrop:number,defenseDrop:number,
+    used:Set<string>):KantoMove=>{
+    const available=actor.moves??[actor.move];
+    if(turns<=2&&ownHp>actor.stats.hp*.35&&targetHp>target.stats.hp*.5){
+      const support=available.find(move=>{
+        if(move.category!=='status'||used.has(move.name)
+          ||kantoTypeMultiplier(move.type,target.types)===0)return false;
+        const effect=kantoSupportEffect(move.name);
+        if(!effect)return false;
+        if(effect.kind==='status')return targetStatus===null&&statusAllowed(effect.status,target);
+        return effect.kind==='lower-attack'?attackDrop<3:defenseDrop<3;
+      });
+      if(support)return support;
+    }
+    const attacks=available.filter(move=>move.category!=='status');
+    const score=(move:KantoMove):number=>
+      move.power*move.accuracy*kantoTypeMultiplier(move.type,target.types)
+      *(actor.types.includes(move.type)?1.5:1)
+      *(move.category==='physical'
+        ?actor.stats.attack/Math.max(1,target.stats.defense)
+        :actor.stats.specialAttack/Math.max(1,target.stats.specialDefense));
+    return attacks.reduce((best,move)=>score(move)>score(best)?move:best,attacks[0]??actor.move);
+  };
   while(turns<30&&playerHp>0&&wildHp>0){
     turns++;
-    const first=player.move.priority>wild.move.priority
-      || player.move.priority===wild.move.priority&&(
+    const playerMove=choose(player,wild,playerHp,wildHp,wildStatus,
+      wildAttackDrops,wildDefenseDrops,pSupportUsed);
+    const wildMove=choose(wild,player,wildHp,playerHp,playerStatus,
+      playerAttackDrops,playerDefenseDrops,wSupportUsed);
+    const first=playerMove.priority>wildMove.priority
+      || playerMove.priority===wildMove.priority&&(
         speed(player)>speed(wild)||speed(player)===speed(wild)&&roll()<0.5
       );
     const order=first?[player,wild]:[wild,player];
@@ -243,28 +297,67 @@ export function simulateKantoBattle(
       if(playerHp===0||wildHp===0)break;
       const isPlayer=actor===player;
       const defender=isPlayer?wild:player;
+      const move=isPlayer?playerMove:wildMove;
       const actorStatus=isPlayer?playerStatus:wildStatus;
+      if(move.category==='status')(isPlayer?pSupportUsed:wSupportUsed).add(move.name);
       if(actorStatus==='paralysis'&&roll()<0.25){
         log.push('T'+turns+' · '+actor.name+' ficou paralisado e não conseguiu agir.');
         continue;
       }
-      if(roll()*100>=actor.move.accuracy){
-        log.push('T'+turns+' · '+actor.name+' errou '+actor.move.name+'.');
+      if(roll()*100>=move.accuracy){
+        log.push('T'+turns+' · '+actor.name+' errou '+move.name+'.');
         continue;
       }
-      const hit=kantoDamage(actor,defender,roll(),roll(),
-        actorStatus==='burn'&&actor.move.category==='physical'?0.5:1);
+      if(move.category==='status'){
+        const support=kantoSupportEffect(move.name);
+        if(!support||kantoTypeMultiplier(move.type,defender.types)===0){
+          log.push('T'+turns+' · '+defender.name+' é imune a '+move.name+'.');
+        }else if(support.kind==='status'){
+          const current=isPlayer?wildStatus:playerStatus;
+          if(current===null&&statusAllowed(support.status,defender)){
+            if(isPlayer)wildStatus=support.status;else playerStatus=support.status;
+            log.push('T'+turns+' · '+actor.name+' usou '+move.name+
+              ': '+defender.name+' ficou '+
+              (support.status==='poison'?'envenenado':'paralisado')+'.');
+          }else log.push('T'+turns+' · '+move.name+' não teve efeito.');
+        }else {
+          const drops=support.kind==='lower-attack'
+            ?(isPlayer?wildAttackDrops:playerAttackDrops)
+            :(isPlayer?wildDefenseDrops:playerDefenseDrops);
+          if(drops>=6)log.push('T'+turns+' · '+move.name+' não teve efeito.');
+          else {
+            if(support.kind==='lower-attack'){
+              if(isPlayer)wildAttackDrops++;else playerAttackDrops++;
+            }else if(isPlayer)wildDefenseDrops++;else playerDefenseDrops++;
+            log.push('T'+turns+' · '+actor.name+' usou '+move.name+
+              ': '+(support.kind==='lower-attack'?'Ataque':'Defesa')+
+              ' de '+defender.name+' diminuiu.');
+          }
+        }
+        continue;
+      }
+      const ownAttackDrop=isPlayer?playerAttackDrops:wildAttackDrops;
+      const foeDefenseDrop=isPlayer?wildDefenseDrops:playerDefenseDrops;
+      const stagedActor={...actor,move,
+        rank:actor.ranks?.[move.name]??(actor.move.name===move.name?actor.rank:0),
+        stats:{...actor.stats,attack:Math.max(1,Math.floor(
+          actor.stats.attack*2/(2+ownAttackDrop)))}};
+      const stagedDefender={...defender,
+        stats:{...defender.stats,defense:Math.max(1,Math.floor(
+          defender.stats.defense*2/(2+foeDefenseDrop)))}};
+      const hit=kantoDamage(stagedActor,stagedDefender,roll(),roll(),
+        actorStatus==='burn'&&move.category==='physical'?0.5:1);
       if(isPlayer)wildHp=Math.max(0,wildHp-hit.damage);
       else playerHp=Math.max(0,playerHp-hit.damage);
       const effectText=hit.effectiveness===0?' · Imune'
         :hit.effectiveness>=2?' · Super efetivo'
           :hit.effectiveness<1?' · Resistido':'';
-      log.push('T'+turns+' · '+actor.name+' usou '+actor.move.name+': '+
+      log.push('T'+turns+' · '+actor.name+' usou '+move.name+': '+
         hit.damage+' dano'+(hit.critical?' · CRÍTICO':'')+effectText+'.');
 
       // Sem hit efetivo ou alvo já derrotado não há efeitos adicionais.
       if(hit.damage===0||(isPlayer?wildHp:playerHp)===0)continue;
-      const secondary=kantoMoveSecondaryEffect(actor.move.name);
+      const secondary=kantoMoveSecondaryEffect(move.name);
       if(secondary?.kind==='status'&&roll()*100<secondary.chance){
         const targetStatus=isPlayer?wildStatus:playerStatus;
         if(targetStatus===null&&statusAllowed(secondary.status,defender)){
@@ -278,7 +371,7 @@ export function simulateKantoBattle(
         const restored=Math.min(missing,Math.max(1,Math.floor(hit.damage*secondary.percent/100)));
         if(restored>0){
           if(isPlayer)playerHp+=restored;else wildHp+=restored;
-          log.push('T'+turns+' · '+actor.name+' recuperou '+restored+' HP com '+actor.move.name+'.');
+          log.push('T'+turns+' · '+actor.name+' recuperou '+restored+' HP com '+move.name+'.');
         }
       }else if(secondary?.kind==='speed-drop'&&roll()*100<secondary.chance){
         const drops=isPlayer?wildSpeedDrops:playerSpeedDrops;
