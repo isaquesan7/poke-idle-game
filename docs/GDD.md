@@ -12,6 +12,7 @@ Os `base_stat` oficiais da PokéAPI não são modificados. Cada Pokémon captura
 - **Implementado v0.1:** para HP, `floor(2*base*level/100)+level+10+2*allocatedHP`.
 - **Implementado v0.1:** demais, `floor(2*base*level/100)+5+allocatedStat`.
 - Crescimento próprio: +2 pontos de distribuição por nível no protótipo, atributo de treinador limitado a **40 investidos manualmente por atributo**; não confundir com o valor total.
+- **Clarificação do comportamento v0.1:** Pokémon individuais também recebem 2 pontos manuais por nível adquirido (`(level-1)*2`), distribuídos por UID. A v0.1 NÃO aplica o teto de 40 por atributo do treinador ao Pokémon; só limita pelo orçamento total. Ação de redistribuição é gratuita no protótipo. Na equipe, 1–3 UIDs distintos e trocas bloqueadas durante expedição. Os reducers puros do core reproduzem essas regras, mas não salvam progresso.
 - Nível máximo do protótipo: 100. Balanceamento final poderá ser revisado com testes.
 
 ## Atributos efetivos do treinador — ACORDADO

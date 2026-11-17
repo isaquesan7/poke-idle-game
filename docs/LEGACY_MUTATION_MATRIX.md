@@ -12,11 +12,11 @@
 | `save-name` | L205 | `state.name` | Somente leitura | Sanitização e escrita versionada |
 | `stat-trainer` | L206 | `trainer.manual[stat]++`, até 40 por atributo e orçamento por nível | Simulação via `trainerDraft` | Portar ação real sob revisão |
 | `reset-trainer` | L207 | Zera todos os pontos manuais do treinador | Sem ação real | Reembolso seguro, revisão e teste |
-| `stat-pokemon` | L208 | Pontos manuais da instância Pokémon por UID | Sem ação real | Orçamento, limite e UID por instância |
-| `reset-pokemon` | L209 | Zera os pontos manuais daquela instância | Sem ação real | Validar UID/reembolso |
+| `stat-pokemon` | L208 | Pontos manuais da instância Pokémon por UID | **Reducer puro no core**, sem write | Testar integração React + revisão versionada antes de persistir |
+| `reset-pokemon` | L209 | Zera os pontos manuais daquela instância | **Reducer puro no core**, sem write | Fluxo React protegido + save oficial somente após cutover |
 | `select-pokemon` | L210 | Apenas seleção de UI em memória; **não salva** | Prévia mostra Pokémon ativo | Preservar distinção seleção vs equipe |
-| `add-team` | L211 | `team.push(uid)`; até 3, expedição impede trocas | Somente leitura | Integridade de UID/time/expedição |
-| `remove-team` | L212 | `team` filtrado; exige ao menos 1 | Somente leitura | Invariantes da equipe |
+| `add-team` | L211 | `team.push(uid)`; até 3, expedição impede trocas | **Reducer puro no core**, sem write | Testar paridade com UI/combate/expedição e writer |
+| `remove-team` | L212 | `team` filtrado; exige ao menos 1 | **Reducer puro no core**, sem write | Portar fluxo da equipe e política de writer |
 | `upgrade-move` | L213 | `roster[].upgrades[moveName]`, limite de rank e pontos | Somente leitura | Fórmula de pontos e rank por UID/golpe |
 | `encounter` | L214 e L186 | `seen.push(pokemonId)`, salva; também prepara `wild` em RAM | Sem ação real | Encontro, aleatoriedade e deduplicação |
 | `battle` | L215, L190–196 | Vitórias/derrotas, moedas, XP, níveis, afinidade, insígnias, captura/UID/roster | Só fórmulas parciais no core | Motor de combate determinístico, idempotência de recompensas |
@@ -56,3 +56,7 @@
 5. **Verificação automática**: `tests/legacy-mutation-audit.test.mjs` falha se um novo `data-action` tratado pelo handler for adicionado/removido sem atualizar o snapshot de ações; isso NÃO garante detectar mutações introduzidas dentro de uma função existente. Auditoria manual continua obrigatória.
 
 **Próxima implementação sugerida:** criar reducers puros para treino/reset de pontos do Pokémon e equipe, sem writes; em seguida batalha/claim com eventos idempotentes e testes de dupla aba. O gate fail-closed em `apps/web/src/storage/cutoverGate.ts` mantém a migração real sempre bloqueada mesmo que o JSON seja válido.
+
+
+## Implementação incremental de paridade: Pokémon/equipe (2026-11-16)
+O reducer `packages/game-core/src/legacy/pokemonTeamReducer.ts` cobre exclusivamente as quatro ações `stat-pokemon`, `reset-pokemon`, `add-team` e `remove-team` em um NOVO texto JSON, sem persistência. Valida UIDs individuais, orçamento de dois pontos por nível, expedição ativa e limites de equipe (1–3). Rejeita saves incompatíveis; preserva XP, moedas, capturas e atributos não relacionados. **Não cobre** combate, recompensas, encontros, títulos, equipamento, compras, writer ou rollback real. `cutoverGate.ts` permanece fail-closed. Testes: `packages/game-core/tests/pokemon-team-reducer.test.ts`.
