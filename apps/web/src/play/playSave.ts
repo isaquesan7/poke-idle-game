@@ -8,10 +8,13 @@
  */
 import {
   applyRewardEvent, editLegacyTrainerJson, prepareRewardJournal,
-  reduceLegacyPokemonTeamJson, zeroStats, LEGACY_STARTERS
+  reduceLegacyPokemonTeamJson, zeroStats, LEGACY_STARTERS,
+  KANTO_BATTLE_SPECIES, KANTO_BATTLE_MOVES, KANTO_WILD_POOL,
+  LEGACY_ITEMS, LEGACY_BADGES, STATS, trainerTotals, pokemonFinalStats,
+  pokemonOwnStats, effectiveLegacyTitle, simulateKantoBattle
 } from '@kanto/game-core';
 import type {
-  LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction
+  LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant
 } from '@kanto/game-core';
 
 export const PLAY_SAVE_KEY = 'kanto-idle-play-v02';
@@ -29,6 +32,7 @@ export type PlayRead =
 export type PlayAction =
   | { readonly type: 'trainer'; readonly value: TrainerDraftAction }
   | { readonly type: 'pokemon'; readonly value: LegacyPokemonTeamAction }
+  | { readonly type: 'battle'; readonly seed: number }
   | { readonly type: 'start-expedition' | 'claim-expedition' | 'stop-expedition'; readonly nowMs: number };
 
 export type PlayWrite =
@@ -117,6 +121,109 @@ export function createPlaySave(
   return commit(storage, null, { schemaVersion: 2, revision: 0, journal });
 }
 
+
+/**
+ * Prepara encontro e comando de recompensa no MESMO cálculo local, sem
+ * aceitar outcome, dano, XP, espécie alvo ou captura arbitrários do botão.
+ * Uma seed de navegador ainda é manipulável: apenas alfa sem antifraude.
+ */
+function playBattle(journal: RewardJournal, seed: number, eventId: string):
+  | { readonly status:'ok'; readonly journal:RewardJournal }
+  | { readonly status:'blocked'; readonly reason:string } {
+  if (!Number.isSafeInteger(seed) || seed<0 || seed>0xffffffff) {
+    return {status:'blocked',reason:'Seed de combate inválida.'};
+  }
+  try {
+    const game:unknown=JSON.parse(journal.raw);
+    if (!record(game) || !record(game.trainer) || !record(game.trainer.manual)
+      || !Array.isArray(game.roster) || !Array.isArray(game.team)
+      || !Array.isArray(game.badges) || !Array.isArray(game.seen)
+      || !Number.isSafeInteger(game.wins)) {
+      return {status:'blocked',reason:'Save de combate inválido.'};
+    }
+    const trainer=game.trainer;
+    const trainerManual=trainer.manual as Record<string,unknown>;
+    const badgeIds=game.badges as unknown[];
+    const currentUid=game.team[0];
+    const active=(game.roster as unknown[]).find(p=>record(p)&&p.uid===currentUid);
+    if (!record(active) || !Number.isSafeInteger(active.pokemonId)
+      || !Number.isSafeInteger(active.level) || !Number.isSafeInteger(active.affinity)
+      || !record(active.manual)) {
+      return {status:'blocked',reason:'Pokémon ativo inválido.'};
+    }
+    const species=KANTO_BATTLE_SPECIES[active.pokemonId as number];
+    if (!species) {
+      return {status:'blocked',reason:'Esta espécie ainda não possui dados para a arena Alfa.'};
+    }
+    const manual:StatValues=zeroStats();
+    const pokemonManual:StatValues=zeroStats();
+    for(const stat of STATS) {
+      const value=trainerManual[stat] ?? 0;
+      const amount=active.manual[stat] ?? 0;
+      if (!Number.isSafeInteger(value) || (value as number)<0 || (value as number)>40
+        || !Number.isSafeInteger(amount) || (amount as number)<0 || (amount as number)>200) {
+        return {status:'blocked',reason:'Atributos do combatente inválidos.'};
+      }
+      manual[stat]=value as number;
+      pokemonManual[stat]=amount as number;
+    }
+    const equipped=record(trainer.equipped)?trainer.equipped:{};
+    const items=LEGACY_ITEMS.filter(item=>equipped[item.slot]===item.id);
+    const badges=LEGACY_BADGES.filter(badge=>badgeIds.includes(badge.id));
+    const title=effectiveLegacyTitle(trainer.title,game.wins as number,
+      game.seen.length,game.badges.length);
+    const totals=trainerTotals({
+      manual, equipment:items.map(item=>({slot:item.slot,stats:item.stats})),
+      activeTitle:title.stats,
+      badges:badges.map(badge=>({id:badge.id,stats:badge.stats}))
+    });
+    const moveName=typeof active.moveName==='string'?active.moveName:'';
+    const move=KANTO_BATTLE_MOVES[moveName] ?? species.move;
+    const upgrades=record(active.upgrades)?active.upgrades:{};
+    const rank=upgrades[move.name] ?? 0;
+    const player:Combatant={
+      speciesId:species.id,name:species.name,level:active.level as number,
+      types:species.types,
+      stats:pokemonFinalStats(species.base,active.level as number,pokemonManual,totals,active.affinity as number),
+      move,rank:rank as number
+    };
+    const wildSpeciesId=KANTO_WILD_POOL[seed % KANTO_WILD_POOL.length]!;
+    const enemy=KANTO_BATTLE_SPECIES[wildSpeciesId]!;
+    const wildLevel=Math.max(2,Math.min(100,(active.level as number)+((seed>>>8)%5)-2));
+    const wild:Combatant={
+      speciesId:enemy.id,name:enemy.name,level:wildLevel,types:enemy.types,
+      stats:pokemonOwnStats(enemy.base,wildLevel,zeroStats()),
+      move:enemy.move,rank:0
+    };
+    const result=simulateKantoBattle(player,wild,seed);
+    const base={ id:eventId,expectedRevision:journal.revision,type:'battle-result' as const,
+      outcome:result.outcome,activeUid:currentUid as number,wildLevel };
+    const command:RewardCommand=result.outcome==='win'
+      ? {
+        ...base,outcome:'win',affinityGain:result.affinityGain!,
+        ...(result.captured?{capture:{pokemonId:wildSpeciesId,moveName:enemy.move.name}}:{})
+      } : base;
+    const applied=applyRewardEvent(journal,command);
+    if (applied.status!=='applied') {
+      return {status:'blocked',reason:applied.status==='rejected'?applied.reason:'Batalha duplicada.'};
+    }
+    const updated=JSON.parse(applied.journal.raw) as Record<string,unknown>;
+    const seen=new Set(game.seen.filter(n=>Number.isSafeInteger(n) && (n as number)>=1 && (n as number)<=151));
+    seen.add(wildSpeciesId);
+    updated.seen=Array.from(seen);
+    updated.lastBattle={
+      ...result,
+      wildName:enemy.name,wildLevel,
+      rewardCoins:result.outcome==='win'?25+wildLevel*3:0,
+      trainerXp:result.outcome==='win'?30+wildLevel*7:0,
+      pokemonXp:result.outcome==='win'?20+wildLevel*6:0
+    };
+    return {status:'ok',journal:{...applied.journal,raw:JSON.stringify(updated)}};
+  } catch {
+    return {status:'blocked',reason:'Não foi possível calcular o encontro; nenhum progresso foi alterado.'};
+  }
+}
+
 /**
  * Uma única transição imutável + uma gravação da chave v0.2.
  * O caller DEVE usar navigator.locks para coordenação entre abas.
@@ -140,6 +247,10 @@ export function updatePlaySave(
       : reduceLegacyPokemonTeamJson(journal.raw, action.value);
     if (result.status !== 'ok') return { status: 'blocked', reason: result.reason };
     next = { ...journal, raw: result.json };
+  } else if (action.type === 'battle') {
+    const result=playBattle(journal,action.seed,'battle-v02-'+(previous.snapshot.revision+1));
+    if (result.status==='blocked') return result;
+    next=result.journal;
   } else {
     const command: RewardCommand = {
       id: 'idle-v02-' + (previous.snapshot.revision + 1),

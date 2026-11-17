@@ -83,6 +83,25 @@ async function exercise(browser, label, viewport) {
   assert.equal(after.journal.receipts.length,2);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
+  // Arena real: resultado deve vir do motor, nunca de um botão "ganhar".
+  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.getByRole('heading',{name:'Arena de batalha'}).waitFor();
+  await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===5,SAVE);
+  const fought=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  const battleSave=JSON.parse(fought.journal.raw);
+  assert.equal(battleSave.wins+battleSave.losses,1);
+  assert.equal(fought.journal.revision,3);
+  assert.equal(fought.journal.receipts.length,3);
+  assert.ok(battleSave.seen.includes(battleSave.lastBattle.wildSpeciesId));
+  assert.ok(battleSave.lastBattle.log.length>=2);
+  assert.ok(battleSave.lastBattle.turns<=30);
+  await page.getByRole('heading',{name:'Diário de combate'}).waitFor();
+  await page.reload();
+  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.getByRole('heading',{name:'Diário de combate'}).waitFor();
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
+
   await page.screenshot({path:new URL(label+'-play.png',shots).pathname,fullPage:true,animations:'disabled'});
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);

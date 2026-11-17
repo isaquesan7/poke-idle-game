@@ -157,3 +157,87 @@ describe('primeiro save jogável v0.2, sem dependência da origem legada', () =>
     expect(updatePlaySave(failing,0,{type:'start-expedition',nowMs:10000}).status).toBe('blocked');
   });
 });
+
+describe('batalha real na v0.2: combate + recompensas + captura em uma escrita',()=>{
+  it('não permite ao botão declarar vitória; calcula resultado pela seed no core',()=>{
+    const {storage,map}=memory();
+    map.set('kanto-idle-lab-save-v01','legacy-untouched');
+    expect(createPlaySave(storage,'Arena',4,1000,true).status).toBe('ok');
+    const outcome=updatePlaySave(storage,0,{type:'battle',seed:0});
+    expect(outcome.status).toBe('ok');
+    const snapshot=current(storage);
+    const game=JSON.parse(snapshot.journal.raw) as {
+      wins:number; losses:number; seen:number[]; coins:number;
+      roster:Array<{uid:number;pokemonId:number}>;
+      lastBattle:{outcome:'win'|'loss'|'draw';wildSpeciesId:number;wildName:string;
+        log:string[];captured:boolean;turns:number};
+    };
+    expect(game.wins+game.losses).toBe(1);
+    expect(snapshot.revision).toBe(1);
+    expect(snapshot.journal.revision).toBe(1);
+    expect(snapshot.journal.receipts).toHaveLength(1);
+    expect(snapshot.journal.receipts[0]?.id).toBe('battle-v02-1');
+    expect(game.lastBattle.wildSpeciesId).toBe(10); // seed 0 = Caterpie
+    expect(game.seen).toContain(10);
+    expect(game.lastBattle.log.length).toBeGreaterThan(1);
+    expect(game.lastBattle.turns).toBeGreaterThan(0);
+    expect(game.lastBattle.turns).toBeLessThanOrEqual(30);
+    expect(game.lastBattle.captured).toBe(game.roster.length>1);
+    expect(map.get('kanto-idle-lab-save-v01')).toBe('legacy-untouched');
+    expect(updatePlaySave(storage,0,{type:'battle',seed:0}).status).toBe('blocked');
+    expect(current(storage)).toEqual(snapshot);
+  });
+
+  it('captura gera UID individual e mantém saldo/XP sem conceder duas vezes',()=>{
+    let found=false;
+    for(let seed=0;seed<600&&!found;seed++){
+      const {storage}=memory();
+      createPlaySave(storage,'Captura',7,1000,true);
+      const outcome=updatePlaySave(storage,0,{type:'battle',seed});
+      expect(outcome.status).toBe('ok');
+      const snapshot=current(storage);
+      const game=JSON.parse(snapshot.journal.raw) as {
+        wins:number;coins:number;nextUid:number;
+        roster:Array<{uid:number;pokemonId:number}>;
+        lastBattle:{captured:boolean;outcome:string;wildSpeciesId:number};
+      };
+      if(!game.lastBattle.captured)continue;
+      found=true;
+      expect(game.lastBattle.outcome).toBe('win');
+      expect(game.wins).toBe(1);
+      expect(game.roster).toHaveLength(2);
+      expect(game.roster[1]?.uid).toBe(2);
+      expect(game.roster[1]?.pokemonId).toBe(game.lastBattle.wildSpeciesId);
+      expect(game.nextUid).toBe(3);
+      expect(game.coins).toBeGreaterThan(200);
+      expect(updatePlaySave(storage,0,{type:'battle',seed}).status).toBe('blocked');
+      expect(current(storage)).toEqual(snapshot);
+    }
+    expect(found).toBe(true);
+  });
+
+  it('rejeita seed fora do uint32 sem alterar qualquer estado',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Segurança',1,1000);
+    const original=storage.getItem(PLAY_SAVE_KEY);
+    for (const seed of [-1,2**32,1.4,NaN]) {
+      expect(updatePlaySave(storage,0,{type:'battle',seed}).status).toBe('blocked');
+    }
+    expect(storage.getItem(PLAY_SAVE_KEY)).toBe(original);
+  });
+
+  it('expedição e batalha compartilham revisão externa mas recibos internos únicos',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Jornada',7,1000,true);
+    expect(updatePlaySave(storage,0,{type:'start-expedition',nowMs:10000}).status).toBe('ok');
+    expect(updatePlaySave(storage,1,{type:'battle',seed:35}).status).toBe('ok');
+    expect(updatePlaySave(storage,2,{type:'claim-expedition',nowMs:30000}).status).toBe('ok');
+    const snapshot=current(storage);
+    expect(snapshot.revision).toBe(3);
+    expect(snapshot.journal.revision).toBe(3);
+    expect(snapshot.journal.receipts.map(r=>r.id)).toEqual(['idle-v02-1','battle-v02-2','idle-v02-3']);
+    const game=JSON.parse(snapshot.journal.raw) as {lastBattle:unknown;coins:number;expedition:unknown};
+    expect(game.lastBattle).not.toBeNull();
+    expect(game.expedition).not.toBeNull();
+  });
+});

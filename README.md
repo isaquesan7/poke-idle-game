@@ -180,3 +180,6 @@ PR #29 merged em `684ebf43`; GitHub Actions `44067662663` SUCCESS (inclui navega
 
 ### Release confirmada — Node 22 e primeira experiência jogável (2026-11-17)
 A PR #30 concluiu a correção de runtime: `main` `9536860e`, CI completo `44068373957` SUCCESS, Railway `025abdf3-454e-4203-83b4-277ff1403d33` SUCCESS, Node 22.23.4 selecionado e `/health` interno aprovado. Jogar a alfa em `/play`. Não há jogadores reais nem importação compulsória da v0.1; próxima etapa é o combate determinístico. GET externo não foi confirmado neste ambiente.
+
+### Arena v0.2 — combate determinístico e capturas (PR #32 em validação)
+A rota `/play` passa a oferecer Arena automática: batalhas em até 30 turnos com cálculo de precisão, crítico, dano, tipagem, vitória/derrota, XP, moedas, insígnias e captura com chance de 35% após vencer. São 8 espécies selvagens piloto com stats/moves locais e os 3 iniciais; não são todos os 151 Pokémon ainda. O resultado e o diário são salvos na chave v0.2 sem alterar `/` nem saves da v0.1. É alfa pré-lançamento com seed gerada no navegador e **sem antifraude**. PR #32 depende de CI e publicação para essa funcionalidade estar disponível no Railway.

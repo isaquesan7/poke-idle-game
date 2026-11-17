@@ -113,3 +113,40 @@
   .starter strong,.starterSelected strong,.starter span,.starterSelected span,.starter small,.starterSelected small { grid-column:3; }
   .form { padding:var(--space-4); }
 }
+
+/* .battleIntro: destaque da Arena com mensagem e o confronto visual lado a lado. */
+.battleIntro {
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);
+  gap:var(--space-5);align-items:center;
+  background:linear-gradient(115deg,var(--color-body-background-2),var(--color-surface-raised));
+  border:1px solid var(--color-hero-border-1);border-radius:var(--radius-panel);
+  padding:clamp(20px,3vw,38px);margin-bottom:var(--space-5);
+}
+.battleIntro h2{font-size:clamp(1.5rem,3vw,2.35rem);margin:var(--space-3) 0;}
+.battleIntro p{color:var(--color-text-muted);line-height:1.6;}
+/* .battleScene: cada combatente possui arte, nome e papel acessível. */
+.battleScene{display:grid;grid-template-columns:minmax(0,1fr) 45px minmax(0,1fr);align-items:center;text-align:center;gap:var(--space-2);}
+.battleScene>div{display:flex;align-items:center;flex-direction:column;min-width:0;gap:var(--space-2);}
+.battleScene .pokemonLarge{width:100%;height:170px;}
+.battleScene strong{font-size:.95rem;overflow-wrap:anywhere;}
+.battleScene small{color:var(--color-text-muted);}
+.vs{font-weight:900;font-size:1.25rem;color:var(--color-gold);}
+.unknownEnemy{display:grid;place-items:center;width:100%;height:170px;color:var(--color-primary);font-size:6rem;}
+/* .battleRewards: valores concretos da última transação, nunca pré-visualização inventada. */
+.battleRewards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3);margin:var(--space-5) 0;}
+.battleRewards div{padding:var(--space-4);background:var(--color-surface-raised);border-radius:var(--radius-card);display:flex;flex-direction:column;gap:var(--space-2);}
+.battleRewards small{color:var(--color-text-muted);}
+.battleRewards strong{font-size:1.35rem;color:var(--color-gold);}
+/* .battleLog: log persistido, rolagens e ordem de turno calculadas no core. */
+.battleLog{margin:0;padding:var(--space-2) var(--space-3) var(--space-2) var(--space-6);max-height:350px;overflow-y:auto;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-text-muted);}
+.battleLog li{padding:var(--space-2) 0;border-bottom:1px solid var(--color-border);font-size:.85rem;}
+/* .encounterGrid: cards compactos e responsivos do catálogo piloto Kanto. */
+.encounterGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3);}
+.encounterCard{min-width:0;display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-2);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface-raised);font-size:.85rem;text-align:center;}
+.encounterCard .pokemonArt{width:85px;height:85px;}
+@media(max-width:1100px){.battleIntro{grid-template-columns:minmax(0,1fr);}}
+@media(max-width:690px){
+  .battleScene .pokemonLarge,.unknownEnemy{height:125px;}
+  .encounterGrid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .battleIntro{padding:var(--space-4);}
+}
