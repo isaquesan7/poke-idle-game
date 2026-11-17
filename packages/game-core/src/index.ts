@@ -61,3 +61,12 @@ export {
   KANTO_LEVELUP_DAMAGE_MOVES, kantoLevelMoves
 } from './catalog/kantoLevelMoves.js';
 export type { KantoLearnableMove } from './catalog/kantoLevelMoves.js';
+export {
+  KANTO_EVOLUTION_SOURCE_COMMIT, KANTO_EVOLUTION_STONES,
+  KANTO_EVOLUTION_RULES, kantoEvolutionOptions
+} from './catalog/kantoEvolution.js';
+export type { KantoEvolutionRule, KantoEvolutionStone } from './catalog/kantoEvolution.js';
+export { reduceKantoEvolutionJson } from './legacy/pokemonEvolutionReducer.js';
+export type {
+  KantoEvolutionAction, KantoEvolutionEditResult
+} from './legacy/pokemonEvolutionReducer.js';

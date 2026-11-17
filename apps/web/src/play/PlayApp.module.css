@@ -318,3 +318,15 @@
   .battlePlaybackProgress>span{transition:none;}
   .battleLog{scroll-behavior:auto;}
 }
+
+/* Evolução por UID: requisitos legíveis, botão contextual e pedras de teste da alfa. */
+.evolutionList{display:grid;gap:var(--space-3);margin:var(--space-4) 0;}
+.evolutionOption{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface-raised);}
+.evolutionOption .pokemonArt{width:75px;height:75px;flex-shrink:0;}
+.evolutionOption>div{display:grid;gap:var(--space-1);flex:1;min-width:0;}
+.evolutionOption small{color:var(--color-text-muted);font-size:.8rem;}
+.evolutionOption button{min-height:40px;}
+.evolutionOption button:disabled{opacity:.45;cursor:not-allowed;}
+.evolutionTestTools{display:flex;gap:var(--space-3);align-items:center;justify-content:space-between;flex-wrap:wrap;margin:var(--space-4) 0;}
+.evolutionTestTools span{font-size:.78rem;color:var(--color-text-muted);flex:1;}
+@media(max-width:690px){.evolutionOption{flex-wrap:wrap;}.evolutionOption button{width:100%;}}

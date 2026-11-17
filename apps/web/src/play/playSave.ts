@@ -12,7 +12,7 @@ import {
   KANTO_BATTLE_SPECIES, KANTO_BATTLE_MOVES, KANTO_WILD_POOL,
   LEGACY_ITEMS, LEGACY_BADGES, STATS, trainerTotals, pokemonFinalStats,
   pokemonOwnStats, effectiveLegacyTitle, simulateKantoBattle,
-  reduceLegacyPokemonMoveJson, kantoLevelMoves
+  reduceLegacyPokemonMoveJson, kantoLevelMoves, reduceKantoEvolutionJson
 } from '@kanto/game-core';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant
@@ -34,6 +34,8 @@ export type PlayAction =
   | { readonly type: 'trainer'; readonly value: TrainerDraftAction }
   | { readonly type: 'pokemon'; readonly value: LegacyPokemonTeamAction }
   | { readonly type: 'battle'; readonly seed: number }
+  | { readonly type: 'evolution'; readonly uid:number; readonly targetSpeciesId:number }
+  | { readonly type: 'evolution-test-kit' }
   | { readonly type: 'move'; readonly uid:number; readonly moveName:string;
       readonly operation:'select'|'upgrade' }
   | { readonly type: 'start-expedition' | 'claim-expedition' | 'stop-expedition'; readonly nowMs: number };
@@ -111,7 +113,8 @@ export function createPlaySave(
     trainer: {
       level: demo ? 21 : 1, xp: 0, manual: zeroStats(), equipped: {}, title: 'aprendiz'
     },
-    coins: demo ? 200 : 0, wins: 0, losses: 0, seen: [starterId], badges: [],
+    coins: demo ? 200 : 0, wins: 0, losses: 0, seen: [starterId],
+    caughtSpecies:[starterId],evolutionStones:{},evolutionTestKitClaimed:false,badges: [],
     roster: [{
       uid: 1, pokemonId: starterId, level: demo ? 20 : 5,
       xp: 0, manual: zeroStats(), affinity: demo ? 70 : 0,
@@ -214,6 +217,15 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
     const seen=new Set(game.seen.filter(n=>Number.isSafeInteger(n) && (n as number)>=1 && (n as number)<=151));
     seen.add(wildSpeciesId);
     updated.seen=Array.from(seen);
+    if(result.captured){
+      const caughtRaw=Array.isArray(updated.caughtSpecies)?updated.caughtSpecies:[];
+      const caught=new Set([
+        ...caughtRaw.filter(n=>Number.isSafeInteger(n)&&n>=1&&n<=151),
+        ...(game.roster as Record<string,unknown>[]).map(p=>p.pokemonId).filter(n=>Number.isSafeInteger(n)),
+        wildSpeciesId
+      ]);
+      updated.caughtSpecies=Array.from(caught);
+    }
     updated.lastBattle={
       ...result,
       battleId:eventId,
@@ -280,6 +292,14 @@ export function updatePlaySave(
           })
         : {status:'invalid' as const,reason:'Golpe não disponível para aprimoramento.'};
     if (result.status!=='ok') return {status:'blocked',reason:result.reason};
+    next={...journal,raw:result.json};
+  } else if (action.type === 'evolution' || action.type === 'evolution-test-kit') {
+    // O writer resolve as condições do catálogo, não confia em item/nível do botão.
+    const result=reduceKantoEvolutionJson(journal.raw,
+      action.type==='evolution'
+        ? {type:'evolve',uid:action.uid,targetSpeciesId:action.targetSpeciesId}
+        : {type:'grant-test-kit'});
+    if(result.status!=='ok')return{status:'blocked',reason:result.reason};
     next={...journal,raw:result.json};
   } else if (action.type === 'battle') {
     const result=playBattle(journal,action.seed,'battle-v02-'+(previous.snapshot.revision+1));

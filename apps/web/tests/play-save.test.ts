@@ -428,3 +428,51 @@ describe('golpes verificados por espécie e nível na v0.2',()=>{
     expect(map.get('kanto-idle-lab-save-v01')).toBe('KEEP');
   });
 });
+
+
+describe('evolução por UID na persistência alfa, sem recompensa duplicada',()=>{
+  it('evolui Charmander demo com revisão única e preserva UID/XP/golpes/equipe',()=>{
+    const {storage,map}=memory();
+    map.set('kanto-idle-lab-save-v01','original');
+    expect(createPlaySave(storage,'Red',4,1000,true).status).toBe('ok');
+    expect(updatePlaySave(storage,0,{type:'pokemon',value:{type:'invest-pokemon',uid:1,stat:'attack'}}).status).toBe('ok');
+    expect(updatePlaySave(storage,1,{type:'move',uid:1,moveName:'ember',operation:'select'}).status).toBe('ok');
+    expect(updatePlaySave(storage,2,{type:'move',uid:1,moveName:'ember',operation:'upgrade'}).status).toBe('ok');
+    const before=current(storage);
+    const old=JSON.parse(before.journal.raw);
+    const result=updatePlaySave(storage,3,{type:'evolution',uid:1,targetSpeciesId:5});
+    expect(result.status).toBe('ok');
+    const after=current(storage);
+    const evolved=JSON.parse(after.journal.raw);
+    expect(after.revision).toBe(4);
+    expect(after.journal.receipts).toEqual(before.journal.receipts);
+    expect(after.journal.revision).toBe(before.journal.revision);
+    expect(evolved.roster[0]).toEqual({...old.roster[0],pokemonId:5});
+    expect(evolved.team).toEqual([1]);
+    expect(evolved.caughtSpecies).toEqual([4,5]);
+    expect(evolved.seen).toEqual([4,5]);
+    expect(map.get('kanto-idle-lab-save-v01')).toBe('original');
+    expect(updatePlaySave(storage,3,{type:'evolution',uid:1,targetSpeciesId:5}).status).toBe('blocked');
+    expect(updatePlaySave(storage,4,{type:'evolution',uid:1,targetSpeciesId:6}).status).toBe('blocked');
+    expect(current(storage)).toEqual(after);
+  });
+  it('concede apenas um kit de pedras, consume no stone e preserva saldo',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Leaf',1,1000,true);
+    const starter=current(storage);
+    const raw=JSON.parse(starter.journal.raw);
+    raw.roster[0].pokemonId=25;raw.roster[0].level=20;
+    raw.seen=[25];raw.caughtSpecies=[25];
+    storage.setItem(PLAY_SAVE_KEY,JSON.stringify({...starter,journal:{...starter.journal,raw:JSON.stringify(raw)}}));
+    expect(updatePlaySave(storage,0,{type:'evolution',uid:1,targetSpeciesId:26}).status).toBe('blocked');
+    expect(updatePlaySave(storage,0,{type:'evolution-test-kit'}).status).toBe('ok');
+    expect(updatePlaySave(storage,1,{type:'evolution-test-kit'}).status).toBe('blocked');
+    expect(updatePlaySave(storage,1,{type:'evolution',uid:1,targetSpeciesId:26}).status).toBe('ok');
+    const evolved=JSON.parse(current(storage).journal.raw);
+    expect(evolved.roster[0].pokemonId).toBe(26);
+    expect(evolved.evolutionStones['thunder-stone']).toBe(0);
+    expect(evolved.caughtSpecies).toEqual([25,26]);
+    expect(evolved.coins).toBe(raw.coins);
+    expect(current(storage).journal.receipts).toEqual([]);
+  });
+});

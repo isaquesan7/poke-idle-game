@@ -64,3 +64,5 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 ```md
 | D-012 | AAAA-MM-DD | VIGENTE/PROPOSTA/SUPERADA | Contexto, decisão, justificativa e consequências. |
 ```
+
+| D-033 | 2026-11-17 | IMPLEMENTADA EM BRANCH, CI/PR PENDENTES | Evolução MANUAL por UID v0.2 usando `pokemon_evolution.csv` em PokeAPI/pokeapi@ac2f1acb055026e3dff1e0aca743bb46256a810a, formas padrão até FRLG, 151 nacionais. Requisitos nível ou pedra são verificados pelo core/writer, não por parâmetros do botão; pedra é consumida em UMA gravação revisionada. Troca fica visível/bloqueada até existir sistema de troca; evoluções fora da 1ª geração não são simuladas. Conservar UID/nível/XP/afinidade/manual/upgrades/golpe e equipe, bloquear evolução durante expedição. Historizar espécies já capturadas no mesmo save (sem chave nova) para não perder registro após evolução; novos saves mantêm campo opcional compatível com saves alfa antigos. Um kit de pedras de uso único, marcado TESTE e sem preço/drop definitivo, permite validar formas por item antes da economia final. Não duplicar recibos/recompensas nem alterar v0.1. |
