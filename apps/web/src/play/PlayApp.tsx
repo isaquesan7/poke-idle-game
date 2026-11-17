@@ -293,7 +293,7 @@ export function PlayApp() {
           </div>
         </header>
         {feedback && <div role="status" aria-live="polite" className={styles.message}>{feedback}</div>}
-        {!view || !data || !active ? (
+        {!view || !data || !active || !focused ? (
           <section className={styles.panel}>O perfil de teste não pôde ser projetado. Nenhum dado foi modificado.</section>
         ) : (
           <>
