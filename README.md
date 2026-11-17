@@ -125,3 +125,7 @@ Na branch `feat/v02-writer-coordination-and-recovery-export`, a interface React 
 
 ### Handoff da PR #11 — 2026-11-16
 A PR #11 foi integrada na `main` (`9369e4a4`), com Railway `SUCCESS`. Backup SHA-256 + conferência de arquivo são recursos SOMENTE da prévia React, sem migração ou escrita no save real. O CI pós-merge apresentou um timeout intermitente de fallback de GIF #25 no E2E legado devido ao cache do Chromium; a correção instala a interceptação antes de carregar a Pokédex (`fix/legacy-e2e-fallback-cache-and-handoff`). Acompanhar novo CI antes de declarar regressão resolvida; detalhes no final de `docs/PROJECT_STATE.md`.
+
+
+### Handoff validado — writers e recuperação (2026-11-16)
+PRs #11 e #12 integradas à `main` no SHA `db10572b`, com deploy Railway `293781a0` `SUCCESS` e teste completo em [GitHub Actions #43987571827](https://github.com/isaquesan7/poke-idle-game/actions/runs/43987571827) `SUCCESS`. A PR #12 corrigiu a intermitência de fallback do GIF #25 nos E2E. A prévia React exporta/confere pacotes SHA-256 **sem restaurar**, o protocolo de writer v0.2 segue **somente experimental** e o jogo online continua v0.1. Próximo trabalho: cutover opt-in e recuperação testados em storage temporário, não no progresso real. Consulte a última seção de `docs/PROJECT_STATE.md`.

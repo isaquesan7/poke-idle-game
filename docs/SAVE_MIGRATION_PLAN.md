@@ -84,3 +84,9 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 - `inspectRecoveryFile` apenas verifica integridade/formato e compara com a origem. Retorna igual/diferente/ausente/inválido sem restaurar, transferir ou gravar; arquivos limitados a 8 MiB para contenção de recursos.
 - O painel React usa comentários CSS e tokens; testes verificam íntegro/adulterado, concorrência e zero escrita nas chaves oficial, backup, marcador ou save v0.1.
 - **Próxima tarefa:** laboratório opt-in de troca de writer com execução contra armazenamento TEMPORÁRIO de testes, validação read-back, interrupção/quota real e rollback. Não ligar o executor às chaves persistentes reais antes da paridade de progressão.
+
+### Handoff pós-validação das PRs #11 e #12 — 2026-11-16
+- #11 integrada em `9369e4a4`; #12 corrigiu flakiness do teste legado e foi integrada em `db10572b`. Railway `SUCCESS`, CI da main `43987571827` `SUCCESS`.
+- O protocolo de lock/revisão está testado SOMENTE para writers cooperativos. A v0.1 antiga pode salvar em outra aba; divergências exigem isolamento explícito, não mescla automática.
+- A prévia React pode baixar um `RecoveryBundleV02` SHA-256 e inspecionar um JSON externo; upload não é restauração. Não há executor de journal real.
+- Próximo: montar teste de cutover opt-in em memória/IndexedDB isolado, simulando falhas de quota, concorrência, cancelamento e reconciliação proibida, sem ativar saves v0.2 ou modificar v0.1.
