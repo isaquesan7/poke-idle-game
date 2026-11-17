@@ -56,3 +56,5 @@ A pessoa pode dizer: **“Continue o Poke Idle Game pelo AGENTS.md e docs/PROJEC
 O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Railway, explicar brevemente o último estado e dar continuidade SEM pedir ao usuário que reconte o projeto.
 
 > **Histórico de implementação (2026-11-17):** trabalho inicialmente feito em `feat/v02-evolution-by-uid`; PR #40 integrada; consulte os registros cronológicos em `docs/PROJECT_STATE.md`.
+
+> **NOTA DE BRANCH (17/11/2026):** implementação de condições temporárias e efeitos secundários de 5 golpes, incluindo Poison Sting (Weedle), na branch `feat/v02-combat-status-secondary`; CI/PR/merge/deploy pendentes ao escrever. Conferir último bloco de `docs/PROJECT_STATE.md`. Depois: suporte a 2–4 golpes, status-only e animações de HP/ataques; `isaquesan7/pokedex` permanece intocado.

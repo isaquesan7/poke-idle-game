@@ -62,6 +62,10 @@ export {
 } from './catalog/kantoLevelMoves.js';
 export type { KantoLearnableMove } from './catalog/kantoLevelMoves.js';
 export {
+  KANTO_STATUS_SOURCE_COMMIT, KANTO_SECONDARY_EFFECTS, kantoMoveSecondaryEffect
+} from './combat/kantoStatusEffects.js';
+export type { KantoBattleStatus, KantoSecondaryEffect } from './combat/kantoStatusEffects.js';
+export {
   KANTO_EVOLUTION_SOURCE_COMMIT, KANTO_EVOLUTION_STONES,
   KANTO_EVOLUTION_RULES, kantoEvolutionOptions
 } from './catalog/kantoEvolution.js';

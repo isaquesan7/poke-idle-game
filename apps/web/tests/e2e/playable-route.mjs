@@ -69,6 +69,7 @@ async function exercise(browser, label, viewport) {
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===1,SAVE);
   await page.getByRole('button',{name:'Pokémon',exact:true}).click();
   await page.getByRole('button',{name:'Adicionar ponto em DEF do Pokémon'}).click();
+  await page.getByText('10% de queimadura').waitFor();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===2,SAVE);
   snapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.equal(JSON.parse(snapshot.journal.raw).trainer.manual.attack,1);
@@ -282,7 +283,7 @@ async function exercise(browser, label, viewport) {
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);
   assert.deepEqual(errors,[]);
   await context.close();
-  console.log(label+': /play, golpes/rank, replay, Pokédex, equipe, evolução por UID e reload OK');
+  console.log(label+': /play, golpes/status, replay, Pokédex, equipe, evolução e reload OK');
 }
 
 let browser;

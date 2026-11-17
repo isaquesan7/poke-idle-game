@@ -3,7 +3,7 @@ import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
   KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats,
-  kantoLevelMoves, legacyMoveRankLimits, KANTO_BATTLE_MOVES,
+  kantoLevelMoves, legacyMoveRankLimits, KANTO_BATTLE_MOVES, kantoMoveSecondaryEffect,
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues } from '@kanto/game-core';
@@ -31,6 +31,16 @@ const BATTLE_SPECIES_CACHE = JSON.stringify({
 });
 function speciesName(id:number):string {
   return KANTO_BATTLE_SPECIES[id]?.name ?? 'Pokémon #' + String(id).padStart(3,'0');
+}
+/** Rótulos locais; as chances e efeitos vêm do domínio, não da UI. */
+function effectLabel(name:string):string|null {
+  const effect=kantoMoveSecondaryEffect(name);
+  if(!effect)return null;
+  if(effect.kind==='drain')return 'Recupera '+effect.percent+'% do dano como HP';
+  if(effect.kind==='speed-drop')return effect.chance+'% de reduzir Velocidade';
+  return effect.chance+'% de '+(
+    effect.status==='burn'?'queimadura':effect.status==='poison'?'envenenamento':'paralisia'
+  );
 }
 function focusedSpeciesFallback(speciesId:number|undefined) {
   return speciesId?KANTO_BATTLE_SPECIES[speciesId]?.move:undefined;
@@ -238,6 +248,8 @@ export function PlayApp() {
     && 'log' in lastBattleRaw && Array.isArray(lastBattleRaw.log)
     ? lastBattleRaw as {
         battleId?:string;
+        playerStatus?:'burn'|'poison'|'paralysis'|null;
+        wildStatus?:'burn'|'poison'|'paralysis'|null;
         outcome:'win'|'loss'|'draw'; wildSpeciesId:number;
         wildName:string;wildLevel:number;turns:number;
         captured:boolean;affinityGain:number|null;log:string[];
@@ -534,6 +546,7 @@ export function PlayApp() {
                         <div><strong>{move.name}</strong><small>Nv. {learnedAt} · {move.type} ·
                           Poder {move.power} · Precisão {move.accuracy}%</small>
                           <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'}</small>
+                           {effectLabel(move.name)&&<small>{effectLabel(move.name)}</small>}
                         </div>
                         <div className={styles.moveActions}>
                           <button type="button" className={styles.secondary}
@@ -556,7 +569,7 @@ export function PlayApp() {
                     <p className={styles.disclaimer}>O golpe equipado pode ter sido aprendido antes da evolução ou ser provisório da alfa. Ele é preservado nesta instância; ao equipar outro golpe, será substituído.</p>}
                   <p className={styles.disclaimer}>Golpes aprendidos por nível em FireRed/LeafGreen.
                     Apenas dano direto e movimentos já existentes na alfa foram incluídos.
-                    Efeitos secundários (por exemplo, paralisia e drenagem) ainda não são aplicados.</p>
+                    Ember, Thunder Shock, Poison Sting, Absorb e Bubble já possuem efeitos secundários simplificados. Golpes exclusivamente de status, como Sleep Powder, ainda não estão disponíveis; condições são temporárias por batalha.</p>
                 </section>
               </div>
             )}
@@ -693,7 +706,7 @@ export function PlayApp() {
                   <div>
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
                     <h2>Arena de batalha</h2>
-                    <p>Seu Pokémon enfrenta automaticamente um encontro de Kanto em até 30 turnos. O motor calcula precisão, dano, críticos e efetividade de tipos. Vitória concede XP, moedas, afinidade e chance de captura de 35%.</p>
+                    <p>Seu Pokémon enfrenta automaticamente um encontro de Kanto em até 30 turnos. O motor calcula precisão, dano, críticos, tipos e condições temporárias (queimadura, envenenamento e paralisia). Vitória concede XP, moedas, afinidade e chance de captura de 35%.</p>
                     <p>Líder: <strong>{speciesName(active.pokemonId)} · UID #{active.uid}</strong></p>
                     <p>Equipe: <strong>{data.team.length}/3</strong> ·
                       <button type="button" className={styles.textButton}
@@ -730,6 +743,9 @@ export function PlayApp() {
                       </> : <>
                       <h2>{lastBattle.outcome === 'win' ? 'Vitória!' : lastBattle.outcome === 'draw' ? 'Empate' : 'Derrota'}</h2>
                       <p>{lastBattle.wildName} · {lastBattle.turns} turno(s) · HP restante {lastBattle.playerRemainingHp}</p>
+                      {(lastBattle.playerStatus||lastBattle.wildStatus)&&
+                        <p>Condições ao fim do encontro: parceiro {lastBattle.playerStatus??'normal'} ·
+                          selvagem {lastBattle.wildStatus??'normal'}. Reiniciadas na próxima batalha.</p>}
                       {lastBattle.outcome === 'win' && (
                         <div className={styles.battleRewards}>
                           <div><small>Moedas</small><strong>+{lastBattle.rewardCoins}</strong></div>

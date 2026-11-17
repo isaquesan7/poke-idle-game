@@ -28,6 +28,7 @@ describe('aprendizado validado de golpes — PokéAPI FireRed/LeafGreen',()=>{
     expect(names(7,5)).toEqual(['tackle']);
     expect(names(7,7)).toContain('bubble');
     expect(names(7,13)).toContain('water-gun');
+    expect(names(13,1)).toContain('poison-sting');
     expect(names(16,9)).toContain('gust');
     expect(names(16,13)).toContain('quick-attack');
     expect(names(25,11)).toContain('quick-attack');
@@ -56,6 +57,6 @@ describe('aprendizado validado de golpes — PokéAPI FireRed/LeafGreen',()=>{
         if(row.learnedAt>1)expect(names(species.id,row.learnedAt-1)).not.toContain(row.move.name);
       }
     }
-    expect(totalSpecies).toBe(125);
+    expect(totalSpecies).toBe(126);
   });
 });
