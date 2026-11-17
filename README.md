@@ -133,3 +133,7 @@ PRs #11 e #12 integradas à `main` no SHA `db10572b`, com deploy Railway `293781
 
 ### Laboratório de migração opt-in (experimental)
 A branch `feat/v02-cutover-memory-laboratory` introduz uma simulação de migração com `MigrationMemoryLab` usando somente um `Map` em RAM. Na prévia React é possível selecionar quota, crash, divergência da aba legada e execução íntegra, após consentimento explícito. A simulação NUNCA importa, restaura ou grava o progresso real, e o Railway segue servindo a v0.1. Testes: `npm run test:web`, `npm run typecheck:web` e E2E desktop/mobile em CI. Consulte `docs/SAVE_MIGRATION_PLAN.md`.
+
+
+### Estado confirmado — laboratório RAM v0.2 (2026-11-16)
+A PR #14 integrou o laboratório opt-in ao código da `main` SHA `455c29a9`, com [CI final #43989615947](https://github.com/isaquesan7/poke-idle-game/actions/runs/43989615947) `SUCCESS` e deploy Railway `b621615b` `SUCCESS`. A simulação roda em `Map` privado, incluindo crashes, quota e divergência; a UI React ainda não é exposta na página publicada. A v0.1 e os saves reais estão preservados. Próxima prioridade: coordenação de um único writer, cutover opt-in e rollback, conforme `docs/SAVE_MIGRATION_PLAN.md`.

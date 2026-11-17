@@ -97,3 +97,9 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 - Testes cobrem sequência backup/candidato/marcador, quota e falhas após cada etapa, read-back, double-submit e segundo envio bloqueado, origem v0.1 divergente, versão futura, revisão stale de duas abas simuladas e backup recuperável por texto.
 - O laboratório permite dizer que a estrutura de journal/recuperação **foi ensaiada**, NÃO que o cutover real é transacional ou seguro entre abas v0.1; Web Locks ainda abrangem apenas clientes v0.2 cooperativos. Não há migração real, rollback automático, nem escrituração em chaves reais.
 - **Próximo bloqueador fora do laboratório:** estratégia para um writer único e desligamento/convivência com abas v0.1 antigas, backup recuperável fora da origem, paridade das rotinas v0.2 e revisão de segurança antes do opt-in real. Um storage fake não substitui testes reais multi-aba/queda/quota em laboratório de navegador.
+
+### Resultado da validação do laboratório — 2026-11-16
+- PR #14 integrada no commit `455c29a9`, GitHub Actions pós-merge `43989615947` SUCCESS e Railway deploy `b621615b` SUCCESS.
+- Ensaios de consentimento, read-back, quota, crash, divergência da v0.1, reenvio e revisão stale validados em `Map` privado; E2E desktop/mobile comprovou imutabilidade do storage real durante a simulação.
+- **Permanecem bloqueados**: escrita de save real v0.2, importação/restauração automática, transação entre abas legadas não-cooperativas e eventual sincronização remota.
+- Próxima etapa de implementação deve ser política de writer único e ativação opt-in com backup exportável fora da origem, mais testes em navegador de LAB isolado de quota real, interrupção e rollback. Não copiar o mecanismo de simulação para localStorage de produção sem revisão específica.

@@ -2,7 +2,7 @@
 
 > PONTO DE ENTRADA PARA NOVOS CHATS E AGENTES. Leia este arquivo antes de planejar ou alterar código.
 > Atualizado em 2026-11-16. A fonte final do estado técnico é o próprio GitHub/Railway; confira sempre os dados ao vivo.
-> **Handoff mais recente (2026-11-16):** PRs #3–#12 integradas à `main` até `db10572b`. O deploy Railway `293781a0` está em SUCCESS, CI pós-merge `43987571827` SUCCESS. A PR #11 adicionou exportação/inspeção SHA-256 e coordenação v0.2 somente experimental; a PR #12 corrigiu E2E de GIF #25 cacheado. **A página pública continua v0.1 e NENHUM save real v0.2 foi ativado.** Próxima etapa: laboratório de cutover opt-in/erro de quota em armazenamento isolado. Confira SEMPRE `docs/PROJECT_STATE.md` e GitHub/Railway ao vivo.
+> **Handoff mais recente (2026-11-16):** PRs #3–#14 integradas à `main` até `455c29a9`; PR #14 criou laboratório opt-in de migração **somente em Map privado** (quota, crashes, conflito legado, double-submit), com CI pós-merge `43989615947` SUCCESS e Railway deploy `b621615b-3d49-4b14-91be-bd440f76a20b` SUCCESS. **Jogo público ainda v0.1; nenhuma migração ou gravação oficial v0.2 ativada.** Próximo ciclo: projetar writer autoritativo único e política de cutover/rollback antes de qualquer write real. Conferir sempre a última seção de `docs/PROJECT_STATE.md` e GitHub/Railway ao vivo.
 
 ## Identidade e limites
 - Projeto: **Poke Idle Game / Kanto Idle LAB** (protótipo v0.1; Season 1: Pokémon #001–#151).
