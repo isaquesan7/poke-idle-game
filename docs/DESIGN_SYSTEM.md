@@ -64,3 +64,7 @@ O `RecoveryExchangePanel` usa somente variáveis semânticas existentes do `styl
 
 ## Painel do laboratório em memória — prévia React v0.2
 `MigrationLabPanel` usa somente tokens de cor, espaçamento e raio do `:root`, CSS Modules com comentários em português e layout de uma coluna adequado a desktop/mobile. Os textos e o checkbox distinguem explicitamente **executar ensaio** de **migrar progresso**, e o botão inicia desabilitado até confirmação.
+
+
+## Diagnóstico do gate fail-closed (prévia React)
+Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em lista textual acessível. Reutiliza tokens CSS (`--color-text`, `--color-text-muted`, espaçamentos) e comentários por seletor; não usar badge verde, ação de 'migrar' ou visual que sugira liberação. Mostrar que 'formato compatível' não é autorização de write.

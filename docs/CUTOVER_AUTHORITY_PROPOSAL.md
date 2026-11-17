@@ -27,3 +27,7 @@ Criar um **gate de elegibilidade fail-closed e somente leitura**, testado com fi
 
 ## Proibições
 Não executar a rotina `browserSandboxCutover.ts` fora da rota localhost exclusiva; não substituir prefixo `__kanto_lab__*` por chaves de produção, não importar o módulo na UI pública, não desativar `index.html` sem rollout aprovado, não usar `localStorage.clear()` para rollback, não tocar no repo `isaquesan7/pokedex`.
+
+
+## Gate fail-closed e inventário de mutações — 2026-11-16
+O gate `apps/web/src/storage/cutoverGate.ts` é propositalmente um relatório sem possibilidade de retornar `allowed`/`canMigrate:true`. Ele não recebe flags do usuário ou do UI para suprimir requisitos de release. A matriz `docs/LEGACY_MUTATION_MATRIX.md` documenta 21 eventos tratados no `index.html`, mutações diretas/indiretas, e as lacunas da Foundation v0.2. O conjunto de ações é protegido por teste Node; a paridade total do jogo ainda não foi comprovada. Para revisar a política de writer, criar decisão de arquitetura e exigir nova bateria de testes e backup externo, em vez de modificar o gate por configuração de UI.
