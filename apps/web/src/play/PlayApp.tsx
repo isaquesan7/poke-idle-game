@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
-  KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats
+  KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats,
+  kantoLevelMoves, legacyMoveRankLimits, KANTO_BATTLE_MOVES
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
@@ -14,6 +15,7 @@ import {
 import type { PlayAction, PlayRead, PlayWrite } from './playSave';
 import styles from './PlayApp.module.css';
 import { PokedexPanel } from './PokedexPanel';
+import { BattlePlayback } from './BattlePlayback';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -28,6 +30,9 @@ const BATTLE_SPECIES_CACHE = JSON.stringify({
 });
 function speciesName(id:number):string {
   return KANTO_BATTLE_SPECIES[id]?.name ?? 'Pokémon #' + String(id).padStart(3,'0');
+}
+function focusedSpeciesFallback(speciesId:number|undefined) {
+  return speciesId?KANTO_BATTLE_SPECIES[speciesId]?.move:undefined;
 }
 function manualValues(input:unknown):StatValues {
   const result=zeroStats();
@@ -90,6 +95,7 @@ export function PlayApp() {
   const [collectionQuery, setCollectionQuery] = useState('');
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all');
   const [feedback, setFeedback] = useState('');
+  const [battlePlayback, setBattlePlayback] = useState<{id:string;seq:number;done:boolean}|null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -105,8 +111,8 @@ export function PlayApp() {
   }, []);
 
   /** Preferir Web Lock; sem suporte o modo alfa oferece revisão otimista local. */
-  async function transact(callback: () => PlayWrite): Promise<void> {
-    if (busy) return;
+  async function transact(callback: () => PlayWrite): Promise<PlayWrite|null> {
+    if (busy) return null;
     setBusy(true);
     try {
       const execute = () => callback();
@@ -115,9 +121,11 @@ export function PlayApp() {
         : execute();
       setSave(readSafe());
       setFeedback(outcome.status === 'ok' ? 'Progresso salvo neste navegador.' : outcome.reason);
+      return outcome;
     } catch {
       setSave(readSafe());
       setFeedback('O armazenamento não pôde ser atualizado. Verifique as permissões do navegador.');
+      return null;
     } finally { setBusy(false); }
   }
 
@@ -133,12 +141,21 @@ export function PlayApp() {
 
   /** Browser seguro: sorteia seed uint32, resolução real ocorre no game-core. */
   function fight(): void {
+    if (busy || (battlePlayback&&!battlePlayback.done) || save.status!=='ready') return;
+    const expected=save.snapshot.revision;
     const seed = window.crypto.getRandomValues(new Uint32Array(1))[0];
     if (seed === undefined) {
       setFeedback('Não foi possível sortear o encontro.');
       return;
     }
-    dispatch({type:'battle',seed});
+    // Uma única transação de gameplay; animação não toca o save nem recompensas.
+    void transact(()=>updatePlaySave(window.localStorage,expected,{type:'battle',seed}))
+      .then(result=>{
+        if(result?.status==='ok'){
+          setTab('arena');
+          setBattlePlayback({id:'battle-v02-'+result.snapshot.revision,seq:(battlePlayback?.seq??0)+1,done:false});
+        }
+      });
   }
 
   function openPokemon(uid:number):void {
@@ -154,6 +171,7 @@ export function PlayApp() {
       return;
     }
     setSave(readSafe());
+    setBattlePlayback(null);
     setTab('overview');
     setSelectedUid(null);
     setCollectionQuery('');
@@ -171,6 +189,13 @@ export function PlayApp() {
   const pokemonManual = manualValues(focused?.manual);
   const pokemonSpent = STATS.reduce((total, stat) => total + pokemonManual[stat], 0);
   const pokemonBudget = focused ? legacyPokemonManualBudget(focused.level) : 0;
+  const levelMoves=focused?kantoLevelMoves(focused.pokemonId,focused.level):[];
+  const currentMoveName=typeof focused?.moveName==='string'?focused.moveName:'';
+  const currentMove=KANTO_BATTLE_MOVES[currentMoveName] ?? focusedSpeciesFallback(focused?.pokemonId);
+  const moveRanks=focused?.upgrades && typeof focused.upgrades==='object'
+    ? focused.upgrades as Record<string,number> : {};
+  const moveLimits=focused?legacyMoveRankLimits(focused.level):null;
+  const moveSpent=Object.values(moveRanks).reduce((sum,rank)=>sum+(Number.isSafeInteger(rank)?rank:0),0);
   const focusedSpecies = focused ? KANTO_BATTLE_SPECIES[focused.pokemonId] : null;
   const focusedStats = focused && focusedSpecies && view
     ? pokemonFinalStats(
@@ -202,6 +227,7 @@ export function PlayApp() {
     && 'outcome' in lastBattleRaw && 'wildSpeciesId' in lastBattleRaw
     && 'log' in lastBattleRaw && Array.isArray(lastBattleRaw.log)
     ? lastBattleRaw as {
+        battleId?:string;
         outcome:'win'|'loss'|'draw'; wildSpeciesId:number;
         wildName:string;wildLevel:number;turns:number;
         captured:boolean;affinityGain:number|null;log:string[];
@@ -209,6 +235,8 @@ export function PlayApp() {
         playerRemainingHp:number;wildRemainingHp:number
       }
     : null;
+  const displayedBattleId=lastBattle?.battleId??'legacy-battle';
+  const battlePlaying=Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
   const nextCycle = expedition
     ? Math.max(0, Math.ceil((EXPEDITION_CYCLE_MS - Math.max(0, now - expedition.lastClaimAt) % EXPEDITION_CYCLE_MS) / 1000))
     : 0;
@@ -276,7 +304,7 @@ export function PlayApp() {
           {(['overview','trainer','pokemon','collection','pokedex','arena','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
-              onClick={() => { setTab(item); setFeedback(''); }}>{sectionName(item)}</button>
+              onClick={() => { setTab(item); setFeedback(''); if(item!=='arena')setBattlePlayback(null); }}>{sectionName(item)}</button>
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
@@ -433,6 +461,44 @@ export function PlayApp() {
                     onClick={() => dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}})}>
                     Redistribuir pontos</button>
                 </section>
+                <section className={styles.panel} aria-label="Treinar golpes do Pokémon">
+                  <h2>Golpes do Pokémon</h2>
+                  <p>Golpe equipado: <strong>{currentMoveName || 'Padrão'}</strong>
+                    {currentMove ? ' · '+currentMove.type+' · Poder '+currentMove.power : ''}</p>
+                  <p>Pontos de habilidade disponíveis: <strong>{moveLimits?moveLimits.skillPoints-moveSpent:0}</strong>
+                    {moveLimits ? ' · Rank máximo por golpe: '+moveLimits.maxRankPerMove : ''}</p>
+                  <div className={styles.moveList}>
+                    {levelMoves.map(({move,learnedAt})=>{
+                      const equipped=currentMoveName===move.name;
+                      const rank=moveRanks[move.name]??0;
+                      return <div key={move.name} className={equipped?styles.moveEquipped:styles.moveOption}>
+                        <div><strong>{move.name}</strong><small>Nv. {learnedAt} · {move.type} ·
+                          Poder {move.power} · Precisão {move.accuracy}%</small>
+                          <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'}</small>
+                        </div>
+                        <div className={styles.moveActions}>
+                          <button type="button" className={styles.secondary}
+                            disabled={busy||equipped}
+                            aria-label={'Equipar golpe '+move.name}
+                            onClick={()=>dispatch({type:'move',uid:focused.uid,moveName:move.name,operation:'select'})}>
+                            {equipped?'Equipado':'Equipar'}</button>
+                          <button type="button" className={styles.primary}
+                            aria-label={'Aprimorar golpe '+move.name}
+                            disabled={busy||!equipped||moveSpent>=(moveLimits?.skillPoints??0)
+                              ||rank>=(moveLimits?.maxRankPerMove??0)}
+                            onClick={()=>dispatch({type:'move',uid:focused.uid,moveName:move.name,operation:'upgrade'})}>
+                            + Rank</button>
+                        </div>
+                      </div>;
+                    })}
+                  </div>
+                  {levelMoves.length===0&&<p>Nenhum golpe de dano direto foi catalogado até este nível nesta seleção da PokéAPI.</p>}
+                  {currentMoveName&&!levelMoves.some(x=>x.move.name===currentMoveName)&&
+                    <p className={styles.disclaimer}>O golpe atual é legado/provisório da alfa. Pode continuar em uso; ao equipar um golpe aprendido ele será substituído.</p>}
+                  <p className={styles.disclaimer}>Golpes aprendidos por nível em FireRed/LeafGreen.
+                    Apenas dano direto e movimentos já existentes na alfa foram incluídos.
+                    Efeitos secundários (por exemplo, paralisia e drenagem) ainda não são aplicados.</p>
+                </section>
               </div>
             )}
 
@@ -574,7 +640,7 @@ export function PlayApp() {
                       <button type="button" className={styles.textButton}
                         onClick={()=>setTab('collection')}>Gerenciar equipe</button></p>
                     <p>Vitórias: <strong>{typeof data.wins === 'number' ? data.wins : 0}</strong> · Derrotas/empates: <strong>{typeof data.losses === 'number' ? data.losses : 0}</strong> · Insígnias: <strong>{view.badges.length}/8</strong></p>
-                    <button className={styles.primary} type="button" disabled={busy} onClick={fight}>
+                    <button className={styles.primary} type="button" disabled={busy||battlePlaying} onClick={fight}>
                       Batalhar contra Pokémon selvagem
                     </button>
                   </div>
@@ -598,6 +664,11 @@ export function PlayApp() {
                   <div className={styles.twoColumn}>
                     <section className={styles.panel} aria-label="Resultado da última batalha">
                       <div className={styles.kicker}>ÚLTIMO COMBATE</div>
+                      {battlePlaying ? <>
+                        <h2>Batalha em andamento…</h2>
+                        <p>As ações aparecem ataque por ataque, acompanhadas por um cronômetro.</p>
+                        <p>Os resultados e prêmios serão revelados após a apresentação.</p>
+                      </> : <>
                       <h2>{lastBattle.outcome === 'win' ? 'Vitória!' : lastBattle.outcome === 'draw' ? 'Empate' : 'Derrota'}</h2>
                       <p>{lastBattle.wildName} · {lastBattle.turns} turno(s) · HP restante {lastBattle.playerRemainingHp}</p>
                       {lastBattle.outcome === 'win' && (
@@ -611,13 +682,14 @@ export function PlayApp() {
                       <p>{lastBattle.captured
                         ? 'Captura realizada! O Pokémon foi adicionado à coleção.'
                         : 'Nenhuma captura nesta batalha.'}</p>
+                      <button type="button" className={styles.secondary}
+                        onClick={()=>setBattlePlayback({id:displayedBattleId,seq:(battlePlayback?.seq??0)+1,done:false})}>
+                        Reassistir à batalha</button>
+                      </>}
                     </section>
-                    <section className={styles.panel}>
-                      <h2>Diário de combate</h2>
-                      <ol className={styles.battleLog} aria-label="Diário de combate">
-                        {lastBattle.log.map((line,i)=><li key={i}>{line}</li>)}
-                      </ol>
-                    </section>
+                    <BattlePlayback key={displayedBattleId+':'+(battlePlayback?.seq??0)}
+                      log={lastBattle.log} turns={lastBattle.turns}
+                      playing={battlePlaying} onFinished={()=>setBattlePlayback(previous=>previous&&previous.id===displayedBattleId?{...previous,done:true}:previous)} />
                   </div>
                 )}
                 <section className={styles.panel}>

@@ -13,6 +13,7 @@
  */
 import type { StatValues } from '../stats/types.js';
 import { KANTO_POKEDEX } from '../catalog/kantoSpecies.js';
+import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
 
 export type KantoMove = Readonly<{
   name: string;
@@ -45,9 +46,9 @@ const MOVE = {
   bubble: { name:'bubble', type:'water', category:'special', power:40, accuracy:100, priority:0 }
 } as const satisfies Record<string, KantoMove>;
 
-/** Golpes do catálogo de alfa; troca de golpe futura buscará catálogo completo. */
+/** Dados de dano verificáveis do learnset piloto; preserva 11 movimentos alfa existentes. */
 export const KANTO_BATTLE_MOVES: Readonly<Record<string,KantoMove>> =
-  Object.fromEntries(Object.values(MOVE).map(move=>[move.name,move]));
+  { ...KANTO_LEVELUP_DAMAGE_MOVES, ...Object.fromEntries(Object.values(MOVE).map(move=>[move.name,move])) };
 
 /**
  * Todas as 151 espécies podem compor combatentes.

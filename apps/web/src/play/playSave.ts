@@ -11,7 +11,8 @@ import {
   reduceLegacyPokemonTeamJson, zeroStats, LEGACY_STARTERS,
   KANTO_BATTLE_SPECIES, KANTO_BATTLE_MOVES, KANTO_WILD_POOL,
   LEGACY_ITEMS, LEGACY_BADGES, STATS, trainerTotals, pokemonFinalStats,
-  pokemonOwnStats, effectiveLegacyTitle, simulateKantoBattle
+  pokemonOwnStats, effectiveLegacyTitle, simulateKantoBattle,
+  reduceLegacyPokemonMoveJson, kantoLevelMoves
 } from '@kanto/game-core';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant
@@ -33,6 +34,8 @@ export type PlayAction =
   | { readonly type: 'trainer'; readonly value: TrainerDraftAction }
   | { readonly type: 'pokemon'; readonly value: LegacyPokemonTeamAction }
   | { readonly type: 'battle'; readonly seed: number }
+  | { readonly type: 'move'; readonly uid:number; readonly moveName:string;
+      readonly operation:'select'|'upgrade' }
   | { readonly type: 'start-expedition' | 'claim-expedition' | 'stop-expedition'; readonly nowMs: number };
 
 export type PlayWrite =
@@ -213,6 +216,7 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
     updated.seen=Array.from(seen);
     updated.lastBattle={
       ...result,
+      battleId:eventId,
       wildName:enemy.name,wildLevel,
       rewardCoins:result.outcome==='win'?25+wildLevel*3:0,
       trainerXp:result.outcome==='win'?30+wildLevel*7:0,
@@ -247,6 +251,36 @@ export function updatePlaySave(
       : reduceLegacyPokemonTeamJson(journal.raw, action.value);
     if (result.status !== 'ok') return { status: 'blocked', reason: result.reason };
     next = { ...journal, raw: result.json };
+  } else if (action.type === 'move') {
+    // O cliente NÃO fornece lista de golpes, poder ou elegibilidade.
+    // Este writer deriva do snapshot FireRed/LeafGreen e do UID real.
+    let current:unknown;
+    try { current=JSON.parse(journal.raw); } catch { current=null; }
+    if(!record(current)||!Array.isArray(current.roster)) {
+      return {status:'blocked',reason:'Save inválido para treinamento de golpes.'};
+    }
+    const member=(current.roster as unknown[]).find(p=>record(p)&&p.uid===action.uid);
+    if(!record(member)||!Number.isSafeInteger(member.pokemonId)||!Number.isSafeInteger(member.level)) {
+      return {status:'blocked',reason:'Pokémon não encontrado.'};
+    }
+    const eligible=kantoLevelMoves(member.pokemonId as number,member.level as number);
+    const definition=eligible.find(item=>item.move.name===action.moveName);
+    const fallback=KANTO_BATTLE_MOVES[action.moveName];
+    const result=action.operation==='select'
+      ? definition
+        ? reduceLegacyPokemonMoveJson(journal.raw,{
+            type:'select-move',uid:action.uid,moveName:action.moveName,
+            availableMoves:eligible.map(item=>item.move.name)
+          })
+        : {status:'invalid' as const,reason:'Golpe ainda não aprendido por esta espécie e nível.'}
+      : action.operation==='upgrade' && (definition||fallback)
+        ? reduceLegacyPokemonMoveJson(journal.raw,{
+            type:'upgrade-move',uid:action.uid,moveName:action.moveName,
+            movePower:(definition?.move??fallback!).power
+          })
+        : {status:'invalid' as const,reason:'Golpe não disponível para aprimoramento.'};
+    if (result.status!=='ok') return {status:'blocked',reason:result.reason};
+    next={...journal,raw:result.json};
   } else if (action.type === 'battle') {
     const result=playBattle(journal,action.seed,'battle-v02-'+(previous.snapshot.revision+1));
     if (result.status==='blocked') return result;

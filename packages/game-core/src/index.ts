@@ -56,3 +56,8 @@ export {
   KANTO_POKEDEX, KANTO_CATALOG_SOURCE_COMMIT, kantoSpecies, kantoDexStatus
 } from './catalog/kantoSpecies.js';
 export type { KantoCatalogSpecies, KantoDexStatus } from './catalog/kantoSpecies.js';
+export {
+  KANTO_LEVELUP_SOURCE_COMMIT, KANTO_LEVELUP_VERSION_GROUP,
+  KANTO_LEVELUP_DAMAGE_MOVES, kantoLevelMoves
+} from './catalog/kantoLevelMoves.js';
+export type { KantoLearnableMove } from './catalog/kantoLevelMoves.js';

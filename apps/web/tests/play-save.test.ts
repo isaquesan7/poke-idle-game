@@ -365,3 +365,66 @@ describe('coleção e liderança: UIDs distintos no save jogável',()=>{
     expect(game.nextUid).toBe(5);
   });
 });
+
+describe('golpes verificados por espécie e nível na v0.2',()=>{
+  it('seleciona Ember em Charmander nv20, melhora rank e usa no combate salvo',()=>{
+    const {storage}=memory();
+    expect(createPlaySave(storage,'Golpes',4,1000,true).status).toBe('ok');
+    expect(updatePlaySave(storage,0,{type:'move',uid:1,moveName:'ember',operation:'select'}).status).toBe('ok');
+    let game=JSON.parse(current(storage).journal.raw) as {
+      roster:Array<{uid:number;moveName:string;upgrades:Record<string,number>}>
+      lastBattle?:{log:string[];battleId:string};
+    };
+    expect(game.roster[0]?.moveName).toBe('ember');
+    expect(updatePlaySave(storage,1,{type:'move',uid:1,moveName:'ember',operation:'upgrade'}).status).toBe('ok');
+    game=JSON.parse(current(storage).journal.raw);
+    expect(game.roster[0]?.upgrades.ember).toBe(1);
+    expect(current(storage).journal.receipts).toHaveLength(0);
+    expect(current(storage).revision).toBe(2);
+    expect(updatePlaySave(storage,2,{type:'battle',seed:0}).status).toBe('ok');
+    game=JSON.parse(current(storage).journal.raw);
+    expect(game.lastBattle?.log.some(line=>line.includes('usou ember'))).toBe(true);
+    expect(game.lastBattle?.battleId).toBe('battle-v02-3');
+    expect(current(storage).journal.receipts).toHaveLength(1);
+    expect(updatePlaySave(storage,2,{type:'battle',seed:0}).status).toBe('blocked');
+  });
+
+  it('bloqueia golpes de outra espécie, níveis acima, sem dano e UID inexistente',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Pokémon',4,1000);
+    const original=storage.getItem(PLAY_SAVE_KEY);
+    const invalid=[
+      {type:'move' as const,uid:1,moveName:'ember',operation:'select' as const}, // Nv 5
+      {type:'move' as const,uid:1,moveName:'water-gun',operation:'select' as const},
+      {type:'move' as const,uid:1,moveName:'hydro-pump',operation:'select' as const},
+      {type:'move' as const,uid:999,moveName:'scratch',operation:'select' as const},
+      {type:'move' as const,uid:1,moveName:'growl',operation:'select' as const},
+      {type:'move' as const,uid:1,moveName:'ember',operation:'upgrade' as const}
+    ];
+    for(const action of invalid){
+      expect(updatePlaySave(storage,0,action).status).toBe('blocked');
+      expect(storage.getItem(PLAY_SAVE_KEY)).toBe(original);
+    }
+  });
+
+  it('impede gasto além do orçamento, mantém revisões e chaves legadas',()=>{
+    const {storage,map}=memory();
+    map.set('kanto-idle-lab-save-v01','KEEP');
+    createPlaySave(storage,'Ranks',4,1000,true);
+    expect(updatePlaySave(storage,0,{type:'move',uid:1,moveName:'scratch',operation:'upgrade'}).status).toBe('ok');
+    expect(updatePlaySave(storage,1,{type:'move',uid:1,moveName:'scratch',operation:'upgrade'}).status).toBe('ok');
+    expect(updatePlaySave(storage,2,{type:'move',uid:1,moveName:'scratch',operation:'upgrade'}).status).toBe('ok');
+    expect(updatePlaySave(storage,3,{type:'move',uid:1,moveName:'scratch',operation:'upgrade'}).status).toBe('blocked'); // teto Nv20 =3
+    expect(updatePlaySave(storage,3,{type:'move',uid:1,moveName:'ember',operation:'select'}).status).toBe('ok');
+    expect(updatePlaySave(storage,4,{type:'move',uid:1,moveName:'ember',operation:'upgrade'}).status).toBe('ok');
+    expect(updatePlaySave(storage,5,{type:'move',uid:1,moveName:'ember',operation:'upgrade'}).status).toBe('blocked');
+    const game=JSON.parse(current(storage).journal.raw) as {
+      roster:Array<{uid:number;moveName:string;upgrades:Record<string,number>}>
+    };
+    expect(game.roster[0]?.upgrades).toEqual({scratch:3,ember:1});
+    expect(game.roster[0]?.moveName).toBe('ember');
+    expect(current(storage).revision).toBe(5);
+    expect(current(storage).journal.revision).toBe(0);
+    expect(map.get('kanto-idle-lab-save-v01')).toBe('KEEP');
+  });
+});
