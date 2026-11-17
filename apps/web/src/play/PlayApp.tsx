@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
@@ -7,7 +7,7 @@ import {
   legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions
 } from '@kanto/game-core';
-import type { Stat, EquipmentSlot, StatValues } from '@kanto/game-core';
+import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
 import { parseLegacySave } from '../storage/legacySave';
 import {
@@ -18,6 +18,7 @@ import type { PlayAction, PlayRead, PlayWrite } from './playSave';
 import styles from './PlayApp.module.css';
 import { PokedexPanel } from './PokedexPanel';
 import { BattlePlayback } from './BattlePlayback';
+import { BattleStage } from './BattleStage';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -108,6 +109,8 @@ export function PlayApp() {
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all');
   const [feedback, setFeedback] = useState('');
   const [battlePlayback, setBattlePlayback] = useState<{id:string;seq:number;done:boolean}|null>(null);
+  /** Apenas reprodução: não faz parte do save do jogo. */
+  const [battleReveal,setBattleReveal]=useState<{key:string;visible:number}|null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -252,6 +255,9 @@ export function PlayApp() {
     && 'log' in lastBattleRaw && Array.isArray(lastBattleRaw.log)
     ? lastBattleRaw as {
         battleId?:string;
+        playerSpeciesId?:number;playerName?:string;playerLevel?:number;
+        playerMaxHp?:number;wildMaxHp?:number;
+        frames?:readonly KantoBattleVisualFrame[];
         playerStatus?:'burn'|'poison'|'paralysis'|null;
         wildStatus?:'burn'|'poison'|'paralysis'|null;
         outcome:'win'|'loss'|'draw'; wildSpeciesId:number;
@@ -263,6 +269,26 @@ export function PlayApp() {
     : null;
   const displayedBattleId=lastBattle?.battleId??'legacy-battle';
   const battlePlaying=Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
+  const playbackKey=displayedBattleId+':'+(battlePlayback?.seq??0);
+  const onBattleProgress=useCallback((visible:number)=>{
+    setBattleReveal(previous=>previous?.key===playbackKey&&previous.visible===visible
+      ?previous:{key:playbackKey,visible});
+  },[playbackKey]);
+  const battleFrames=lastBattle?.frames;
+  const validFrames=lastBattle&&Array.isArray(battleFrames)
+    &&battleFrames.length===lastBattle.log.length
+    &&Number.isSafeInteger(lastBattle.playerMaxHp)&&Number.isSafeInteger(lastBattle.wildMaxHp)
+    &&(lastBattle.playerMaxHp??0)>0&&(lastBattle.wildMaxHp??0)>0
+    &&battleFrames.every(frame=>Number.isSafeInteger(frame.playerHp)
+      &&Number.isSafeInteger(frame.wildHp)
+      &&frame.playerHp>=0&&frame.playerHp<=(lastBattle.playerMaxHp??0)
+      &&frame.wildHp>=0&&frame.wildHp<=(lastBattle.wildMaxHp??0)
+      &&Number.isSafeInteger(frame.amount)&&frame.amount>=0)
+    ?battleFrames:null;
+  const revealedLines=battlePlaying
+    ?battleReveal?.key===playbackKey?battleReveal.visible:Math.min(lastBattle?.log.length??0,1)
+    :lastBattle?.log.length??0;
+  const currentFrame=validFrames?.[Math.max(0,revealedLines-1)]??null;
   const nextCycle = expedition
     ? Math.max(0, Math.ceil((EXPEDITION_CYCLE_MS - Math.max(0, now - expedition.lastClaimAt) % EXPEDITION_CYCLE_MS) / 1000))
     : 0;
@@ -768,21 +794,25 @@ export function PlayApp() {
                       Batalhar contra Pokémon selvagem
                     </button>
                   </div>
-                  <div className={styles.battleScene}>
-                    <div>
-                      <PokemonArt id={active.pokemonId} name={view.active.name} large />
-                      <strong>{view.active.name} · Nv. {active.level}</strong>
-                      <small>Seu parceiro</small>
-                    </div>
-                    <span className={styles.vs}>VS</span>
-                    <div>
-                      {lastBattle && KANTO_BATTLE_SPECIES[lastBattle.wildSpeciesId]
-                        ? <PokemonArt id={lastBattle.wildSpeciesId} name={lastBattle.wildName} large />
-                        : <span className={styles.unknownEnemy}>?</span>}
-                      <strong>{lastBattle ? lastBattle.wildName + ' · Nv. ' + lastBattle.wildLevel : 'Encontro surpresa'}</strong>
-                      <small>Pokémon selvagem</small>
-                    </div>
-                  </div>
+                  <BattleStage
+                    player={{
+                      name:lastBattle?.playerName??view.active.name,
+                      level:lastBattle?.playerLevel??active.level,
+                      art:<PokemonArt id={lastBattle?.playerSpeciesId??active.pokemonId}
+                        name={lastBattle?.playerName??view.active.name} large />
+                    }}
+                    wild={lastBattle?{
+                      name:lastBattle.wildName,level:lastBattle.wildLevel,
+                      art:KANTO_BATTLE_SPECIES[lastBattle.wildSpeciesId]
+                        ?<PokemonArt id={lastBattle.wildSpeciesId} name={lastBattle.wildName} large />
+                        :<span className={styles.unknownEnemy}>?</span>
+                    }:null}
+                    frame={currentFrame}
+                    playerMaxHp={validFrames?lastBattle?.playerMaxHp??null:null}
+                    wildMaxHp={validFrames?lastBattle?.wildMaxHp??null:null}
+                    cue={playbackKey+':'+revealedLines}
+                    playing={battlePlaying}
+                  />
                 </section>
                 {lastBattle && (
                   <div className={styles.twoColumn}>
@@ -816,7 +846,7 @@ export function PlayApp() {
                     </section>
                     <BattlePlayback key={displayedBattleId+':'+(battlePlayback?.seq??0)}
                       log={lastBattle.log} turns={lastBattle.turns}
-                      playing={battlePlaying} onFinished={()=>setBattlePlayback(previous=>previous&&previous.id===displayedBattleId?{...previous,done:true}:previous)} />
+                      playing={battlePlaying} onProgress={onBattleProgress} onFinished={()=>setBattlePlayback(previous=>previous&&previous.id===displayedBattleId?{...previous,done:true}:previous)} />
                   </div>
                 )}
                 <section className={styles.panel}>
