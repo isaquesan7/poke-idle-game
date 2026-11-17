@@ -276,7 +276,7 @@ export function updatePlaySave(
       : action.operation==='upgrade' && (definition||fallback)
         ? reduceLegacyPokemonMoveJson(journal.raw,{
             type:'upgrade-move',uid:action.uid,moveName:action.moveName,
-            movePower:(definition?.move??fallback).power
+            movePower:(definition?.move??fallback!).power
           })
         : {status:'invalid' as const,reason:'Golpe não disponível para aprimoramento.'};
     if (result.status!=='ok') return {status:'blocked',reason:result.reason};
