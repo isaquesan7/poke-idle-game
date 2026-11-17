@@ -46,13 +46,13 @@ describe('evolução Kanto: fonte e requisitos documentados',()=>{
     expect(next.seen).toEqual([1,2]);
     expect(next.coins).toBe(123);
     expect(next.lastBattle).toEqual(game.lastBattle);
-    expect(game.roster[0].pokemonId).toBe(1);
+    expect(game.roster[0]?.pokemonId).toBe(1);
     expect(run(game,{type:'evolve',uid:7,targetSpeciesId:3}).status).toBe('invalid');
   });
   it('bloqueia nível insuficiente, troca e destino forjado sem efeitos',()=>{
     const game=initial(1,15);
-    for(const [id,to] of [[1,2],[64,65],[1,150]]){
-      const source={...game,roster:[{...game.roster[0],pokemonId:id}]};
+    for(const [id,to] of [[1,2],[64,65],[1,150]] as const){
+      const source={...game,roster:[{...game.roster[0]!,pokemonId:id}]};
       const result=run(source,{type:'evolve',uid:7,targetSpeciesId:to});
       expect(result.status).toBe('invalid');
     }
