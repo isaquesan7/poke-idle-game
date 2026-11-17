@@ -17,7 +17,7 @@
 | `select-pokemon` | L210 | Apenas seleção de UI em memória; **não salva** | Prévia mostra Pokémon ativo | Preservar distinção seleção vs equipe |
 | `add-team` | L211 | `team.push(uid)`; até 3, expedição impede trocas | **Reducer puro no core**, sem write | Testar paridade com UI/combate/expedição e writer |
 | `remove-team` | L212 | `team` filtrado; exige ao menos 1 | **Reducer puro no core**, sem write | Portar fluxo da equipe e política de writer |
-| `upgrade-move` | L213 | `roster[].upgrades[moveName]`, limite de rank e pontos | Somente leitura | Fórmula de pontos e rank por UID/golpe |
+| `upgrade-move` | L213 | `roster[].upgrades[moveName]`, limite de rank e pontos | **Reducer puro no core**, sem write | Validar poder do golpe em autoridade confiável antes de persistir |
 | `encounter` | L214 e L186 | `seen.push(pokemonId)`, salva; também prepara `wild` em RAM | Sem ação real | Encontro, aleatoriedade e deduplicação |
 | `battle` | L215, L190–196 | Vitórias/derrotas, moedas, XP, níveis, afinidade, insígnias, captura/UID/roster | **Evento puro idempotente de resultado pré-resolvido** | Falta simulador de combate, RNG verificado e writer autoritativo |
 | `start-exp` | L216, L197 | `expedition={startedAt,lastClaimAt,teamUids}` | **Evento puro com snapshot de time** | Persistência + monotonicidade de relógio em autoridade única |
@@ -28,7 +28,7 @@
 | `reset-all` | L221, L201 | **Remove** a chave real do save v0.1 após confirmação | Não existe no React | Plano de exclusão/backup separado; nunca migração automática |
 | `equip` | L223 | `trainer.equipped[slot]`; a v0.1 permite itens do catálogo, sem compra/inventário persistido | Simulação isolada | Regras de propriedade/inventário a definir |
 | `title` | L224 | `trainer.title` quando condição permite | Projeção somente leitura | Checagem de elegibilidade e writer |
-| `move` | L225 | `roster[].moveName`; pré-carrega movimento no cache | Somente leitura | Lista de golpes por espécie/UID |
+| `move` | L225 | `roster[].moveName`; pré-carrega movimento no cache | **Reducer puro no core**, sem write | Lista da espécie validada pela autoridade; cache separado |
 
 ## Escritas indiretas, efeitos de ciclo de vida e cache
 
@@ -70,3 +70,6 @@ PR #20 integrada em `5e60f17b`; CI `43996462703` e Railway `da78ab5a` SUCCESS. O
 
 ### Validação da etapa de recompensas (2026-11-17)
 PR #22 integrada em `989c2cdc`, CI da main `44057278833` e Railway deploy `5b76abc6` SUCCESS. Eventos RAM de battle-result/capture/start/claim/stop implementados, porém nenhum resultado é verificado por autoridade e os recibos não são duráveis. Ações de recompensa do jogo público continuam exclusivamente na v0.1. Próxima ação: estabelecer autoridade única e testes de falha de duas abas para impedir payout duplo de fato.
+
+### Golpes do Pokémon (2026-11-17, branch em teste)
+O novo `pokemonMoveReducer.ts` trata `move` e `upgrade-move` por UID, sem tocar em outras instâncias ou recursos; confere limites do protótipo e preserva ranks após troca. Os metadados recebidos não têm prova autoritativa. Sem writer, UI React jogável, RNG ou persistência oficial.
