@@ -22,5 +22,8 @@
   "workspaces": [
     "packages/*",
     "apps/*"
-  ]
+  ],
+  "overrides": {
+    "csstype": "3.2.3"
+  }
 }
