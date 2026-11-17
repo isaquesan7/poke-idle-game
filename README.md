@@ -2,7 +2,9 @@
 
 Protótipo experimental **não oficial** de RPG idle com Pokémon da região de Kanto, utilizando dados da [PokéAPI](https://pokeapi.co/docs/v2).
 
-## Links oficiais deste projeto\n- **Nova jornada v0.2 alfa:** https://kanto-idle-web-production.up.railway.app/play (onboarding e progressão local; disponibilidade após integração e deploy desta PR)\n- **Protótipo v0.1:** https://kanto-idle-web-production.up.railway.app/
+## Links oficiais deste projeto
+- **Nova jornada v0.2 alfa:** https://kanto-idle-web-production.up.railway.app/play (onboarding e progressão local; disponibilidade após integração e deploy desta PR)
+- **Protótipo v0.1:** https://kanto-idle-web-production.up.railway.app/
 - **Repositório de desenvolvimento:** https://github.com/isaquesan7/poke-idle-game
 - **Jogo online:** https://kanto-idle-web-production.up.railway.app/
 - **Ponto de entrada para novos chats/agentes:** [AGENTS.md](AGENTS.md)
