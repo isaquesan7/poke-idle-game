@@ -42,6 +42,24 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Começar aventura'}).click();
   await page.getByRole('heading',{name:'Bem-vindo de volta, Treinador Teste!'}).waitFor();
 
+  // Pokédex inicial: 151 índices, 1 capturado e 150 ocultos.
+  await page.getByRole('button',{name:'Pokédex',exact:true}).click();
+  await page.getByRole('heading',{name:'Pokédex de Kanto'}).waitFor();
+  assert.equal(await page.getByTestId('pokedex-grid').locator('button').count(),151);
+  assert.equal(await page.getByTestId('pokedex-4').isDisabled(),false);
+  assert.equal(await page.getByTestId('pokedex-150').isDisabled(),true);
+  await page.getByLabel('Buscar na Pokédex').fill('Mewtwo');
+  await page.getByText('Nenhum registro corresponde a esta busca.').waitFor();
+  await page.getByLabel('Buscar na Pokédex').fill('#150');
+  assert.equal(await page.getByTestId('pokedex-150').count(),1);
+  await page.getByLabel('Buscar na Pokédex').fill('');
+  await page.getByRole('button',{name:'Capturados',exact:true}).click();
+  assert.equal(await page.getByTestId('pokedex-grid').locator('button').count(),1);
+  await page.getByTestId('pokedex-4').click();
+  await page.getByTestId('pokedex-detail').getByRole('heading',{name:'Charmander'}).waitFor();
+  await page.getByRole('button',{name:'Fechar detalhes'}).click();
+  await page.getByRole('button',{name:'Treinador',exact:true}).click();
+
   let snapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.equal(snapshot.schemaVersion,2);
   assert.equal(snapshot.revision,0);
@@ -96,6 +114,13 @@ async function exercise(browser, label, viewport) {
   assert.ok(battleSave.seen.includes(battleSave.lastBattle.wildSpeciesId));
   assert.ok(battleSave.lastBattle.log.length>=2);
   assert.ok(battleSave.lastBattle.turns<=30);
+  await page.getByRole('button',{name:'Pokédex',exact:true}).click();
+  await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).waitFor();
+  assert.equal(await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).isDisabled(),false);
+  await page.getByRole('button',{name:'Vistos',exact:true}).click();
+  assert.equal(await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).count(),
+    battleSave.lastBattle.captured ? 0 : 1);
+  await page.getByRole('button',{name:'Arena',exact:true}).click();
   await page.getByRole('heading',{name:'Diário de combate'}).waitFor();
   await page.reload();
   await page.getByRole('button',{name:'Arena',exact:true}).click();
@@ -175,6 +200,12 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   assert.equal(await page.getByTestId('pokemon-uid-'+firstUid).count(),1);
   assert.equal(await page.getByTestId('pokemon-uid-'+secondUid).count(),1);
+  await page.getByRole('button',{name:'Pokédex',exact:true}).click();
+  await page.getByRole('button',{name:'Capturados',exact:true}).click();
+  assert.equal(await page.getByTestId('pokedex-16').count(),1,
+    'Dois Pidgey por UID devem contar como uma espécie capturada');
+  await page.getByTestId('pokedex-16').click();
+  await page.getByTestId('pokedex-detail').getByRole('heading',{name:'Pidgey'}).waitFor();
   assert.equal((await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).team,SAVE))[0],firstUid);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
@@ -183,7 +214,7 @@ async function exercise(browser, label, viewport) {
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);
   assert.deepEqual(errors,[]);
   await context.close();
-  console.log(label+': /play, batalha, coleção UID, 3 vagas, líder, treino separado e reload OK');
+  console.log(label+': /play, Pokédex 151, batalha, coleção UID, equipe e reload OK');
 }
 
 let browser;
