@@ -461,6 +461,44 @@ export function PlayApp() {
                     onClick={() => dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}})}>
                     Redistribuir pontos</button>
                 </section>
+                <section className={styles.panel} aria-label="Treinar golpes do Pokémon">
+                  <h2>Golpes do Pokémon</h2>
+                  <p>Golpe equipado: <strong>{currentMoveName || 'Padrão'}</strong>
+                    {currentMove ? ' · '+currentMove.type+' · Poder '+currentMove.power : ''}</p>
+                  <p>Pontos de habilidade disponíveis: <strong>{moveLimits?moveLimits.skillPoints-moveSpent:0}</strong>
+                    {moveLimits ? ' · Rank máximo por golpe: '+moveLimits.maxRankPerMove : ''}</p>
+                  <div className={styles.moveList}>
+                    {levelMoves.map(({move,learnedAt})=>{
+                      const equipped=currentMoveName===move.name;
+                      const rank=moveRanks[move.name]??0;
+                      return <div key={move.name} className={equipped?styles.moveEquipped:styles.moveOption}>
+                        <div><strong>{move.name}</strong><small>Nv. {learnedAt} · {move.type} ·
+                          Poder {move.power} · Precisão {move.accuracy}%</small>
+                          <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'}</small>
+                        </div>
+                        <div className={styles.moveActions}>
+                          <button type="button" className={styles.secondary}
+                            disabled={busy||equipped}
+                            aria-label={'Equipar golpe '+move.name}
+                            onClick={()=>dispatch({type:'move',uid:focused.uid,moveName:move.name,operation:'select'})}>
+                            {equipped?'Equipado':'Equipar'}</button>
+                          <button type="button" className={styles.primary}
+                            aria-label={'Aprimorar golpe '+move.name}
+                            disabled={busy||!equipped||moveSpent>=(moveLimits?.skillPoints??0)
+                              ||rank>=(moveLimits?.maxRankPerMove??0)}
+                            onClick={()=>dispatch({type:'move',uid:focused.uid,moveName:move.name,operation:'upgrade'})}>
+                            + Rank</button>
+                        </div>
+                      </div>;
+                    })}
+                  </div>
+                  {levelMoves.length===0&&<p>Nenhum golpe de dano direto foi catalogado até este nível nesta seleção da PokéAPI.</p>}
+                  {currentMoveName&&!levelMoves.some(x=>x.move.name===currentMoveName)&&
+                    <p className={styles.disclaimer}>O golpe atual é legado/provisório da alfa. Pode continuar em uso; ao equipar um golpe aprendido ele será substituído.</p>}
+                  <p className={styles.disclaimer}>Golpes aprendidos por nível em FireRed/LeafGreen.
+                    Apenas dano direto e movimentos já existentes na alfa foram incluídos.
+                    Efeitos secundários (por exemplo, paralisia e drenagem) ainda não são aplicados.</p>
+                </section>
               </div>
             )}
 
