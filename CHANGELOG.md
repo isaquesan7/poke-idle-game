@@ -1,3 +1,10 @@
+## [v0.2.0-alpha — evolução por UID] — 2026-11-17 (branch, não publicado)
+- Evolução manual com requisitos reais de nível/pedra por espécie Kanto, a partir de `pokemon_evolution.csv` da PokéAPI em commit imutável. Evolução por troca listada como pendente, sem substitutos inventados.
+- Preservação do UID, nível, XP, afinidade, pontos manuais, golpe, ranks e equipe; pedras consumidas uma vez e save v0.2 revisionado na mesma transação. Evolução bloqueada durante expedição.
+- Histórico de espécies capturadas na Pokédex preservado após evolução; campos opcionais no mesmo save local, nenhuma migração de v0.1.
+- Kit único de pedras rotulado como TESTE para ensaios enquanto inventário/loja não estão definidos; sem novas moedas, XP ou recibos de batalha.
+- Testes de core, writer Vitest e Chromium desktop/mobile adicionados; resultados de CI/PR/Railway pendentes. Próxima etapa: status/efeitos e HP/ataques visuais.
+
 # CHANGELOG — Poke Idle Game
 Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada aqui** e atualizar `docs/PROJECT_STATE.md` no mesmo trabalho. Não reescrever/ocultar histórico. Use data, escopo, commit, testes, deploy e pendências.
 

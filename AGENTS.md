@@ -54,3 +54,5 @@ Não apagar histórico: marcar decisões superadas, preservando razão e data. S
 ## Protocolo de troca de chat
 A pessoa pode dizer: **“Continue o Poke Idle Game pelo AGENTS.md e docs/PROJECT_STATE.md do GitHub.”**
 O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Railway, explicar brevemente o último estado e dar continuidade SEM pedir ao usuário que reconte o projeto.
+
+> **NOTA DE BRANCH (17/11/2026):** iniciado trabalho de evolução manual por UID na branch `feat/v02-evolution-by-uid` baseada na main `431a46544a181728ef2c6f424f06184dd617d5f7`. Não declarar publicado até CI/PR/merge/implantação SUCCESS. Conferir seção final de `docs/PROJECT_STATE.md`. Próxima fase após release: status/efeitos secundários e animação HP/ataques.

@@ -3,7 +3,8 @@ import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
   KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats,
-  kantoLevelMoves, legacyMoveRankLimits, KANTO_BATTLE_MOVES
+  kantoLevelMoves, legacyMoveRankLimits, KANTO_BATTLE_MOVES,
+  KANTO_EVOLUTION_STONES, kantoEvolutionOptions
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
@@ -197,6 +198,15 @@ export function PlayApp() {
   const moveLimits=focused?legacyMoveRankLimits(focused.level):null;
   const moveSpent=Object.values(moveRanks).reduce((sum,rank)=>sum+(Number.isSafeInteger(rank)?rank:0),0);
   const focusedSpecies = focused ? KANTO_BATTLE_SPECIES[focused.pokemonId] : null;
+  const focusedEvolutions=focused?kantoEvolutionOptions(focused.pokemonId):[];
+  const stoneStock=data?.evolutionStones&&typeof data.evolutionStones==='object'
+    &&!Array.isArray(data.evolutionStones)
+    ? data.evolutionStones as Record<string,number>:{};
+  const caughtHistory=Array.isArray(data?.caughtSpecies)
+    ? data.caughtSpecies.filter((id):id is number=>typeof id==='number'
+      &&Number.isSafeInteger(id)&&id>=1&&id<=151):[];
+  const caughtDexIds=[...new Set([...caughtHistory,...(data?.roster.map(p=>p.pokemonId)??[])])];
+  const caughtSpeciesCount=caughtDexIds.length;
   const focusedStats = focused && focusedSpecies && view
     ? pokemonFinalStats(
         focusedSpecies.base, focused.level, pokemonManual, view.totals, focused.affinity
@@ -350,7 +360,7 @@ export function PlayApp() {
                   <article className={styles.metric}><small>Treinador</small><strong>Lv. {view.level}</strong><span>{view.xpNext === null ? 'Nível máximo' : view.xp + ' / ' + view.xpNext + ' XP'}</span></article>
                   <article className={styles.metric}><small>Parceiro</small><strong>Lv. {active.level}</strong><span>{view.active.name}</span></article>
                   <article className={styles.metric}><small>Moedas</small><strong>{data.coins}</strong><span>Saldo da jornada</span></article>
-                  <article className={styles.metric}><small>Pokédex de Kanto</small><strong>{view.capturedSpecies}/151</strong><span>{data.roster.length} indivíduos · {view.seenSpecies} vistos</span></article>
+                  <article className={styles.metric}><small>Pokédex de Kanto</small><strong>{caughtSpeciesCount}/151</strong><span>{data.roster.length} indivíduos · {view.seenSpecies} vistos</span></article>
                 </div>
                 <div className={styles.twoColumn}>
                   <section className={styles.panel}>
@@ -461,6 +471,55 @@ export function PlayApp() {
                     onClick={() => dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}})}>
                     Redistribuir pontos</button>
                 </section>
+                <section className={styles.panel} aria-label="Evolução do Pokémon">
+                  <h2>Evolução</h2>
+                  <p>Seu Pokémon conserva UID, nível, XP, afinidade, pontos e golpes ao evoluir.</p>
+                  {focusedEvolutions.length===0
+                    ? <p>Nenhuma evolução disponível para esta espécie dentro dos 151 de Kanto.</p>
+                    : <div className={styles.evolutionList}>
+                        {focusedEvolutions.map(rule=>{
+                          const target=speciesName(rule.to);
+                          const requirement=rule.trigger==='level'
+                            ? 'Nível '+rule.minLevel
+                            : rule.trigger==='stone'
+                              ? KANTO_EVOLUTION_STONES.find(item=>item.id===rule.stone)?.name??rule.stone
+                              : 'Troca de Pokémon';
+                          const available=rule.trigger==='level'
+                            ? focused.level>=rule.minLevel
+                            : rule.trigger==='stone'
+                              ? (stoneStock[rule.stone]??0)>0
+                              : false;
+                          return <div className={styles.evolutionOption} key={rule.to}>
+                            <PokemonArt id={rule.to} name={target} />
+                            <div><strong>{target}</strong><small>Requisito: {requirement}</small>
+                              {rule.trigger==='trade'&&<small>Trocas indisponíveis na alfa.</small>}
+                              {rule.trigger==='stone'&&<small>Em estoque: {stoneStock[rule.stone]??0}</small>}
+                            </div>
+                            <button type="button" className={styles.primary}
+                              aria-label={'Evoluir para '+target}
+                              disabled={busy||Boolean(expedition)||!available}
+                              onClick={()=>{
+                                if(window.confirm('Evoluir UID #'+focused.uid+' para '+target+
+                                  '? Esta ação altera a espécie e, se aplicável, consome uma pedra.')){
+                                  dispatch({type:'evolution',uid:focused.uid,targetSpeciesId:rule.to});
+                                }
+                              }}>Evoluir</button>
+                          </div>;
+                        })}
+                      </div>}
+                  <div className={styles.evolutionTestTools}>
+                    <span>Pedras: {KANTO_EVOLUTION_STONES.map(item=>
+                      item.name+' '+(stoneStock[item.id]??0)).join(' · ')}</span>
+                    <button type="button" className={styles.secondary}
+                      disabled={busy||data.evolutionTestKitClaimed===true}
+                      onClick={()=>dispatch({type:'evolution-test-kit'})}>
+                      {data.evolutionTestKitClaimed===true
+                        ? 'Kit de teste já recebido':'Receber kit de pedras (teste)'}</button>
+                  </div>
+                  <p className={styles.disclaimer}>Kit único, apenas para validar a alfa. Não é uma loja
+                    nem uma regra definitiva de obtenção de itens. Trocas não estão implementadas.
+                    Durante expedições, evolução fica bloqueada.</p>
+                </section>
                 <section className={styles.panel} aria-label="Treinar golpes do Pokémon">
                   <h2>Golpes do Pokémon</h2>
                   <p>Golpe equipado: <strong>{currentMoveName || 'Padrão'}</strong>
@@ -494,7 +553,7 @@ export function PlayApp() {
                   </div>
                   {levelMoves.length===0&&<p>Nenhum golpe de dano direto foi catalogado até este nível nesta seleção da PokéAPI.</p>}
                   {currentMoveName&&!levelMoves.some(x=>x.move.name===currentMoveName)&&
-                    <p className={styles.disclaimer}>O golpe atual é legado/provisório da alfa. Pode continuar em uso; ao equipar um golpe aprendido ele será substituído.</p>}
+                    <p className={styles.disclaimer}>O golpe equipado pode ter sido aprendido antes da evolução ou ser provisório da alfa. Ele é preservado nesta instância; ao equipar outro golpe, será substituído.</p>}
                   <p className={styles.disclaimer}>Golpes aprendidos por nível em FireRed/LeafGreen.
                     Apenas dano direto e movimentos já existentes na alfa foram incluídos.
                     Efeitos secundários (por exemplo, paralisia e drenagem) ainda não são aplicados.</p>
@@ -509,7 +568,7 @@ export function PlayApp() {
                   <div>
                     <div className={styles.kicker}>SEUS PARCEIROS · CADA UID É ÚNICO</div>
                     <h2>Coleção Pokémon</h2>
-                    <p>Você capturou {data.roster.length} indivíduo(s) de {view.capturedSpecies} espécie(s).
+                    <p>Você capturou {data.roster.length} indivíduo(s) de {caughtSpeciesCount} espécie(s).
                       O líder, primeiro na equipe, é quem participa das batalhas.</p>
                   </div>
                   <div className={styles.collectionSummary}>
@@ -622,7 +681,7 @@ export function PlayApp() {
             {tab === 'pokedex' && (
               <PokedexPanel
                 seenIds={seenDexIds}
-                capturedSpeciesIds={data.roster.map(p=>p.pokemonId)}
+                capturedSpeciesIds={caughtDexIds}
                 onArena={()=>setTab('arena')}
                 onCollection={()=>setTab('collection')}
               />

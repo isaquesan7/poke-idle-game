@@ -249,12 +249,40 @@ async function exercise(browser, label, viewport) {
   assert.equal(moved.roster.find(p=>p.uid===secondUid).manual.speed,1);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
+  // Evolução do líder com UID e golpes previamente aprimorados intactos.
+  await page.evaluate(({key,uid})=>{
+    const snapshot=JSON.parse(localStorage.getItem(key));
+    const game=JSON.parse(snapshot.journal.raw);
+    game.roster.find(p=>p.uid===uid).level=18; // fixture alfa para validar requisito oficial Pidgey → Pidgeotto
+    snapshot.journal.raw=JSON.stringify(game);
+    localStorage.setItem(key,JSON.stringify(snapshot));
+  },{key:SAVE,uid:firstUid});
+  await page.reload();
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await page.getByTestId('pokemon-uid-'+firstUid).getByRole('button',{name:'Treinar UID '+firstUid}).click();
+  await page.getByRole('heading',{name:'Evolução'}).waitFor();
+  page.once('dialog',dialog=>void dialog.accept());
+  await page.getByRole('button',{name:'Evoluir para Pidgeotto'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===14,SAVE);
+  const evolved=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);
+  assert.equal(evolved.roster.find(p=>p.uid===firstUid).pokemonId,17);
+  assert.equal(evolved.roster.find(p=>p.uid===firstUid).upgrades.tackle,1);
+  assert.equal(evolved.team[0],firstUid);
+  assert.ok(evolved.caughtSpecies.includes(16)&&evolved.caughtSpecies.includes(17));
+  await page.getByRole('button',{name:'Pokédex',exact:true}).click();
+  await page.getByRole('button',{name:'Capturados',exact:true}).click();
+  assert.equal(await page.getByTestId('pokedex-16').count(),1);
+  assert.equal(await page.getByTestId('pokedex-17').count(),1);
+  await page.reload();
+  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.getByText('Pidgeotto · UID #'+firstUid).first().waitFor();
+
   await page.screenshot({path:new URL(label+'-play.png',shots).pathname,fullPage:true,animations:'disabled'});
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);
   assert.deepEqual(errors,[]);
   await context.close();
-  console.log(label+': /play, golpes por nível/rank, replay com cronômetro, Pokédex, equipe e reload OK');
+  console.log(label+': /play, golpes/rank, replay, Pokédex, equipe, evolução por UID e reload OK');
 }
 
 let browser;
