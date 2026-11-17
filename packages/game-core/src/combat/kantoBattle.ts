@@ -43,6 +43,10 @@ const MOVE = {
   bubble: { name:'bubble', type:'water', category:'special', power:40, accuracy:100, priority:0 }
 } as const satisfies Record<string, KantoMove>;
 
+/** Golpes do catálogo de alfa; troca de golpe futura buscará catálogo completo. */
+export const KANTO_BATTLE_MOVES: Readonly<Record<string,KantoMove>> =
+  Object.fromEntries(Object.values(MOVE).map(move=>[move.name,move]));
+
 /** 3 iniciais e 8 encontros de rotas Kanto para o primeiro ciclo de batalha. */
 export const KANTO_BATTLE_SPECIES: Readonly<Record<number,KantoSpecies>> = {
   1: { id:1,name:'Bulbasaur',types:['grass','poison'],
