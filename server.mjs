@@ -44,7 +44,7 @@ createServer((req, res) => {
   }
   // Assets do Vite: apenas nomes de arquivo sem subdiretórios, extensões conhecidas.
   // Nunca servir código-fonte, configs, saves, node_modules ou arquivos arbitrários.
-  const built = /^\\/assets\\/([A-Za-z0-9_.-]+\\.(?:js|css|svg|png|webp|woff2?))$/.exec(url.pathname);
+  const built = /^\/assets\/([A-Za-z0-9_.-]+\.(?:js|css|svg|png|webp|woff2?))$/.exec(url.pathname);
   if (built) {
     const file = new URL('./apps/web/dist/assets/' + built[1], import.meta.url);
     const stream = createReadStream(file);
