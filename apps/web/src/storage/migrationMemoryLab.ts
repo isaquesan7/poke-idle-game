@@ -131,6 +131,10 @@ export class MigrationMemoryLab {
           return { status: 'interrupted', message: 'Save legado mudou antes da etapa seguinte.' };
         }
         const step = plan.steps[index]!;
+        // Falha injetada na escrita 2 para testar estado backup-only.
+        if (args.failure === 'quota' && stepNumber === 2) {
+          return { status: 'interrupted', message: 'Quota simulada após salvar o backup.' };
+        }
         if (!this.memoryWrite(step.key, step.value)) {
           return {
             status: 'interrupted',
