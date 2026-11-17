@@ -70,3 +70,8 @@ Exemplo por atributo: 40 pontos manuais +6 equipamentos +1 título +3 insígnias
 5. **Ginásios e Kanto:** desafios, líderes e insígnias por progressão real.
 6. **Backend:** autenticação, banco PostgreSQL, transações, combate validado, salvamento entre dispositivos.
 7. **Season 2+:** apenas após Season 1 estabilizar.
+
+## Modelagem de recompensas idempotentes — protótipo core (2026-11-17)
+- **Paridade v0.1 em reducer puro, não jogabilidade ativa:** vitória na Arena: +`25+3*nívelSelvagem` moedas, +`30+7*nívelSelvagem` XP treinador, +`20+6*nívelSelvagem` XP do Pokémon ativo, afinidade +2–5, badges segundo vitórias, captura opcional vinculada à MESMA vitória, novo UID de `nextUid`. Derrota e empate por limite de turnos contam como 1 derrota e não concedem recursos. Probabilidade de captura da v0.1 é 35%, mas o novo reducer **não** faz rolagens e deve receber resultado legitimado futuramente.
+- **Expedições:** `start` registra horário/snapshot do time; `claim` exige ciclo completo (10s) e calcula até 2880 ciclos (máx 8h por resgate); cursor `lastClaimAt` torna-se o horário explícito da operação, como a v0.1; `stop` faz último claim quando houver ciclo e encerra mesmo sem ciclo. Todos os valores são provisórios.
+- **Proposta técnica para a v0.2:** recibos de eventos com ID+revision evitam replays no mesmo envelope em RAM, não constituem backend autoritativo, comprovante de vitória ou proteção entre abas independentes. Cutover real continua proibido.
