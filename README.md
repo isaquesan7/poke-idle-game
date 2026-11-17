@@ -117,3 +117,7 @@ Validação do contrato de backup na PR #9: [GitHub Actions #43983797980](https:
 
 ### Handoff de backup v0.2 — 2026-11-16
 A PR #9 foi integrada ao repositório no commit `bd530666`, com GitHub Actions [43984189208](https://github.com/isaquesan7/poke-idle-game/actions/runs/43984189208) em `SUCCESS` e deploy Railway `dfca3072-3ef3-4c5f-8113-f525abebc4b1` em `SUCCESS`. O jogo público continua na v0.1; os contratos de backup/journal não escrevem saves. Próxima etapa: writer único, importação/recuperação opt-in e testes de quota/concorrência. Ver a última seção de `docs/PROJECT_STATE.md`.
+
+
+### Pacote de recuperação verificável (somente prévia React)
+Na branch `feat/v02-writer-coordination-and-recovery-export`, a interface React experimental permite baixar um pacote JSON com SHA-256 e conferir um arquivo externo sem importá-lo. O fluxo preserva os bytes do save v0.1; a v0.1 publicada não é interrompida. O novo contrato de Web Locks limita-se às futuras abas v0.2 cooperativas, **não** pode bloquear instâncias legadas já abertas. Decisão D-019 e próxima etapa de laboratório em `docs/SAVE_MIGRATION_PLAN.md`.

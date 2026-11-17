@@ -1,0 +1,64 @@
+/* .recoveryPanel: área independente para exportar/verificar sem restaurar. */
+.recoveryPanel {
+  padding: var(--space-5);
+  margin-top: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-raised);
+}
+
+/* .recoveryPanel h2: identifica o pacote e diferencia do save real. */
+.recoveryPanel h2 {
+  margin-top: 0;
+}
+
+/* .recoveryText: explica limites de sincronização em tom secundário. */
+.recoveryText {
+  color: var(--color-text-muted);
+}
+
+/* .recoveryActions: mantém botões e seleção de arquivo responsivos. */
+.recoveryActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* .recoveryButton: ação explícita de download, sem alterar progresso. */
+.recoveryButton {
+  min-height: 44px;
+  padding: var(--space-3) var(--space-5);
+  color: var(--color-bg);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+/* .recoveryButton:disabled: indica que uma verificação está em andamento. */
+.recoveryButton:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* .recoveryInputLabel: descreve claramente que verificar não restaura. */
+.recoveryInputLabel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--color-text);
+  min-width: 0;
+}
+
+/* .recoveryInput: limita o seletor de arquivo ao espaço em mobile. */
+.recoveryInput {
+  max-width: 100%;
+  color: var(--color-text-muted);
+}
+
+/* .recoveryStatus: comunica sucesso, divergência e falhas com texto. */
+.recoveryStatus {
+  min-height: 1.5em;
+  color: var(--color-primary);
+}
