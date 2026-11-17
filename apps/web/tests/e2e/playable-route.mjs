@@ -295,7 +295,7 @@ async function exercise(browser, label, viewport) {
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Treinar UID 1'}).click();
   assert.equal(await page.getByTestId('equipped-moves').getByText(/growl/).count(),1);
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
-  await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1',exact:true}).click();
+  await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1 pela coleção',exact:true}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===17,SAVE);
   await page.getByRole('button',{name:'Arena',exact:true}).click();
   await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
