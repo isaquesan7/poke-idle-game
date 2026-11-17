@@ -15,7 +15,8 @@ export type LegacyPokemonTeamAction =
   | { readonly type: 'invest-pokemon'; readonly uid: number; readonly stat: Stat }
   | { readonly type: 'reset-pokemon'; readonly uid: number }
   | { readonly type: 'add-team'; readonly uid: number }
-  | { readonly type: 'remove-team'; readonly uid: number };
+  | { readonly type: 'remove-team'; readonly uid: number }
+  | { readonly type: 'set-active'; readonly uid: number };
 
 export type LegacyPokemonTeamEditResult =
   | { readonly status: 'ok'; readonly json: string }
@@ -167,6 +168,20 @@ export function reduceLegacyPokemonTeamJson(
         return { status: 'invalid', reason: 'Equipe já possui três Pokémon.' };
       }
       parsed.source.team = [...parsed.team, action.uid];
+      break;
+    case 'set-active':
+      // A posição 0 é o Pokémon que participa da batalha.
+      // Promovemos somente um UID JÁ pertencente à equipe, sem criar duplicatas.
+      if (parsed.source.expedition != null) {
+        return { status: 'invalid', reason: 'Não alterar líder durante uma expedição.' };
+      }
+      if (!parsed.team.includes(action.uid)) {
+        return { status: 'invalid', reason: 'Adicione o Pokémon à equipe antes de torná-lo líder.' };
+      }
+      if (parsed.team[0] === action.uid) {
+        return { status: 'invalid', reason: 'Pokémon já é o líder da equipe.' };
+      }
+      parsed.source.team = [action.uid, ...parsed.team.filter(uid => uid !== action.uid)];
       break;
     case 'remove-team':
       if (parsed.source.expedition != null) {
