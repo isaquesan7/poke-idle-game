@@ -186,3 +186,6 @@ A rota `/play` passa a oferecer Arena automática: batalhas em até 30 turnos co
 
 ### Arena publicada (PR #32, 2026-11-17)
 O combate com capturas já está integrado na `/play`. PR #32 merged `6bf399ac`, GitHub Actions `44071892270` SUCCESS e Railway `1e30e03e-4de7-48f9-b999-2206919a43b7` SUCCESS com healthcheck aprovado. É um catálogo PILOTO de 8 espécies selvagens, não os 151 encontros. O botão da Arena calcula vitória e recompensa com motor de combate puro; o jogo e o diário persistem localmente. GET externo não verificado nesta sessão. Próxima etapa: coleção, equipe por UID e Pokédex ampliada.
+
+### Coleção e equipe v0.2 (implementação em revisão, 2026-11-17)
+Nova aba **Coleção** em `/play`: lista cada Pokémon capturado por UID com nível e afinidade (inclusive indivíduos repetidos da mesma espécie); permite procurar por nome/número/UID, filtrar equipe e reserva, escalar no máximo três e escolher qual será o líder da Arena. Durante expedições o time não pode mudar; treinamento individual de capturas é independente da liderança. A branch está sob revisão de CI antes de publicação, sem migração de saves ou backend. Catálogo de combate ainda cobre apenas as espécies piloto.
