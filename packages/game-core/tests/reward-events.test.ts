@@ -52,7 +52,7 @@ const noCapture=(id:string,expectedRevision=0):BattleCommand=>({
 const start=(id='s1',expectedRevision=0,nowMs=100000):RewardCommand=>({
   type:'start-expedition',id,expectedRevision,nowMs
 });
-const claim=(id='c1',expectedRevision=1,nowMs=130000):RewardCommand=>({
+const claim=(id='c1',expectedRevision=1,nowMs=130000):Extract<RewardCommand,{type:'claim-expedition'}>=>({
   type:'claim-expedition',id,expectedRevision,nowMs
 });
 const stop=(id='stop1',expectedRevision=2,nowMs=140000):RewardCommand=>({
