@@ -73,3 +73,14 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 - Backups SHA-256 e journal são SOMENTE contratos/validações/ensaios. Ainda não existem persistência canônica de produção, escrita transacional nem recuperação por interface.
 - Restrições pendentes: writer único e coordenação entre abas, quota real e UX de opt-in/exportação, rollback; não habilitar migração até fechar esses pontos.
 - Próximo primeiro arquivo a investigar: `index.html` função `save()` (writer não cooperativo), depois `apps/web/src/storage/recoveryJournal.ts` e `draftSave.ts` para conceber protocolo e testes sem tocar na chave v0.1.
+
+## 2026-11-16 — Passo incremental de Fase C, sem habilitar writes
+- Política v0.1/v0.2: o jogo v0.1 continua writer não-cooperativo na sua chave legada. **Não existe** Web Lock ou modo que garanta parar abas v0.1 já abertas. Em uma futura opção explícita de mudança, a v0.2 terá chave própria, com backup original e aviso de bifurcação. Progresso gerado depois na v0.1 NÃO será conciliado automaticamente, nem aplicado sobre v0.2.
+- `writerCoordination.ts`: `inspectWriterHandoff` distingue só legado, cópia incompleta, snapshot v0.2 íntegro, divergência e journal danificado. Os cinco resultados continuam `canWriteRealSave:false`. `checkCooperativeRevision` rejeita aba stale e overflow; `withExclusiveV02Writer` faz ensaio com Web Locks exclusivo sem fallback se outro writer mantiver o lock.
+- A resolução do writer único real continua PENDENTE: falta migrar ações de jogo e definir cutover, garantia de rechecagem do journal, recuperação/rollback, aviso sobre tabs legadas e nenhum backend autoritativo.
+
+## 2026-11-16 — Exportação verificável read-only na prévia
+- `prepareVerifiedRecoveryExport` gera um pacote JSON com backup exato v0.1 e SHA-256. Faz rechecagens do save ao redor da operação assíncrona; não consegue garantir ausência de uma atualização POSTERIOR por aba v0.1. Exportação não é migração.
+- `inspectRecoveryFile` apenas verifica integridade/formato e compara com a origem. Retorna igual/diferente/ausente/inválido sem restaurar, transferir ou gravar; arquivos limitados a 8 MiB para contenção de recursos.
+- O painel React usa comentários CSS e tokens; testes verificam íntegro/adulterado, concorrência e zero escrita nas chaves oficial, backup, marcador ou save v0.1.
+- **Próxima tarefa:** laboratório opt-in de troca de writer com execução contra armazenamento TEMPORÁRIO de testes, validação read-back, interrupção/quota real e rollback. Não ligar o executor às chaves persistentes reais antes da paridade de progressão.

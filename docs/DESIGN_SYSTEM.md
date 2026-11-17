@@ -56,3 +56,7 @@ Cores de tipo Pokémon (Fogo, Água, etc.) devem ser tokens próprios, distintos
 - O `index.html` importa os dois estilos. O servidor Node expõe apenas essas rotas CSS conhecidas, sem servir caminhos arbitrários.
 - Continuar usando tokens em futuras alterações. Ao migrar para React, componentes podem passar a CSS Modules, mas devem referenciar os mesmos tokens globais.
 - Nota: a paleta contém muitos tons legados específicos para preservar a comparação visual. Consolidar somente com validação explícita de contraste e screenshots.
+
+
+## Recuperação de save — prévia React v0.2 (experimental)
+O `RecoveryExchangePanel` usa somente variáveis semânticas existentes do `styles/tokens.css`, CSS Modules com comentário português por seletor e layout flexível para desktop/mobile. Ações explicitam **baixar/conferir**; não desenhar botões de "restaurar"/"migrar" enquanto a coordenação de writers não estiver autorizada.

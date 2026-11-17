@@ -28,6 +28,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-018 | 2026-11-16 | CONTRATO CANDIDATO EM IMPLEMENTAÇÃO | O futuro save oficial v0.2 terá schemaVersion/revision próprios, payload integral v0.1 preservado até paridade, e backup contendo o JSON original exato com SHA-256. A ordem planejada de gravação será backup → candidato → marcador; apenas funções puras/ensaios agora. Nenhum writer de produção ou promoção de draft é autorizado antes de resolver D-017 (aba v0.1 não cooperativa), backup externo e rollout explícito. |
 
+| D-019 | 2026-11-16 | PROTOCOLO EXPERIMENTAL EM IMPLEMENTAÇÃO | A v0.1 é writer não-cooperativo: Web Locks não bloqueiam abas antigas. O futuro save oficial v0.2 terá chave separada e revisões monotônicas sob lock exclusivo **somente entre v0.2 cooperativas**; a origem legada fica preservada. Havendo divergência pós-cópia, o sistema deve bloquear mescla/restauração automática, preservar ambos os progressos e exigir decisão explícita de rollout. Pacotes externos com SHA-256 podem ser exportados/conferidos na prévia, mas **NÃO importados para storage**, nem concedem autorização de gravação real. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.
