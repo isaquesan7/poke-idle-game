@@ -2,7 +2,7 @@
 
 > PONTO DE ENTRADA PARA NOVOS CHATS E AGENTES. Leia este arquivo antes de planejar ou alterar código.
 > Atualizado em 2026-11-16. A fonte final do estado técnico é o próprio GitHub/Railway; confira sempre os dados ao vivo.
-> **Handoff em desenvolvimento (2026-11-17):** base main `2b477576` (PRs #3–#21 merged), Railway `e1e86c96` SUCCESS; branch `feat/v02-idempotent-reward-events` prepara eventos PUROS em RAM de resultado de batalha/captura e expedição com IDs, recibos e revisão monotônica. Ainda sem writer único: **dois envelopes independentes continuam podendo divergir**; resultados de batalha são pré-resolvidos e não autenticados. `cutoverGate.ts` mantém `canMigrate:false`; jogo público v0.1 e saves reais intactos. Confira o último `docs/PROJECT_STATE.md`, PR/CI e deploy ao vivo.
+> **Handoff atual (2026-11-17):** PR #22 integrada ao `main` (`989c2cdc`); CI PR `44056942594` SUCCESS e Railway deploy `5b76abc6-c194-4db2-81e7-2876ed09aa89` SUCCESS. Novo trabalho na branch `feat/v02-pokemon-move-pure-reducers`: paridade pura de seleção e aprimoramento de golpes por UID, sem persistência. Testar/revisar PR antes de merge. Writer único, verificação de batalha, backup externo, paridade total e autorização explícita ainda são bloqueadores; `cutoverGate.ts` permanece `canMigrate:false`. Ver final de `docs/PROJECT_STATE.md`.
 
 ## Identidade e limites
 - Projeto: **Poke Idle Game / Kanto Idle LAB** (protótipo v0.1; Season 1: Pokémon #001–#151).
