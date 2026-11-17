@@ -149,3 +149,7 @@ A PR #16 integrou o laboratório de browser isolado à `main` (SHA `977d14a9`). 
 
 ### Auditoria de migração e ações legadas (em revisão)
 A branch `feat/v02-fail-closed-cutover-gate-and-mutation-audit` acrescenta um diagnóstico React que **sempre bloqueia** cutover oficial da v0.1 para v0.2, mesmo com save válido/Web Locks. O inventário em [`docs/LEGACY_MUTATION_MATRIX.md`](docs/LEGACY_MUTATION_MATRIX.md) cobre os 21 handlers e os escritores indiretos do protótipo. Nenhum botão de migração nem writer oficial foi criado; runtime público v0.1 permanece inalterado. Testes de gate em Vitest e de auditoria em Node/E2E fazem parte do workflow permanente.
+
+
+### Handoff — gate de migração v0.2 (2026-11-16)
+PR #18 integrada na main `64992f90`, com [GitHub Actions #43994224019](https://github.com/isaquesan7/poke-idle-game/actions/runs/43994224019) e Railway deploy `4009f1a4` em `SUCCESS`. O relatório de bloqueio continua somente leitura na prévia React; o jogo online v0.1 e seus saves não foram modificados. A [matriz de 21 ações legadas](docs/LEGACY_MUTATION_MATRIX.md) orienta as próximas rotinas puras de treino, equipe, batalha e expedição. Ver a última seção de `docs/PROJECT_STATE.md`.

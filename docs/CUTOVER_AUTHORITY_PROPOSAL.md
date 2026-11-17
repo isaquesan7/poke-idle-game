@@ -31,3 +31,6 @@ Não executar a rotina `browserSandboxCutover.ts` fora da rota localhost exclusi
 
 ## Gate fail-closed e inventário de mutações — 2026-11-16
 O gate `apps/web/src/storage/cutoverGate.ts` é propositalmente um relatório sem possibilidade de retornar `allowed`/`canMigrate:true`. Ele não recebe flags do usuário ou do UI para suprimir requisitos de release. A matriz `docs/LEGACY_MUTATION_MATRIX.md` documenta 21 eventos tratados no `index.html`, mutações diretas/indiretas, e as lacunas da Foundation v0.2. O conjunto de ações é protegido por teste Node; a paridade total do jogo ainda não foi comprovada. Para revisar a política de writer, criar decisão de arquitetura e exigir nova bateria de testes e backup externo, em vez de modificar o gate por configuração de UI.
+
+### Verificação da implementação fail-closed — 2026-11-16
+PR #18 integrada no SHA `64992f90`, CI da main `43994224019` SUCCESS e Railway `4009f1a4` SUCCESS. A prévia exibe explicitamente os bloqueios; documentação de paridade das 21 ações está em `docs/LEGACY_MUTATION_MATRIX.md`. Essa validação apenas confirma que o gate permanece **fechado**. Não é aprovação para liberar writer real ou migrar progresso. Próxima etapa: reduzir lacunas de paridade com operações puras e testes, sem tocar nas chaves existentes.
