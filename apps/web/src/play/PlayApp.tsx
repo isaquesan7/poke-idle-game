@@ -13,8 +13,9 @@ import {
 } from './playSave';
 import type { PlayAction, PlayRead, PlayWrite } from './playSave';
 import styles from './PlayApp.module.css';
+import { PokedexPanel } from './PokedexPanel';
 
-type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'arena' | 'expedition';
+type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
 
 /** A prévia do core usa este catálogo como fonte LOCAL das espécies já jogáveis. */
@@ -70,7 +71,7 @@ function PokemonArt({ id, name, large = false }: {
 }
 
 function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', arena: 'Arena', expedition: 'Expedição' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', arena: 'Arena', expedition: 'Expedição' }[tab];
 }
 
 /**
@@ -180,6 +181,9 @@ export function PlayApp() {
     ? legacyPokemonManualBudget(active.level) -
       STATS.reduce((total,stat)=>total+activeManual[stat],0)
     : 0;
+  const seenDexIds: number[] = Array.isArray(data?.seen)
+    ? data.seen.filter((id): id is number=>typeof id==='number'&&Number.isSafeInteger(id))
+    : [];
   const rosterFiltered = data?.roster.filter(p=>{
     const inTeam=data.team.includes(p.uid);
     if (collectionFilter==='team'&&!inTeam) return false;
@@ -269,7 +273,7 @@ export function PlayApp() {
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         <nav className={styles.menu} aria-label="Navegação do jogo">
-          {(['overview','trainer','pokemon','collection','arena','expedition'] as Tab[]).map(item => (
+          {(['overview','trainer','pokemon','collection','pokedex','arena','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
               onClick={() => { setTab(item); setFeedback(''); }}>{sectionName(item)}</button>
@@ -309,6 +313,7 @@ export function PlayApp() {
                         {expedition ? 'Ver expedição ativa' : 'Iniciar expedição'}</button>
                       <button type="button" className={styles.secondary} onClick={() => setTab('trainer')}>Meu treinador</button>
                       <button type="button" className={styles.secondary} onClick={() => setTab('arena')}>Explorar Arena</button>
+                      <button type="button" className={styles.secondary} onClick={() => setTab('pokedex')}>Abrir Pokédex</button>
                     </div>
                   </div>
                   <PokemonArt id={active.pokemonId} name={view.active.name} large />
@@ -317,7 +322,7 @@ export function PlayApp() {
                   <article className={styles.metric}><small>Treinador</small><strong>Lv. {view.level}</strong><span>{view.xpNext === null ? 'Nível máximo' : view.xp + ' / ' + view.xpNext + ' XP'}</span></article>
                   <article className={styles.metric}><small>Parceiro</small><strong>Lv. {active.level}</strong><span>{view.active.name}</span></article>
                   <article className={styles.metric}><small>Moedas</small><strong>{data.coins}</strong><span>Saldo da jornada</span></article>
-                  <article className={styles.metric}><small>Pokédex</small><strong>{view.capturedSpecies}/151</strong><span>{data.roster.length} indivíduos · {view.seenSpecies} vistos</span></article>
+                  <article className={styles.metric}><small>Pokédex de Kanto</small><strong>{view.capturedSpecies}/151</strong><span>{data.roster.length} indivíduos · {view.seenSpecies} vistos</span></article>
                 </div>
                 <div className={styles.twoColumn}>
                   <section className={styles.panel}>
@@ -548,6 +553,15 @@ export function PlayApp() {
               </>
             )}
 
+            {tab === 'pokedex' && (
+              <PokedexPanel
+                seenIds={seenDexIds}
+                capturedSpeciesIds={data.roster.map(p=>p.pokemonId)}
+                onArena={()=>setTab('arena')}
+                onCollection={()=>setTab('collection')}
+              />
+            )}
+
             {tab === 'arena' && (
               <>
                 <section className={styles.battleIntro}>
@@ -609,12 +623,19 @@ export function PlayApp() {
                 <section className={styles.panel}>
                   <h2>Pokémon encontrados nesta arena</h2>
                   <div className={styles.encounterGrid}>
-                    {KANTO_WILD_POOL.map(id=><div key={id} className={styles.encounterCard}>
+                    {KANTO_WILD_POOL.slice(0,12).map(id=><div key={id} className={styles.encounterCard}>
                       <PokemonArt id={id} name={KANTO_BATTLE_SPECIES[id]!.name} />
                       <span>{KANTO_BATTLE_SPECIES[id]!.name}</span>
                     </div>)}
                   </div>
-                  <p className={styles.disclaimer}>A arena usa um catálogo inicial de 8 espécies selvagens. As demais espécies e habilidades serão ampliadas nas próximas etapas. A seed é sorteada no navegador: esta alfa não tem servidor antifraude.</p>
+                  <p className={styles.disclaimer}>
+                    A Arena agora sorteia entre {KANTO_WILD_POOL.length} espécies selvagens comuns; aqui aparecem 12 exemplos.
+                    O catálogo local tem os 151 Pokémon de Kanto com nomes, tipos e atributos-base oficiais.
+                    Os golpes automáticos de espécies adicionadas nesta etapa ainda são provisórios, não listas oficiais de aprendizado.
+                    Esta alfa usa seed gerada no navegador, sem servidor antifraude.
+                  </p>
+                  <button type="button" className={styles.secondary}
+                    onClick={()=>setTab('pokedex')}>Explorar Pokédex 151</button>
                 </section>
               </>
             )}
