@@ -114,6 +114,33 @@ async function exercise(browser, label, viewport) {
   assert.ok(battleSave.seen.includes(battleSave.lastBattle.wildSpeciesId));
   assert.ok(battleSave.lastBattle.log.length>=2);
   assert.ok(battleSave.lastBattle.turns<=30);
+  assert.equal(battleSave.lastBattle.battleId,'battle-v02-5');
+  // A batalha já está salva, mas o diário deve revelar um evento por vez.
+  await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
+  const lines=page.getByTestId('battle-log').locator('li');
+  assert.ok((await lines.count())<battleSave.lastBattle.log.length);
+  await page.waitForFunction(()=>{
+    const text=document.querySelector('[data-testid="battle-line-progress"]')?.textContent||'';
+    return Number(text.split('/')[0])>=2;
+  });
+  assert.notEqual(await page.getByTestId('battle-clock').textContent(),'00:00.0');
+  await page.getByRole('button',{name:'Pausar'}).click();
+  const pausedLines=await lines.count();
+  await page.waitForTimeout(550);
+  assert.equal(await lines.count(),pausedLines,'pausa não pode avançar o diário');
+  await page.getByRole('button',{name:'Continuar'}).click();
+  await page.getByRole('button',{name:'Alterar velocidade da apresentação'}).click();
+  await page.getByRole('button',{name:'Pular apresentação'}).click();
+  await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
+  assert.equal(await lines.count(),battleSave.lastBattle.log.length);
+  const battleSaved=await page.evaluate(key=>localStorage.getItem(key),SAVE);
+  await page.getByRole('button',{name:'Reassistir à batalha'}).click();
+  await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
+  assert.ok((await lines.count())<battleSave.lastBattle.log.length);
+  await page.getByRole('button',{name:'Pular apresentação'}).click();
+  await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),battleSaved,
+    'replay/pular não podem conceder recompensas novamente');
   await page.getByRole('button',{name:'Pokédex',exact:true}).click();
   await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).waitFor();
   assert.equal(await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).isDisabled(),false);
@@ -209,12 +236,25 @@ async function exercise(browser, label, viewport) {
   assert.equal((await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).team,SAVE))[0],firstUid);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
+  // Aprendizado FRLG e rank: Pokémon em equipe permanece com UID original.
+  await page.getByRole('button',{name:'Pokémon',exact:true}).click();
+  await page.getByRole('heading',{name:'Golpes do Pokémon'}).waitFor();
+  await page.getByRole('button',{name:'Equipar golpe tackle'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===12,SAVE);
+  await page.getByRole('button',{name:'Aprimorar golpe tackle'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===13,SAVE);
+  const moved=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);
+  assert.equal(moved.roster.find(p=>p.uid===firstUid).moveName,'tackle');
+  assert.equal(moved.roster.find(p=>p.uid===firstUid).upgrades.tackle,1);
+  assert.equal(moved.roster.find(p=>p.uid===secondUid).manual.speed,1);
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
+
   await page.screenshot({path:new URL(label+'-play.png',shots).pathname,fullPage:true,animations:'disabled'});
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);
   assert.deepEqual(errors,[]);
   await context.close();
-  console.log(label+': /play, Pokédex 151, batalha, coleção UID, equipe e reload OK');
+  console.log(label+': /play, golpes por nível/rank, replay com cronômetro, Pokédex, equipe e reload OK');
 }
 
 let browser;
