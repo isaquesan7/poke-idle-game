@@ -268,3 +268,53 @@
   .collectionGrid{grid-template-columns:minmax(0,1fr);}
   .teamSlots{grid-template-columns:repeat(3,minmax(0,1fr));}
 }
+
+/* Painel de treinamento de movimentos: somente golpes elegíveis por espécie e nível. */
+.moveList{display:grid;gap:var(--space-3);margin:var(--space-4) 0;}
+.moveOption,.moveEquipped{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+  padding:var(--space-3);border-radius:var(--radius-card);
+  border:1px solid var(--color-border);background:var(--color-surface-raised);
+}
+.moveEquipped{border-color:var(--color-primary);background:var(--color-navbtn-active-background-1);}
+.moveOption>div:first-child,.moveEquipped>div:first-child{display:grid;gap:var(--space-1);min-width:0;}
+.moveOption strong,.moveEquipped strong{overflow-wrap:anywhere;}
+.moveOption small,.moveEquipped small{color:var(--color-text-muted);font-size:.78rem;}
+.moveActions{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2);}
+.moveActions button{font-size:.76rem;padding:var(--space-2);min-height:38px;white-space:nowrap;}
+/* Replay de batalha: a transição visual nunca modifica o save. */
+.battlePlaybackMeta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2);}
+.battlePlaybackMeta>div{
+  display:grid;gap:var(--space-1);padding:var(--space-3);border:1px solid var(--color-border);
+  border-radius:var(--radius-card);background:var(--color-surface-raised);
+}
+.battlePlaybackMeta small{color:var(--color-text-muted);font-size:.74rem;}
+.battlePlaybackMeta strong{font-size:1.15rem;color:var(--color-primary);font-variant-numeric:tabular-nums;}
+.battlePlaybackProgress{
+  height:7px;background:var(--color-progress-background-1);border-radius:var(--radius-pill);
+  overflow:hidden;margin:var(--space-3) 0;
+}
+.battlePlaybackProgress>span{
+  display:block;height:100%;background:var(--color-primary);transition:width var(--duration-fast);
+}
+.battlePlaybackControls{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-2);margin:var(--space-3) 0;}
+.battlePlaybackControls button{font-size:.82rem;padding:var(--space-2) var(--space-3);min-height:38px;}
+.battlePlaybackControls button:disabled{opacity:.4;cursor:not-allowed;}
+.battleLog{scroll-behavior:smooth;max-height:350px;min-height:75px;}
+.battleLogEntry{animation:battleEntry .32s ease-out both;}
+@keyframes battleEntry{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+@media(max-width:800px){
+  .moveOption,.moveEquipped{flex-direction:column;align-items:stretch;}
+  .moveActions{width:100%;}
+}
+@media(max-width:690px){
+  .battlePlaybackMeta{grid-template-columns:repeat(3,minmax(0,1fr));}
+  .battlePlaybackMeta>div{padding:var(--space-2);}
+  .battlePlaybackMeta small{font-size:.64rem;}
+  .battlePlaybackMeta strong{font-size:.9rem;}
+}
+@media(prefers-reduced-motion:reduce){
+  .battleLogEntry{animation:none;}
+  .battlePlaybackProgress>span{transition:none;}
+  .battleLog{scroll-behavior:auto;}
+}
