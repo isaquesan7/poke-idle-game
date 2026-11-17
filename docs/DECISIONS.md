@@ -32,6 +32,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-020 | 2026-11-16 | LABORATÓRIO ISOLADO EM IMPLEMENTAÇÃO | Testar o futuro cutover v0.1→v0.2 exclusivamente em uma instância `MigrationMemoryLab` com Map privado e confirmação explícita; não aceitar `Storage` real nem executar as instruções do journal em localStorage/IndexedDB. Simular quota, crashes, reenvios, revision stale e mudança da origem v0.1; resultado `committed` no laboratório não é migração real nem autoriza writer oficial. UI de ensaio existe somente na prévia React. Continuam vigentes D-017–D-019. |
 
+| D-021 | 2026-11-16 | LABORATÓRIO DO NAVEGADOR EM VALIDAÇÃO | Para verificar QuotaExceededError/Web Locks/reload reais, permitir gravações EXCLUSIVAMENTE em chave fixa com prefixo `__kanto_lab__` sob rota `/__kanto_v02_browser_lab__` em origem `http://localhost` ou `http://127.0.0.1` no Vite. O executor não é usado pela UI, não pode escrever em chaves v0.1/v0.2 oficiais, e exige consentimento; dados parciais de laboratório devem ser preservados para auditoria, rollback só por confirmação e apenas de candidato/marcador de laboratório, mantendo backup. Nem resultado committed do browser nem Web Locks garantem coordenação com antigas abas v0.1; ativação real segue BLOQUEADA. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.

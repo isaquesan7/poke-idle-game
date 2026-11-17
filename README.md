@@ -137,3 +137,7 @@ A branch `feat/v02-cutover-memory-laboratory` introduz uma simulação de migra�
 
 ### Estado confirmado — laboratório RAM v0.2 (2026-11-16)
 A PR #14 integrou o laboratório opt-in ao código da `main` SHA `455c29a9`, com [CI final #43989615947](https://github.com/isaquesan7/poke-idle-game/actions/runs/43989615947) `SUCCESS` e deploy Railway `b621615b` `SUCCESS`. A simulação roda em `Map` privado, incluindo crashes, quota e divergência; a UI React ainda não é exposta na página publicada. A v0.1 e os saves reais estão preservados. Próxima prioridade: coordenação de um único writer, cutover opt-in e rollback, conforme `docs/SAVE_MIGRATION_PLAN.md`.
+
+
+### Teste real de browser isolado (não disponível no jogo público)
+A branch `feat/v02-isolated-browser-cutover-tests` adiciona `browserSandboxCutover.ts` e E2E Chromium usando Vite na origem localhost:5174, rota `/__kanto_v02_browser_lab__` e chaves exclusivas `__kanto_lab__*`. Exercita erros reais de quota, Web Locks entre abas, crash/reload e rollback somente do candidato de teste. **Não é migração real nem backend de save**: o runtime online permanece v0.1 e as chaves oficiais nunca são acessadas por esse laboratório. Ver `docs/SAVE_MIGRATION_PLAN.md` e decisão D-021.
