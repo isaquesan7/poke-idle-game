@@ -99,6 +99,30 @@ async function checkValid(browser, label, viewport) {
   assert.equal(keys.official,null);
   assert.equal(keys.backup,null);
   assert.equal(keys.marker,null);
+  // Laboratório com Map próprio: nenhuma escrita sequer em chaves novas no browser.
+  const labButton=page.getByRole('button',{name:'Executar ensaio em memória'});
+  assert.equal(await labButton.isDisabled(),true);
+  await page.getByRole('checkbox',{name:/Confirmo que quero executar somente uma simulação/}).check();
+  await page.locator('#memory-lab-mode').selectOption('quota');
+  await labButton.click();
+  await page.getByText(/Resultado: interrupted · Estágio do ensaio: backup-only · Backup: verificado/).waitFor();
+  await page.locator('#memory-lab-mode').selectOption('legacy-change-after-backup');
+  await labButton.click();
+  await page.getByText(/Resultado: interrupted · Estágio do ensaio: conflict/).waitFor();
+  await page.locator('#memory-lab-mode').selectOption('none');
+  await labButton.click();
+  await page.getByText(/Resultado: simulated · Estágio do ensaio: committed/).waitFor();
+  const keysAfterLab=await page.evaluate(()=>({
+    legacy:localStorage.getItem('kanto-idle-lab-save-v01'),
+    official:localStorage.getItem('kanto-idle-lab-save-v02'),
+    backup:localStorage.getItem('kanto-idle-lab-save-v02-origin-backup'),
+    marker:localStorage.getItem('kanto-idle-lab-save-v02-commit')
+  }));
+  assert.deepEqual(keysAfterLab,keys);
+  await page.screenshot({
+    path:new URL(label+'-memory-lab.png',shots).pathname,
+    animations:'disabled',fullPage:true
+  });
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 1, 'Overflow horizontal no viewport '+label+': '+overflow);
   assert.deepEqual(pageErrors, []);
