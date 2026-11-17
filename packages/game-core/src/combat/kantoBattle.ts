@@ -14,6 +14,8 @@
 import type { StatValues } from '../stats/types.js';
 import { KANTO_POKEDEX } from '../catalog/kantoSpecies.js';
 import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
+import { kantoMoveSecondaryEffect } from './kantoStatusEffects.js';
+import type { KantoBattleStatus } from './kantoStatusEffects.js';
 
 export type KantoMove = Readonly<{
   name: string;
@@ -113,6 +115,9 @@ export interface KantoBattleResult {
   readonly affinityGain: number | null;
   readonly captured: boolean;
   readonly log: readonly string[];
+  /** Condições apenas do encontro, nunca persistidas no roster. */
+  readonly playerStatus: KantoBattleStatus|null;
+  readonly wildStatus: KantoBattleStatus|null;
 }
 
 type Relation = { double?: readonly string[]; half?: readonly string[]; none?: readonly string[] };
@@ -170,14 +175,19 @@ function validateCombatant(monster:Combatant):void {
 
 /** Cálculo do legado com dois rolls EXPLÍCITOS e reproduzíveis. */
 export function kantoDamage(
-  attacker:Combatant,defender:Combatant,criticalRoll:number,varianceRoll:number
+  attacker:Combatant,defender:Combatant,criticalRoll:number,varianceRoll:number,
+  /** Opcional para queimadura: reduz apenas ataque físico (1 ou 0,5). */
+  attackScale:number=1
 ): {readonly damage:number;readonly critical:boolean;readonly effectiveness:number} {
   validateCombatant(attacker);validateCombatant(defender);
-  if (![criticalRoll,varianceRoll].every(v=>Number.isFinite(v)&&v>=0&&v<1)) {
+  if (![criticalRoll,varianceRoll].every(v=>Number.isFinite(v)&&v>=0&&v<1)
+    || (attackScale!==1&&attackScale!==0.5)) {
     throw new RangeError('Rolagens devem pertencer a [0,1).');
   }
   const physical=attacker.move.category==='physical';
-  const attack=Math.max(1,physical?attacker.stats.attack:attacker.stats.specialAttack);
+  const attack=Math.max(1,Math.floor(
+    (physical?attacker.stats.attack:attacker.stats.specialAttack)*(physical?attackScale:1)
+  ));
   const defense=Math.max(1,physical?defender.stats.defense:defender.stats.specialDefense);
   const power=Math.max(1,Math.round(attacker.move.power*(1+attacker.rank*.05)));
   const base=Math.floor((((2*attacker.level/5+2)*power*attack/defense)/50)+2);
@@ -189,7 +199,11 @@ export function kantoDamage(
   return {damage,critical,effectiveness};
 }
 
-/** Não usa Date, Math.random, estado global ou backend. */
+/**
+ * Combate determinístico com condições temporárias.
+ * Cada rolagem faz parte do RNG da mesma batalha; replay lê só o log salvo.
+ * Status e estágios NÃO são persistidos entre combates.
+ */
 export function simulateKantoBattle(
   player:Combatant,wild:Combatant,seed:number
 ):KantoBattleResult {
@@ -203,40 +217,101 @@ export function simulateKantoBattle(
     return state/0x100000000;
   };
   let playerHp=player.stats.hp,wildHp=wild.stats.hp,turns=0;
-  const log:string[]=[`${player.name} (Nv. ${player.level}) vs ${wild.name} (Nv. ${wild.level})`];
-  while (turns<30 && playerHp>0 && wildHp>0) {
+  let playerStatus:KantoBattleStatus|null=null,wildStatus:KantoBattleStatus|null=null;
+  let playerSpeedDrops=0,wildSpeedDrops=0;
+  const log:string[]=[player.name+' (Nv. '+player.level+') vs '+wild.name+' (Nv. '+wild.level+')'];
+  const speed=(actor:Combatant):number=>{
+    const status=actor===player?playerStatus:wildStatus;
+    const drops=actor===player?playerSpeedDrops:wildSpeedDrops;
+    const paralysed=status==='paralysis'
+      ?Math.max(1,Math.floor(actor.stats.speed/4)):actor.stats.speed;
+    // -1 estágio => 2/3, -2 => 1/2, -6 => 1/4.
+    return Math.max(1,Math.floor(paralysed*2/(2+drops)));
+  };
+  const statusAllowed=(status:KantoBattleStatus,target:Combatant):boolean=>
+    status==='burn'?!target.types.includes('fire')
+      :status==='poison'?!target.types.some(type=>type==='poison'||type==='steel'):true;
+
+  while(turns<30&&playerHp>0&&wildHp>0){
     turns++;
-    let playerFirst=player.move.priority>wild.move.priority
-      || player.move.priority===wild.move.priority && (
-        player.stats.speed>wild.stats.speed
-        || player.stats.speed===wild.stats.speed && roll()<.5
+    const first=player.move.priority>wild.move.priority
+      || player.move.priority===wild.move.priority&&(
+        speed(player)>speed(wild)||speed(player)===speed(wild)&&roll()<0.5
       );
-    const order=playerFirst ? [player,wild] : [wild,player];
-    for (const actor of order) {
-      if (playerHp===0||wildHp===0) break;
-      if (roll()*100>actor.move.accuracy) {
-        log.push(`T${turns} · ${actor.name} errou ${actor.move.name}.`);
+    const order=first?[player,wild]:[wild,player];
+    for(const actor of order){
+      if(playerHp===0||wildHp===0)break;
+      const isPlayer=actor===player;
+      const defender=isPlayer?wild:player;
+      const actorStatus=isPlayer?playerStatus:wildStatus;
+      if(actorStatus==='paralysis'&&roll()<0.25){
+        log.push('T'+turns+' · '+actor.name+' ficou paralisado e não conseguiu agir.');
         continue;
       }
-      const hit=kantoDamage(actor,actor===player?wild:player,roll(),roll());
-      if (actor===player) wildHp=Math.max(0,wildHp-hit.damage);
+      if(roll()*100>=actor.move.accuracy){
+        log.push('T'+turns+' · '+actor.name+' errou '+actor.move.name+'.');
+        continue;
+      }
+      const hit=kantoDamage(actor,defender,roll(),roll(),
+        actorStatus==='burn'&&actor.move.category==='physical'?0.5:1);
+      if(isPlayer)wildHp=Math.max(0,wildHp-hit.damage);
       else playerHp=Math.max(0,playerHp-hit.damage);
-      const effect=hit.effectiveness===0?' · Imune'
-        : hit.effectiveness>=2?' · Super efetivo'
-          : hit.effectiveness<1?' · Resistido':'';
-      log.push(`T${turns} · ${actor.name} usou ${actor.move.name}: ${hit.damage} dano${hit.critical?' · CRÍTICO':''}${effect}.`);
+      const effectText=hit.effectiveness===0?' · Imune'
+        :hit.effectiveness>=2?' · Super efetivo'
+          :hit.effectiveness<1?' · Resistido':'';
+      log.push('T'+turns+' · '+actor.name+' usou '+actor.move.name+': '+
+        hit.damage+' dano'+(hit.critical?' · CRÍTICO':'')+effectText+'.');
+
+      // Sem hit efetivo ou alvo já derrotado não há efeitos adicionais.
+      if(hit.damage===0||(isPlayer?wildHp:playerHp)===0)continue;
+      const secondary=kantoMoveSecondaryEffect(actor.move.name);
+      if(secondary?.kind==='status'&&roll()*100<secondary.chance){
+        const targetStatus=isPlayer?wildStatus:playerStatus;
+        if(targetStatus===null&&statusAllowed(secondary.status,defender)){
+          if(isPlayer)wildStatus=secondary.status;else playerStatus=secondary.status;
+          const text=secondary.status==='burn'?'queimado':
+            secondary.status==='poison'?'envenenado':'paralisado';
+          log.push('T'+turns+' · '+defender.name+' ficou '+text+'.');
+        }
+      }else if(secondary?.kind==='drain'){
+        const missing=actor.stats.hp-(isPlayer?playerHp:wildHp);
+        const restored=Math.min(missing,Math.max(1,Math.floor(hit.damage*secondary.percent/100)));
+        if(restored>0){
+          if(isPlayer)playerHp+=restored;else wildHp+=restored;
+          log.push('T'+turns+' · '+actor.name+' recuperou '+restored+' HP com '+actor.move.name+'.');
+        }
+      }else if(secondary?.kind==='speed-drop'&&roll()*100<secondary.chance){
+        const drops=isPlayer?wildSpeedDrops:playerSpeedDrops;
+        if(drops<6){
+          if(isPlayer)wildSpeedDrops++;else playerSpeedDrops++;
+          log.push('T'+turns+' · Velocidade de '+defender.name+' diminuiu.');
+        }
+      }
+    }
+    // HP residual de condições no fim do turno; 1/8 do HP máximo.
+    for(const actor of [player,wild]){
+      const own=actor===player;
+      const status=own?playerStatus:wildStatus;
+      const hp=own?playerHp:wildHp;
+      if(hp<=0||(status!=='burn'&&status!=='poison'))continue;
+      const damage=Math.min(hp,Math.max(1,Math.floor(actor.stats.hp/8)));
+      if(own)playerHp-=damage;else wildHp-=damage;
+      log.push('T'+turns+' · '+actor.name+' sofreu '+damage+' dano por '+
+        (status==='burn'?'queimadura':'envenenamento')+'.');
     }
   }
-  const outcome:BattleOutcome=wildHp===0&&playerHp>0?'win'
-    : playerHp>0&&wildHp>0?'draw':'loss';
+  // KO simultâneo pelo dano residual = empate, sem bônus.
+  const outcome:BattleOutcome=wildHp===0&&playerHp===0?'draw'
+    :wildHp===0?'win':playerHp===0?'loss':'draw';
   const affinityGain=outcome==='win'?2+Math.floor(roll()*4):null;
-  const captured=outcome==='win'&&roll()<.35;
+  const captured=outcome==='win'&&roll()<0.35;
   log.push(outcome==='win'?'Vitória! Recompensas de combate recebidas.'
-    : outcome==='draw'?'Empate: limite de 30 turnos.'
+    :outcome==='draw'?(playerHp===0?'Empate: ambos os Pokémon desmaiaram.':'Empate: limite de 30 turnos.')
       :'Derrota. Treine seu Pokémon e tente novamente.');
-  if (captured) log.push(`Captura! ${wild.name} entrou na coleção.`);
-  return {
+  if(captured)log.push('Captura! '+wild.name+' entrou na coleção.');
+  return{
     outcome,turns,playerRemainingHp:playerHp,wildRemainingHp:wildHp,
-    wildSpeciesId:wild.speciesId,affinityGain,captured,log
+    wildSpeciesId:wild.speciesId,affinityGain,captured,log,
+    playerStatus,wildStatus
   };
 }
