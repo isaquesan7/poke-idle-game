@@ -21,11 +21,13 @@ const source = () => ({
   lastClaim: { cycles: 7 }, customRoot: 'intocável'
 });
 const raw = JSON.stringify(source());
-const select = (uid = 1, moveName = 'vine-whip'): LegacyMoveAction => ({
+type SelectMoveCommand = Extract<LegacyMoveAction, { type: 'select-move' }>;
+type UpgradeMoveCommand = Extract<LegacyMoveAction, { type: 'upgrade-move' }>;
+const select = (uid = 1, moveName = 'vine-whip'): SelectMoveCommand => ({
   type: 'select-move', uid, moveName,
   availableMoves: ['tackle', 'vine-whip', 'growl']
 });
-const upgrade = (uid = 1, moveName = 'tackle', movePower = 40): LegacyMoveAction => ({
+const upgrade = (uid = 1, moveName = 'tackle', movePower = 40): UpgradeMoveCommand => ({
   type: 'upgrade-move', uid, moveName, movePower
 });
 
