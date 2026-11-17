@@ -237,3 +237,23 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Migração:** `inspectMigrationReadiness()` é apenas checagem de leitura e não migra. Problema conhecido e bloqueador: a v0.1 escreve no localStorage sem Web Locks, de modo que o React não pode garantir transação com abas legadas. `docs/SAVE_MIGRATION_PLAN.md` tem fases A–E.
 - **Próxima ação objetiva:** modelar contrato de **save oficial v0.2** e backup recuperável (funções puras + fixtures) em nova branch, sem gravar save real. Depois projetar política de writer único, convergência entre abas e rollout opt-in, antes de habilitar qualquer commit de progresso.
 - **Limites conhecidos:** sem backend/contas, sem sincronização multi-dispositivo, sem antifraude; resultados dos workflows não equivalem a teste de uso humano completo. Nunca modificar `isaquesan7/pokedex`.
+
+## 2026-11-16 — PR de contrato v0.2 e ensaio de recuperação (EM REVISÃO)
+- Fonte GitHub verificada antes da branch: `main` `be0c3be8ef3086860af2cea9c8d609c5577740ab` (PRs #3–#8 integradas); Railway deploy `3825145b-45dc-478d-aba8-78614280d60e` `SUCCESS`. A entrada pública continua v0.1.
+- Branch `feat/v02-official-save-backup-contract`, criada a partir da main; não substitui `server.mjs` nem altera `index.html`, os GIFs, o localStorage do jogo ou a UI React.
+- `apps/web/src/storage/officialSaveV02.ts`: contrato **candidato** de progresso oficial `{kind:'kanto-official-save',schemaVersion:2,revision:0,origin,payloadFormat:'legacy-v01',progress}`; o payload permanece v0.1 intacto até a migração real das mecânicas. Não confundir contrato com migração/ativação.
+- Mesmo módulo: pacote de recuperação com backup contendo `sourceRaw` JSON exato (inclusive espaços e campos desconhecidos), tamanho UTF-8 e SHA-256. Funções puras de criação, inspeção e extração, sem escrita; digest é integridade acidental, NÃO autenticação.
+- Chaves **reservadas, não utilizadas pelo runtime**: `kanto-idle-lab-save-v02`, `kanto-idle-lab-save-v02-origin-backup`, `kanto-idle-lab-save-v02-commit`; continuam distintas das chaves legadas e de draft.
+- `recoveryJournal.ts`: apenas plano de operações futuras na ordem backup → candidato → marcador final; auditoria não destrutiva dos estados vazio, backup-only, staged, committed, conflict, damaged e extração da origem mesmo se o candidato corromper.
+- **IMPORTANTE:** não há executor de escrita em navegador. `committed` no auditor é apenas diagnóstico de teste, não permissão para ativação: v0.1 permanece writer NÃO cooperativo; Web Locks na v0.2 não cobrem tabs antigas.
+- Vitest `officialSaveV02.test.ts` e `recoveryJournal.test.ts` incluem SHA-256 conhecido, emojis/UTF-8, whitespace exato, múltiplas instâncias, campos extras, versões futuras, adulteração de XP/moedas/afinidade, crashes após cada etapa, quota/permissões simuladas, marcador corrompido e conflito com save atualizado.
+- **Validação:** CI ainda precisa executar na PR; registrar resultado terminal ao terminar. **Deploy:** nenhum na main por esta branch.
+- **Próxima ação concreta:** validar TS/Vitest/E2E no GitHub, corrigir erros encontrados e só integrar PR segura. Próximo ciclo: definir writer único/política de transição v0.1→v0.2, depois preparar importação opt-in + export do backup, SEM gravação do save legado.
+
+### Validação do contrato v0.2 — 2026-11-16
+- PR #9: https://github.com/isaquesan7/poke-idle-game/pull/9.
+- GitHub Actions workflow `43983797980` em `completed/success`, SHA de código e documentação testado `0f7ce34ee95cbeb2607648ac9d91be9fe41edd41`.
+- Passaram: `npm ci`, `typecheck:core`, `test:core`, `typecheck:web`, `test:web` (incluindo novos testes de recuperação), `build:web`, testes Node da v0.1, validação dos 151 GIFs e três regressões E2E Chromium: jogo antigo, React e simulação.
+- Revisão do diff confirma alterações somente nos módulos `officialSaveV02`/`recoveryJournal`, seus testes e documentação. UI, servidor, dados dos jogadores e binários Kanto não foram modificados.
+- Status: **ainda em PR**, sem merge/deploy até esta anotação. Trabalho de escrita e coordenação transacional segue bloqueado; não confundir com save oficial ativado.
+- Próximo: integrar PR #9 após checagem final, monitorar deploy e registrar SHA de produção. Em seguida desenhar mecanismo de coordenação com writers cooperativos, export/import opt-in e testes de integração.

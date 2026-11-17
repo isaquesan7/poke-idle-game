@@ -26,6 +26,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-017 | 2026-11-16 | DIRETRIZ DE SEGURANÇA EM IMPLEMENTAÇÃO | Migração v0.1→v0.2 exige pré-verificação não destrutiva, backup fiel e chave oficial distinta. Não promover rascunho diretamente para v0.1. A v0.1 não usa Web Locks, logo CAS localStorage/Web Locks só no React NÃO asseguram cooperação com abas antigas. Migração real depende de writer único/política de rollout e testes de falha/rollback (ver `docs/SAVE_MIGRATION_PLAN.md`). |
 
+| D-018 | 2026-11-16 | CONTRATO CANDIDATO EM IMPLEMENTAÇÃO | O futuro save oficial v0.2 terá schemaVersion/revision próprios, payload integral v0.1 preservado até paridade, e backup contendo o JSON original exato com SHA-256. A ordem planejada de gravação será backup → candidato → marcador; apenas funções puras/ensaios agora. Nenhum writer de produção ou promoção de draft é autorizado antes de resolver D-017 (aba v0.1 não cooperativa), backup externo e rollout explícito. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.
