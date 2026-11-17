@@ -3,7 +3,7 @@
 Protótipo experimental **não oficial** de RPG idle com Pokémon da região de Kanto, utilizando dados da [PokéAPI](https://pokeapi.co/docs/v2).
 
 ## Links oficiais deste projeto
-- **Nova jornada v0.2 alfa:** https://kanto-idle-web-production.up.railway.app/play (onboarding e progressão local; disponibilidade após integração e deploy desta PR)
+- **Nova jornada v0.2 alfa:** https://kanto-idle-web-production.up.railway.app/play (onboarding, progressão local e expedição publicados em 2026-11-17)
 - **Protótipo v0.1:** https://kanto-idle-web-production.up.railway.app/
 - **Repositório de desenvolvimento:** https://github.com/isaquesan7/poke-idle-game
 - **Jogo online:** https://kanto-idle-web-production.up.railway.app/
@@ -25,10 +25,10 @@ Protótipo experimental **não oficial** de RPG idle com Pokémon da região de 
 | [assets/README.md](assets/README.md) | Diretrizes para futuros assets visuais |
 
 ## Executar localmente
-Requer Node.js >=18.
+Requer Node.js >=22.12 e <23 para compilar o React/Vite.
 ```bash
 npm start
-# abrir http://localhost:3000
+# abrir http://localhost:3000/play (alfa v0.2) ou / (v0.1)
 ```
 Opcionalmente, abrir `index.html` diretamente no navegador com internet.
 
@@ -174,3 +174,6 @@ A PR #22 foi integrada à `main` SHA `989c2cdc`; [CI pós-merge #44057278833](ht
 
 ## 2026-11-17 — Nova diretriz: jogo alfa primeiro
 Como ainda não há jogadores reais, o desenvolvimento passou a priorizar a v0.2 utilizável. A rota `/play` cria um save NOVO e independente `kanto-idle-play-v02` com treinador, Pokémon inicial, distribuição de pontos, equipamentos de testes e expedições idle. `npm start` compila o React antes de subir o servidor. A raiz `/` permanece como protótipo v0.1 até validarmos batalhas/capturas no novo loop. Dados v0.2 são testes pré-lançamento e podem ser reiniciados pela interface com confirmação; não há autenticação, sincronização de contas ou antifraude.
+
+### Handoff da primeira jornada v0.2 publicada
+PR #29 merged em `684ebf43`; GitHub Actions `44067662663` SUCCESS (inclui navegador desktop/mobile e rota `/play` no servidor), Railway `fd9cd32a` SUCCESS com healthcheck interno. A rota `/play` usa Vite compilado em `npm prestart`; a `/` continua v0.1. Correção do requisito Node 22 em D-028; dados desta alfa são só testes, sem contas ou backend.
