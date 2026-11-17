@@ -1,8 +1,8 @@
-## [v0.2-alpha — quatro golpes e IA determinística] — 2026-11-17 (branch; CI/PR pendentes)
+## [v0.2-alpha — quatro golpes e IA determinística] — 2026-11-17 (PUBLICADO PR #44)
 - Até quatro slots de golpes por Pokémon UID, com ações de adicionar, retirar e definir principal. Saves anteriores com só `moveName` carregam como slot único; `moveNames` opcional, sem novo schema. O golpe principal anterior e seus ranks permanecem intactos até edição consciente.
 - Primeiro catálogo de suporte baseado em learnset FireRed/LeafGreen: Growl, Tail Whip, Thunder Wave e Poison Powder para quatro espécies validadas; IA escolhe suporte viável nos dois primeiros turnos e depois golpe de melhor dano estimado, com stats, tipos e imunidades, sem RNG adicional fora da seed.
 - Logs de suporte e ataque continuam no diário gradual com replay sem novas recompensas. `playSave` valida espécie/nível/slots por UID, persiste uma revisão sem afetar `/` legado. Efeitos temporários, sem PP, backend, jogadores reais ou antifraude.
-- Adicionados testes Vitest core/write e E2E Chromium desktop/mobile com 2 golpes, seleção após reload e combate automático. **Resultados CI/PR/merge/Railway ainda pendentes** neste registro; próxima etapa: animações de HP/ataques e expandir status/learnsets.
+- Adicionados testes Vitest core/write e E2E Chromium desktop/mobile com 2 golpes, seleção após reload e combate automático. **PUBLICADO:** PR #44 merged `a22ffd7e0348c29caa354189961f09b13741e167`, CI PR `44182880749` e CI main pós-merge `44183213221` ambas SUCCESS (TS, Vitest, build, legacy, 151 GIFs, Chromium desktop/mobile); Railway `0eacb457-f0f5-4c54-8d2d-ae629e5ba50d` SUCCESS no SHA e healthcheck interno `/health succeeded!`. Próxima etapa: animações HP/ataques e expansão gradual dos efeitos.
 
 ## [v0.2-alpha — combate com status] — 2026-11-17 (publicado: PR #42)
 - Novos efeitos secundários em golpes ofensivos: queimadura de Ember, paralisia de Thunder Shock, envenenamento de Poison Sting (Weedle nível 1), Absorb recupera 50% do dano e Bubble pode reduzir Speed; metadados de `moves.csv`/`move_meta.csv` da PokéAPI versionados.
