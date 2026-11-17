@@ -12,6 +12,7 @@ import { OverviewPreview } from '../features/trainer/OverviewPreview';
 import { TrainerPreview } from '../features/trainer/TrainerPreview';
 import { TrainerDraftControls } from '../features/trainer/TrainerDraftControls';
 import { RecoveryExchangePanel } from '../features/storage/RecoveryExchangePanel';
+import { MigrationLabPanel } from '../features/storage/MigrationLabPanel';
 import styles from './App.module.css';
 
 function statusText(result: LegacySaveResult): string {
@@ -166,6 +167,7 @@ export function App() {
       {result.status === 'valid' && (
         <>
           <RecoveryExchangePanel sourceRaw={result.raw} />
+          <MigrationLabPanel sourceRaw={result.raw} />
           <section className={styles.simulation} aria-labelledby="draft-heading">
             <h2 id="draft-heading">Simulação isolada v0.2</h2>
             <p className={styles.note}>O jogo real continua salvo em sua chave v0.1. Esta simulação usa outra chave e nunca aplica mudanças automaticamente ao jogo.</p>
