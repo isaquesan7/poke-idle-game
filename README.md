@@ -161,3 +161,7 @@ PR #18 integrada na main `64992f90`, com [GitHub Actions #43994224019](https://g
 
 ### Estado confirmado — Pokémon/equipe em game-core (2026-11-16)
 PR #20 integrada à main `5e60f17b` com [GitHub Actions pós-merge #43996462703](https://github.com/isaquesan7/poke-idle-game/actions/runs/43996462703) SUCCESS e deploy Railway `da78ab5a` SUCCESS. O core inclui treino/reset de pontos de Pokémon por UID e equipe 1–3 com validação de expedição. São cálculos puros sem writer, migração ou efeitos em saves reais. O jogo na URL pública permanece a v0.1. Próximo ciclo: eventos idempotentes de batalha e expedição; detalhes no final de `docs/PROJECT_STATE.md`.
+
+
+### Eventos puros de recompensas (Foundation v0.2, laboratório)
+`@kanto/game-core` exporta `prepareRewardJournal` e `applyRewardEvent` para um envelope **exclusivamente em RAM**: resultado de batalha já calculado (com captura opcional), início/resgate/encerramento de expedição. IDs de evento e revisão impedem reenvio duplicado **dentro de um único envelope compartilhado**; duas abas isoladas ainda não têm writer canônico. O reducer não comprova batalhas e não grava saves reais nem concede recompensas na v0.1. Ver `docs/PROJECT_STATE.md` e `docs/SAVE_MIGRATION_PLAN.md`.

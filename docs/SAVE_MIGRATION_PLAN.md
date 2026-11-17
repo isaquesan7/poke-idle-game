@@ -129,3 +129,7 @@ O game-core agora dispõe de redutores puros que devolvem outro JSON v0.1 para t
 
 ### Handoff após PR #20 (2026-11-16)
 Reducers de Pokémon/equipe integrados em `5e60f17b` (GitHub Actions main `43996462703` e Railway `da78ab5a` SUCCESS). Quatro ações legadas possuem equivalente puro; os requisitos de migração oficial ainda são **integralmente obrigatórios**. Próximo passo: segurança de comandos de economia/batalha/expedição com idempotência, revisão monotônica sob writer único e testes de colisão de duas abas — inicialmente sem writes reais.
+
+
+### Recibos de recompensa experimentais (2026-11-17)
+O game-core passou a incluir `RewardJournal` com `revision/receipts` em RAM para simular idempotência de batalha, captura e expedição. **Não é ledger durável**, nem prova antifraude; o mesmo evento em duas cópias independentes pode receber recompensa duas vezes antes de se escolher uma revisão autoritativa. O gate de migração permanece bloqueado. A transferência de autoridade requer serialização/commit transacional de revisão+evento, backup fora do navegador, engine verificável, paridade completa de todas ações e testes de concorrência antes da ativação.

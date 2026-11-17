@@ -19,10 +19,10 @@
 | `remove-team` | L212 | `team` filtrado; exige ao menos 1 | **Reducer puro no core**, sem write | Portar fluxo da equipe e política de writer |
 | `upgrade-move` | L213 | `roster[].upgrades[moveName]`, limite de rank e pontos | Somente leitura | Fórmula de pontos e rank por UID/golpe |
 | `encounter` | L214 e L186 | `seen.push(pokemonId)`, salva; também prepara `wild` em RAM | Sem ação real | Encontro, aleatoriedade e deduplicação |
-| `battle` | L215, L190–196 | Vitórias/derrotas, moedas, XP, níveis, afinidade, insígnias, captura/UID/roster | Só fórmulas parciais no core | Motor de combate determinístico, idempotência de recompensas |
-| `start-exp` | L216, L197 | `expedition={startedAt,lastClaimAt,teamUids}` | Só projeção/recompensas no core | Snapshot de equipe, relógio/versão |
-| `claim-exp` | L217, L198–199 | Moedas, XP treinador/Pokémon, afinidade, `lastClaim`, `lastClaimAt` | `expeditionRewards` puro | Garantia de claim único e teto 8h |
-| `stop-exp` | L218, L200 | Claim final e `expedition=null` | Sem ação real | Evitar pagamento duplo ao encerrar |
+| `battle` | L215, L190–196 | Vitórias/derrotas, moedas, XP, níveis, afinidade, insígnias, captura/UID/roster | **Evento puro idempotente de resultado pré-resolvido** | Falta simulador de combate, RNG verificado e writer autoritativo |
+| `start-exp` | L216, L197 | `expedition={startedAt,lastClaimAt,teamUids}` | **Evento puro com snapshot de time** | Persistência + monotonicidade de relógio em autoridade única |
+| `claim-exp` | L217, L198–199 | Moedas, XP treinador/Pokémon, afinidade, `lastClaim`, `lastClaimAt` | **Evento puro de claim + recibo** | Garantir claim único entre abas com writer canônico |
+| `stop-exp` | L218, L200 | Claim final e `expedition=null` | **Evento puro com claim final/encerramento** | Transação durável e teste de conflito entre abas |
 | `dex-details` | L219 | Apenas carregamento API/UI; **não grava save** | Leitura parcial | Dados Pokédex e tratamento de cache |
 | `encounter-specific` | L220, L186 | Delegação ao `encounter`: adiciona espécie vista | Sem ação real | Tratar como mutação indireta |
 | `reset-all` | L221, L201 | **Remove** a chave real do save v0.1 após confirmação | Não existe no React | Plano de exclusão/backup separado; nunca migração automática |
@@ -63,3 +63,7 @@ O reducer `packages/game-core/src/legacy/pokemonTeamReducer.ts` cobre exclusivam
 
 ### Resultado da etapa de Pokémon/equipe (2026-11-16)
 PR #20 integrada em `5e60f17b`; CI `43996462703` e Railway `da78ab5a` SUCCESS. Os quatro handlers de Pokémon/time da matriz já têm equivalente PURO no core, mas **nenhuma escrita oficial**: próxima exigência é coordenar eventos de combate/expedição sem duplicação de recompensas antes do cutover v0.2.
+
+
+### Progresso da paridade de recompensas (2026-11-17)
+`packages/game-core/src/legacy/rewardEvents.ts` adiciona comandos **somente em memória**, com `RewardJournal` + revision/IDs, para resultado de batalha pré-resolvido/captura, start/claim/stop de expedição. A vitória/derrota/captura/claim são contabilizadas uma vez por evento em uma transição SEQUENCIAL do envelope. Não há engine de turnos, comprovação da vitória ou proteção entre abas isoladas: dois envelopes com mesma revisão ainda divergem. Nenhum writer real v0.2 foi criado e o gate permanece fechado.

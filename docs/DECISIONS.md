@@ -38,6 +38,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-023 | 2026-11-16 | REDUTORES PUROS EM IMPLEMENTAÇÃO | Para portar as quatro ações `stat-pokemon`, `reset-pokemon`, `add-team` e `remove-team`, criar reducer sem efeitos colaterais e que devolva novo JSON v0.1 sem modificar entrada; preservar campos desconhecidos e recursos. O Pokémon tem orçamento de **2 pontos manuais por nível adquirido**, mas a v0.1 não impõe o teto de 40 por atributo dos pontos do TREINADOR. A equipe mantém 1–3 UIDs únicos do roster e não pode mudar com expedição em andamento; treino do Pokémon continua permitido. Nenhuma ação nova pode gravar saves reais nem liberar `cutoverGate` até writer/cutover autorizado. |
 
+| D-024 | 2026-11-17 | EVENTOS PUROS EM IMPLEMENTAÇÃO | Prototipar concessão de recompensas de batalha/captura e expedição exclusivamente em envelope RAM `{raw,revision,receipts}` com ID de evento obrigatório e revisão esperada. Evento duplicado idêntico não paga de novo, ID com payload distinto conflita, revision stale bloqueia; recompensa/captura/recibo são calculados juntos na função pura. A batalha chega pré-resolvida e NÃO é validada contra fraude; tabs independentes não compartilham autoridade e ainda divergem. Só portar o writer para persistência depois de uma transação de evento canônico e autorização de migração. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.

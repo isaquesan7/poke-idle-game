@@ -25,3 +25,9 @@ export {
 export type {
   LegacyPokemonTeamAction, LegacyPokemonTeamEditResult
 } from './legacy/pokemonTeamReducer.js';
+
+
+export { prepareRewardJournal, applyRewardEvent } from './legacy/rewardEvents.js';
+export type {
+  RewardCommand, RewardJournal, RewardEventReceipt, RewardEventResult
+} from './legacy/rewardEvents.js';
