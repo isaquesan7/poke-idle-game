@@ -102,12 +102,88 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('heading',{name:'Diário de combate'}).waitFor();
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
+  // Fixtures de TESTE: duas capturas da mesma espécie com UIDs/afinidades diferentes.
+  // Nenhuma espécie é concedida no produto pelo botão; aqui simulamos o resultado
+  // para testar montagem de equipe sem depender de sorte ou repetições de batalha.
+  const [firstUid,secondUid]=await page.evaluate(key=>{
+    const snapshot=JSON.parse(localStorage.getItem(key));
+    const game=JSON.parse(snapshot.journal.raw);
+    const template=game.roster[0];
+    const firstUid=game.nextUid++, secondUid=game.nextUid++;
+    const manual={hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0};
+    game.roster.push(
+      {...template,uid:firstUid,pokemonId:16,level:10,xp:0,affinity:12,manual,moveName:'gust',upgrades:{}},
+      {...template,uid:secondUid,pokemonId:16,level:12,xp:0,affinity:89,manual:{...manual},moveName:'gust',upgrades:{}}
+    );
+    snapshot.journal.raw=JSON.stringify(game);
+    localStorage.setItem(key,JSON.stringify(snapshot));
+    return [firstUid,secondUid];
+  },SAVE);
+  await page.reload();
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await page.getByRole('heading',{name:'Coleção Pokémon'}).waitFor();
+  const first=page.getByTestId('pokemon-uid-'+firstUid);
+  const second=page.getByTestId('pokemon-uid-'+secondUid);
+  await first.waitFor();
+  await second.waitFor();
+  assert.equal(await first.getByRole('button',{name:'Adicionar UID '+firstUid+' à equipe'}).isDisabled(),true,
+    'expedição ativa deve bloquear adições de membros');
+
+  // Fechar expedição antes de mexer no time.
+  await page.getByRole('button',{name:'Expedição',exact:true}).click();
+  await page.getByRole('button',{name:'Encerrar expedição'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===6,SAVE);
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await first.getByRole('button',{name:'Adicionar UID '+firstUid+' à equipe'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===7,SAVE);
+  await second.getByRole('button',{name:'Adicionar UID '+secondUid+' à equipe'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===8,SAVE);
+  assert.equal(await page.getByRole('button',{name:'Adicionar UID '+firstUid+' à equipe'}).count(),0);
+  await page.getByRole('button',{name:'Tornar líder UID '+firstUid,exact:true}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===9,SAVE);
+  let teamSnapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  let teamGame=JSON.parse(teamSnapshot.journal.raw);
+  assert.deepEqual(teamGame.team,[firstUid,1,secondUid]);
+  assert.equal(teamGame.roster.filter(p=>p.pokemonId===16).length,2);
+
+  // A seleção da espécie não deve misturar UIDs de treinamentos independentes.
+  await page.getByLabel('Buscar Pokémon na coleção').fill('pidgey');
+  assert.equal(await first.count(),1);
+  assert.equal(await second.count(),1);
+  await page.getByRole('button',{name:'Na equipe',exact:true}).click();
+  assert.equal(await first.count(),1);
+  await page.getByRole('button',{name:'Reserva',exact:true}).click();
+  assert.equal(await first.count(),0);
+  await page.getByRole('button',{name:'Todos',exact:true}).click();
+  await second.getByRole('button',{name:'Treinar UID '+secondUid}).click();
+  await page.getByText('Instância UID #'+secondUid).waitFor();
+  await page.getByRole('button',{name:'Adicionar ponto em SPD do Pokémon'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===10,SAVE);
+  teamSnapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  teamGame=JSON.parse(teamSnapshot.journal.raw);
+  assert.equal(teamGame.roster.find(p=>p.uid===secondUid).manual.speed,1);
+  assert.equal(teamGame.roster.find(p=>p.uid===firstUid).manual.speed,0);
+
+  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.getByText('Líder:').waitFor();
+  await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===11,SAVE);
+  const last=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  assert.ok(last.journal.receipts.at(-1).fingerprint.includes('"activeUid":'+firstUid),
+    'Arena precisa combater com o UID promovido a líder');
+  await page.reload();
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  assert.equal(await page.getByTestId('pokemon-uid-'+firstUid).count(),1);
+  assert.equal(await page.getByTestId('pokemon-uid-'+secondUid).count(),1);
+  assert.equal((await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).team,SAVE))[0],firstUid);
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
+
   await page.screenshot({path:new URL(label+'-play.png',shots).pathname,fullPage:true,animations:'disabled'});
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);
   assert.deepEqual(errors,[]);
   await context.close();
-  console.log(label+': /play, onboarding, treino, persistência, reload e claim OK');
+  console.log(label+': /play, batalha, coleção UID, 3 vagas, líder, treino separado e reload OK');
 }
 
 let browser;
