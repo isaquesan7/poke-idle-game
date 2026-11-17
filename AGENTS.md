@@ -2,7 +2,7 @@
 
 > PONTO DE ENTRADA PARA NOVOS CHATS E AGENTES. Leia este arquivo antes de planejar ou alterar código.
 > Atualizado em 2026-11-16. A fonte final do estado técnico é o próprio GitHub/Railway; confira sempre os dados ao vivo.
-> **Handoff em andamento (2026-11-16):** main confirmada `547a1e3c` (PRs #3–#19 merged), Railway `b36ddb70` SUCCESS. Branch `feat/v02-pokemon-team-pure-reducers` prepara PR #20 com reducers puros por UID para treino/reset dos Pokémon e equipe (máximo 3, mínimo 1, expedição bloqueia troca), testes e documentação. Sem writer v0.2, sem alteração do site/saves reais. Próximo ciclo após CI/merge: eventos de batalha/claim idempotentes. Confirmar status final na última seção de `docs/PROJECT_STATE.md` e no GitHub/Railway.
+> **Handoff mais recente (2026-11-16):** PRs #3–#20 integradas à `main` até `5e60f17b`. A PR #20 implementou reducers PUROS para treino/reset dos Pokémon por UID e equipe 1–3 (trocas bloqueadas durante expedição), sem writer oficial. CI da PR `43996185895` SUCCESS, CI pós-merge `43996462703` SUCCESS e Railway deploy `da78ab5a-8d5c-4894-9be2-a59897e8f4f2` SUCCESS. **Jogo público segue v0.1; nenhuma migração/gravação real v0.2 foi ativada.** Próximo trabalho: eventos idempotentes para batalha/captura e expedição, com testes contra recompensas duplicadas e futura política de writer único/backup externo. Consulte a última seção de `docs/PROJECT_STATE.md` e confirme HEAD/deploy ao vivo.
 
 ## Identidade e limites
 - Projeto: **Poke Idle Game / Kanto Idle LAB** (protótipo v0.1; Season 1: Pokémon #001–#151).

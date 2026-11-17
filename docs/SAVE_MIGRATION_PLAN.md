@@ -125,3 +125,7 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 
 ### Fundação de regras Pokémon/equipe — 2026-11-16
 O game-core agora dispõe de redutores puros que devolvem outro JSON v0.1 para treino/reset de pontos por UID, adição/remoção da equipe e validação do estado. **Nenhuma saída é aplicada ao save v0.1 ou v0.2**. São provas de paridade parcial antes de transpor ações para React. O writer v0.2, backup externo, idempotência de rewards, coordenação com abas antigas e autorização de cutover continuam pendentes e bloqueados por `cutoverGate.ts`.
+
+
+### Handoff após PR #20 (2026-11-16)
+Reducers de Pokémon/equipe integrados em `5e60f17b` (GitHub Actions main `43996462703` e Railway `da78ab5a` SUCCESS). Quatro ações legadas possuem equivalente puro; os requisitos de migração oficial ainda são **integralmente obrigatórios**. Próximo passo: segurança de comandos de economia/batalha/expedição com idempotência, revisão monotônica sob writer único e testes de colisão de duas abas — inicialmente sem writes reais.

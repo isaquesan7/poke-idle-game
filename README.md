@@ -157,3 +157,7 @@ PR #18 integrada na main `64992f90`, com [GitHub Actions #43994224019](https://g
 
 ### Paridade de ações Pokémon/equipe (Foundation v0.2)
 `@kanto/game-core` inclui `reduceLegacyPokemonTeamJson` para treino/redistribuição de pontos manuais do Pokémon selecionado por UID e gestão de equipe (até 3; no mínimo 1; sem troca durante expedição). A entrada e o save do jogador **não são alterados**; o resultado é uma nova string JSON experimental. Testes Vitest cobrem integridade, orçamento, níveis e casos inválidos. Consulte `docs/LEGACY_MUTATION_MATRIX.md` e `docs/PROJECT_STATE.md` para próximos passos e status do release.
+
+
+### Estado confirmado — Pokémon/equipe em game-core (2026-11-16)
+PR #20 integrada à main `5e60f17b` com [GitHub Actions pós-merge #43996462703](https://github.com/isaquesan7/poke-idle-game/actions/runs/43996462703) SUCCESS e deploy Railway `da78ab5a` SUCCESS. O core inclui treino/reset de pontos de Pokémon por UID e equipe 1–3 com validação de expedição. São cálculos puros sem writer, migração ou efeitos em saves reais. O jogo na URL pública permanece a v0.1. Próximo ciclo: eventos idempotentes de batalha e expedição; detalhes no final de `docs/PROJECT_STATE.md`.
