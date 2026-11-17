@@ -41,6 +41,12 @@ async function checkValid(browser, label, viewport) {
   await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: SAVE, value: raw });
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.getByText('Progresso v0.1 encontrado neste navegador').waitFor();
+  // Mesmo save estruturalmente válido NÃO libera um cutover real.
+  await page.getByRole('heading',{name:'Migração v0.2 bloqueada'}).waitFor();
+  assert.match(await page.getByLabel('Motivos que impedem a migração v0.2').innerText(),/Abas antigas da v0.1/);
+  assert.match(await page.getByLabel('Motivos que impedem a migração v0.2').innerText(),/writer oficial v0.2/);
+  assert.equal(await page.getByRole('button',{name:/migrar progresso|ativar v0.2/i}).count(),0);
+
   assert.match(await page.locator('main').innerText(), /Nível treinador/);
   assert.match(await page.locator('main').innerText(), /321/);
   // As duas novas telas leem o mesmo save; nenhum clique deve gravar progresso.

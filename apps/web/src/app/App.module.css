@@ -177,3 +177,23 @@
   color: var(--color-primary);
   font-weight: 700;
 }
+
+/* .cutoverHeading: diferencia o gate de release do preflight informativo. */
+.cutoverHeading {
+  margin-top: var(--space-5);
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+
+/* .cutoverReasons: lista de pendências que impede habilitar cutover acidentalmente. */
+.cutoverReasons {
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-5);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* .cutoverReasons li: separação acessível entre bloqueios de segurança. */
+.cutoverReasons li {
+  margin-bottom: var(--space-2);
+}

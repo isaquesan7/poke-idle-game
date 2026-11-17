@@ -8,6 +8,7 @@ import {
 import type { DraftRead, DraftWrite } from '../storage/draftSave';
 import { projectLegacyTrainer } from '../features/trainer/legacyProjection';
 import { inspectMigrationReadiness } from '../storage/migrationPreflight';
+import { inspectCutoverGate } from '../storage/cutoverGate';
 import { OverviewPreview } from '../features/trainer/OverviewPreview';
 import { TrainerPreview } from '../features/trainer/TrainerPreview';
 import { TrainerDraftControls } from '../features/trainer/TrainerDraftControls';
@@ -60,6 +61,8 @@ export function App() {
   const displayed = simulated?.status === 'valid' ? simulated : result;
   // Leitura pura: diagnóstico de estrutura, NÃO uma autorização de migração.
   const migrationCheck = inspectMigrationReadiness(window.localStorage);
+  // Gate de release é somente leitura e SEMPRE bloqueia a migração real.
+  const cutoverGate = inspectCutoverGate(window.localStorage, Boolean(navigator.locks?.request));
   const projected = displayed.status === 'valid'
     ? projectLegacyTrainer(displayed.save, cacheRaw, Date.now()) : null;
 
@@ -163,6 +166,18 @@ export function App() {
           Esta análise não modifica, converte ou sincroniza saves. O jogo v0.1 ainda
           grava sem participar de bloqueios entre abas. Não existe migração real habilitada.
         </p>
+        <h3 className={styles.cutoverHeading}>Migração v0.2 bloqueada</h3>
+        <p className={styles.note}>
+          {cutoverGate.sourceCompatible
+            ? 'O formato é reconhecido, mas isso não autoriza ativação.'
+            : 'O save ainda precisa superar a verificação estrutural.'}
+          {' '}O jogo v0.1 continua como versão oficial.
+        </p>
+        <ul className={styles.cutoverReasons} aria-label="Motivos que impedem a migração v0.2">
+          {cutoverGate.blockers.map(blocker => (
+            <li key={blocker.code}>{blocker.message}</li>
+          ))}
+        </ul>
       </section>
       {result.status === 'valid' && (
         <>
