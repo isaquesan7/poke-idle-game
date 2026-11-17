@@ -122,7 +122,7 @@ describe('gate de ativação fail-closed, somente leitura',()=>{
     const store=new Store();
     const forged={allActionsPorted:true,externalBackupVerified:true,
       writerExclusive:true,approved:true};
-    const report=inspectCutoverGate(store,true,...([] as []));
+    const report=inspectCutoverGate(store,true);
     expect(Object.keys(forged)).toHaveLength(4);
     expect(report.status).toBe('blocked');
     expect(report.blockers.map(b=>b.code)).toContain('release-not-authorized');
