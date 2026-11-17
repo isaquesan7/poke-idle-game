@@ -40,6 +40,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-024 | 2026-11-17 | EVENTOS PUROS EM IMPLEMENTAÇÃO | Prototipar concessão de recompensas de batalha/captura e expedição exclusivamente em envelope RAM `{raw,revision,receipts}` com ID de evento obrigatório e revisão esperada. Evento duplicado idêntico não paga de novo, ID com payload distinto conflita, revision stale bloqueia; recompensa/captura/recibo são calculados juntos na função pura. A batalha chega pré-resolvida e NÃO é validada contra fraude; tabs independentes não compartilham autoridade e ainda divergem. Só portar o writer para persistência depois de uma transação de evento canônico e autorização de migração. |
 
+| D-025 | 2026-11-17 | REDUTOR PURO EM IMPLEMENTAÇÃO | Portar `move`/`upgrade-move` por UID em função sem IO. Golpes escolhidos devem constar em lista fornecida; upgrades exigem golpe ativo danoso, orçamento `floor(level/5)`, limite `min(10,floor(level/10)+1)`, mantendo ranks anteriores. Lista/poder fornecidos pelo cliente NÃO são prova autoritativa; nenhum writer real ou migração ativado. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.
