@@ -104,3 +104,6 @@ A PR #32 foi integrada à `main` SHA `6bf399ac` e publicada no Railway com healt
 - **Expedições:** qualquer adicionar/remover/trocar líder é bloqueado durante expedição ativa (preserva snapshot do time); distribuição de pontos por UID continua permitida. Selecionar Pokémon para TREINO não troca o líder.
 - **Stats:** painel de Pokémon permite escolher qualquer instância; mostra seus próprios pontos/afinidade e, quando há dados-base no catálogo local, stats finais com bônus **aditivo** do treinador. A Arena sempre utiliza `team[0]`. Os Pokémon sem dados-base confiáveis não ganham stats inventados.
 - **Catálogo:** mantém piloto de 3 iniciais e 8 espécies selvagens até ampliar base verificável para os 151. Evolução, troca, múltiplos golpes e participação de todos os 3 em uma batalha seguem pendentes.
+
+### Release de coleção/equipe (2026-11-17)
+A PR #34 foi integrada e publicada, com UI de Coleção por UID, filtros/busca, equipe de 1–3 e líder ativo definido com `set-active`. As mudanças foram validadas por Vitest e navegador em desktop/mobile e aprovadas no Railway. A Arena continua usando apenas o primeiro UID da equipe; participantes 2–3 ficam na reserva para batalhas, mas participam normalmente dos ciclos da expedição ao serem escalados antes do início. O catálogo de espécies para batalha permanece piloto até ampliar os dados-base dos 151.
