@@ -2,7 +2,7 @@
 
 > PONTO DE ENTRADA PARA NOVOS CHATS E AGENTES. Leia este arquivo antes de planejar ou alterar código.
 > Atualizado em 2026-11-16. A fonte final do estado técnico é o próprio GitHub/Railway; confira sempre os dados ao vivo.
-> **Handoff mais recente (2026-11-16):** PRs #3–#16 integradas à `main` até `977d14a9`. A PR #16 adicionou laboratório em localStorage REAL de navegador só em `127.0.0.1/localhost` com chaves `__kanto_lab__*`, Web Locks, quota nativa, crash/refresh e rollback isolado. CI da PR `43991731238` e CI da main `43991985570` ambos SUCCESS; Railway deploy `54ccff55-8225-4057-b7ee-82756487d94d` SUCCESS. **Jogo público permanece v0.1; a v0.2 não tem writer real nem migração autorizada.** Próximo ciclo: definir transferência de autoridade, paridade das ações React e plano de opt-in/rollback de jogador. Sempre reler a última seção de `docs/PROJECT_STATE.md` e verificar HEAD/deploy.
+> **Handoff mais recente (2026-11-16):** PRs #3–#18 integradas à `main` até `64992f90`, com deploy Railway `4009f1a4-6dd9-4a4f-9859-7bc92684caa7` SUCCESS e CI permanente `43994224019` SUCCESS. A PR #18 adicionou gate v0.2 somente leitura e fail-closed (sempre `canMigrate:false`) + matriz de **21 ações v0.1 e escritores indiretos** em `docs/LEGACY_MUTATION_MATRIX.md`. **Site público continua v0.1; nenhuma migração nem escrita oficial v0.2 está autorizada.** Próximo trabalho: reducers puros para atributos de Pokémon/equipe, idempotência batalha/expedição e política de writer único/backup externo. Ver última seção de `docs/PROJECT_STATE.md`, conferir GitHub/Railway ao vivo.
 
 ## Identidade e limites
 - Projeto: **Poke Idle Game / Kanto Idle LAB** (protótipo v0.1; Season 1: Pokémon #001–#151).
