@@ -640,7 +640,7 @@ export function PlayApp() {
                       <button type="button" className={styles.textButton}
                         onClick={()=>setTab('collection')}>Gerenciar equipe</button></p>
                     <p>Vitórias: <strong>{typeof data.wins === 'number' ? data.wins : 0}</strong> · Derrotas/empates: <strong>{typeof data.losses === 'number' ? data.losses : 0}</strong> · Insígnias: <strong>{view.badges.length}/8</strong></p>
-                    <button className={styles.primary} type="button" disabled={busy} onClick={fight}>
+                    <button className={styles.primary} type="button" disabled={busy||battlePlaying} onClick={fight}>
                       Batalhar contra Pokémon selvagem
                     </button>
                   </div>
@@ -664,6 +664,11 @@ export function PlayApp() {
                   <div className={styles.twoColumn}>
                     <section className={styles.panel} aria-label="Resultado da última batalha">
                       <div className={styles.kicker}>ÚLTIMO COMBATE</div>
+                      {battlePlaying ? <>
+                        <h2>Batalha em andamento…</h2>
+                        <p>As ações aparecem ataque por ataque, acompanhadas por um cronômetro.</p>
+                        <p>Os resultados e prêmios serão revelados após a apresentação.</p>
+                      </> : <>
                       <h2>{lastBattle.outcome === 'win' ? 'Vitória!' : lastBattle.outcome === 'draw' ? 'Empate' : 'Derrota'}</h2>
                       <p>{lastBattle.wildName} · {lastBattle.turns} turno(s) · HP restante {lastBattle.playerRemainingHp}</p>
                       {lastBattle.outcome === 'win' && (
@@ -677,13 +682,14 @@ export function PlayApp() {
                       <p>{lastBattle.captured
                         ? 'Captura realizada! O Pokémon foi adicionado à coleção.'
                         : 'Nenhuma captura nesta batalha.'}</p>
+                      <button type="button" className={styles.secondary}
+                        onClick={()=>setBattlePlayback({id:displayedBattleId,seq:(battlePlayback?.seq??0)+1})}>
+                        Reassistir à batalha</button>
+                      </>}
                     </section>
-                    <section className={styles.panel}>
-                      <h2>Diário de combate</h2>
-                      <ol className={styles.battleLog} aria-label="Diário de combate">
-                        {lastBattle.log.map((line,i)=><li key={i}>{line}</li>)}
-                      </ol>
-                    </section>
+                    <BattlePlayback key={displayedBattleId+':'+(battlePlayback?.seq??0)}
+                      log={lastBattle.log} turns={lastBattle.turns}
+                      playing={battlePlaying} onFinished={()=>setBattlePlayback(null)} />
                   </div>
                 )}
                 <section className={styles.panel}>
