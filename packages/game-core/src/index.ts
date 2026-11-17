@@ -43,3 +43,11 @@ export { RewardAuthorityMemoryLab } from './legacy/rewardAuthorityMemoryLab.js';
 export type {
   AuthorityFault, AuthorityResult, RewardAuthorityLabClient
 } from './legacy/rewardAuthorityMemoryLab.js';
+
+export {
+  KANTO_BATTLE_SPECIES, KANTO_WILD_POOL,
+  KANTO_BATTLE_MOVES, kantoTypeMultiplier, kantoDamage, simulateKantoBattle
+} from './combat/kantoBattle.js';
+export type {
+  Combatant, KantoMove, KantoSpecies, KantoBattleResult, BattleOutcome
+} from './combat/kantoBattle.js';
