@@ -167,3 +167,9 @@ game-core -X-> UI, DOM, Railway, fetch, localStorage
 
 ## Paridade de golpes no game-core (2026-11-17)
 O módulo `src/legacy/pokemonMoveReducer.ts` recebe JSON v0.1 e comandos por UID, valida orçamento e limite de rank e retorna JSON NOVO, sem efeitos colaterais. `availableMoves` e `movePower` são fornecidos por uma camada externa e não constituem prova antifraude. Nunca importar esse laboratório no runtime público antes da paridade e da política de autoridade única. `cutoverGate.ts` permanece bloqueado.
+
+## Laboratório de autoridade única de recompensa em memória (2026-11-17)
+- `packages/game-core/src/legacy/rewardAuthorityMemoryLab.ts` depende unicamente de `rewardEvents.ts`; clientes recebem `openClient()` com `read()` (cópia) e `submit()`. O `Map` é PRIVADO e usa única chave fixa `__kanto_lab__reward_authority_in_memory`; nenhum Browser Storage, lock oficial, IndexedDB, servidor, banco, token ou credencial.
+- Um valor JSON atômico no Map representa `RewardJournal` inteiro e um checksum FNV-1a **não criptográfico** para erro acidental. Toda submissão reobtém o registro, checa recibo/revisão e o atualiza sem pausa assíncrona; `before-commit` e `after-commit` exercitam perda de execução/resposta.
+- Esta serialização é somente dentro da **mesma instância JS**. A aplicação precisa de uma autoridade durável (p.ex. banco transacional com UNIQUE por jogador/evento, revisão compare-and-swap e validação de comandos) antes de executar em múltiplos processos/abas/dispositivos. Vitórias recebidas do cliente não são prova de combate.
+- Nunca importar o laboratório no jogo público v0.1, adaptador React ou `cutoverGate.ts`. A implementação não é substituto do writer oficial v0.2, do backup externo, de rollback ou do lock do legado.

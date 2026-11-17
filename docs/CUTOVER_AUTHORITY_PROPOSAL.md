@@ -34,3 +34,8 @@ O gate `apps/web/src/storage/cutoverGate.ts` é propositalmente um relatório se
 
 ### Verificação da implementação fail-closed — 2026-11-16
 PR #18 integrada no SHA `64992f90`, CI da main `43994224019` SUCCESS e Railway `4009f1a4` SUCCESS. A prévia exibe explicitamente os bloqueios; documentação de paridade das 21 ações está em `docs/LEGACY_MUTATION_MATRIX.md`. Essa validação apenas confirma que o gate permanece **fechado**. Não é aprovação para liberar writer real ou migrar progresso. Próxima etapa: reduzir lacunas de paridade com operações puras e testes, sem tocar nas chaves existentes.
+
+## Laboratório de transação por ledger único (2026-11-17)
+Foi preparada uma `RewardAuthorityMemoryLab` em `packages/game-core/src/legacy/rewardAuthorityMemoryLab.ts` para **comprovar uma propriedade local**, não para ativar migração: um único registro em `Map` mantém JSON do progresso, revisão e recibos. Duas abas simuladas pela mesma instância disputam o mesmo contador; um evento só recebe recompensa uma vez, mesmo se a resposta após commit se perder. Interrupção antes de commit não altera o registro. Verificação da integridade e invalidade de revision são fail-closed.
+
+**Bloqueio permanece:** Map não é durável nem coordena Map de outro processo, outra aba REAL, servidor, equipamento ou escritor legado. FNV-1a é só detecção de dano acidental e não protege contra fraude. Não há prova de vitória/captura, clock confiável ou cálculo de combate reproduzível. O futuro writer precisará de transação ACID, unicidade de ID por jogador, revisão monotônica e validação servidor, além de backup externo, recuperação, paridade v0.2 e autorização explícita de cutover. O laboratório não grava chaves oficiais.

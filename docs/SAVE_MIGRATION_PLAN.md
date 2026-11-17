@@ -137,3 +137,6 @@ O game-core passou a incluir `RewardJournal` com `revision/receipts` em RAM para
 
 ### Resultado dos testes de antirreplay em RAM (2026-11-17)
 PR #22 merged no SHA `989c2cdc`; GitHub Actions pós-merge `44057278833` SUCCESS; Railway `5b76abc6` SUCCESS. Os testes demonstram replay idêntico sem crédito adicional, recusa de revision stale, captura com UID único por evento serializado e expedição sem claim repetido no mesmo cursor. **Cuidado:** duas cópias independentes de `RewardJournal` ainda podem divergir; qualquer sistema de recompensas real exige transação de writer autoritativo e validação do resultado, sem alterar saves antigos ou liberar `cutoverGate` prematuramente.
+
+## Ensaio de ledger de recompensas em Map privado (2026-11-17)
+A nova `RewardAuthorityMemoryLab` serializa em RAM (única entrada de Map) revision+recibos+progresso e permite simular two-clients/stale revision, double-submit, lost-ACK após commit e corrupção fail-closed. Os testes não usam storage real. **Não conclui fase C nem dá durabilidade real**; dois Map independentes ainda divergem. A fase C exige transações em fonte canônica persistente, autenticação de recompensa, atomicidade entre ledger e estado e política para abas v0.1 não cooperativas. Todas as fases de backup externo e cutover continuam pendentes.

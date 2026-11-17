@@ -38,3 +38,8 @@ export {
 export type {
   LegacyMoveAction, LegacyMoveEditResult
 } from './legacy/pokemonMoveReducer.js';
+
+export { RewardAuthorityMemoryLab } from './legacy/rewardAuthorityMemoryLab.js';
+export type {
+  AuthorityFault, AuthorityResult, RewardAuthorityLabClient
+} from './legacy/rewardAuthorityMemoryLab.js';

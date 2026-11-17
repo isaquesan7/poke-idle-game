@@ -42,6 +42,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-025 | 2026-11-17 | IMPLEMENTADO NO CORE, SEM PERSISTÊNCIA | Portar `move`/`upgrade-move` por UID em função sem IO. Golpes escolhidos devem constar em lista fornecida; upgrades exigem golpe ativo danoso, orçamento `floor(level/5)`, limite `min(10,floor(level/10)+1)`, mantendo ranks anteriores. Lista/poder fornecidos pelo cliente NÃO são prova autoritativa; nenhum writer real ou migração ativado. |
 
+| D-026 | 2026-11-17 | EXPERIMENTO DE AUTORIDADE EM RAM | Ensaiar um único ledger de recompensas usando apenas Map privado e valor único contendo save+revision+recibos, com cópias de cliente sem referências mutáveis, replay idempotente, falhas antes/depois do commit e corrupção fail-closed. A serialização em um turno JS só funciona entre clientes DA MESMA instância: outros processos, navegadores, instâncias e writers v0.1 NÃO são coordenados. Checksum de teste não autentica eventos nem produz durabilidade. Não conectar a storage real nem desbloquear cutover antes de política transacional/backup/paridade completa. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.

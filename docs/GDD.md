@@ -78,3 +78,6 @@ Exemplo por atributo: 40 pontos manuais +6 equipamentos +1 título +3 insígnias
 
 ## Paridade de golpes por UID — laboratório (2026-11-17)
 Ações v0.1: trocar `moveName` não apaga ranks antigos; aprimorar o golpe equipado custa 1 ponto do orçamento `floor(level/5)`, exige poder base positivo e rank inferior a `min(10,floor(level/10)+1)`. O aumento do poder é +5% por rank. A função pura de v0.2 receberá lista de movimentos e poder do golpe de camada externa; esses valores não autorizam persistir progresso sem writer e validação confiáveis.
+
+## Testes de não duplicação de recompensa — laboratório (2026-11-17)
+Nenhum valor de XP, moedas, afinidade ou captura foi alterado. Uma simulação com autoridade ÚNICA em memória testa reenvio da mesma vitória ou claim: somente o primeiro evento altera save, enquanto replay com mesmo ID/payload retorna duplicado. A simulação NÃO verifica se a batalha foi vencida legitimamente, NÃO é ledger durável e NÃO executa recompensas na UI pública; backend de validação e combate determinístico permanecem planejados.
