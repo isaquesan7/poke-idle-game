@@ -189,3 +189,6 @@ O combate com capturas já está integrado na `/play`. PR #32 merged `6bf399ac`,
 
 ### Coleção e equipe v0.2 (implementação em revisão, 2026-11-17)
 Nova aba **Coleção** em `/play`: lista cada Pokémon capturado por UID com nível e afinidade (inclusive indivíduos repetidos da mesma espécie); permite procurar por nome/número/UID, filtrar equipe e reserva, escalar no máximo três e escolher qual será o líder da Arena. Durante expedições o time não pode mudar; treinamento individual de capturas é independente da liderança. A branch está sob revisão de CI antes de publicação, sem migração de saves ou backend. Catálogo de combate ainda cobre apenas as espécies piloto.
+
+### Coleção e equipe publicadas (2026-11-17)
+PR #34 merged na main SHA `e6ee20b5`, CI `44081662800` SUCCESS e Railway `047d2ee9-ba49-43d8-bbac-c5a11e8fcec4` SUCCESS com /health interno aprovado. Acesse `/play` e abra a aba **Coleção** para montar a equipe e trocar o líder da Arena. Treino de qualquer instância por UID; o time é bloqueado durante expedições. Os 151 GIFs existem, mas apenas um catálogo piloto de 11 espécies tem stats de combate nesta fase; expandiremos o catálogo e a Pokédex. Dados locais ainda são alfa sem jogadores reais.
