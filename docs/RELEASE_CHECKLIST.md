@@ -37,3 +37,11 @@
 - [ ] Definir próxima ação objetiva, primeiro arquivo/função a investigar.
 - [ ] Conferir os links para o repo e site.
 - [ ] Nunca transmitir ao próximo chat informação desatualizada como certeza.
+
+## Pré-lançamento sem jogadores — revisão D-027 (2026-11-17)
+- [ ] Testar `/play` em produção, incluindo carregamento de arquivos Vite e GIFs.
+- [ ] Testar onboarding, mudança de abas, persistência após reload, treino, equipamentos e expedição com mesmo save local.
+- [ ] Testar `/play` desktop/mobile sem overflow e sem erros no console.
+- [ ] Documentar que o alfa pode reiniciar dados de teste; reset somente da chave `kanto-idle-play-v02` e com confirmação.
+- [ ] Não descrever armazenamento local como backend ou proteção antifraude.
+- [ ] Reavaliar compatibilidade e persistência antes de abrir cadastro a jogadores reais.
