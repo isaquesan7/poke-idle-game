@@ -2,7 +2,7 @@
 
 > PONTO DE ENTRADA PARA NOVOS CHATS E AGENTES. Leia este arquivo antes de planejar ou alterar código.
 > Atualizado em 2026-11-16. A fonte final do estado técnico é o próprio GitHub/Railway; confira sempre os dados ao vivo.
-> **Handoff mais recente (2026-11-17):** PR #27 integrada à `main` no SHA `de6b84e3554d27df31d2ec0e4b190d897ffb74b9`. CI da PR `44063137880` **completed/success** (TS/Vitest/Node/build/151 GIFs/Chromium legado/React/draft/sandbox); Railway deploy `667ad1f3-8535-44d7-9c4d-b163f342895a` **SUCCESS** com `/health` interno aprovado. A PR implementou **somente laboratório** `RewardAuthorityMemoryLab`, uma autoridade/ledger por instância Map em RAM, com atomicidade local de revisão/recibo/recompensa e ensaios de dupla aba, reenvio e falha antes/depois do commit. **NÃO é writer durável, backend, antifraude ou migração.** Jogo público v0.1/saves e `isaquesan7/pokedex` preservados. Próxima prioridade: prototipar resolução determinística/auditável de combate e captura (sem aceitar vitória do cliente como prova), e planejar transações persistentes/ledger canônico em ambiente separado antes de qualquer cutover; consultar final de `docs/PROJECT_STATE.md`.
+> **Mudança de direção aprovada em 2026-11-17 (D-027):** usuário confirmou que **ainda NÃO há jogadores reais**, autorizando evolução rápida, reinicialização consciente dos dados de teste e eventual substituição da v0.1. A partir desta etapa a prioridade é **v0.2 jogável e UX**; salvaguardas de migração v0.1→v0.2 não são bloqueio para criar NOVO progresso de teste em chave separada. Branch `feat/v02-playable-onboarding-idle-route` prepara `/play` (React compilado servido por `server.mjs`), onboarding, treino do treinador/Pokémon, equipamentos de teste e expedição idle com `localStorage['kanto-idle-play-v02']`; CI/PR/deploy ainda em validação. A rota `/` legada permanece durante transição; nenhum banco/antifraude real foi criado. Ler final de `docs/PROJECT_STATE.md`.
 
 ## Identidade e limites
 - Projeto: **Poke Idle Game / Kanto Idle LAB** (protótipo v0.1; Season 1: Pokémon #001–#151).
@@ -36,8 +36,8 @@
 - Antes de iniciar tarefa: verificar branch, HEAD, arquivos, deploy, possíveis mudanças de terceiros e documentação. Não presumir que o estado de 2026-11-16 continua atual.
 - **Preferir branch de trabalho + PR** para alterações de código. A `main` publica automaticamente. Não fazer alterações destrutivas nem forçar push.
 - Nunca publicar sem testes; monitorar resultado terminal `SUCCESS` do novo deploy, healthcheck e teste do site.
-- Preservar o progresso existente em `localStorage`, chave `kanto-idle-lab-save-v01`; qualquer mudança de formato necessita migração versionada e teste de compatibilidade. Cache: `kanto-idle-lab-cache-v01`.
-- Não modificar dados existentes de usuários nem apagar saves para “corrigir” problemas.
+- **Revisão D-027 (pré-lançamento sem jogadores reais):** é permitido reiniciar dados de TESTE v0.2 com confirmação, e não é obrigatória migração de progresso legado para a nova experiência. A chave legada `kanto-idle-lab-save-v01` permanece separada por enquanto; nunca usar `localStorage.clear()` nem apagar outros dados do navegador. Antes do lançamento com jogadores, redefinir política de compatibilidade, backup e persistência.
+- Não apagar nenhum dado automaticamente para “corrigir” problemas; reinicialização de dados **de teste** v0.2 requer ação/confirmacão visível. Quando existirem jogadores reais, proteger persistência com política própria antes de mudanças incompatíveis.
 - Sem contas/backend atualmente: não descrever salvamento local como seguro ou persistência de servidor.
 - Não inserir segredos, tokens, e-mails pessoais ou credenciais no repositório.
 - Se não for possível completar uma ação, registrar pendência honestamente, sem afirmar que foi concluída.
