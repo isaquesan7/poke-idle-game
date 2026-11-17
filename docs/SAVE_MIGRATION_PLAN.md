@@ -110,3 +110,8 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 - Ao reabrir após interrupção, o journal deve ser auditado, não repetido automaticamente. Quando uma aba altera a origem de teste, a verificação detecta divergência e não restaura/mescla.
 - **Não resolve os bloqueadores de produção**: writer único, desligamento/convivência de tabs v0.1, backup verificável efetivamente baixado e recuperável FORA da origem, transações/remediação de corrupção reais, validação da paridade das mecânicas React, segurança do cutover e plano de rollback de um jogador. Sem estes, a ação oficial de migração permanece proibida.
 - O novo E2E será acionado pelo workflow permanente `.github/workflows/main-regression.yml` e só será integrado após execução verde. Próximo desenvolvimento: desenho e validação de writer único / protocolo de transferência de autoridade v0.1→v0.2, sem ativar saves reais.
+
+### Resultado do E2E real — 2026-11-16
+- PR #16 merged `977d14a9`, CI da PR `43991731238` SUCCESS, CI da main `43991985570` SUCCESS e Railway `54ccff55` SUCCESS. O jogo online permanece v0.1.
+- A nova suíte de Playwright provou no Chromium comportamento sob quota nativa, duas abas usando Web Locks, interrupções, reload, conflito e rollback isolado sem tocar chaves oficiais.
+- **Próximo bloqueador:** decidir contrato de autoridade do writer e delimitar quando a UI v0.1 deixa de ser fonte ativa de progresso, além de paridade total no React e exportação de backup fora do navegador. Ver `docs/CUTOVER_AUTHORITY_PROPOSAL.md`. Nenhum comando de commit v0.2 deverá sair do sandbox antes da aprovação e validação desses critérios.
