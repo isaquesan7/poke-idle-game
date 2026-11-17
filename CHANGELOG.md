@@ -1,9 +1,9 @@
-## [v0.2.0-alpha — evolução por UID] — 2026-11-17 (branch, não publicado)
+## [v0.2.0-alpha — evolução por UID] — 2026-11-17 (publicado: PR #40)
 - Evolução manual com requisitos reais de nível/pedra por espécie Kanto, a partir de `pokemon_evolution.csv` da PokéAPI em commit imutável. Evolução por troca listada como pendente, sem substitutos inventados.
 - Preservação do UID, nível, XP, afinidade, pontos manuais, golpe, ranks e equipe; pedras consumidas uma vez e save v0.2 revisionado na mesma transação. Evolução bloqueada durante expedição.
 - Histórico de espécies capturadas na Pokédex preservado após evolução; campos opcionais no mesmo save local, nenhuma migração de v0.1.
 - Kit único de pedras rotulado como TESTE para ensaios enquanto inventário/loja não estão definidos; sem novas moedas, XP ou recibos de batalha.
-- Testes de core, writer Vitest e Chromium desktop/mobile adicionados; resultados de CI/PR/Railway pendentes. Próxima etapa: status/efeitos e HP/ataques visuais.
+- Testes core/web e Chromium desktop/mobile aprovados na CI da PR #40 `44125547394` **SUCCESS**; PR #40 merged em main `aee2cd7572d0cb97f3a7e691354f426ef5e50022`. Railway deploy `91e0f618-6456-4630-ab75-ae8bdf22e377` **SUCCESS** no SHA exato; Vite build ~1,00s, servidor Node na porta 8080, healthcheck interno `/health succeeded!`. Regressão pós-merge da main também será acompanhada. Próxima etapa: status/efeitos e HP/ataques visuais.
 
 # CHANGELOG — Poke Idle Game
 Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada aqui** e atualizar `docs/PROJECT_STATE.md` no mesmo trabalho. Não reescrever/ocultar histórico. Use data, escopo, commit, testes, deploy e pendências.
