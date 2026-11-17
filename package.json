@@ -18,7 +18,7 @@
     "typecheck:web": "npm run typecheck --workspace @kanto/web"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.12.0 <23"
   },
   "workspaces": [
     "packages/*",
