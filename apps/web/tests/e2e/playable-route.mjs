@@ -65,6 +65,7 @@ async function exercise(browser, label, viewport) {
   await page.evaluate(key=>{
     const snapshot=JSON.parse(localStorage.getItem(key));
     const game=JSON.parse(snapshot.journal.raw);
+    game.expedition.startedAt-=31000;
     game.expedition.lastClaimAt-=31000;
     snapshot.journal.raw=JSON.stringify(game);
     localStorage.setItem(key,JSON.stringify(snapshot));
