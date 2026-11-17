@@ -291,7 +291,8 @@ async function exercise(browser, label, viewport) {
   slots=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).roster.find(p=>p.uid===1),SAVE);
   assert.deepEqual(slots.moveNames,['growl','scratch']);
   await page.reload();
-  await page.getByRole('button',{name:'Pokémon',exact:true}).click();
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Treinar UID 1'}).click();
   assert.equal(await page.getByTestId('equipped-moves').getByText(/growl/).count(),1);
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1',exact:true}).click();
