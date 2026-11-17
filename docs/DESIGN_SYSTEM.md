@@ -60,3 +60,7 @@ Cores de tipo Pokémon (Fogo, Água, etc.) devem ser tokens próprios, distintos
 
 ## Recuperação de save — prévia React v0.2 (experimental)
 O `RecoveryExchangePanel` usa somente variáveis semânticas existentes do `styles/tokens.css`, CSS Modules com comentário português por seletor e layout flexível para desktop/mobile. Ações explicitam **baixar/conferir**; não desenhar botões de "restaurar"/"migrar" enquanto a coordenação de writers não estiver autorizada.
+
+
+## Painel do laboratório em memória — prévia React v0.2
+`MigrationLabPanel` usa somente tokens de cor, espaçamento e raio do `:root`, CSS Modules com comentários em português e layout de uma coluna adequado a desktop/mobile. Os textos e o checkbox distinguem explicitamente **executar ensaio** de **migrar progresso**, e o botão inicia desabilitado até confirmação.
