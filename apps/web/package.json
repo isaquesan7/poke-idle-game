@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Interface React experimental da migração gradual, não é a produção v0.1",
+  "description": "Interface React v0.2 com rota jogável /play e laboratório técnico independente",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
