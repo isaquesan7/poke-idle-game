@@ -510,3 +510,27 @@ describe('slots de golpes na persistência v0.2',()=>{
     expect(JSON.parse(current(storage).journal.raw).roster[0].upgrades.ember).toBe(1);
   });
 });
+
+describe('persistência da trilha visual, sem writer no replay',()=>{
+  it('salva frames alinhados com log, HP final e um único recibo',()=>{
+    const {storage,map}=memory();
+    map.set('kanto-idle-lab-save-v01','LEGACY-CONSERVADO');
+    expect(createPlaySave(storage,'Batalha Visual',4,1000,true).status).toBe('ok');
+    expect(updatePlaySave(storage,0,{type:'battle',seed:0}).status).toBe('ok');
+    const snapshot=current(storage);
+    const game=JSON.parse(snapshot.journal.raw);
+    const last=game.lastBattle;
+    expect(last.frames).toHaveLength(last.log.length);
+    expect(last.frames[0]).toMatchObject({
+      playerHp:last.playerMaxHp,wildHp:last.wildMaxHp,kind:'intro'
+    });
+    expect(last.frames.at(-1)).toMatchObject({
+      playerHp:last.playerRemainingHp,wildHp:last.wildRemainingHp
+    });
+    expect(last.playerSpeciesId).toBe(4);
+    expect(snapshot.journal.receipts).toHaveLength(1);
+    expect(snapshot.revision).toBe(1);
+    expect(readPlaySave(storage)).toEqual({status:'ready',snapshot});
+    expect(map.get('kanto-idle-lab-save-v01')).toBe('LEGACY-CONSERVADO');
+  });
+});
