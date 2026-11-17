@@ -97,3 +97,10 @@ O projeto ainda **não possui jogadores reais**. A prioridade aprovada é public
 
 ### Publicação da primeira Arena v0.2 (2026-11-17)
 A PR #32 foi integrada à `main` SHA `6bf399ac` e publicada no Railway com healthcheck aprovado. A Arena automática está funcional para 8 encontros selvagens piloto e registra XP, moedas, afinidade, insígnias, vitórias/perdas, capturas por UID e diário no save de TESTE v0.2. A simulação determinística **não equivale a antifraude**: seed é gerada no cliente. Próxima prioridade de produto: coleção visível por UID, equipe de 1–3 e expansão do catálogo Kanto.
+
+## Coleção e gerenciamento da equipe v0.2 (D-030, PR em revisão, 2026-11-17)
+- **Identidade:** cada captura cria um UID próprio, incluindo duas capturas da mesma espécie com níveis, XP, afinidade, move e pontos individuais. O jogador pode visualizar os cards por UID, buscar por nome/ID/UID e filtrar equipe/reserva.
+- **Equipe:** exatamente 1–3 integrantes distintos, primeiro UID é o líder/atacante da Arena; só um combate automaticamente por vez neste ciclo (os outros ainda não atacam). Escalar reserva adiciona ao fim; retirar integrante mantém os demais e nunca permite remover o último; selecionar novo líder traz um UID já escalado para o início mantendo ordem relativa do restante.
+- **Expedições:** qualquer adicionar/remover/trocar líder é bloqueado durante expedição ativa (preserva snapshot do time); distribuição de pontos por UID continua permitida. Selecionar Pokémon para TREINO não troca o líder.
+- **Stats:** painel de Pokémon permite escolher qualquer instância; mostra seus próprios pontos/afinidade e, quando há dados-base no catálogo local, stats finais com bônus **aditivo** do treinador. A Arena sempre utiliza `team[0]`. Os Pokémon sem dados-base confiáveis não ganham stats inventados.
+- **Catálogo:** mantém piloto de 3 iniciais e 8 espécies selvagens até ampliar base verificável para os 151. Evolução, troca, múltiplos golpes e participação de todos os 3 em uma batalha seguem pendentes.

@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
-  KANTO_BATTLE_SPECIES, KANTO_WILD_POOL
+  KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats
 } from '@kanto/game-core';
-import type { Stat, EquipmentSlot } from '@kanto/game-core';
+import type { Stat, EquipmentSlot, StatValues } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
 import { parseLegacySave } from '../storage/legacySave';
 import {
@@ -14,7 +14,31 @@ import {
 import type { PlayAction, PlayRead, PlayWrite } from './playSave';
 import styles from './PlayApp.module.css';
 
-type Tab = 'overview' | 'trainer' | 'pokemon' | 'arena' | 'expedition';
+type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'arena' | 'expedition';
+type CollectionFilter = 'all' | 'team' | 'reserve';
+
+/** A prévia do core usa este catálogo como fonte LOCAL das espécies já jogáveis. */
+const BATTLE_SPECIES_CACHE = JSON.stringify({
+  pokemon: Object.fromEntries(
+    Object.values(KANTO_BATTLE_SPECIES).map(species=>[
+      species.id,{name:species.name,base:species.base}
+    ])
+  )
+});
+function speciesName(id:number):string {
+  return KANTO_BATTLE_SPECIES[id]?.name ?? 'Pokémon #' + String(id).padStart(3,'0');
+}
+function manualValues(input:unknown):StatValues {
+  const result=zeroStats();
+  if (input && typeof input === 'object' && !Array.isArray(input)) {
+    const values=input as Record<string,unknown>;
+    for (const stat of STATS) {
+      const value=values[stat];
+      if (typeof value==='number' && Number.isSafeInteger(value) && value>=0) result[stat]=value;
+    }
+  }
+  return result;
+}
 const STARTERS = [
   { id: 1, type: 'Grama / Veneno', hint: 'Resistente e equilibrado' },
   { id: 4, type: 'Fogo', hint: 'Ataque e velocidade' },
@@ -46,7 +70,7 @@ function PokemonArt({ id, name, large = false }: {
 }
 
 function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', arena: 'Arena', expedition: 'Expedição' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', arena: 'Arena', expedition: 'Expedição' }[tab];
 }
 
 /**
@@ -61,6 +85,9 @@ export function PlayApp() {
   const [starter, setStarter] = useState(1);
   const [demo, setDemo] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [selectedUid, setSelectedUid] = useState<number | null>(null);
+  const [collectionQuery, setCollectionQuery] = useState('');
+  const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all');
   const [feedback, setFeedback] = useState('');
   const [now, setNow] = useState(() => Date.now());
 
@@ -113,6 +140,12 @@ export function PlayApp() {
     dispatch({type:'battle',seed});
   }
 
+  function openPokemon(uid:number):void {
+    setSelectedUid(uid);
+    setFeedback('');
+    setTab('pokemon');
+  }
+
   function restart() {
     if (!window.confirm('Reiniciar apenas este teste v0.2? O progresso de teste atual será apagado.')) return;
     if (!resetPlaySave(window.localStorage)) {
@@ -121,18 +154,42 @@ export function PlayApp() {
     }
     setSave(readSafe());
     setTab('overview');
+    setSelectedUid(null);
+    setCollectionQuery('');
+    setCollectionFilter('all');
     setFeedback('Teste v0.2 reiniciado. O protótipo v0.1 não foi alterado.');
   }
 
   const parsed = save.status === 'ready' ? parseLegacySave(save.snapshot.journal.raw) : null;
   const data = parsed?.status === 'valid' ? parsed.save : null;
-  const projected = data ? projectLegacyTrainer(data, null, now) : null;
+  const projected = data ? projectLegacyTrainer(data, BATTLE_SPECIES_CACHE, now) : null;
   const view = projected?.status === 'ready' ? projected.value : null;
   const active = data?.roster.find(p => p.uid === data.team[0]) ?? data?.roster[0];
-  const pokemonManual = active?.manual as Record<Stat, number> | undefined;
-  const pokemonSpent = pokemonManual
-    ? STATS.reduce((total, stat) => total + (pokemonManual[stat] || 0), 0) : 0;
-  const pokemonBudget = active ? legacyPokemonManualBudget(active.level) : 0;
+  // Treinar uma captura NÃO altera o líder da Arena. Cada instância mantém seu UID.
+  const focused = data?.roster.find(p => p.uid === selectedUid) ?? active;
+  const pokemonManual = manualValues(focused?.manual);
+  const pokemonSpent = STATS.reduce((total, stat) => total + pokemonManual[stat], 0);
+  const pokemonBudget = focused ? legacyPokemonManualBudget(focused.level) : 0;
+  const focusedSpecies = focused ? KANTO_BATTLE_SPECIES[focused.pokemonId] : null;
+  const focusedStats = focused && focusedSpecies && view
+    ? pokemonFinalStats(
+        focusedSpecies.base, focused.level, pokemonManual, view.totals, focused.affinity
+      ) : null;
+  const activeManual = manualValues(active?.manual);
+  const activeRemaining = active
+    ? legacyPokemonManualBudget(active.level) -
+      STATS.reduce((total,stat)=>total+activeManual[stat],0)
+    : 0;
+  const rosterFiltered = data?.roster.filter(p=>{
+    const inTeam=data.team.includes(p.uid);
+    if (collectionFilter==='team'&&!inTeam) return false;
+    if (collectionFilter==='reserve'&&inTeam) return false;
+    const query=collectionQuery.trim().toLocaleLowerCase('pt-BR');
+    if (!query) return true;
+    return speciesName(p.pokemonId).toLocaleLowerCase('pt-BR').includes(query)
+      || String(p.uid)===query
+      || String(p.pokemonId)===query.replace('#','');
+  }) ?? [];
   const expedition = data?.expedition as { lastClaimAt: number; startedAt: number } | null | undefined;
   const pending = expedition
     ? expeditionRewards(Math.max(0, now - expedition.lastClaimAt)) : null;
@@ -212,7 +269,7 @@ export function PlayApp() {
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         <nav className={styles.menu} aria-label="Navegação do jogo">
-          {(['overview','trainer','pokemon','arena','expedition'] as Tab[]).map(item => (
+          {(['overview','trainer','pokemon','collection','arena','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
               onClick={() => { setTab(item); setFeedback(''); }}>{sectionName(item)}</button>
@@ -236,7 +293,7 @@ export function PlayApp() {
           </div>
         </header>
         {feedback && <div role="status" aria-live="polite" className={styles.message}>{feedback}</div>}
-        {!view || !data || !active ? (
+        {!view || !data || !active || !focused ? (
           <section className={styles.panel}>O perfil de teste não pôde ser projetado. Nenhum dado foi modificado.</section>
         ) : (
           <>
@@ -268,9 +325,16 @@ export function PlayApp() {
                     <div className={styles.partner}>
                       <PokemonArt id={active.pokemonId} name={view.active.name} />
                       <div><strong>{view.active.name}</strong><p>UID #{active.uid} · Afinidade {active.affinity}%</p>
-                      <p>{pokemonBudget - pokemonSpent} pontos de treinamento disponíveis</p>
-                      <button type="button" className={styles.textButton} onClick={() => setTab('pokemon')}>Treinar Pokémon</button></div>
+                      <p>{activeRemaining} pontos de treinamento disponíveis</p>
+                      <button type="button" className={styles.textButton}
+                        onClick={() => openPokemon(active.uid)}>Treinar Pokémon</button></div>
                     </div>
+                  </section>
+                  <section className={styles.panel}>
+                    <h2>Coleção e equipe</h2>
+                    <p>{data.roster.length} Pokémon capturado(s) · {data.team.length}/3 na equipe</p>
+                    <p>Organize seus parceiros e escolha o líder que combate na Arena.</p>
+                    <button type="button" className={styles.secondary} onClick={() => setTab('collection')}>Abrir coleção</button>
                   </section>
                   <section className={styles.panel}>
                     <h2>Expedição idle</h2>
@@ -333,32 +397,155 @@ export function PlayApp() {
               <div className={styles.twoColumn}>
                 <section className={styles.panel}>
                   <div className={styles.pokemonShowcase}>
-                    <PokemonArt id={active.pokemonId} name={view.active.name} large />
-                    <h2>{view.active.name} <span className={styles.levelTag}>Lv. {active.level}</span></h2>
-                    <p>Instância #{active.uid} · Afinidade {active.affinity}%</p>
-                    <p>Transferência de atributos do treinador: {view.active.ratePercent.toFixed(1)}%</p>
+                    <PokemonArt id={focused.pokemonId} name={speciesName(focused.pokemonId)} large />
+                    <h2>{speciesName(focused.pokemonId)} <span className={styles.levelTag}>Lv. {focused.level}</span></h2>
+                    <p>Instância UID #{focused.uid} · Afinidade {focused.affinity}%</p>
+                    <p>Transferência de atributos do treinador: {(affinityRate(focused.affinity)*100).toFixed(1)}%</p>
+                    <p>{data.team[0]===focused.uid ? 'Líder da equipe · participa da Arena'
+                      : data.team.includes(focused.uid) ? 'Na equipe · reserva de combate'
+                        : 'Na coleção · fora da equipe'}</p>
+                    <button type="button" className={styles.secondary}
+                      onClick={()=>setTab('collection')}>Voltar à coleção</button>
                   </div>
                 </section>
                 <section className={styles.panel}>
                   <h2>Treinamento Pokémon</h2>
                   <p>Pontos disponíveis: <strong>{pokemonBudget - pokemonSpent}</strong> de {pokemonBudget}</p>
+                  {!focusedStats && <p>Atributos de batalha desta espécie ainda não constam no catálogo piloto.</p>}
                   <div className={styles.statList}>
                     {STATS.map((stat: Stat) => (
                       <div className={styles.stat} key={stat}>
                         <span>{STAT_LABELS[stat]}</span>
-                        <strong>{view.active.stats?.[stat] ?? '—'}</strong>
+                        <strong>{focusedStats?.[stat] ?? '—'}</strong>
                         <small>{pokemonManual?.[stat] ?? 0} manual</small>
                         <button type="button" disabled={busy || pokemonSpent >= pokemonBudget}
-                          onClick={() => dispatch({type:'pokemon',value:{type:'invest-pokemon',uid:active.uid,stat}})}
+                          onClick={() => dispatch({type:'pokemon',value:{type:'invest-pokemon',uid:focused.uid,stat}})}
                           aria-label={`Adicionar ponto em ${STAT_LABELS[stat]} do Pokémon`}>+1</button>
                       </div>
                     ))}
                   </div>
                   <button type="button" className={styles.secondary} disabled={busy || pokemonSpent === 0}
-                    onClick={() => dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:active.uid}})}>
+                    onClick={() => dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}})}>
                     Redistribuir pontos</button>
                 </section>
               </div>
+            )}
+
+
+            {tab === 'collection' && (
+              <>
+                <section className={styles.collectionHeader}>
+                  <div>
+                    <div className={styles.kicker}>SEUS PARCEIROS · CADA UID É ÚNICO</div>
+                    <h2>Coleção Pokémon</h2>
+                    <p>Você capturou {data.roster.length} indivíduo(s) de {view.capturedSpecies} espécie(s).
+                      O líder, primeiro na equipe, é quem participa das batalhas.</p>
+                  </div>
+                  <div className={styles.collectionSummary}>
+                    <strong>{data.team.length}<span>/3</span></strong>
+                    <small>Na equipe</small>
+                  </div>
+                </section>
+                <section className={styles.panel}>
+                  <div className={styles.panelHeading}>
+                    <h2>Equipe atual</h2>
+                    {expedition && <span className={styles.teamLocked}>Equipe bloqueada: expedição ativa</span>}
+                  </div>
+                  <div className={styles.teamSlots} aria-label="Equipe atual, até 3 Pokémon">
+                    {[0,1,2].map(position=>{
+                      const uid=data.team[position];
+                      const pokemon=data.roster.find(p=>p.uid===uid);
+                      return (
+                        <article key={position} className={pokemon?styles.teamSlot:styles.teamSlotEmpty}>
+                          <span className={styles.slotCaption}>{position===0?'Líder · Arena':'Slot '+(position+1)}</span>
+                          {pokemon ? <>
+                            <PokemonArt id={pokemon.pokemonId} name={speciesName(pokemon.pokemonId)} />
+                            <strong>{speciesName(pokemon.pokemonId)}</strong>
+                            <small>UID #{pokemon.uid} · Nv. {pokemon.level}</small>
+                            {position>0&&<button type="button" className={styles.textButton}
+                              disabled={busy || Boolean(expedition)}
+                              aria-label={'Tornar líder UID '+pokemon.uid}
+                              onClick={()=>dispatch({type:'pokemon',value:{type:'set-active',uid:pokemon.uid}})}>
+                              Tornar líder</button>}
+                          </> : <span className={styles.slotPlaceholder}>Vazio</span>}
+                        </article>
+                      );
+                    })}
+                  </div>
+                  <p className={styles.disclaimer}>Máximo de 3 Pokémon. A equipe precisa manter pelo menos 1 integrante. Durante uma expedição não é possível adicionar, remover ou trocar o líder.</p>
+                </section>
+                <section className={styles.panel}>
+                  <div className={styles.collectionToolbar}>
+                    <div>
+                      <h2>Todos os Pokémon</h2>
+                      <p>Pesquise por nome, número da Pokédex ou UID.</p>
+                    </div>
+                    <input className={styles.input} aria-label="Buscar Pokémon na coleção"
+                      type="search" value={collectionQuery} onChange={e=>setCollectionQuery(e.target.value)}
+                      placeholder="Buscar Pokémon ou UID..." />
+                  </div>
+                  <div className={styles.collectionFilters} aria-label="Filtrar coleção">
+                    {(['all','team','reserve'] as CollectionFilter[]).map(filter=>(
+                      <button type="button" key={filter}
+                        aria-pressed={collectionFilter===filter}
+                        className={collectionFilter===filter?styles.collectionFilterActive:styles.collectionFilter}
+                        onClick={()=>setCollectionFilter(filter)}>
+                        {filter==='all'?'Todos':filter==='team'?'Na equipe':'Reserva'}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.collectionGrid}>
+                    {rosterFiltered.map(pokemon=>{
+                      const inTeam=data.team.includes(pokemon.uid);
+                      const leader=data.team[0]===pokemon.uid;
+                      const dex=speciesName(pokemon.pokemonId);
+                      return (
+                        <article key={pokemon.uid} data-testid={'pokemon-uid-'+pokemon.uid}
+                          className={leader?styles.collectionCardLeader:styles.collectionCard}>
+                          <div className={styles.collectionCardTop}>
+                            <span>#{String(pokemon.pokemonId).padStart(3,'0')}</span>
+                            <span>{leader?'LÍDER':inTeam?'EQUIPE':'RESERVA'}</span>
+                          </div>
+                          <PokemonArt id={pokemon.pokemonId} name={dex} />
+                          <strong>{dex}</strong>
+                          <div className={styles.collectionAttributes}>
+                            <span>UID #{pokemon.uid}</span><span>Lv. {pokemon.level}</span>
+                            <span>♥ {pokemon.affinity}%</span>
+                          </div>
+                          <div className={styles.collectionCardActions}>
+                            <button type="button" className={styles.secondary}
+                              aria-label={'Treinar UID '+pokemon.uid}
+                              onClick={()=>openPokemon(pokemon.uid)}>Treinar</button>
+                            {inTeam ? (
+                              <button type="button" className={styles.secondary}
+                                aria-label={'Remover UID '+pokemon.uid+' da equipe'}
+                                disabled={busy || Boolean(expedition) || data.team.length<=1}
+                                onClick={()=>dispatch({type:'pokemon',value:{type:'remove-team',uid:pokemon.uid}})}>
+                                Retirar</button>
+                            ) : (
+                              <button type="button" className={styles.primary}
+                                aria-label={'Adicionar UID '+pokemon.uid+' à equipe'}
+                                disabled={busy || Boolean(expedition) || data.team.length>=3}
+                                onClick={()=>dispatch({type:'pokemon',value:{type:'add-team',uid:pokemon.uid}})}>
+                                Escalar</button>
+                            )}
+                            {inTeam&&!leader&&(
+                              <button type="button" className={styles.textButton}
+                                aria-label={'Tornar líder UID '+pokemon.uid+' pela coleção'}
+                                disabled={busy || Boolean(expedition)}
+                                onClick={()=>dispatch({type:'pokemon',value:{type:'set-active',uid:pokemon.uid}})}>
+                                Definir líder</button>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                  {rosterFiltered.length===0&&<p className={styles.emptyCollection} role="status">
+                    Nenhum Pokémon encontrado com este filtro.
+                  </p>}
+                </section>
+              </>
             )}
 
             {tab === 'arena' && (
@@ -368,6 +555,10 @@ export function PlayApp() {
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
                     <h2>Arena de batalha</h2>
                     <p>Seu Pokémon enfrenta automaticamente um encontro de Kanto em até 30 turnos. O motor calcula precisão, dano, críticos e efetividade de tipos. Vitória concede XP, moedas, afinidade e chance de captura de 35%.</p>
+                    <p>Líder: <strong>{speciesName(active.pokemonId)} · UID #{active.uid}</strong></p>
+                    <p>Equipe: <strong>{data.team.length}/3</strong> ·
+                      <button type="button" className={styles.textButton}
+                        onClick={()=>setTab('collection')}>Gerenciar equipe</button></p>
                     <p>Vitórias: <strong>{typeof data.wins === 'number' ? data.wins : 0}</strong> · Derrotas/empates: <strong>{typeof data.losses === 'number' ? data.losses : 0}</strong> · Insígnias: <strong>{view.badges.length}/8</strong></p>
                     <button className={styles.primary} type="button" disabled={busy} onClick={fight}>
                       Batalhar contra Pokémon selvagem

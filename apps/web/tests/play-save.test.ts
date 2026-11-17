@@ -241,3 +241,127 @@ describe('batalha real na v0.2: combate + recompensas + captura em uma escrita',
     expect(game.expedition).not.toBeNull();
   });
 });
+
+/** Fixtures de teste apenas: simula capturas válidas para exercitar UID sem sorteio. */
+function addCapturedFixtures(storage: PlayStorage): void {
+  const snapshot=current(storage);
+  const game=JSON.parse(snapshot.journal.raw) as {
+    roster: Array<{uid:number;pokemonId:number;level:number;xp:number;affinity:number;
+      manual:Record<string,number>;moveName:string;upgrades:Record<string,number>}>;
+    nextUid:number;
+  };
+  const sample=game.roster[0]!;
+  game.roster.push(
+    {...sample,uid:2,pokemonId:16,level:10,xp:3,affinity:15,
+      manual:{...sample.manual,attack:0,defense:0,hp:0,specialAttack:0,specialDefense:0,speed:0},
+      moveName:'gust',upgrades:{}},
+    {...sample,uid:3,pokemonId:16,level:12,xp:7,affinity:85,
+      manual:{hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0},
+      moveName:'gust',upgrades:{}},
+    {...sample,uid:4,pokemonId:19,level:8,xp:0,affinity:0,
+      manual:{hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0},
+      moveName:'quick-attack',upgrades:{}}
+  );
+  game.nextUid=5;
+  storage.setItem(PLAY_SAVE_KEY,JSON.stringify({
+    ...snapshot,journal:{...snapshot.journal,raw:JSON.stringify(game)}
+  }));
+}
+
+describe('coleção e liderança: UIDs distintos no save jogável',()=>{
+  it('permite duas capturas da mesma espécie, com XP/afinidade/atributos separados',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Colecionador',4,1000,true);
+    addCapturedFixtures(storage);
+    let currentGame=JSON.parse(current(storage).journal.raw) as {
+      roster:Array<{uid:number;pokemonId:number;xp:number;affinity:number;
+        manual:Record<string,number>}>;team:number[];nextUid:number
+    };
+    expect(currentGame.roster.filter(p=>p.pokemonId===16)).toHaveLength(2);
+    expect(currentGame.roster.find(p=>p.uid===2)?.affinity).toBe(15);
+    expect(currentGame.roster.find(p=>p.uid===3)?.affinity).toBe(85);
+    expect(updatePlaySave(storage,0,{type:'pokemon',
+      value:{type:'invest-pokemon',uid:3,stat:'speed'}}).status).toBe('ok');
+    currentGame=JSON.parse(current(storage).journal.raw);
+    expect(currentGame.roster.find(p=>p.uid===3)?.manual.speed).toBe(1);
+    expect(currentGame.roster.find(p=>p.uid===2)?.manual.speed).toBe(0);
+    expect(currentGame.roster.find(p=>p.uid===2)?.xp).toBe(3);
+    expect(currentGame.roster.find(p=>p.uid===3)?.xp).toBe(7);
+    expect(currentGame.nextUid).toBe(5);
+  });
+
+  it('adiciona até 3, escolhe líder por UID, rejeita quarto e registra líder na batalha',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Equipe',4,1000,true);
+    addCapturedFixtures(storage);
+    expect(updatePlaySave(storage,0,{type:'pokemon',
+      value:{type:'set-active',uid:2}}).status).toBe('blocked');
+    expect(updatePlaySave(storage,0,{type:'pokemon',
+      value:{type:'add-team',uid:2}}).status).toBe('ok');
+    expect(updatePlaySave(storage,1,{type:'pokemon',
+      value:{type:'add-team',uid:3}}).status).toBe('ok');
+    expect(updatePlaySave(storage,2,{type:'pokemon',
+      value:{type:'add-team',uid:4}}).status).toBe('blocked');
+    expect(updatePlaySave(storage,2,{type:'pokemon',
+      value:{type:'set-active',uid:3}}).status).toBe('ok');
+    let game=JSON.parse(current(storage).journal.raw) as {
+      team:number[];roster:Array<{uid:number;xp:number;pokemonId:number}>;
+      lastBattle?:{wildSpeciesId:number};
+    };
+    expect(game.team).toEqual([3,1,2]);
+    expect(game.roster.find(p=>p.uid===2)?.pokemonId).toBe(16);
+    expect(game.roster.find(p=>p.uid===3)?.pokemonId).toBe(16);
+    expect(updatePlaySave(storage,3,{type:'battle',seed:12345}).status).toBe('ok');
+    const currentSnapshot=current(storage);
+    game=JSON.parse(currentSnapshot.journal.raw);
+    expect(game.lastBattle?.wildSpeciesId).toBeGreaterThan(0);
+    const battleReceipt=currentSnapshot.journal.receipts.find(r=>r.id==='battle-v02-4');
+    expect(battleReceipt?.fingerprint).toContain('"activeUid":3');
+    expect(currentSnapshot.revision).toBe(4);
+    expect(currentSnapshot.journal.revision).toBe(1);
+    expect(updatePlaySave(storage,3,{type:'battle',seed:12345}).status).toBe('blocked');
+  });
+
+  it('bloqueia toda mudança da equipe durante expedição, sem bloquear treino individual',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Expedição',7,1000,true);
+    addCapturedFixtures(storage);
+    expect(updatePlaySave(storage,0,{type:'pokemon',
+      value:{type:'add-team',uid:2}}).status).toBe('ok');
+    expect(updatePlaySave(storage,1,{type:'start-expedition',nowMs:100000}).status).toBe('ok');
+    const before=storage.getItem(PLAY_SAVE_KEY);
+    for(const value of [
+      {type:'add-team' as const,uid:3},
+      {type:'remove-team' as const,uid:2},
+      {type:'set-active' as const,uid:2}
+    ]){
+      expect(updatePlaySave(storage,2,{type:'pokemon',value}).status).toBe('blocked');
+      expect(storage.getItem(PLAY_SAVE_KEY)).toBe(before);
+    }
+    expect(updatePlaySave(storage,2,{type:'pokemon',
+      value:{type:'invest-pokemon',uid:3,stat:'hp'}}).status).toBe('ok');
+    expect(updatePlaySave(storage,3,{type:'stop-expedition',nowMs:100001}).status).toBe('ok');
+    expect(updatePlaySave(storage,4,{type:'pokemon',
+      value:{type:'set-active',uid:2}}).status).toBe('ok');
+    const game=JSON.parse(current(storage).journal.raw) as {team:number[]};
+    expect(game.team).toEqual([2,1]);
+  });
+
+  it('não permite remover o único Pokémon da equipe, mas mantém UIDs da coleção',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Coleção',1,1000);
+    addCapturedFixtures(storage);
+    expect(updatePlaySave(storage,0,{type:'pokemon',
+      value:{type:'remove-team',uid:1}}).status).toBe('blocked');
+    expect(updatePlaySave(storage,0,{type:'pokemon',
+      value:{type:'add-team',uid:2}}).status).toBe('ok');
+    expect(updatePlaySave(storage,1,{type:'pokemon',
+      value:{type:'remove-team',uid:1}}).status).toBe('ok');
+    const game=JSON.parse(current(storage).journal.raw) as {
+      team:number[];roster:Array<{uid:number}>;nextUid:number
+    };
+    expect(game.team).toEqual([2]);
+    expect(game.roster.map(p=>p.uid)).toEqual([1,2,3,4]);
+    expect(game.nextUid).toBe(5);
+  });
+});
