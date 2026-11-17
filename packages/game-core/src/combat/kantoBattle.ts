@@ -338,7 +338,7 @@ export function simulateKantoBattle(
       }
       const ownAttackDrop=isPlayer?playerAttackDrops:wildAttackDrops;
       const foeDefenseDrop=isPlayer?wildDefenseDrops:playerDefenseDrops;
-      const stagedActor={...actor,move,
+      const stagedActor={...actor,move,moves:undefined,
         rank:actor.ranks?.[move.name]??(actor.move.name===move.name?actor.rank:0),
         stats:{...actor.stats,attack:Math.max(1,Math.floor(
           actor.stats.attack*2/(2+ownAttackDrop)))}};
