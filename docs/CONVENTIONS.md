@@ -49,3 +49,7 @@
 
 ## E2E de imagens no Chromium — correção de flakiness (2026-11-16)
 Quando testar fallback de sprite via `page.route` para simular HTTP 404, instalar a rota **antes do primeiro carregamento** da página/Pokédex: uma rota instalada após o navegador já ter cacheado a imagem pode não interceptar o recurso, tornando o teste dependente do cache. Usar resultado verificável (src de PNG após erro) e preservar o runtime de sprites inalterado.
+
+
+## E2E de persistência em navegador — separação obrigatória de origens
+Testes que precisem de `localStorage` de verdade devem usar Vite em loopback e pathname de sandbox exclusivo, com chaves fixas `__kanto_lab__*`. Nunca executar contra Railway/produção, nem usar `localStorage.clear()` indiscriminadamente; rollback só pode remover chaves de laboratório específicas e preservar backups. Teste de quota deve utilizar a chave prefixada de preenchimento e contexto de navegador descartável, documentando que limite de localStorage varia entre navegadores.
