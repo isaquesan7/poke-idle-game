@@ -30,6 +30,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-019 | 2026-11-16 | PROTOCOLO EXPERIMENTAL EM IMPLEMENTAÇÃO | A v0.1 é writer não-cooperativo: Web Locks não bloqueiam abas antigas. O futuro save oficial v0.2 terá chave separada e revisões monotônicas sob lock exclusivo **somente entre v0.2 cooperativas**; a origem legada fica preservada. Havendo divergência pós-cópia, o sistema deve bloquear mescla/restauração automática, preservar ambos os progressos e exigir decisão explícita de rollout. Pacotes externos com SHA-256 podem ser exportados/conferidos na prévia, mas **NÃO importados para storage**, nem concedem autorização de gravação real. |
 
+| D-020 | 2026-11-16 | LABORATÓRIO ISOLADO EM IMPLEMENTAÇÃO | Testar o futuro cutover v0.1→v0.2 exclusivamente em uma instância `MigrationMemoryLab` com Map privado e confirmação explícita; não aceitar `Storage` real nem executar as instruções do journal em localStorage/IndexedDB. Simular quota, crashes, reenvios, revision stale e mudança da origem v0.1; resultado `committed` no laboratório não é migração real nem autoriza writer oficial. UI de ensaio existe somente na prévia React. Continuam vigentes D-017–D-019. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.

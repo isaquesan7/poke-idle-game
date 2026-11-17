@@ -90,3 +90,10 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 - O protocolo de lock/revisão está testado SOMENTE para writers cooperativos. A v0.1 antiga pode salvar em outra aba; divergências exigem isolamento explícito, não mescla automática.
 - A prévia React pode baixar um `RecoveryBundleV02` SHA-256 e inspecionar um JSON externo; upload não é restauração. Não há executor de journal real.
 - Próximo: montar teste de cutover opt-in em memória/IndexedDB isolado, simulando falhas de quota, concorrência, cancelamento e reconciliação proibida, sem ativar saves v0.2 ou modificar v0.1.
+
+## 2026-11-16 — Laboratório de transição opt-in em RAM (sem writes reais)
+- Nova implementação `MigrationMemoryLab` encapsula toda a execução simulada em um `Map` privado. O motor não recebe `StoragePort` nem possui acesso a objetos de persistência do browser. Chaves oficiais aparecem apenas como strings no Map interno, que desaparece ao descartar a instância.
+- Consentimento obrigatório `SIMULAR SOMENTE EM MEMORIA` a cada execução. A interface prévia React exige checkbox e mostra resultado auditável, sem botões de restaurar ou aplicar ao jogo.
+- Testes cobrem sequência backup/candidato/marcador, quota e falhas após cada etapa, read-back, double-submit e segundo envio bloqueado, origem v0.1 divergente, versão futura, revisão stale de duas abas simuladas e backup recuperável por texto.
+- O laboratório permite dizer que a estrutura de journal/recuperação **foi ensaiada**, NÃO que o cutover real é transacional ou seguro entre abas v0.1; Web Locks ainda abrangem apenas clientes v0.2 cooperativos. Não há migração real, rollback automático, nem escrituração em chaves reais.
+- **Próximo bloqueador fora do laboratório:** estratégia para um writer único e desligamento/convivência com abas v0.1 antigas, backup recuperável fora da origem, paridade das rotinas v0.2 e revisão de segurança antes do opt-in real. Um storage fake não substitui testes reais multi-aba/queda/quota em laboratório de navegador.

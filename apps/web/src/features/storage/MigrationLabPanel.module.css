@@ -1,0 +1,76 @@
+/* .labPanel: painel isolado para experimentos sem persistência. */
+.labPanel {
+  padding: var(--space-5);
+  margin-top: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface-raised);
+}
+
+/* .labPanel h2: separa o laboratório da exportação de backup real. */
+.labPanel h2 {
+  margin-top: 0;
+}
+
+/* .labNote: esclarece limitações e o caráter descartável do ensaio. */
+.labNote {
+  color: var(--color-text-muted);
+}
+
+/* .labModeLabel: associa o cenário ao seletor de falhas. */
+.labModeLabel {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 650;
+}
+
+/* .labSelect: opções com largura adaptável e contraste do tema. */
+.labSelect {
+  display: block;
+  max-width: 100%;
+  width: 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* .labConfirm: confirmação específica antes de cada ensaio. */
+.labConfirm {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  color: var(--color-text);
+}
+
+/* .labConfirm input: alinha a confirmação com o texto explicativo. */
+.labConfirm input {
+  margin-top: var(--space-1);
+}
+
+/* .labButton: executa apenas lógica em Map privado. */
+.labButton {
+  min-height: 44px;
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-primary);
+  color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+
+/* .labButton:disabled: não executar sem consentimento ou durante simulação. */
+.labButton:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* .labReport: resultado auditável em texto e acessível a leitor de tela. */
+.labReport {
+  color: var(--color-primary);
+  overflow-wrap: anywhere;
+  min-height: 1.5em;
+}

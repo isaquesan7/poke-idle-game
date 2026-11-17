@@ -129,3 +129,7 @@ A PR #11 foi integrada na `main` (`9369e4a4`), com Railway `SUCCESS`. Backup SHA
 
 ### Handoff validado — writers e recuperação (2026-11-16)
 PRs #11 e #12 integradas à `main` no SHA `db10572b`, com deploy Railway `293781a0` `SUCCESS` e teste completo em [GitHub Actions #43987571827](https://github.com/isaquesan7/poke-idle-game/actions/runs/43987571827) `SUCCESS`. A PR #12 corrigiu a intermitência de fallback do GIF #25 nos E2E. A prévia React exporta/confere pacotes SHA-256 **sem restaurar**, o protocolo de writer v0.2 segue **somente experimental** e o jogo online continua v0.1. Próximo trabalho: cutover opt-in e recuperação testados em storage temporário, não no progresso real. Consulte a última seção de `docs/PROJECT_STATE.md`.
+
+
+### Laboratório de migração opt-in (experimental)
+A branch `feat/v02-cutover-memory-laboratory` introduz uma simulação de migração com `MigrationMemoryLab` usando somente um `Map` em RAM. Na prévia React é possível selecionar quota, crash, divergência da aba legada e execução íntegra, após consentimento explícito. A simulação NUNCA importa, restaura ou grava o progresso real, e o Railway segue servindo a v0.1. Testes: `npm run test:web`, `npm run typecheck:web` e E2E desktop/mobile em CI. Consulte `docs/SAVE_MIGRATION_PLAN.md`.
