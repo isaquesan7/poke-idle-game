@@ -1,7 +1,7 @@
-## [v0.2-alpha — combate com status] — 2026-11-17 (branch, não publicado)
+## [v0.2-alpha — combate com status] — 2026-11-17 (publicado: PR #42)
 - Novos efeitos secundários em golpes ofensivos: queimadura de Ember, paralisia de Thunder Shock, envenenamento de Poison Sting (Weedle nível 1), Absorb recupera 50% do dano e Bubble pode reduzir Speed; metadados de `moves.csv`/`move_meta.csv` da PokéAPI versionados.
 - A simulação pura de combate aplica dano residual, limitação por paralisia e velocidade efetiva, imunidades básicas, RNG determinístico por seed e logs de efeito uma linha por vez; estados são temporários, não alteram UID ou inventário e nunca duplicam recompensas ao reassistir.
-- Perfil Pokémon mostra chances de efeitos; Arena mostra condições finais como histórico. Novo teste Vitest de status/imunidades/seed e E2E da descrição de Ember; testes/CI, PR, merge e Railway pendentes neste registro.
+- Perfil Pokémon mostra chances de efeitos; Arena mostra condições finais como histórico. Novo teste Vitest de status/imunidades/seed e E2E da descrição de Ember; CI PR `44176054785` e main pós-merge `44176408588` **SUCCESS** (TS, Vitest, build, legado, 151 GIFs e E2E Chromium desktop/mobile). PR #42 merged na main `a597619c69b321fdb22afc9982ddac4ca9b0b287`; Railway `60d9f834-ea75-489d-aa89-8b33ec58cca7` **SUCCESS** no SHA exato, healthcheck interno `/health succeeded!`.
 - Não altera o legado `/`, saves v0.1/v0.2, estrutura de recompensas nem antifraude (inexistente). Golpes sem dano, quatro moves, regras completas e animações HP ficam para próximas fases.
 
 ## [v0.2.0-alpha — evolução por UID] — 2026-11-17 (publicado: PR #40)
