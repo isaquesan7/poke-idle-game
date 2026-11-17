@@ -279,7 +279,10 @@ export function PlayApp() {
     &&battleFrames.length===lastBattle.log.length
     &&Number.isSafeInteger(lastBattle.playerMaxHp)&&Number.isSafeInteger(lastBattle.wildMaxHp)
     &&(lastBattle.playerMaxHp??0)>0&&(lastBattle.wildMaxHp??0)>0
-    &&battleFrames.every(frame=>Number.isSafeInteger(frame.playerHp)
+    &&battleFrames.every(frame=>frame!==null&&typeof frame==='object'
+      &&['intro','attack','miss','status','heal','residual','outcome','info'].includes(frame.kind)
+      &&(frame.target===null||frame.target==='player'||frame.target==='wild')
+      &&Number.isSafeInteger(frame.playerHp)
       &&Number.isSafeInteger(frame.wildHp)
       &&frame.playerHp>=0&&frame.playerHp<=(lastBattle.playerMaxHp??0)
       &&frame.wildHp>=0&&frame.wildHp<=(lastBattle.wildMaxHp??0)

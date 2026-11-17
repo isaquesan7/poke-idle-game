@@ -339,7 +339,22 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Pular apresentação'}).click();
   await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
 
+  // Save alfa anterior ou frames opcionais corrompidos: não inventar HP nem travar UI.
   await page.screenshot({path:new URL(label+'-play.png',shots).pathname,fullPage:true,animations:'disabled'});
+  await page.evaluate(key=>{
+    const snapshot=JSON.parse(localStorage.getItem(key));
+    const game=JSON.parse(snapshot.journal.raw);
+    game.lastBattle.frames=[null];
+    snapshot.journal.raw=JSON.stringify(game);
+    localStorage.setItem(key,JSON.stringify(snapshot));
+  },SAVE);
+  await page.reload();
+  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.getByText('Este combate anterior não possui trilha de HP por evento').waitFor();
+  assert.equal(await page.getByTestId('battle-hp-player').count(),0);
+  assert.equal(await page.getByTestId('battle-hp-wild').count(),0);
+  assert.equal(await page.getByTestId('battle-log').locator('li').count(),multi.log.length);
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);
   assert.deepEqual(errors,[]);
