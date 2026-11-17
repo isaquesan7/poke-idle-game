@@ -2,7 +2,7 @@
 
 > PONTO DE ENTRADA PARA NOVOS CHATS E AGENTES. Leia este arquivo antes de planejar ou alterar código.
 > Atualizado em 2026-11-16. A fonte final do estado técnico é o próprio GitHub/Railway; confira sempre os dados ao vivo.
-> **Handoff recente:** PRs #3–#11 integradas à `main` até `9369e4a4` com deploy Railway SUCCESS. A PR #11 adicionou coordenação experimental v0.2 e download/verificação de recuperação na prévia React; **sem restauração ou save real**. Um E2E legado mostrou flakiness de cache #25 no CI pós-merge e está em correção na branch `fix/legacy-e2e-fallback-cache-and-handoff`. Veja SEMPRE a última seção de `docs/PROJECT_STATE.md` e verifique GitHub/Railway.
+> **Handoff mais recente (2026-11-16):** PRs #3–#12 integradas à `main` até `db10572b`. O deploy Railway `293781a0` está em SUCCESS, CI pós-merge `43987571827` SUCCESS. A PR #11 adicionou exportação/inspeção SHA-256 e coordenação v0.2 somente experimental; a PR #12 corrigiu E2E de GIF #25 cacheado. **A página pública continua v0.1 e NENHUM save real v0.2 foi ativado.** Próxima etapa: laboratório de cutover opt-in/erro de quota em armazenamento isolado. Confira SEMPRE `docs/PROJECT_STATE.md` e GitHub/Railway ao vivo.
 
 ## Identidade e limites
 - Projeto: **Poke Idle Game / Kanto Idle LAB** (protótipo v0.1; Season 1: Pokémon #001–#151).
