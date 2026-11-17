@@ -31,3 +31,10 @@ export { prepareRewardJournal, applyRewardEvent } from './legacy/rewardEvents.js
 export type {
   RewardCommand, RewardJournal, RewardEventReceipt, RewardEventResult
 } from './legacy/rewardEvents.js';
+
+export {
+  legacyMoveRankLimits, reduceLegacyPokemonMoveJson
+} from './legacy/pokemonMoveReducer.js';
+export type {
+  LegacyMoveAction, LegacyMoveEditResult
+} from './legacy/pokemonMoveReducer.js';
