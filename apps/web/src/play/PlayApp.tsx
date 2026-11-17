@@ -95,7 +95,7 @@ export function PlayApp() {
   const [collectionQuery, setCollectionQuery] = useState('');
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all');
   const [feedback, setFeedback] = useState('');
-  const [battlePlayback, setBattlePlayback] = useState<{id:string;seq:number}|null>(null);
+  const [battlePlayback, setBattlePlayback] = useState<{id:string;seq:number;done:boolean}|null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -141,7 +141,7 @@ export function PlayApp() {
 
   /** Browser seguro: sorteia seed uint32, resolução real ocorre no game-core. */
   function fight(): void {
-    if (busy || battlePlayback || save.status!=='ready') return;
+    if (busy || (battlePlayback&&!battlePlayback.done) || save.status!=='ready') return;
     const expected=save.snapshot.revision;
     const seed = window.crypto.getRandomValues(new Uint32Array(1))[0];
     if (seed === undefined) {
@@ -153,7 +153,7 @@ export function PlayApp() {
       .then(result=>{
         if(result?.status==='ok'){
           setTab('arena');
-          setBattlePlayback({id:'battle-v02-'+result.snapshot.revision,seq:1});
+          setBattlePlayback({id:'battle-v02-'+result.snapshot.revision,seq:(battlePlayback?.seq??0)+1,done:false});
         }
       });
   }
@@ -236,7 +236,7 @@ export function PlayApp() {
       }
     : null;
   const displayedBattleId=lastBattle?.battleId??'legacy-battle';
-  const battlePlaying=Boolean(battlePlayback && battlePlayback.id===displayedBattleId);
+  const battlePlaying=Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
   const nextCycle = expedition
     ? Math.max(0, Math.ceil((EXPEDITION_CYCLE_MS - Math.max(0, now - expedition.lastClaimAt) % EXPEDITION_CYCLE_MS) / 1000))
     : 0;
@@ -683,13 +683,13 @@ export function PlayApp() {
                         ? 'Captura realizada! O Pokémon foi adicionado à coleção.'
                         : 'Nenhuma captura nesta batalha.'}</p>
                       <button type="button" className={styles.secondary}
-                        onClick={()=>setBattlePlayback({id:displayedBattleId,seq:(battlePlayback?.seq??0)+1})}>
+                        onClick={()=>setBattlePlayback({id:displayedBattleId,seq:(battlePlayback?.seq??0)+1,done:false})}>
                         Reassistir à batalha</button>
                       </>}
                     </section>
                     <BattlePlayback key={displayedBattleId+':'+(battlePlayback?.seq??0)}
                       log={lastBattle.log} turns={lastBattle.turns}
-                      playing={battlePlaying} onFinished={()=>setBattlePlayback(null)} />
+                      playing={battlePlaying} onFinished={()=>setBattlePlayback(previous=>previous&&previous.id===displayedBattleId?{...previous,done:true}:previous)} />
                   </div>
                 )}
                 <section className={styles.panel}>
