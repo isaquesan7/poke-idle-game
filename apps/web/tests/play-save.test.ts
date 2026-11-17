@@ -476,3 +476,37 @@ describe('evolução por UID na persistência alfa, sem recompensa duplicada',()
     expect(current(storage).journal.receipts).toEqual([]);
   });
 });
+
+
+describe('slots de golpes na persistência v0.2',()=>{
+  it('adiciona Growl, escolhe suporte principal e mantém recompensa única',()=>{
+    const {storage,map}=memory();
+    map.set('kanto-idle-lab-save-v01','KEEP');
+    expect(createPlaySave(storage,'Multi',4,1000,true).status).toBe('ok');
+    expect(updatePlaySave(storage,0,{type:'move-set',uid:1,moveName:'growl',operation:'add'}).status).toBe('ok');
+    expect(updatePlaySave(storage,1,{type:'move-set',uid:1,moveName:'growl',operation:'primary'}).status).toBe('ok');
+    const old=JSON.parse(current(storage).journal.raw);
+    expect(old.roster[0].moveNames).toEqual(['growl','scratch']);
+    expect(updatePlaySave(storage,2,{type:'move-set',uid:1,moveName:'scratch',operation:'remove'}).status).toBe('blocked');
+    expect(updatePlaySave(storage,2,{type:'move-set',uid:1,moveName:'water-gun',operation:'add'}).status).toBe('blocked');
+    expect(updatePlaySave(storage,2,{type:'move-set',uid:1,moveName:'growl',operation:'add'}).status).toBe('blocked');
+    expect(updatePlaySave(storage,2,{type:'battle',seed:0}).status).toBe('ok');
+    const battle=JSON.parse(current(storage).journal.raw).lastBattle;
+    expect(battle.log.some((line:string)=>line.includes('usou growl'))).toBe(true);
+    expect(battle.log.some((line:string)=>line.includes('usou scratch'))).toBe(true);
+    expect(current(storage).journal.receipts).toHaveLength(1);
+    expect(current(storage).revision).toBe(3);
+    expect(map.get('kanto-idle-lab-save-v01')).toBe('KEEP');
+  });
+  it('seleção antiga troca primeiro slot sem apagar suporte e upgrades continuam',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Old',4,1000,true);
+    expect(updatePlaySave(storage,0,{type:'move-set',uid:1,moveName:'growl',operation:'add'}).status).toBe('ok');
+    expect(updatePlaySave(storage,1,{type:'move',uid:1,moveName:'ember',operation:'select'}).status).toBe('ok');
+    const game=JSON.parse(current(storage).journal.raw);
+    expect(game.roster[0].moveNames).toEqual(['ember','growl']);
+    expect(game.roster[0].moveName).toBe('ember');
+    expect(updatePlaySave(storage,2,{type:'move',uid:1,moveName:'ember',operation:'upgrade'}).status).toBe('ok');
+    expect(JSON.parse(current(storage).journal.raw).roster[0].upgrades.ember).toBe(1);
+  });
+});

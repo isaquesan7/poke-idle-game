@@ -12,7 +12,8 @@ import {
   KANTO_BATTLE_SPECIES, KANTO_BATTLE_MOVES, KANTO_WILD_POOL,
   LEGACY_ITEMS, LEGACY_BADGES, STATS, trainerTotals, pokemonFinalStats,
   pokemonOwnStats, effectiveLegacyTitle, simulateKantoBattle,
-  reduceLegacyPokemonMoveJson, kantoLevelMoves, reduceKantoEvolutionJson
+  reduceLegacyPokemonMoveJson, kantoLevelMoves, reduceKantoEvolutionJson,
+  KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson
 } from '@kanto/game-core';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant
@@ -38,6 +39,8 @@ export type PlayAction =
   | { readonly type: 'evolution-test-kit' }
   | { readonly type: 'move'; readonly uid:number; readonly moveName:string;
       readonly operation:'select'|'upgrade' }
+  | { readonly type:'move-set'; readonly uid:number; readonly moveName:string;
+      readonly operation:'add'|'remove'|'primary' }
   | { readonly type: 'start-expedition' | 'claim-expedition' | 'stop-expedition'; readonly nowMs: number };
 
 export type PlayWrite =
@@ -184,14 +187,23 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
       badges:badges.map(badge=>({id:badge.id,stats:badge.stats}))
     });
     const moveName=typeof active.moveName==='string'?active.moveName:'';
-    const move=KANTO_BATTLE_MOVES[moveName] ?? species.move;
+    const equippedNames=pokemonMoveSlots(active,species.move.name);
+    if(equippedNames.length<1||equippedNames.length>4
+      ||new Set(equippedNames).size!==equippedNames.length
+      ||(moveName&&equippedNames[0]!==moveName))
+      return{status:'blocked',reason:'Slots de golpes inválidos.'};
+    const equippedMoves=equippedNames.map(name=>KANTO_BATTLE_MOVES[name]??KANTO_SUPPORT_MOVES[name]);
+    if(equippedMoves.some(move=>!move)||!equippedMoves.some(move=>move!.category!=='status'))
+      return{status:'blocked',reason:'Equipe um golpe ofensivo válido.'};
+    const move=equippedMoves[0]!;
     const upgrades=record(active.upgrades)?active.upgrades:{};
     const rank=upgrades[move.name] ?? 0;
     const player:Combatant={
       speciesId:species.id,name:species.name,level:active.level as number,
       types:species.types,
       stats:pokemonFinalStats(species.base,active.level as number,pokemonManual,totals,active.affinity as number),
-      move,rank:rank as number
+      move,rank:rank as number,moves:equippedMoves as NonNullable<Combatant['moves']>,
+      ranks:upgrades as NonNullable<Combatant['ranks']>
     };
     const wildSpeciesId=KANTO_WILD_POOL[seed % KANTO_WILD_POOL.length]!;
     const enemy=KANTO_BATTLE_SPECIES[wildSpeciesId]!;
@@ -279,12 +291,9 @@ export function updatePlaySave(
     const definition=eligible.find(item=>item.move.name===action.moveName);
     const fallback=KANTO_BATTLE_MOVES[action.moveName];
     const result=action.operation==='select'
-      ? definition
-        ? reduceLegacyPokemonMoveJson(journal.raw,{
-            type:'select-move',uid:action.uid,moveName:action.moveName,
-            availableMoves:eligible.map(item=>item.move.name)
-          })
-        : {status:'invalid' as const,reason:'Golpe ainda não aprendido por esta espécie e nível.'}
+      ? reducePokemonMoveSlotsJson(journal.raw,{
+          uid:action.uid,moveName:action.moveName,operation:'replace-primary'
+        })
       : action.operation==='upgrade' && (definition||fallback)
         ? reduceLegacyPokemonMoveJson(journal.raw,{
             type:'upgrade-move',uid:action.uid,moveName:action.moveName,
@@ -292,6 +301,10 @@ export function updatePlaySave(
           })
         : {status:'invalid' as const,reason:'Golpe não disponível para aprimoramento.'};
     if (result.status!=='ok') return {status:'blocked',reason:result.reason};
+    next={...journal,raw:result.json};
+  } else if (action.type === 'move-set') {
+    const result=reducePokemonMoveSlotsJson(journal.raw,action);
+    if(result.status!=='ok')return{status:'blocked',reason:result.reason};
     next={...journal,raw:result.json};
   } else if (action.type === 'evolution' || action.type === 'evolution-test-kit') {
     // O writer resolve as condições do catálogo, não confia em item/nível do botão.

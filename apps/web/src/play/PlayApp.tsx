@@ -3,7 +3,8 @@ import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
   KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats,
-  kantoLevelMoves, legacyMoveRankLimits, KANTO_BATTLE_MOVES, kantoMoveSecondaryEffect,
+  kantoLevelMoves,kantoSupportMoves,KANTO_SUPPORT_MOVES,pokemonMoveSlots,
+  legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues } from '@kanto/game-core';
@@ -201,8 +202,11 @@ export function PlayApp() {
   const pokemonSpent = STATS.reduce((total, stat) => total + pokemonManual[stat], 0);
   const pokemonBudget = focused ? legacyPokemonManualBudget(focused.level) : 0;
   const levelMoves=focused?kantoLevelMoves(focused.pokemonId,focused.level):[];
+  const supportMoves=focused?kantoSupportMoves(focused.pokemonId,focused.level):[];
   const currentMoveName=typeof focused?.moveName==='string'?focused.moveName:'';
-  const currentMove=KANTO_BATTLE_MOVES[currentMoveName] ?? focusedSpeciesFallback(focused?.pokemonId);
+  const currentMove=KANTO_BATTLE_MOVES[currentMoveName]
+    ??KANTO_SUPPORT_MOVES[currentMoveName]??focusedSpeciesFallback(focused?.pokemonId);
+  const equippedNames=focused?pokemonMoveSlots(focused,currentMove?.name??'tackle'):[];
   const moveRanks=focused?.upgrades && typeof focused.upgrades==='object'
     ? focused.upgrades as Record<string,number> : {};
   const moveLimits=focused?legacyMoveRankLimits(focused.level):null;
@@ -534,13 +538,33 @@ export function PlayApp() {
                 </section>
                 <section className={styles.panel} aria-label="Treinar golpes do Pokémon">
                   <h2>Golpes do Pokémon</h2>
-                  <p>Golpe equipado: <strong>{currentMoveName || 'Padrão'}</strong>
-                    {currentMove ? ' · '+currentMove.type+' · Poder '+currentMove.power : ''}</p>
+                  <p>Golpes equipados: <strong>{equippedNames.length}/4</strong> ·
+                    principal: <strong>{currentMoveName || 'Padrão'}</strong>.
+                    A Arena escolhe ataques e pode usar suportes na abertura;
+                    pelo menos um golpe de dano deve permanecer equipado.</p>
+                  <div className={styles.moveList} aria-label="Golpes equipados" data-testid="equipped-moves">
+                    {equippedNames.map((name,i)=><div key={name} className={styles.moveEquipped}>
+                      <div><strong>{i+1}. {name}</strong>
+                        <small>{i===0?'Principal':'Adicional'} ·
+                          {KANTO_SUPPORT_MOVES[name]?' Suporte':' Ataque'}</small></div>
+                      <div className={styles.moveActions}>
+                        {i>0&&<button type="button" className={styles.secondary}
+                          aria-label={'Tornar principal '+name} disabled={busy}
+                          onClick={()=>dispatch({type:'move-set',uid:focused.uid,
+                            moveName:name,operation:'primary'})}>Principal</button>}
+                        {equippedNames.length>1&&<button type="button" className={styles.textButton}
+                          aria-label={'Retirar golpe '+name} disabled={busy}
+                          onClick={()=>dispatch({type:'move-set',uid:focused.uid,
+                            moveName:name,operation:'remove'})}>Retirar</button>}
+                      </div>
+                    </div>)}
+                  </div>
                   <p>Pontos de habilidade disponíveis: <strong>{moveLimits?moveLimits.skillPoints-moveSpent:0}</strong>
                     {moveLimits ? ' · Rank máximo por golpe: '+moveLimits.maxRankPerMove : ''}</p>
                   <div className={styles.moveList}>
                     {levelMoves.map(({move,learnedAt})=>{
                       const equipped=currentMoveName===move.name;
+                      const inSlots=equippedNames.includes(move.name);
                       const rank=moveRanks[move.name]??0;
                       return <div key={move.name} className={equipped?styles.moveEquipped:styles.moveOption}>
                         <div><strong>{move.name}</strong><small>Nv. {learnedAt} · {move.type} ·
@@ -549,6 +573,11 @@ export function PlayApp() {
                            {effectLabel(move.name)&&<small>{effectLabel(move.name)}</small>}
                         </div>
                         <div className={styles.moveActions}>
+                          {!inSlots&&<button type="button" className={styles.secondary}
+                            disabled={busy||equippedNames.length>=4}
+                            aria-label={'Adicionar golpe '+move.name}
+                            onClick={()=>dispatch({type:'move-set',uid:focused.uid,
+                              moveName:move.name,operation:'add'})}>Adicionar</button>}
                           <button type="button" className={styles.secondary}
                             disabled={busy||equipped}
                             aria-label={'Equipar golpe '+move.name}
@@ -564,12 +593,35 @@ export function PlayApp() {
                       </div>;
                     })}
                   </div>
+                  <h3>Golpes de suporte aprendidos</h3>
+                  <div className={styles.moveList}>
+                    {supportMoves.map(({move,learnedAt})=>{
+                      const inSlots=equippedNames.includes(move.name);
+                      return <div key={move.name} className={inSlots?styles.moveEquipped:styles.moveOption}>
+                        <div><strong>{move.name}</strong>
+                          <small>Nv. {learnedAt} · {move.type} · Precisão {move.accuracy}%</small>
+                          <small>{move.name==='growl'?'Reduz Ataque':
+                            move.name==='tail-whip'?'Reduz Defesa':
+                              move.name==='thunder-wave'?'Paralisa':'Envenena'}</small></div>
+                        <div className={styles.moveActions}>
+                          {inSlots?<small>Equipado</small>:
+                            <button type="button" className={styles.secondary}
+                              aria-label={'Adicionar golpe '+move.name}
+                              disabled={busy||equippedNames.length>=4}
+                              onClick={()=>dispatch({type:'move-set',uid:focused.uid,
+                                moveName:move.name,operation:'add'})}>Adicionar</button>}
+                        </div>
+                      </div>;
+                    })}
+                  </div>
+                  {supportMoves.length===0&&<p>Nenhum suporte foi liberado neste recorte.</p>}
                   {levelMoves.length===0&&<p>Nenhum golpe de dano direto foi catalogado até este nível nesta seleção da PokéAPI.</p>}
                   {currentMoveName&&!levelMoves.some(x=>x.move.name===currentMoveName)&&
                     <p className={styles.disclaimer}>O golpe equipado pode ter sido aprendido antes da evolução ou ser provisório da alfa. Ele é preservado nesta instância; ao equipar outro golpe, será substituído.</p>}
-                  <p className={styles.disclaimer}>Golpes aprendidos por nível em FireRed/LeafGreen.
-                    Apenas dano direto e movimentos já existentes na alfa foram incluídos.
-                    Ember, Thunder Shock, Poison Sting, Absorb e Bubble já possuem efeitos secundários simplificados. Golpes exclusivamente de status, como Sleep Powder, ainda não estão disponíveis; condições são temporárias por batalha.</p>
+                  <p className={styles.disclaimer}>Recorte de movimentos por nível
+                    FireRed/LeafGreen: dano e quatro suportes básicos. A IA escolhe
+                    suporte válido na abertura e depois prioriza dano. Sem PP ou
+                    escolha manual por turno na alfa; status são temporários.</p>
                 </section>
               </div>
             )}

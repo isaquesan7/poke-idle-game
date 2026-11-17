@@ -278,12 +278,40 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Arena',exact:true}).click();
   await page.getByText('Pidgeotto · UID #'+firstUid).first().waitFor();
 
+  // Montagem de 2 golpes no Charmander original, preservando o UID já testado.
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Treinar UID 1'}).click();
+  await page.getByRole('heading',{name:'Golpes do Pokémon'}).waitFor();
+  await page.getByRole('button',{name:'Adicionar golpe growl'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===15,SAVE);
+  let slots=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).roster.find(p=>p.uid===1),SAVE);
+  assert.deepEqual(slots.moveNames,['scratch','growl']);
+  await page.getByRole('button',{name:'Tornar principal growl'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===16,SAVE);
+  slots=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).roster.find(p=>p.uid===1),SAVE);
+  assert.deepEqual(slots.moveNames,['growl','scratch']);
+  await page.reload();
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Treinar UID 1'}).click();
+  assert.equal(await page.getByTestId('equipped-moves').getByText(/growl/).count(),1);
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1 pela coleção',exact:true}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===17,SAVE);
+  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===18,SAVE);
+  const multi=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).lastBattle,SAVE);
+  assert.ok(multi.log.some(line=>line.includes('usou growl')),'IA deve usar suporte');
+  assert.ok(multi.log.some(line=>line.includes('usou scratch')),'IA deve voltar a causar dano');
+  await page.getByRole('button',{name:'Pular apresentação'}).click();
+  await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
+
   await page.screenshot({path:new URL(label+'-play.png',shots).pathname,fullPage:true,animations:'disabled'});
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);
   assert.deepEqual(errors,[]);
   await context.close();
-  console.log(label+': /play, golpes/status, replay, Pokédex, equipe, evolução e reload OK');
+  console.log(label+': /play, golpes/status, múltiplos slots, replay, evolução e reload OK');
 }
 
 let browser;

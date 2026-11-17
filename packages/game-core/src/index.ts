@@ -62,6 +62,13 @@ export {
 } from './catalog/kantoLevelMoves.js';
 export type { KantoLearnableMove } from './catalog/kantoLevelMoves.js';
 export {
+  KANTO_SUPPORT_SOURCE_COMMIT,KANTO_SUPPORT_MOVES,
+  KANTO_SUPPORT_EFFECTS,kantoSupportEffect,kantoSupportMoves
+} from './catalog/kantoSupportMoves.js';
+export type {KantoSupportEffect,KantoSupportLearned} from './catalog/kantoSupportMoves.js';
+export {pokemonMoveSlots,reducePokemonMoveSlotsJson} from './legacy/pokemonMoveSlotsReducer.js';
+export type {MoveSlotAction,MoveSlotOperation,MoveSlotResult} from './legacy/pokemonMoveSlotsReducer.js';
+export {
   KANTO_STATUS_SOURCE_COMMIT, KANTO_SECONDARY_EFFECTS, kantoMoveSecondaryEffect
 } from './combat/kantoStatusEffects.js';
 export type { KantoBattleStatus, KantoSecondaryEffect } from './combat/kantoStatusEffects.js';

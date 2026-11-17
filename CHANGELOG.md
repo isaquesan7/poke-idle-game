@@ -1,3 +1,9 @@
+## [v0.2-alpha — quatro golpes e IA determinística] — 2026-11-17 (branch; CI/PR pendentes)
+- Até quatro slots de golpes por Pokémon UID, com ações de adicionar, retirar e definir principal. Saves anteriores com só `moveName` carregam como slot único; `moveNames` opcional, sem novo schema. O golpe principal anterior e seus ranks permanecem intactos até edição consciente.
+- Primeiro catálogo de suporte baseado em learnset FireRed/LeafGreen: Growl, Tail Whip, Thunder Wave e Poison Powder para quatro espécies validadas; IA escolhe suporte viável nos dois primeiros turnos e depois golpe de melhor dano estimado, com stats, tipos e imunidades, sem RNG adicional fora da seed.
+- Logs de suporte e ataque continuam no diário gradual com replay sem novas recompensas. `playSave` valida espécie/nível/slots por UID, persiste uma revisão sem afetar `/` legado. Efeitos temporários, sem PP, backend, jogadores reais ou antifraude.
+- Adicionados testes Vitest core/write e E2E Chromium desktop/mobile com 2 golpes, seleção após reload e combate automático. **Resultados CI/PR/merge/Railway ainda pendentes** neste registro; próxima etapa: animações de HP/ataques e expandir status/learnsets.
+
 ## [v0.2-alpha — combate com status] — 2026-11-17 (publicado: PR #42)
 - Novos efeitos secundários em golpes ofensivos: queimadura de Ember, paralisia de Thunder Shock, envenenamento de Poison Sting (Weedle nível 1), Absorb recupera 50% do dano e Bubble pode reduzir Speed; metadados de `moves.csv`/`move_meta.csv` da PokéAPI versionados.
 - A simulação pura de combate aplica dano residual, limitação por paralisia e velocidade efetiva, imunidades básicas, RNG determinístico por seed e logs de efeito uma linha por vez; estados são temporários, não alteram UID ou inventário e nunca duplicam recompensas ao reassistir.

@@ -58,3 +58,5 @@ O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Ra
 > **Histórico de implementação (2026-11-17):** trabalho inicialmente feito em `feat/v02-evolution-by-uid`; PR #40 integrada; consulte os registros cronológicos em `docs/PROJECT_STATE.md`.
 
 > **Histórico de branch (17/11/2026):** `feat/v02-combat-status-secondary` foi integrada pela PR #42; histórico de CI/merge/deploy confirmado no último registro de `docs/PROJECT_STATE.md`.
+
+> **Branch em validação (17/11/2026):** `feat/v02-multi-moves-support-ai` baseada em `66d7bed414a52a8b3125a909a04dee57ec9d5c0d` inclui 1–4 golpes por UID, suporte FRLG Growl/Tail Whip/Thunder Wave/Poison Powder, IA determinística, writer, UI e testes. Ainda NÃO declarar publicada até CI/PR/merge/Railway SUCCESS. Consulte o último bloco do `docs/PROJECT_STATE.md`; próxima fase: animações HP e ataques (sem alterar recompensa/replay).
