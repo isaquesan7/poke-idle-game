@@ -1,3 +1,8 @@
+## [v0.2-alpha — HP e impactos sincronizados] — 2026-11-17 (em branch, CI/PR pendentes)
+- Trilha visual persistida com uma entrada por linha no diário: HP dos dois combatentes, tipo do evento, dano/cura, identidade histórica do parceiro e HP máximo. Não muda regras de dano, RNG, captura, XP ou recompensas.
+- Palco responsivo mostra HP numérico, animações de impacto, cura e status vinculadas ao progresso do diário (pausa, 2x, pular, replay). Sem novos recibos nem escrita visual. Saves anteriores sem trilha mostram o log completo sem HP inventado.
+- Tokens CSS no :root e prefers-reduced-motion, testes core/web e Chromium desktop/mobile adicionados. PR, CI, merge e Railway pendentes; próxima etapa: UX/acessibilidade e efeitos por tipo.
+
 ## [v0.2-alpha — quatro golpes e IA determinística] — 2026-11-17 (PUBLICADO PR #44)
 - Até quatro slots de golpes por Pokémon UID, com ações de adicionar, retirar e definir principal. Saves anteriores com só `moveName` carregam como slot único; `moveNames` opcional, sem novo schema. O golpe principal anterior e seus ranks permanecem intactos até edição consciente.
 - Primeiro catálogo de suporte baseado em learnset FireRed/LeafGreen: Growl, Tail Whip, Thunder Wave e Poison Powder para quatro espécies validadas; IA escolhe suporte viável nos dois primeiros turnos e depois golpe de melhor dano estimado, com stats, tipos e imunidades, sem RNG adicional fora da seed.
