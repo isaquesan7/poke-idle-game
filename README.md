@@ -121,3 +121,7 @@ A PR #9 foi integrada ao repositório no commit `bd530666`, com GitHub Actions [
 
 ### Pacote de recuperação verificável (somente prévia React)
 Na branch `feat/v02-writer-coordination-and-recovery-export`, a interface React experimental permite baixar um pacote JSON com SHA-256 e conferir um arquivo externo sem importá-lo. O fluxo preserva os bytes do save v0.1; a v0.1 publicada não é interrompida. O novo contrato de Web Locks limita-se às futuras abas v0.2 cooperativas, **não** pode bloquear instâncias legadas já abertas. Decisão D-019 e próxima etapa de laboratório em `docs/SAVE_MIGRATION_PLAN.md`.
+
+
+### Handoff da PR #11 — 2026-11-16
+A PR #11 foi integrada na `main` (`9369e4a4`), com Railway `SUCCESS`. Backup SHA-256 + conferência de arquivo são recursos SOMENTE da prévia React, sem migração ou escrita no save real. O CI pós-merge apresentou um timeout intermitente de fallback de GIF #25 no E2E legado devido ao cache do Chromium; a correção instala a interceptação antes de carregar a Pokédex (`fix/legacy-e2e-fallback-cache-and-handoff`). Acompanhar novo CI antes de declarar regressão resolvida; detalhes no final de `docs/PROJECT_STATE.md`.

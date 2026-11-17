@@ -49,6 +49,11 @@ async function legacy(browser, label, viewport) {
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await offline(page);
+  // Interceptar ANTES de Pokédex/Arena: GIF #25 pode ficar no cache do Chromium.
+  // Assim a falha simulada e o fallback PNG são determinísticos.
+  await page.route('**/assets/pokemon-gifs/poke_25.gif',route=>route.fulfill({
+    status:404,body:'',headers:{'cache-control':'no-store'}
+  }));
   await page.addInitScript(({s,k,saved,cache})=>{
     if (!localStorage.getItem(s)) localStorage.setItem(s,JSON.stringify(saved));
     localStorage.setItem(k,JSON.stringify(cache));
@@ -80,7 +85,7 @@ async function legacy(browser, label, viewport) {
   assert.equal(await page.locator('#view-pokedex .dexentry').count(),1);
   await page.locator('#dex-filter').fill('');
   await page.screenshot({path:new URL(label+'-pokedex.png',artifacts).pathname,animations:'disabled'});
-  await page.route('**/assets/pokemon-gifs/poke_25.gif',route=>route.fulfill({status:404,body:''}));
+  // A rota de falha da imagem já foi instalada ANTES do primeiro carregamento.
   await page.locator('.navbtn[data-view="arena"]').click();
   await page.waitForFunction(()=>[...document.querySelectorAll('#view-arena .fighter img')].some(img=>img.src.includes('/official-artwork/25.png')));
   await page.screenshot({path:new URL(label+'-arena.png',artifacts).pathname,animations:'disabled'});

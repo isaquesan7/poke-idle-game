@@ -45,3 +45,7 @@
 - Documentar cada seletor com um comentário curto e funcional em português: **o que controla**, e não a repetição literal de suas propriedades.
 - Agrupar estilos por área: base, navegação, componentes, treinador, Pokémon, Pokédex, combate, modais e responsividade.
 - Não mudar pixels/estados sem validar desktop/mobile; usar comparação visual e `npm test`.
+
+
+## E2E de imagens no Chromium — correção de flakiness (2026-11-16)
+Quando testar fallback de sprite via `page.route` para simular HTTP 404, instalar a rota **antes do primeiro carregamento** da página/Pokédex: uma rota instalada após o navegador já ter cacheado a imagem pode não interceptar o recurso, tornando o teste dependente do cache. Usar resultado verificável (src de PNG após erro) e preservar o runtime de sprites inalterado.
