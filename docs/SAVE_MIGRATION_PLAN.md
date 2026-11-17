@@ -115,3 +115,9 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 - PR #16 merged `977d14a9`, CI da PR `43991731238` SUCCESS, CI da main `43991985570` SUCCESS e Railway `54ccff55` SUCCESS. O jogo online permanece v0.1.
 - A nova suíte de Playwright provou no Chromium comportamento sob quota nativa, duas abas usando Web Locks, interrupções, reload, conflito e rollback isolado sem tocar chaves oficiais.
 - **Próximo bloqueador:** decidir contrato de autoridade do writer e delimitar quando a UI v0.1 deixa de ser fonte ativa de progresso, além de paridade total no React e exportação de backup fora do navegador. Ver `docs/CUTOVER_AUTHORITY_PROPOSAL.md`. Nenhum comando de commit v0.2 deverá sair do sandbox antes da aprovação e validação desses critérios.
+
+## 2026-11-16 — Gate de autorização explicitamente sempre bloqueado (D-022)
+- `inspectCutoverGate(storage,webLocksAvailable)` acumula resultados de `inspectMigrationReadiness`, leituras repetidas das chaves legadas/draft/reservadas e indisponibilidade do navegador. Retorna SEMPRE `{status:'blocked',canMigrate:false}`.
+- Bloqueios não negociáveis sem nova revisão: v0.1 não cooperativa, ausência de paridade total no React, writer oficial indisponível, backup externo não verificado, release não aprovado. Mesmo Chromium + localStorage nativo + Web Locks e pré-verificação válida não habilitam gravação oficial.
+- O novo `docs/LEGACY_MUTATION_MATRIX.md` foi elaborado com 21 ações e escritores indiretos; `tests/legacy-mutation-audit.test.mjs` protege o inventário de ações contra inclusões não auditadas. Não usar este teste como prova de ausência de mutações internas nas ações existentes.
+- Próxima prioridade: portar gradualmente ações v0.1 para reducers imutáveis do game-core; auditar duplicidade de rewards, capturas e claims. Após paridade testada, desenhar e aprovar formalmente transferência de autoridade/backup fora da origem e só então rever o gate.

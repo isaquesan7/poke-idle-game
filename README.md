@@ -145,3 +145,7 @@ A branch `feat/v02-isolated-browser-cutover-tests` adiciona `browserSandboxCutov
 
 ### Handoff de testes reais de migração — 2026-11-16
 A PR #16 integrou o laboratório de browser isolado à `main` (SHA `977d14a9`). O deploy Railway `54ccff55` e [GitHub Actions pós-merge #43991985570](https://github.com/isaquesan7/poke-idle-game/actions/runs/43991985570) ficaram em `SUCCESS`. A função testa storage nativo em localhost, sem gravar nenhum save oficial; o jogo online continua v0.1. Para o próximo ciclo, ver `docs/CUTOVER_AUTHORITY_PROPOSAL.md` e a última seção de `docs/PROJECT_STATE.md`.
+
+
+### Auditoria de migração e ações legadas (em revisão)
+A branch `feat/v02-fail-closed-cutover-gate-and-mutation-audit` acrescenta um diagnóstico React que **sempre bloqueia** cutover oficial da v0.1 para v0.2, mesmo com save válido/Web Locks. O inventário em [`docs/LEGACY_MUTATION_MATRIX.md`](docs/LEGACY_MUTATION_MATRIX.md) cobre os 21 handlers e os escritores indiretos do protótipo. Nenhum botão de migração nem writer oficial foi criado; runtime público v0.1 permanece inalterado. Testes de gate em Vitest e de auditoria em Node/E2E fazem parte do workflow permanente.
