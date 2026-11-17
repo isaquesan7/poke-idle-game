@@ -121,3 +121,7 @@ Se o jogador prosseguir na v0.1 depois de ativar futuramente uma v0.2 independen
 - Bloqueios não negociáveis sem nova revisão: v0.1 não cooperativa, ausência de paridade total no React, writer oficial indisponível, backup externo não verificado, release não aprovado. Mesmo Chromium + localStorage nativo + Web Locks e pré-verificação válida não habilitam gravação oficial.
 - O novo `docs/LEGACY_MUTATION_MATRIX.md` foi elaborado com 21 ações e escritores indiretos; `tests/legacy-mutation-audit.test.mjs` protege o inventário de ações contra inclusões não auditadas. Não usar este teste como prova de ausência de mutações internas nas ações existentes.
 - Próxima prioridade: portar gradualmente ações v0.1 para reducers imutáveis do game-core; auditar duplicidade de rewards, capturas e claims. Após paridade testada, desenhar e aprovar formalmente transferência de autoridade/backup fora da origem e só então rever o gate.
+
+
+### Fundação de regras Pokémon/equipe — 2026-11-16
+O game-core agora dispõe de redutores puros que devolvem outro JSON v0.1 para treino/reset de pontos por UID, adição/remoção da equipe e validação do estado. **Nenhuma saída é aplicada ao save v0.1 ou v0.2**. São provas de paridade parcial antes de transpor ações para React. O writer v0.2, backup externo, idempotência de rewards, coordenação com abas antigas e autorização de cutover continuam pendentes e bloqueados por `cutoverGate.ts`.

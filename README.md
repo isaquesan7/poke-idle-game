@@ -153,3 +153,7 @@ A branch `feat/v02-fail-closed-cutover-gate-and-mutation-audit` acrescenta um di
 
 ### Handoff — gate de migração v0.2 (2026-11-16)
 PR #18 integrada na main `64992f90`, com [GitHub Actions #43994224019](https://github.com/isaquesan7/poke-idle-game/actions/runs/43994224019) e Railway deploy `4009f1a4` em `SUCCESS`. O relatório de bloqueio continua somente leitura na prévia React; o jogo online v0.1 e seus saves não foram modificados. A [matriz de 21 ações legadas](docs/LEGACY_MUTATION_MATRIX.md) orienta as próximas rotinas puras de treino, equipe, batalha e expedição. Ver a última seção de `docs/PROJECT_STATE.md`.
+
+
+### Paridade de ações Pokémon/equipe (Foundation v0.2)
+`@kanto/game-core` inclui `reduceLegacyPokemonTeamJson` para treino/redistribuição de pontos manuais do Pokémon selecionado por UID e gestão de equipe (até 3; no mínimo 1; sem troca durante expedição). A entrada e o save do jogador **não são alterados**; o resultado é uma nova string JSON experimental. Testes Vitest cobrem integridade, orçamento, níveis e casos inválidos. Consulte `docs/LEGACY_MUTATION_MATRIX.md` e `docs/PROJECT_STATE.md` para próximos passos e status do release.

@@ -36,6 +36,8 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 | D-022 | 2026-11-16 | GATE EXPERIMENTAL EM IMPLEMENTAÇÃO | A elegibilidade estrutural do save e a disponibilidade de Web Locks **não autorizam** migrar. Até existir writer único, paridade integral, backup externo verificado e decisão explícita de release, a API de gate v0.2 terá apenas resultado `blocked` / `canMigrate:false`, sem flags de cliente para desbloquear. Mapeamento obrigatório dos 21 handlers v0.1 e de escritores indiretos; teste automatizado detecta alterações no conjunto de ações, com revisão humana adicional de mutações dentro das funções. |
 
+| D-023 | 2026-11-16 | REDUTORES PUROS EM IMPLEMENTAÇÃO | Para portar as quatro ações `stat-pokemon`, `reset-pokemon`, `add-team` e `remove-team`, criar reducer sem efeitos colaterais e que devolva novo JSON v0.1 sem modificar entrada; preservar campos desconhecidos e recursos. O Pokémon tem orçamento de **2 pontos manuais por nível adquirido**, mas a v0.1 não impõe o teto de 40 por atributo dos pontos do TREINADOR. A equipe mantém 1–3 UIDs únicos do roster e não pode mudar com expedição em andamento; treino do Pokémon continua permitido. Nenhuma ação nova pode gravar saves reais nem liberar `cutoverGate` até writer/cutover autorizado. |
+
 ## Decisão explicitamente substituída
 - **SUPERADA:** “8% a 10% aplicados diretamente ao atributo próprio do Pokémon” / “equipamentos limitados ao teto 40”.
 - **VIGENTE D-004/D-005:** pontos extras entram no total do treinador; 8–10% DO TOTAL DO TREINADOR são adicionados ao Pokémon.

@@ -16,3 +16,12 @@ export type { LegacyItem, LegacyBadge, LegacyTitle, LegacySpecies } from './lega
 
 export { editLegacyTrainerJson, validLegacyTrainerDraft, LEGACY_EQUIPMENT_SLOTS } from './legacy/trainerDraft.js';
 export type { TrainerDraftAction, TrainerDraftEditResult } from './legacy/trainerDraft.js';
+
+
+export {
+  legacyPokemonManualBudget, reduceLegacyPokemonTeamJson,
+  LEGACY_POKEMON_POINTS_PER_LEVEL, LEGACY_TEAM_MAX_MEMBERS
+} from './legacy/pokemonTeamReducer.js';
+export type {
+  LegacyPokemonTeamAction, LegacyPokemonTeamEditResult
+} from './legacy/pokemonTeamReducer.js';
