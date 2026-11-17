@@ -80,7 +80,7 @@ export const KANTO_BATTLE_SPECIES: Readonly<Record<number,KantoSpecies>> =
   ]));
 
 /**
- * Pool piloto expandida: 53 espécies não lendárias, incluindo os oito
+ * Pool piloto expandida: 54 espécies não lendárias, incluindo os oito
  * encontros originais (ordem preservada para seed 0 = Caterpie).
  * O catálogo de espécies contém 151, mas nem todas surgem na Arena ainda.
  */
