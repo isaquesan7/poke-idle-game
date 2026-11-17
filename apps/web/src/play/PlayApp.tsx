@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
-  KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats
+  KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats,
+  kantoLevelMoves, legacyMoveRankLimits, KANTO_BATTLE_MOVES
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
@@ -14,6 +15,7 @@ import {
 import type { PlayAction, PlayRead, PlayWrite } from './playSave';
 import styles from './PlayApp.module.css';
 import { PokedexPanel } from './PokedexPanel';
+import { BattlePlayback } from './BattlePlayback';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -28,6 +30,9 @@ const BATTLE_SPECIES_CACHE = JSON.stringify({
 });
 function speciesName(id:number):string {
   return KANTO_BATTLE_SPECIES[id]?.name ?? 'Pokémon #' + String(id).padStart(3,'0');
+}
+function focusedSpeciesFallback(speciesId:number|undefined) {
+  return speciesId?KANTO_BATTLE_SPECIES[speciesId]?.move:undefined;
 }
 function manualValues(input:unknown):StatValues {
   const result=zeroStats();
@@ -90,6 +95,7 @@ export function PlayApp() {
   const [collectionQuery, setCollectionQuery] = useState('');
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all');
   const [feedback, setFeedback] = useState('');
+  const [battlePlayback, setBattlePlayback] = useState<{id:string;seq:number}|null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -105,8 +111,8 @@ export function PlayApp() {
   }, []);
 
   /** Preferir Web Lock; sem suporte o modo alfa oferece revisão otimista local. */
-  async function transact(callback: () => PlayWrite): Promise<void> {
-    if (busy) return;
+  async function transact(callback: () => PlayWrite): Promise<PlayWrite|null> {
+    if (busy) return null;
     setBusy(true);
     try {
       const execute = () => callback();
@@ -115,9 +121,11 @@ export function PlayApp() {
         : execute();
       setSave(readSafe());
       setFeedback(outcome.status === 'ok' ? 'Progresso salvo neste navegador.' : outcome.reason);
+      return outcome;
     } catch {
       setSave(readSafe());
       setFeedback('O armazenamento não pôde ser atualizado. Verifique as permissões do navegador.');
+      return null;
     } finally { setBusy(false); }
   }
 
@@ -133,12 +141,21 @@ export function PlayApp() {
 
   /** Browser seguro: sorteia seed uint32, resolução real ocorre no game-core. */
   function fight(): void {
+    if (busy || battlePlayback || save.status!=='ready') return;
+    const expected=save.snapshot.revision;
     const seed = window.crypto.getRandomValues(new Uint32Array(1))[0];
     if (seed === undefined) {
       setFeedback('Não foi possível sortear o encontro.');
       return;
     }
-    dispatch({type:'battle',seed});
+    // Uma única transação de gameplay; animação não toca o save nem recompensas.
+    void transact(()=>updatePlaySave(window.localStorage,expected,{type:'battle',seed}))
+      .then(result=>{
+        if(result?.status==='ok'){
+          setTab('arena');
+          setBattlePlayback({id:'battle-v02-'+result.snapshot.revision,seq:1});
+        }
+      });
   }
 
   function openPokemon(uid:number):void {
@@ -154,6 +171,7 @@ export function PlayApp() {
       return;
     }
     setSave(readSafe());
+    setBattlePlayback(null);
     setTab('overview');
     setSelectedUid(null);
     setCollectionQuery('');
@@ -171,6 +189,13 @@ export function PlayApp() {
   const pokemonManual = manualValues(focused?.manual);
   const pokemonSpent = STATS.reduce((total, stat) => total + pokemonManual[stat], 0);
   const pokemonBudget = focused ? legacyPokemonManualBudget(focused.level) : 0;
+  const levelMoves=focused?kantoLevelMoves(focused.pokemonId,focused.level):[];
+  const currentMoveName=typeof focused?.moveName==='string'?focused.moveName:'';
+  const currentMove=KANTO_BATTLE_MOVES[currentMoveName] ?? focusedSpeciesFallback(focused?.pokemonId);
+  const moveRanks=focused?.upgrades && typeof focused.upgrades==='object'
+    ? focused.upgrades as Record<string,number> : {};
+  const moveLimits=focused?legacyMoveRankLimits(focused.level):null;
+  const moveSpent=Object.values(moveRanks).reduce((sum,rank)=>sum+(Number.isSafeInteger(rank)?rank:0),0);
   const focusedSpecies = focused ? KANTO_BATTLE_SPECIES[focused.pokemonId] : null;
   const focusedStats = focused && focusedSpecies && view
     ? pokemonFinalStats(
@@ -202,6 +227,7 @@ export function PlayApp() {
     && 'outcome' in lastBattleRaw && 'wildSpeciesId' in lastBattleRaw
     && 'log' in lastBattleRaw && Array.isArray(lastBattleRaw.log)
     ? lastBattleRaw as {
+        battleId?:string;
         outcome:'win'|'loss'|'draw'; wildSpeciesId:number;
         wildName:string;wildLevel:number;turns:number;
         captured:boolean;affinityGain:number|null;log:string[];
@@ -209,6 +235,8 @@ export function PlayApp() {
         playerRemainingHp:number;wildRemainingHp:number
       }
     : null;
+  const displayedBattleId=lastBattle?.battleId??'legacy-battle';
+  const battlePlaying=Boolean(battlePlayback && battlePlayback.id===displayedBattleId);
   const nextCycle = expedition
     ? Math.max(0, Math.ceil((EXPEDITION_CYCLE_MS - Math.max(0, now - expedition.lastClaimAt) % EXPEDITION_CYCLE_MS) / 1000))
     : 0;
@@ -276,7 +304,7 @@ export function PlayApp() {
           {(['overview','trainer','pokemon','collection','pokedex','arena','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
-              onClick={() => { setTab(item); setFeedback(''); }}>{sectionName(item)}</button>
+              onClick={() => { setTab(item); setFeedback(''); if(item!=='arena')setBattlePlayback(null); }}>{sectionName(item)}</button>
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
