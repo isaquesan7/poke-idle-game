@@ -119,12 +119,12 @@ describe('autoridade serial em RAM: recibos e revisão únicos no mesmo Map', ()
     expect((await a.submit(claim(), 'after-commit')).status).toBe('interrupted');
     expect((await b.submit(claim())).status).toBe('duplicate');
     expect(state(a).coins).toBe(342);
-    expect(await b.submit(claim('other-claim', 2, 130000)).toMatchObject({ status: 'rejected' });
+    expect(await b.submit(claim('other-claim', 2, 130000))).toMatchObject({ status: 'rejected' });
     expect((await a.submit(stop())).status).toBe('applied');
     expect(state(b).coins).toBe(349);
     expect(state(b).expedition).toBeNull();
     expect((await b.submit(stop())).status).toBe('duplicate');
-    expect(await a.submit(claim('stale', 3, 150000)).toMatchObject({ status: 'rejected' });
+    expect(await a.submit(claim('stale', 3, 150000))).toMatchObject({ status: 'rejected' });
     expect(a.read()?.revision).toBe(3);
   });
 
