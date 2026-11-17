@@ -142,6 +142,8 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
       return {status:'blocked',reason:'Save de combate inválido.'};
     }
     const trainer=game.trainer;
+    const trainerManual=trainer.manual as Record<string,unknown>;
+    const badgeIds=game.badges as unknown[];
     const currentUid=game.team[0];
     const active=(game.roster as unknown[]).find(p=>record(p)&&p.uid===currentUid);
     if (!record(active) || !Number.isSafeInteger(active.pokemonId)
@@ -156,7 +158,7 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
     const manual:StatValues=zeroStats();
     const pokemonManual:StatValues=zeroStats();
     for(const stat of STATS) {
-      const value=trainer.manual[stat] ?? 0;
+      const value=trainerManual[stat] ?? 0;
       const amount=active.manual[stat] ?? 0;
       if (!Number.isSafeInteger(value) || (value as number)<0 || (value as number)>40
         || !Number.isSafeInteger(amount) || (amount as number)<0 || (amount as number)>200) {
@@ -167,7 +169,7 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
     }
     const equipped=record(trainer.equipped)?trainer.equipped:{};
     const items=LEGACY_ITEMS.filter(item=>equipped[item.slot]===item.id);
-    const badges=LEGACY_BADGES.filter(badge=>game.badges.includes(badge.id));
+    const badges=LEGACY_BADGES.filter(badge=>badgeIds.includes(badge.id));
     const title=effectiveLegacyTitle(trainer.title,game.wins as number,
       game.seen.length,game.badges.length);
     const totals=trainerTotals({
