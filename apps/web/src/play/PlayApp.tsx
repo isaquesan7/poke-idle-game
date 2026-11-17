@@ -368,7 +368,7 @@ export function PlayApp() {
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
                     <h2>Arena de batalha</h2>
                     <p>Seu Pokémon enfrenta automaticamente um encontro de Kanto em até 30 turnos. O motor calcula precisão, dano, críticos e efetividade de tipos. Vitória concede XP, moedas, afinidade e chance de captura de 35%.</p>
-                    <p>Vitórias: <strong>{data.wins ?? 0}</strong> · Derrotas/empates: <strong>{data.losses ?? 0}</strong> · Insígnias: <strong>{view.badges.length}/8</strong></p>
+                    <p>Vitórias: <strong>{typeof data.wins === 'number' ? data.wins : 0}</strong> · Derrotas/empates: <strong>{typeof data.losses === 'number' ? data.losses : 0}</strong> · Insígnias: <strong>{view.badges.length}/8</strong></p>
                     <button className={styles.primary} type="button" disabled={busy} onClick={fight}>
                       Batalhar contra Pokémon selvagem
                     </button>
