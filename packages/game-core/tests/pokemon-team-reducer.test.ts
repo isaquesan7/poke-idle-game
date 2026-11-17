@@ -131,16 +131,18 @@ describe('redutores puros da equipe (ordem = Pokémon ativo)',()=>{
     reject(source,{type:'remove-team',uid:2});
     reject(source,{type:'remove-team',uid:1});
     const full=state();
+    full.roster.push(pokemon(4));
     full.team=[1,2,3];
-    reject(JSON.stringify(full),{type:'add-team',uid:999});
+    reject(JSON.stringify(full),{type:'add-team',uid:4});
   });
 
   it('bloqueia troca do time durante expedição, mas treino do Pokémon segue permitido',()=>{
     const active=state();
-    active.expedition={startedAt:5,lastClaimAt:11,teamUids:[1]} as unknown as null;
+    active.team=[1,2];
+    active.expedition={startedAt:5,lastClaimAt:11,teamUids:[1,2]} as unknown as null;
     const raw=JSON.stringify(active);
     reject(raw,{type:'add-team',uid:2});
-    reject(raw,{type:'remove-team',uid:1});
+    reject(raw,{type:'remove-team',uid:2});
     const trained=edited(raw,{type:'invest-pokemon',uid:1,stat:'hp'});
     expect(trained.expedition).toEqual(active.expedition);
     expect(trained.roster[0]?.manual.hp).toBe(4);
