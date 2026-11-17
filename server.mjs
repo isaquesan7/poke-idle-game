@@ -1,5 +1,5 @@
 import { createServer } from 'node:http';
-import { createReadStream, readFileSync } from 'node:fs';
+import { createReadStream, existsSync, readFileSync } from 'node:fs';
 
 /**
  * Servidor mínimo do laboratório: expõe apenas as rotas públicas conhecidas.
@@ -23,6 +23,50 @@ createServer((req, res) => {
   if (url.pathname === '/health') {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('ok');
+    return;
+  }
+  // Novo loop jogável React: HTML compilado pela etapa npm prestart.
+  // A raiz legada v0.1 continua ativa até termos paridade de combate e Pokedex.
+  if (url.pathname === '/play' || url.pathname === '/play/') {
+    const html = new URL('./apps/web/dist/index.html', import.meta.url);
+    if (!existsSync(html)) {
+      res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Build React indisponível');
+      return;
+    }
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'X-Content-Type-Options': 'nosniff'
+    });
+    createReadStream(html).pipe(res);
+    return;
+  }
+  // Assets do Vite: apenas nomes de arquivo sem subdiretórios, extensões conhecidas.
+  // Nunca servir código-fonte, configs, saves, node_modules ou arquivos arbitrários.
+  const built = /^\/assets\/([A-Za-z0-9_.-]+\.(?:js|css|svg|png|webp|woff2?))$/.exec(url.pathname);
+  if (built) {
+    const file = new URL('./apps/web/dist/assets/' + built[1], import.meta.url);
+    const stream = createReadStream(file);
+    stream.once('open', () => {
+      res.writeHead(200, {
+        'Content-Type': built[1].endsWith('.js') ? 'text/javascript; charset=utf-8'
+          : built[1].endsWith('.css') ? 'text/css; charset=utf-8'
+          : built[1].endsWith('.svg') ? 'image/svg+xml'
+          : built[1].endsWith('.png') ? 'image/png'
+          : built[1].endsWith('.webp') ? 'image/webp'
+          : 'font/woff2',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'X-Content-Type-Options': 'nosniff'
+      });
+      stream.pipe(res);
+    });
+    stream.once('error', () => {
+      if (!res.headersSent) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Asset não encontrado');
+      } else res.destroy();
+    });
     return;
   }
   // GIFs Kanto: somente IDs inteiros entre 1 e 151, sem acesso livre ao filesystem.

@@ -81,3 +81,10 @@ Ações v0.1: trocar `moveName` não apaga ranks antigos; aprimorar o golpe equi
 
 ## Testes de não duplicação de recompensa — laboratório (2026-11-17)
 Nenhum valor de XP, moedas, afinidade ou captura foi alterado. Uma simulação com autoridade ÚNICA em memória testa reenvio da mesma vitória ou claim: somente o primeiro evento altera save, enquanto replay com mesmo ID/payload retorna duplicado. A simulação NÃO verifica se a batalha foi vencida legitimamente, NÃO é ledger durável e NÃO executa recompensas na UI pública; backend de validação e combate determinístico permanecem planejados.
+
+## Fase de jogo alfa v0.2: primeira jornada (decisão D-027 — 2026-11-17)
+O projeto ainda **não possui jogadores reais**. A prioridade aprovada é publicar uma experiência utilizável antes do lançamento, não manter indefinidamente a v0.1 por compatibilidade hipotética.
+- Nova rota `/play`, criação de treinador com nome de 2 a 24 caracteres, escolha inicial Bulbasaur/Charmander/Squirtle (normal treinador Lv.1, parceiro Lv.5; demonstração opcional treinador Lv.21, parceiro Lv.20).
+- Páginas iniciais: visão geral, treinador (atributos/teto manual 40 e slots de equipamentos), Pokémon (2 pontos manuais por nível adquirido), expedição (10 s por ciclo; mesmas recompensas v0.1).
+- Equipamentos disponíveis apenas como catálogo provisório de teste, **não** representam inventário/drop/loja definitiva. Sem combate v0.2, evolução, negociação ou multiplayer nesta fase. Batalhas e captura ficam para a próxima etapa jogável.
+- Progresso ALFA local exclusivamente em `kanto-idle-play-v02`; reinicialização manual de dados de teste é permitida, sem importação ou escrita da chave `kanto-idle-lab-save-v01`. Enquanto não houver backend, relógio local/coin/XP podem ser alterados manualmente: não prometer antifraude.

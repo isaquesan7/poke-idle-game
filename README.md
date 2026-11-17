@@ -1,8 +1,10 @@
-# Poke Idle Game — Kanto Idle / LAB v0.1
+# Poke Idle Game — Kanto Idle / LAB v0.1 e alfa v0.2
 
 Protótipo experimental **não oficial** de RPG idle com Pokémon da região de Kanto, utilizando dados da [PokéAPI](https://pokeapi.co/docs/v2).
 
 ## Links oficiais deste projeto
+- **Nova jornada v0.2 alfa:** https://kanto-idle-web-production.up.railway.app/play (onboarding e progressão local; disponibilidade após integração e deploy desta PR)
+- **Protótipo v0.1:** https://kanto-idle-web-production.up.railway.app/
 - **Repositório de desenvolvimento:** https://github.com/isaquesan7/poke-idle-game
 - **Jogo online:** https://kanto-idle-web-production.up.railway.app/
 - **Ponto de entrada para novos chats/agentes:** [AGENTS.md](AGENTS.md)
@@ -169,3 +171,6 @@ PR #20 integrada à main `5e60f17b` com [GitHub Actions pós-merge #43996462703]
 
 ### Handoff confirmado — eventos de recompensa (2026-11-17)
 A PR #22 foi integrada à `main` SHA `989c2cdc`; [CI pós-merge #44057278833](https://github.com/isaquesan7/poke-idle-game/actions/runs/44057278833) e Railway deploy `5b76abc6` `SUCCESS`. A nova API RAM `prepareRewardJournal`/`applyRewardEvent` trata replays do mesmo ID, revisões obsoletas, captura e expedição, mas não verifica batalhas nem coordena duas abas independentes. **Não há writer oficial ou migração real; jogo publicado continua v0.1.** Próxima etapa e impedimentos em `docs/PROJECT_STATE.md`.
+
+## 2026-11-17 — Nova diretriz: jogo alfa primeiro
+Como ainda não há jogadores reais, o desenvolvimento passou a priorizar a v0.2 utilizável. A rota `/play` cria um save NOVO e independente `kanto-idle-play-v02` com treinador, Pokémon inicial, distribuição de pontos, equipamentos de testes e expedições idle. `npm start` compila o React antes de subir o servidor. A raiz `/` permanece como protótipo v0.1 até validarmos batalhas/capturas no novo loop. Dados v0.2 são testes pré-lançamento e podem ser reiniciados pela interface com confirmação; não há autenticação, sincronização de contas ou antifraude.

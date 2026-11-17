@@ -55,6 +55,8 @@ jobs:
         run: node apps/web/tests/e2e/draft-preview.mjs
       - name: E2E do sandbox de migração em localStorage REAL (loopback isolado)
         run: node apps/web/tests/e2e/browser-cutover-lab.mjs
+      - name: E2E da jornada jogável React v0.2 na rota /play
+        run: node apps/web/tests/e2e/playable-route.mjs
       - name: Guardar capturas para revisão visual
         if: always()
         uses: actions/upload-artifact@v4
@@ -64,4 +66,5 @@ jobs:
             artifacts/browser/*.png
             artifacts/react-preview/*.png
             artifacts/draft-preview/*.png
+            artifacts/playable/*.png
           if-no-files-found: ignore
