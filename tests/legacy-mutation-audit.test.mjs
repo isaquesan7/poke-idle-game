@@ -18,7 +18,7 @@ const EXPECTED=[
 
 test('todas as 21 ações legadas precisam constar na matriz de auditoria',()=>{
   assert.equal(actions.length,new Set(actions).size,'Ação duplicada encontrada');
-  assert.deepEqual(actions.toSorted(),EXPECTED.toSorted(),
+  assert.deepEqual([...actions].sort(),[...EXPECTED].sort(),
     'Atualizar docs/LEGACY_MUTATION_MATRIX.md e esta lista quando mudar handler legado');
 });
 
