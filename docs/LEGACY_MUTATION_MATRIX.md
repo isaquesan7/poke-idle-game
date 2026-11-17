@@ -60,3 +60,6 @@
 
 ## Implementação incremental de paridade: Pokémon/equipe (2026-11-16)
 O reducer `packages/game-core/src/legacy/pokemonTeamReducer.ts` cobre exclusivamente as quatro ações `stat-pokemon`, `reset-pokemon`, `add-team` e `remove-team` em um NOVO texto JSON, sem persistência. Valida UIDs individuais, orçamento de dois pontos por nível, expedição ativa e limites de equipe (1–3). Rejeita saves incompatíveis; preserva XP, moedas, capturas e atributos não relacionados. **Não cobre** combate, recompensas, encontros, títulos, equipamento, compras, writer ou rollback real. `cutoverGate.ts` permanece fail-closed. Testes: `packages/game-core/tests/pokemon-team-reducer.test.ts`.
+
+### Resultado da etapa de Pokémon/equipe (2026-11-16)
+PR #20 integrada em `5e60f17b`; CI `43996462703` e Railway `da78ab5a` SUCCESS. Os quatro handlers de Pokémon/time da matriz já têm equivalente PURO no core, mas **nenhuma escrita oficial**: próxima exigência é coordenar eventos de combate/expedição sem duplicação de recompensas antes do cutover v0.2.
