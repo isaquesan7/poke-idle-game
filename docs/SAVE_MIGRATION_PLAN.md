@@ -133,3 +133,7 @@ Reducers de Pokémon/equipe integrados em `5e60f17b` (GitHub Actions main `43996
 
 ### Recibos de recompensa experimentais (2026-11-17)
 O game-core passou a incluir `RewardJournal` com `revision/receipts` em RAM para simular idempotência de batalha, captura e expedição. **Não é ledger durável**, nem prova antifraude; o mesmo evento em duas cópias independentes pode receber recompensa duas vezes antes de se escolher uma revisão autoritativa. O gate de migração permanece bloqueado. A transferência de autoridade requer serialização/commit transacional de revisão+evento, backup fora do navegador, engine verificável, paridade completa de todas ações e testes de concorrência antes da ativação.
+
+
+### Resultado dos testes de antirreplay em RAM (2026-11-17)
+PR #22 merged no SHA `989c2cdc`; GitHub Actions pós-merge `44057278833` SUCCESS; Railway `5b76abc6` SUCCESS. Os testes demonstram replay idêntico sem crédito adicional, recusa de revision stale, captura com UID único por evento serializado e expedição sem claim repetido no mesmo cursor. **Cuidado:** duas cópias independentes de `RewardJournal` ainda podem divergir; qualquer sistema de recompensas real exige transação de writer autoritativo e validação do resultado, sem alterar saves antigos ou liberar `cutoverGate` prematuramente.

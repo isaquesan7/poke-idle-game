@@ -2,7 +2,7 @@
 
 > PONTO DE ENTRADA PARA NOVOS CHATS E AGENTES. Leia este arquivo antes de planejar ou alterar código.
 > Atualizado em 2026-11-16. A fonte final do estado técnico é o próprio GitHub/Railway; confira sempre os dados ao vivo.
-> **Handoff em desenvolvimento (2026-11-17):** base main `2b477576` (PRs #3–#21 merged), Railway `e1e86c96` SUCCESS; branch `feat/v02-idempotent-reward-events` prepara eventos PUROS em RAM de resultado de batalha/captura e expedição com IDs, recibos e revisão monotônica. Ainda sem writer único: **dois envelopes independentes continuam podendo divergir**; resultados de batalha são pré-resolvidos e não autenticados. `cutoverGate.ts` mantém `canMigrate:false`; jogo público v0.1 e saves reais intactos. Confira o último `docs/PROJECT_STATE.md`, PR/CI e deploy ao vivo.
+> **Handoff mais recente (2026-11-17):** PRs #3–#22 integradas à `main` até `989c2cdc`. A PR #22 adicionou `RewardJournal` PURO de batalha pré-resolvida/captura e expedição start/claim/stop com IDs, revisão e recibos. CI da PR `44056942594` SUCCESS, CI pós-merge `44057278833` SUCCESS e Railway `5b76abc6-c194-4db2-81e7-2876ed09aa89` SUCCESS. **O jogo público continua v0.1, com save original inalterado; NÃO existe writer v0.2 autorizado.** Um cliente não prova vitória, e envelopes de abas independentes podem divergir. Próxima etapa: simular autoridade única de transações e ledger de eventos durável no laboratório (não no save real), elaborar motor de combate determinístico e testes antirreplay; depois retomar paridade/backup externo. Veja a última seção do `docs/PROJECT_STATE.md`.
 
 ## Identidade e limites
 - Projeto: **Poke Idle Game / Kanto Idle LAB** (protótipo v0.1; Season 1: Pokémon #001–#151).
