@@ -13,7 +13,7 @@ await mkdir(shots, { recursive: true });
 
 const example = {
   version: 1, name: 'Treinador de Kanto', coins: 321,
-  trainer: { level: 21, xp: 17, manual: { attack: 40 } },
+  trainer: { level: 21, xp: 17, manual: { attack: 40 }, equipped: {} },
   roster: [{ uid: 1, pokemonId: 1, level: 20, affinity: 73 }],
   team: [1], badges: ['boulder'], note: 'campo antigo preservado'
 };
@@ -66,6 +66,39 @@ async function checkValid(browser, label, viewport) {
   assert.equal(downloaded, raw); // export deve ser byte a byte igual ao save anterior
   const unchanged = await page.evaluate(key => localStorage.getItem(key), SAVE);
   assert.equal(unchanged, raw);
+  // Exportação SHA-256 não altera o save nem chaves oficiais futuras.
+  const packageDownload = page.waitForEvent('download', { timeout: 15000 });
+  await page.getByRole('button', { name: 'Baixar pacote verificável SHA-256' }).click();
+  const packageFile = await packageDownload;
+  assert.equal(packageFile.suggestedFilename(),'kanto-idle-v01-recovery-verified.json');
+  const packageRaw = await readFile(await packageFile.path(),'utf8');
+  const packageJson = JSON.parse(packageRaw);
+  assert.equal(packageJson.backup.sourceRaw,raw);
+  assert.deepEqual(packageJson.candidate.progress,example);
+  assert.equal(packageJson.candidate.schemaVersion,2);
+
+  const recoveryInput = page.getByLabel('Conferir pacote JSON (sem restaurar)');
+  await recoveryInput.setInputFiles({
+    name:'backup.json',mimeType:'application/json',buffer:Buffer.from(packageRaw)
+  });
+  await page.getByText('Pacote íntegro e igual ao save atual. Nenhum dado foi restaurado.').waitFor();
+  const forged=JSON.stringify({
+    ...packageJson,backup:{...packageJson.backup,sourceRaw:raw+' '}
+  });
+  await recoveryInput.setInputFiles({
+    name:'danificado.json',mimeType:'application/json',buffer:Buffer.from(forged)
+  });
+  await page.getByText(/Arquivo não aceito:/).waitFor();
+  const keys = await page.evaluate(() => ({
+    legacy:localStorage.getItem('kanto-idle-lab-save-v01'),
+    official:localStorage.getItem('kanto-idle-lab-save-v02'),
+    backup:localStorage.getItem('kanto-idle-lab-save-v02-origin-backup'),
+    marker:localStorage.getItem('kanto-idle-lab-save-v02-commit')
+  }));
+  assert.equal(keys.legacy,raw);
+  assert.equal(keys.official,null);
+  assert.equal(keys.backup,null);
+  assert.equal(keys.marker,null);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 1, 'Overflow horizontal no viewport '+label+': '+overflow);
   assert.deepEqual(pageErrors, []);
