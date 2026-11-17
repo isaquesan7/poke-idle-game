@@ -183,3 +183,6 @@ A PR #30 concluiu a correção de runtime: `main` `9536860e`, CI completo `44068
 
 ### Arena v0.2 — combate determinístico e capturas (PR #32 em validação)
 A rota `/play` passa a oferecer Arena automática: batalhas em até 30 turnos com cálculo de precisão, crítico, dano, tipagem, vitória/derrota, XP, moedas, insígnias e captura com chance de 35% após vencer. São 8 espécies selvagens piloto com stats/moves locais e os 3 iniciais; não são todos os 151 Pokémon ainda. O resultado e o diário são salvos na chave v0.2 sem alterar `/` nem saves da v0.1. É alfa pré-lançamento com seed gerada no navegador e **sem antifraude**. PR #32 depende de CI e publicação para essa funcionalidade estar disponível no Railway.
+
+### Arena publicada (PR #32, 2026-11-17)
+O combate com capturas já está integrado na `/play`. PR #32 merged `6bf399ac`, GitHub Actions `44071892270` SUCCESS e Railway `1e30e03e-4de7-48f9-b999-2206919a43b7` SUCCESS com healthcheck aprovado. É um catálogo PILOTO de 8 espécies selvagens, não os 151 encontros. O botão da Arena calcula vitória e recompensa com motor de combate puro; o jogo e o diário persistem localmente. GET externo não verificado nesta sessão. Próxima etapa: coleção, equipe por UID e Pokédex ampliada.
