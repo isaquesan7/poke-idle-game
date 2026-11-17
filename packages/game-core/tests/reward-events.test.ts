@@ -39,10 +39,15 @@ function rejected(j:RewardJournal,c:RewardCommand):void {
   expect(outcome.journal).toBe(j);
   expect(JSON.stringify(j)).toBe(before);
 }
-const battle=(id='b1',expectedRevision=0):RewardCommand=>({
+type BattleCommand = Extract<RewardCommand,{type:'battle-result'}>;
+const battle=(id='b1',expectedRevision=0):BattleCommand=>({
   type:'battle-result',id,expectedRevision,activeUid:1,wildLevel:10,
   outcome:'win',affinityGain:3,
   capture:{pokemonId:25,moveName:'thunder-shock'}
+});
+const noCapture=(id:string,expectedRevision=0):BattleCommand=>({
+  type:'battle-result',id,expectedRevision,activeUid:1,wildLevel:10,
+  outcome:'win',affinityGain:3
 });
 const start=(id='s1',expectedRevision=0,nowMs=100000):RewardCommand=>({
   type:'start-expedition',id,expectedRevision,nowMs
@@ -134,9 +139,9 @@ describe('journal de eventos idempotentes v0.2 (somente RAM)',()=>{
   it('desbloqueia insígnias UMA vez por vitória e não duplica títulos',()=>{
     const enriched={...source(),wins:2,badges:['boulder']};
     let j=journal(JSON.stringify(enriched));
-    j=applied(j,{...battle('win-3'),capture:undefined});
+    j=applied(j,noCapture('win-3'));
     expect(parsed(j).badges).toEqual(['boulder','cascade']);
-    j=applied(j,{...battle('win-4',1),capture:undefined});
+    j=applied(j,noCapture('win-4',1));
     expect(parsed(j).badges).toEqual(['boulder','cascade']);
     expect(parsed(j).trainer.title).toBe('aprendiz');
   });
