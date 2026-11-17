@@ -104,7 +104,7 @@ describe('combate determinístico Kanto — fórmulas do protótipo',()=>{
     expect(()=>kantoTypeMultiplier('inventado',['water'])).toThrow();
   });
 
-  it('catálogo local de 3 iniciais, 8 selvagens e stats positivos',()=>{
+  it('catálogo local de 151 espécies, 54 selvagens e stats positivos',()=>{
     for(const id of [1,4,7,...KANTO_WILD_POOL]){
       const info=KANTO_BATTLE_SPECIES[id];
       expect(info?.id).toBe(id);
@@ -112,7 +112,8 @@ describe('combate determinístico Kanto — fórmulas do protótipo',()=>{
       expect(own.hp).toBeGreaterThan(0);
       expect(info!.move.power).toBeGreaterThan(0);
     }
-    expect(new Set(KANTO_WILD_POOL).size).toBe(8);
+    expect(new Set(KANTO_WILD_POOL).size).toBe(54);
+    expect(KANTO_WILD_POOL.slice(0,8)).toEqual([10,16,19,25,37,43,60,74]);
   });
 });
 

@@ -51,3 +51,8 @@ export {
 export type {
   Combatant, KantoMove, KantoSpecies, KantoBattleResult, BattleOutcome
 } from './combat/kantoBattle.js';
+
+export {
+  KANTO_POKEDEX, KANTO_CATALOG_SOURCE_COMMIT, kantoSpecies, kantoDexStatus
+} from './catalog/kantoSpecies.js';
+export type { KantoCatalogSpecies, KantoDexStatus } from './catalog/kantoSpecies.js';

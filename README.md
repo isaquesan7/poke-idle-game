@@ -192,3 +192,6 @@ Nova aba **Coleção** em `/play`: lista cada Pokémon capturado por UID com ní
 
 ### Coleção e equipe publicadas (2026-11-17)
 PR #34 merged na main SHA `e6ee20b5`, CI `44081662800` SUCCESS e Railway `047d2ee9-ba49-43d8-bbac-c5a11e8fcec4` SUCCESS com /health interno aprovado. Acesse `/play` e abra a aba **Coleção** para montar a equipe e trocar o líder da Arena. Treino de qualquer instância por UID; o time é bloqueado durante expedições. Os 151 GIFs existem, mas apenas um catálogo piloto de 11 espécies tem stats de combate nesta fase; expandiremos o catálogo e a Pokédex. Dados locais ainda são alfa sem jogadores reais.
+
+### Pokédex Kanto 151 (em validação nesta branch)
+A experiência React `/play` ganha aba **Pokédex** com 151 entradas, não encontradas (???), vistas e capturadas, filtros e detalhes da espécie. O snapshot local de nomes, tipos atuais, seis stats-base e evolução foi derivado dos CSV públicos do repositório PokéAPI na revisão `ac2f1acb055026e3dff1e0aca743bb46256a810a`. A Arena permite combater com qualquer uma das 151 espécies, ampliou encontros selvagens comuns de 8 para **54**; os golpes das espécies novas ainda são provisórios (não learnsets certificados). Os dados de progresso continuam exclusivamente no save de testes v0.2, sem backend ou usuários reais. CI, merge e deployment desta nova fase serão confirmados separadamente.

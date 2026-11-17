@@ -7,10 +7,12 @@
  * Fonte de aleatoriedade: seed uint32 explícito → LCG reproduzível.
  * NÃO é RNG criptográfico, prova antifraude ou cálculo de servidor.
  *
- * Catálogo inicial de espécies e golpes é um SNAPSHOT para rota Alfa;
+ * Dados-base das 151 espécies são um snapshot oficial da PokéAPI;
+ * movimentos automáticos das espécies novas são PROVISÓRIOS (não learnsets);
  * PokéAPI/dados externos poderão ampliar Kanto em uma etapa posterior.
  */
 import type { StatValues } from '../stats/types.js';
+import { KANTO_POKEDEX } from '../catalog/kantoSpecies.js';
 
 export type KantoMove = Readonly<{
   name: string;
@@ -47,34 +49,47 @@ const MOVE = {
 export const KANTO_BATTLE_MOVES: Readonly<Record<string,KantoMove>> =
   Object.fromEntries(Object.values(MOVE).map(move=>[move.name,move]));
 
-/** 3 iniciais e 8 encontros de rotas Kanto para o primeiro ciclo de batalha. */
-export const KANTO_BATTLE_SPECIES: Readonly<Record<number,KantoSpecies>> = {
-  1: { id:1,name:'Bulbasaur',types:['grass','poison'],
-    base:{hp:45,attack:49,defense:49,specialAttack:65,specialDefense:65,speed:45},move:MOVE.vineWhip },
-  4: { id:4,name:'Charmander',types:['fire'],
-    base:{hp:39,attack:52,defense:43,specialAttack:60,specialDefense:50,speed:65},move:MOVE.ember },
-  7: { id:7,name:'Squirtle',types:['water'],
-    base:{hp:44,attack:48,defense:65,specialAttack:50,specialDefense:64,speed:43},move:MOVE.waterGun },
-  10: { id:10,name:'Caterpie',types:['bug'],
-    base:{hp:45,attack:30,defense:35,specialAttack:20,specialDefense:20,speed:45},move:MOVE.tackle },
-  16: { id:16,name:'Pidgey',types:['normal','flying'],
-    base:{hp:40,attack:45,defense:40,specialAttack:35,specialDefense:35,speed:56},move:MOVE.gust },
-  19: { id:19,name:'Rattata',types:['normal'],
-    base:{hp:30,attack:56,defense:35,specialAttack:25,specialDefense:35,speed:72},move:MOVE.quickAttack },
-  25: { id:25,name:'Pikachu',types:['electric'],
-    base:{hp:35,attack:55,defense:40,specialAttack:50,specialDefense:50,speed:90},move:MOVE.thunderShock },
-  37: { id:37,name:'Vulpix',types:['fire'],
-    base:{hp:38,attack:41,defense:40,specialAttack:50,specialDefense:65,speed:65},move:MOVE.ember },
-  43: { id:43,name:'Oddish',types:['grass','poison'],
-    base:{hp:45,attack:50,defense:55,specialAttack:75,specialDefense:65,speed:30},move:MOVE.absorb },
-  60: { id:60,name:'Poliwag',types:['water'],
-    base:{hp:40,attack:50,defense:40,specialAttack:40,specialDefense:40,speed:90},move:MOVE.bubble },
-  74: { id:74,name:'Geodude',types:['rock','ground'],
-    base:{hp:40,attack:80,defense:100,specialAttack:30,specialDefense:30,speed:20},move:MOVE.rockThrow }
+/**
+ * Todas as 151 espécies podem compor combatentes.
+ * Golpes padrão desta primeira extensão são PROVISÓRIOS e por tipo;
+ * NÃO representam a lista de aprendizado validada da PokéAPI.
+ * Os 11 movimentos já usados na Arena anterior são preservados.
+ */
+const PRIMARY_MOVES: Readonly<Record<string,KantoMove>> = {
+  normal:MOVE.tackle,bug:MOVE.tackle,poison:MOVE.tackle,
+  fighting:MOVE.tackle,psychic:MOVE.tackle,ghost:MOVE.tackle,
+  ground:MOVE.tackle,ice:MOVE.tackle,dragon:MOVE.tackle,fairy:MOVE.tackle,
+  dark:MOVE.tackle,steel:MOVE.tackle,
+  grass:MOVE.vineWhip,fire:MOVE.ember,water:MOVE.waterGun,
+  flying:MOVE.gust,electric:MOVE.thunderShock,rock:MOVE.rockThrow
 };
+const ORIGINAL_ARENA_MOVES: Readonly<Record<number,KantoMove>> = {
+  1:MOVE.vineWhip,4:MOVE.ember,7:MOVE.waterGun,
+  10:MOVE.tackle,16:MOVE.gust,19:MOVE.quickAttack,
+  25:MOVE.thunderShock,37:MOVE.ember,43:MOVE.absorb,
+  60:MOVE.bubble,74:MOVE.rockThrow
+};
+export const KANTO_BATTLE_SPECIES: Readonly<Record<number,KantoSpecies>> =
+  Object.fromEntries(KANTO_POKEDEX.map(species=>[
+    species.id,{
+      id:species.id,name:species.name,types:species.types,
+      base:species.base,
+      move:ORIGINAL_ARENA_MOVES[species.id] ??
+        PRIMARY_MOVES[species.types[0]!] ?? MOVE.tackle
+    }
+  ]));
 
-/** Seleção controlada pela seed: nenhum parâmetro de espécie vindo do botão. */
-export const KANTO_WILD_POOL = [10,16,19,25,37,43,60,74] as const;
+/**
+ * Pool piloto expandida: 54 espécies não lendárias, incluindo os oito
+ * encontros originais (ordem preservada para seed 0 = Caterpie).
+ * O catálogo de espécies contém 151, mas nem todas surgem na Arena ainda.
+ */
+export const KANTO_WILD_POOL = [
+  10,16,19,25,37,43,60,74,
+  13,21,23,27,29,32,35,39,41,46,48,50,52,54,56,58,
+  63,66,69,72,77,79,81,83,84,86,88,90,92,95,96,98,
+  100,102,104,109,111,116,118,120,123,129,133,137,140,147
+] as const;
 
 export type Combatant = Readonly<{
   speciesId: number;
