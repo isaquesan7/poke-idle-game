@@ -379,6 +379,9 @@ export function simulateKantoBattle(
           defender.stats.defense*2/(2+foeDefenseDrop)))}};
       const hit=kantoDamage(stagedActor,stagedDefender,roll(),roll(),
         actorStatus==='burn'&&move.category==='physical'?0.5:1);
+      // O texto mantém o dano calculado; animação mostra só HP de fato perdido
+      // quando o golpe excede o HP restante (overkill).
+      const hpBeforeHit=isPlayer?wildHp:playerHp;
       if(isPlayer)wildHp=Math.max(0,wildHp-hit.damage);
       else playerHp=Math.max(0,playerHp-hit.damage);
       const effectText=hit.effectiveness===0?' · Imune'
@@ -386,7 +389,7 @@ export function simulateKantoBattle(
           :hit.effectiveness<1?' · Resistido':'';
       note('T'+turns+' · '+actor.name+' usou '+move.name+': '+
         hit.damage+' dano'+(hit.critical?' · CRÍTICO':'')+effectText+'.',
-        'attack',isPlayer?'wild':'player',hit.damage);
+        'attack',isPlayer?'wild':'player',Math.min(hpBeforeHit,hit.damage));
 
       // Sem hit efetivo ou alvo já derrotado não há efeitos adicionais.
       if(hit.damage===0||(isPlayer?wildHp:playerHp)===0)continue;
