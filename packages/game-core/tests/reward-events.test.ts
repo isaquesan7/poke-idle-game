@@ -49,7 +49,7 @@ const noCapture=(id:string,expectedRevision=0):BattleCommand=>({
   type:'battle-result',id,expectedRevision,activeUid:1,wildLevel:10,
   outcome:'win',affinityGain:3
 });
-const start=(id='s1',expectedRevision=0,nowMs=100000):RewardCommand=>({
+const start=(id='s1',expectedRevision=0,nowMs=100000):Extract<RewardCommand,{type:'start-expedition'}>=>({
   type:'start-expedition',id,expectedRevision,nowMs
 });
 const claim=(id='c1',expectedRevision=1,nowMs=130000):Extract<RewardCommand,{type:'claim-expedition'}>=>({
