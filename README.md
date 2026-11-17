@@ -177,3 +177,6 @@ Como ainda não há jogadores reais, o desenvolvimento passou a priorizar a v0.2
 
 ### Handoff da primeira jornada v0.2 publicada
 PR #29 merged em `684ebf43`; GitHub Actions `44067662663` SUCCESS (inclui navegador desktop/mobile e rota `/play` no servidor), Railway `fd9cd32a` SUCCESS com healthcheck interno. A rota `/play` usa Vite compilado em `npm prestart`; a `/` continua v0.1. Correção do requisito Node 22 em D-028; dados desta alfa são só testes, sem contas ou backend.
+
+### Release confirmada — Node 22 e primeira experiência jogável (2026-11-17)
+A PR #30 concluiu a correção de runtime: `main` `9536860e`, CI completo `44068373957` SUCCESS, Railway `025abdf3-454e-4203-83b4-277ff1403d33` SUCCESS, Node 22.23.4 selecionado e `/health` interno aprovado. Jogar a alfa em `/play`. Não há jogadores reais nem importação compulsória da v0.1; próxima etapa é o combate determinístico. GET externo não foi confirmado neste ambiente.
