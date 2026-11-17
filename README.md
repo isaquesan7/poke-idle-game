@@ -165,3 +165,7 @@ PR #20 integrada à main `5e60f17b` com [GitHub Actions pós-merge #43996462703]
 
 ### Eventos puros de recompensas (Foundation v0.2, laboratório)
 `@kanto/game-core` exporta `prepareRewardJournal` e `applyRewardEvent` para um envelope **exclusivamente em RAM**: resultado de batalha já calculado (com captura opcional), início/resgate/encerramento de expedição. IDs de evento e revisão impedem reenvio duplicado **dentro de um único envelope compartilhado**; duas abas isoladas ainda não têm writer canônico. O reducer não comprova batalhas e não grava saves reais nem concede recompensas na v0.1. Ver `docs/PROJECT_STATE.md` e `docs/SAVE_MIGRATION_PLAN.md`.
+
+
+### Handoff confirmado — eventos de recompensa (2026-11-17)
+A PR #22 foi integrada à `main` SHA `989c2cdc`; [CI pós-merge #44057278833](https://github.com/isaquesan7/poke-idle-game/actions/runs/44057278833) e Railway deploy `5b76abc6` `SUCCESS`. A nova API RAM `prepareRewardJournal`/`applyRewardEvent` trata replays do mesmo ID, revisões obsoletas, captura e expedição, mas não verifica batalhas nem coordena duas abas independentes. **Não há writer oficial ou migração real; jogo publicado continua v0.1.** Próxima etapa e impedimentos em `docs/PROJECT_STATE.md`.

@@ -67,3 +67,6 @@ PR #20 integrada em `5e60f17b`; CI `43996462703` e Railway `da78ab5a` SUCCESS. O
 
 ### Progresso da paridade de recompensas (2026-11-17)
 `packages/game-core/src/legacy/rewardEvents.ts` adiciona comandos **somente em memória**, com `RewardJournal` + revision/IDs, para resultado de batalha pré-resolvido/captura, start/claim/stop de expedição. A vitória/derrota/captura/claim são contabilizadas uma vez por evento em uma transição SEQUENCIAL do envelope. Não há engine de turnos, comprovação da vitória ou proteção entre abas isoladas: dois envelopes com mesma revisão ainda divergem. Nenhum writer real v0.2 foi criado e o gate permanece fechado.
+
+### Validação da etapa de recompensas (2026-11-17)
+PR #22 integrada em `989c2cdc`, CI da main `44057278833` e Railway deploy `5b76abc6` SUCCESS. Eventos RAM de battle-result/capture/start/claim/stop implementados, porém nenhum resultado é verificado por autoridade e os recibos não são duráveis. Ações de recompensa do jogo público continuam exclusivamente na v0.1. Próxima ação: estabelecer autoridade única e testes de falha de duas abas para impedir payout duplo de fato.
