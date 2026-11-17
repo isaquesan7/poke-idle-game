@@ -53,6 +53,8 @@ jobs:
         run: node apps/web/tests/e2e/react-preview.mjs
       - name: E2E rascunho versionado v0.2
         run: node apps/web/tests/e2e/draft-preview.mjs
+      - name: E2E do sandbox de migração em localStorage REAL (loopback isolado)
+        run: node apps/web/tests/e2e/browser-cutover-lab.mjs
       - name: Guardar capturas para revisão visual
         if: always()
         uses: actions/upload-artifact@v4
