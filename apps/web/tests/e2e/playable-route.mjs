@@ -331,6 +331,18 @@ async function exercise(browser, label, viewport) {
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1 pela coleção',exact:true}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===17,SAVE);
   await page.getByRole('button',{name:'Arena',exact:true}).click();
+  // Seed FIXA só para esta batalha E2E: contra Caterpie deve usar Growl e
+  // em seguida Scratch; sem depender da sorte do encontro no navegador.
+  await page.evaluate(()=>{
+    const original=window.crypto.getRandomValues.bind(window.crypto);
+    Object.defineProperty(window.crypto,'getRandomValues',{
+      configurable:true,
+      value(array){
+        if(array instanceof Uint32Array&&array.length===1){array[0]=0;return array;}
+        return original(array);
+      }
+    });
+  });
   await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===18,SAVE);
   const multi=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).lastBattle,SAVE);
