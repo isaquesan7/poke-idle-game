@@ -125,6 +125,30 @@ describe('redutores puros da equipe (ordem = Pokémon ativo)',()=>{
     reject(JSON.stringify(withoutSecond),{type:'remove-team',uid:3});
   });
 
+  it('define líder por UID já escalado e preserva ordem de reservas e coleção',()=>{
+    const withTwo=edited(source,{type:'add-team',uid:2});
+    const withThree=edited(JSON.stringify(withTwo),{type:'add-team',uid:3});
+    const lead=edited(JSON.stringify(withThree),{type:'set-active',uid:3});
+    expect(lead.team).toEqual([3,1,2]);
+    expect(lead.roster).toEqual(withThree.roster);
+    expect(lead.trainer).toEqual(withThree.trainer);
+    expect(lead.coins).toBe(321);
+    expect(lead.nextUid).toBe(4);
+    reject(JSON.stringify(lead),{type:'set-active',uid:3});
+    reject(JSON.stringify(lead),{type:'set-active',uid:999});
+    const newLead=edited(JSON.stringify(lead),{type:'set-active',uid:2});
+    expect(newLead.team).toEqual([2,3,1]);
+  });
+
+  it('não permite promover reserva diretamente nem trocar líder na expedição',()=>{
+    reject(source,{type:'set-active',uid:2});
+    const withTwo=edited(source,{type:'add-team',uid:2});
+    const running={...withTwo,expedition:{startedAt:5,lastClaimAt:5,teamUids:[1,2]}};
+    reject(JSON.stringify(running),{type:'set-active',uid:2});
+    expect(edited(JSON.stringify(running),{type:'invest-pokemon',uid:2,stat:'hp'}).team)
+      .toEqual([1,2]);
+  });
+
   it('não aceita duplicata, Pokémon sem UID, remoção de fora do time ou 4º membro',()=>{
     reject(source,{type:'add-team',uid:1});
     reject(source,{type:'add-team',uid:999});
