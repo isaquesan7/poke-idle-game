@@ -48,9 +48,10 @@ async function exercise(browser, label, viewport) {
   assert.equal(JSON.parse(snapshot.journal.raw).roster[0].pokemonId,4);
   await page.getByRole('button',{name:'Treinador',exact:true}).click();
   await page.getByRole('button',{name:'Adicionar ponto em ATK do treinador'}).click();
-  await page.getByText('Progresso salvo neste navegador.').waitFor();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===1,SAVE);
   await page.getByRole('button',{name:'Pokémon',exact:true}).click();
   await page.getByRole('button',{name:'Adicionar ponto em DEF do Pokémon'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===2,SAVE);
   snapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.equal(JSON.parse(snapshot.journal.raw).trainer.manual.attack,1);
   assert.equal(JSON.parse(snapshot.journal.raw).roster[0].manual.defense,1);
@@ -58,6 +59,7 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Expedição',exact:true}).click();
   await page.getByRole('button',{name:'Iniciar expedição'}).click();
   await page.getByRole('heading',{name:'Expedição em andamento'}).waitFor();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===3,SAVE);
   // Ensaio em navegador: acelera apenas o cursor do save de teste.
   // Não existe relógio confiável nem anti-cheat nesta versão local.
   await page.evaluate(key=>{
@@ -70,7 +72,7 @@ async function exercise(browser, label, viewport) {
   await page.reload();
   await page.getByRole('button',{name:'Expedição',exact:true}).click();
   await page.getByRole('button',{name:'Resgatar recompensas'}).click();
-  await page.getByText('Progresso salvo neste navegador.').waitFor();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===4,SAVE);
   const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   const game=JSON.parse(after.journal.raw);
   assert.ok(game.coins>=221, 'Três ciclos devem render pelo menos 21 moedas na demo');
