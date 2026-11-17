@@ -202,8 +202,8 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
       speciesId:species.id,name:species.name,level:active.level as number,
       types:species.types,
       stats:pokemonFinalStats(species.base,active.level as number,pokemonManual,totals,active.affinity as number),
-      move,rank:rank as number,moves:equippedMoves as Combatant['moves'],
-      ranks:upgrades as Combatant['ranks']
+      move,rank:rank as number,moves:equippedMoves as NonNullable<Combatant['moves']>,
+      ranks:upgrades as NonNullable<Combatant['ranks']>
     };
     const wildSpeciesId=KANTO_WILD_POOL[seed % KANTO_WILD_POOL.length]!;
     const enemy=KANTO_BATTLE_SPECIES[wildSpeciesId]!;
