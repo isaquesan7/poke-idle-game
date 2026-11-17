@@ -44,6 +44,10 @@
   --radius-pill: 99px;
   /* Durações e limites de layout. */
   --duration-fast: .12s;
+  /* Trilha visual da Arena: transições com tempo inferior à exibição 2× (450 ms). */
+  --duration-battle-health: .26s;
+  --duration-battle-impact: .3s;
+  --duration-battle-float: .42s;
   --layout-max-width: 1440px;
   /* Cores específicas agrupadas por seletor; editar aqui, não nas classes. */
   --color-body-background-1: #162c3b; /* body · background */

@@ -49,7 +49,8 @@ export {
   KANTO_BATTLE_MOVES, kantoTypeMultiplier, kantoDamage, simulateKantoBattle
 } from './combat/kantoBattle.js';
 export type {
-  Combatant, KantoMove, KantoSpecies, KantoBattleResult, BattleOutcome
+  Combatant, KantoMove, KantoSpecies, KantoBattleResult, BattleOutcome,
+  KantoBattleVisualFrame, KantoBattleVisualKind
 } from './combat/kantoBattle.js';
 
 export {
