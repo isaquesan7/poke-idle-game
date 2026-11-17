@@ -7,6 +7,8 @@ interface BattlePlaybackProps {
   /** Somente a apresentação; resultado e recompensas já estão salvos. */
   readonly playing: boolean;
   readonly onFinished: () => void;
+  /** Informar apenas o índice visível: não modifica nem recalcula o combate. */
+  readonly onProgress?: (visible:number) => void;
 }
 
 const fmt=(ms:number):string=>{
@@ -22,7 +24,7 @@ const fmt=(ms:number):string=>{
  * Não emite comandos, não altera RNG, save, recompensas, UIDs ou recibos.
  * Unmount/troca de aba cancela os timers sem perder a batalha salva.
  */
-export function BattlePlayback({log,turns,playing,onFinished}:BattlePlaybackProps) {
+export function BattlePlayback({log,turns,playing,onFinished,onProgress}:BattlePlaybackProps) {
   const [visible,setVisible]=useState(()=>playing?Math.min(log.length,1):log.length);
   const [speed,setSpeed]=useState<1|2>(1);
   const [paused,setPaused]=useState(false);
@@ -59,6 +61,10 @@ export function BattlePlayback({log,turns,playing,onFinished}:BattlePlaybackProp
   useEffect(()=>{
     if(listRef.current)listRef.current.scrollTop=listRef.current.scrollHeight;
   },[visible]);
+
+  useEffect(()=>{
+    onProgress?.(visible);
+  },[visible,onProgress]);
 
   const lines=log.slice(0,visible);
   const latest=lines.at(-1)??'';
