@@ -192,15 +192,24 @@ async function exercise(browser, label, viewport) {
   assert.equal(await panel.getAttribute('tabindex'),'0');
   assert.equal(await page.getByTestId('battle-log').getAttribute('aria-live'),'off');
   assert.equal(await page.getByTestId('battle-clock').getAttribute('aria-live'),'off');
+  // Testar Espaço ANTES de avançar: batalhas de teste rápidas podem terminar
+  // após duas linhas e não permitir mais despausar um diário já concluído.
+  await panel.focus();
+  await page.keyboard.press('Space');
+  await page.getByRole('button',{name:'Pausar'}).waitFor();
+  await page.keyboard.press('Space');
+  await page.getByRole('button',{name:'Continuar'}).waitFor();
   await page.getByRole('button',{name:'Avançar uma linha'}).click();
   assert.equal(await lines.count(),pausedLines+1,'passo manual deve avançar 1 evento');
   await panel.focus();
   await page.keyboard.press('ArrowRight');
   assert.equal(await lines.count(),pausedLines+2,'seta avança 1 evento em pausa');
-  await page.keyboard.press('Space');
-  await page.getByRole('button',{name:'Pausar'}).waitFor();
-  await page.keyboard.press('Space');
-  await page.getByRole('button',{name:'Continuar'}).waitFor();
+  // Se o segundo avanço foi o último, reassistir é 100% visual e read-only.
+  if(!(await page.getByRole('button',{name:'Continuar'}).count())){
+    await page.getByRole('button',{name:'Reassistir à batalha'}).click();
+    await page.getByRole('button',{name:'Pausar'}).click();
+    await page.getByRole('button',{name:'Continuar'}).waitFor();
+  }
   await page.getByRole('button',{name:'Ativar leitura assistiva'}).click();
   await page.getByRole('button',{name:'Desativar leitura assistiva'}).waitFor();
   assert.equal(await page.getByTestId('battle-screenreader-status').getAttribute('aria-live'),'polite');
