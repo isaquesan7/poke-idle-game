@@ -662,7 +662,8 @@ export function PlayApp() {
                             Custo {kantoMoveSpCost(move)} SP</small>
                           <small>{move.name==='growl'?'Reduz Ataque':
                             move.name==='tail-whip'?'Reduz Defesa':
-                              move.name==='thunder-wave'?'Paralisa':\n                            move.name==='recover'?'Recupera até 50% do HP, no máximo 1 vez por batalha':'Envenena'}</small></div>
+                              move.name==='thunder-wave'?'Paralisa':
+                            move.name==='recover'?'Recupera até 50% do HP, no máximo 1 vez por batalha':'Envenena'}</small></div>
                         <div className={styles.moveActions}>
                           {inSlots?<small>Equipado</small>:
                             <button type="button" className={styles.secondary}
