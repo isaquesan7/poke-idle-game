@@ -6,7 +6,8 @@
 import type {KantoMove} from './kantoBattle.js';
 import {KANTO_POKEDEX} from '../catalog/kantoSpecies.js';
 import {KANTO_MOVE_PP} from '../catalog/kantoMovePp.js';
-import {kantoMoveSecondaryEffect} from './kantoStatusEffects.js';\nimport {kantoMoveHitCount} from './kantoMultiHit.js';
+import {kantoMoveSecondaryEffect} from './kantoStatusEffects.js';
+import {kantoMoveHitCount} from './kantoMultiHit.js';
 
 export const KANTO_BASIC_ATTACK:KantoMove=Object.freeze({
   name:'basic-attack',type:'normal',category:'physical',
@@ -68,7 +69,9 @@ export function kantoFocusRecovery(maxSp:number,currentSp:number):number{
 /**
  * Custo híbrido próprio: potência + escassez de PP na PokéAPI + efeitos.
  * Ofensiva: clamp(8,40,round(0.45*(45-pp)+0.18*poder+4 secundário+3 prioridade)).
- * Suporte: clamp(10,36,round(0.45*(45-pp)+peso de efeito)).\n * D-045: Recover com bônus18 (PP5 =>36 SP); Double Kick cobra 2 impactos,\n * 1 custo por ação, e 30×2 em vez de 30 no componente potência.
+ * Suporte: clamp(10,36,round(0.45*(45-pp)+peso de efeito)).
+ * D-045: Recover com bônus18 (PP5 =>36 SP); Double Kick cobra 2 impactos,
+ * 1 custo por ação, e 30×2 em vez de 30 no componente potência.
  * PP ausente (somente testes/golpes provisórios) usa 20 como fallback
  * de CÁLCULO, sem afirmar que seja PP oficial.
  * Rank melhora dano sem alterar custo.
@@ -88,7 +91,9 @@ export function kantoMoveSpCost(move:KantoMove):number{
   const scarcity=.45*(45-pp);
   if(move.category==='status'){
     const weights:Readonly<Record<string,number>>={
-      growl:10,'tail-whip':10,'poison-powder':14,'thunder-wave':16,\n      // A cura de 50% HP paga escassez de PP + bônus fixo 18 (D-039).\n      recover:18
+      growl:10,'tail-whip':10,'poison-powder':14,'thunder-wave':16,
+      // A cura de 50% HP paga escassez de PP + bônus fixo 18 (D-039).
+      recover:18
     };
     const weight=weights[move.name];
     if(weight===undefined)throw new RangeError('Suporte sem custo catalogado.');
