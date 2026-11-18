@@ -398,20 +398,6 @@ export function PlayApp() {
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
-          <label className={styles.motionSetting}>
-            <span>Efeitos visuais da Arena</span>
-            <select aria-label="Efeitos visuais da Arena"
-              value={motionPreference}
-              onChange={event=>changeMotionPreference(event.currentTarget.value)}>
-              <option value="system">Padrão do dispositivo</option>
-              <option value="full">Exibir animações</option>
-              <option value="reduce">Reduzir movimento</option>
-            </select>
-          </label>
-          <p className={styles.motionHint}>
-            Se os efeitos não aparecerem no PC, escolha “Exibir animações”.
-            Os GIFs dos Pokémon são independentes dos efeitos CSS.
-          </p>
           <p>Pré-lançamento v0.2</p>
           <p>Progresso local · {save.snapshot.revision} alterações</p>
           <button type="button" className={styles.resetButton} onClick={restart}>Reiniciar teste</button>
@@ -863,6 +849,20 @@ export function PlayApp() {
                       Concentrar, abrindo mão de atacar para recuperar 30%,
                       até duas vezes por combate com quatro turnos de intervalo.
                       Não há regeneração passiva.</p>
+                    <label className={styles.motionSetting}>
+                      <span>Efeitos visuais da Arena</span>
+                      <select aria-label="Efeitos visuais da Arena"
+                        value={motionPreference}
+                        onChange={event=>changeMotionPreference(event.currentTarget.value)}>
+                        <option value="system">Padrão do dispositivo</option>
+                        <option value="full">Exibir animações</option>
+                        <option value="reduce">Reduzir movimento</option>
+                      </select>
+                    </label>
+                    <p className={styles.motionHint}>
+                      Se os impactos não aparecerem no PC, escolha “Exibir animações”.
+                      A opção padrão respeita as configurações de acessibilidade.
+                    </p>
                     <p>Líder: <strong>{speciesName(active.pokemonId)} · UID #{active.uid}</strong></p>
                     <p>Equipe: <strong>{data.team.length}/3</strong> ·
                       <button type="button" className={styles.textButton}
