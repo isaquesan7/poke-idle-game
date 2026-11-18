@@ -21,8 +21,14 @@ const assets = new Map(Array.from(routes, ([route, asset]) => [
 createServer((req, res) => {
   const url = new URL(req.url || '/', 'http://localhost');
   if (url.pathname === '/health') {
-    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('ok');
+    // D-044: readiness real da rota React. A ausência do dist NÃO pode
+    // passar no healthcheck e publicar apenas a home v0.1 por engano.
+    const ready = existsSync(new URL('./apps/web/dist/index.html', import.meta.url));
+    res.writeHead(ready ? 200 : 503, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'no-store'
+    });
+    res.end(ready ? 'ok' : 'build indisponível');
     return;
   }
   // Novo loop jogável React: HTML compilado pela etapa npm prestart.
