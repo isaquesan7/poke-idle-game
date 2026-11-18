@@ -67,3 +67,10 @@
 - [x] CI geral Node/TypeScript/Vitest/build/Playwright, Docker mínima e audit se aplicável; integrar PR após verde; Railway Docker SUCCESS SHA exato, /health interno.
 - [x] Bullet Seed e Soft-Boiled seguem bloqueados. Registrar métricas de balanceamento antes de expandir cura a outras espécies, multi-hit 2..5 ou TMs.
 
+## Gate D-046 — diagnóstico de 9.216 batalhas (18/11/2026)
+- [x] Criar matriz pareada Recover/Double Kick com seed/nível/espécie iguais entre controle e habilidade extra; 3 modos claramente rotulados (dois artificiais); `D046_BALANCE_REPORT` e relatório em `docs/BALANCE_D046.md`.
+- [x] Verificar em 9.216 lutas HP/SP, limites, custos sem duplicar Double Kick, 1 cura Recover, KO intermediário, frames/log em 1:1 e RNG determinístico. Repetição `44356247481 SUCCESS` após ajustar timeout exclusivo 60s; Docker `44356247562 SUCCESS`.
+- [x] Distinguir Bullet Seed GenIII TM09 Especial/poder10 vs moderna Física/poder25 e distribuição 2..5 GenIII (média2,75), não equipar/alterar custo baseado apenas na prévia D039 2,5.
+- [ ] CI com HEAD final de documentos e Vitest/TypeScript/Node/151 GIFs/Chromium/ Docker todos concluídos SUCCESS; PR #65 integrada; Railway SUCCESS commit exato e /health interno confirmado.
+- [ ] D047: combater viés nos oito matchup, analisar +19,62p.p. de Double Kick antes de nerf/buff, checar teste manual NVDA/VoiceOver/Edge e futuras decisões de TM.
+
