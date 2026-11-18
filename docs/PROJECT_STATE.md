@@ -789,3 +789,10 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - `tests/tm09-compatibility-extractor.test.mjs` exercita fixtures, filtro, checagem de checksum e rejeição de CSV inválido. `docs/TM_COMPATIBILITY_D049.md` documenta operação e limites. **O CSV oficial integral ainda NÃO foi extraído/verificado; não há allowlist real**, TMs continuam bloqueadas e nenhum inventário, writer, loot ou motor2–5 foi implementado.
 - Preservados: battle/IA, HP/SP/PP/Recover/Double Kick, RNG, save schema2, replay, animação FULL sem seletor, 151 GIFs, Docker, rotas / e /play, `isaquesan7/pokedex` intocado.
 - **PR, CI, merge e Railway desta branch:** verificar ao final da etapa; não assumir publicação. Próxima ação concreta: executar extrator contra CSV oficial fixado, revisar lista positiva e formas; depois economia/teach writer atômico idempotente em etapa independente e 2–5 hits em PR separada. NVDA/VoiceOver manual e Picomatch BUILD seguem pendentes.
+
+
+### D-049 atualização — fonte real TM09 confirmada (18/11/2026, mesma branch)
+- CI inicial PR #71, execução GitHub Actions `44380655504 completed/success` no HEAD anterior `1f94c86d9ffb33acfcfcbcba690d4f2680357c68` (antes de incorporar catálogo de compatibilidade real). **HEAD novo requer outra CI**, não reutilizar a aprovação anterior para ele.
+- Recuperado pelo conector GitHub o blob completo `pokemon_moves.csv` SHA `f66f614adf535af6940c65f434efe5ddeec4687a`: 665.810 linhas dados, 15 registros de Kanto compatíveis com TM09 FRLG group7/move331/method4, outros 29 registros fora de Kanto. IDs [1,2,3,43,44,45,46,47,69,70,71,102,103,114,151].
+- Novo `catalog/kantoTmCompatibility.ts`, export em core/index, teste Vitest D049 de 151 espécies, marca `speciesCompatibility:'verified-read-only'` na prévia; **release gate deny-all preservado**, motor, save, inventário, replay e UI inalterados.
+- PR #71 aberta, merge e deploy **não confirmados**. Próximo: aguardar CI do HEAD final, revisar merge e Railway; somente depois desenhar estoque/aquisição e teach-tm atômico idempotente, motor 2–5 hits em etapa própria.
