@@ -23,9 +23,9 @@ type Side='player'|'wild';
 
 /** Tokens existentes por tipo; sem hardcode de cor por componente. */
 const TYPE_COLORS:Readonly<Record<string,string>>={
-  fire:styles.battleTypeFire,water:styles.battleTypeWater,
-  grass:styles.battleTypeGrass,electric:styles.battleTypeElectric,
-  poison:styles.battleTypePoison,psychic:styles.battleTypePsychic
+  fire:styles.battleTypeFire!,water:styles.battleTypeWater!,
+  grass:styles.battleTypeGrass!,electric:styles.battleTypeElectric!,
+  poison:styles.battleTypePoison!,psychic:styles.battleTypePsychic!
 };
 
 /** Mostra o HP exato do registro exibido; não lê nem modifica o save. */
@@ -74,7 +74,7 @@ function SkillMeter({side,sp,max}:{
 }
 
 /** Somente as alterações já reveladas pelo log acionam efeito visual. */
-function Fighter({side,fighter,frame,maxHp,cue,playing}:{
+function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
   readonly side:Side;readonly fighter:FighterPanel;
   readonly frame:KantoBattleVisualFrame|null;
   readonly maxHp:number|null;readonly maxSp:number|null;
