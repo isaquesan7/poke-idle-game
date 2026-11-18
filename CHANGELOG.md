@@ -1,3 +1,8 @@
+## [v0.2-alpha — D-049 preparação de compatibilidade TM09] — 2026-11-18 (BRANCH, NÃO PUBLICADA)
+- Adicionado extrator offline `scripts/extract-tm09-compatibility.mjs` que verifica hash Git do snapshot PokéAPI pinado antes de extrair a compatibilidade TM09 de `pokemon_moves.csv`, limitada a Kanto 1..151, grupo7, método4, golpe331. Produz JSON somente em caminho novo, não altera dados de jogo.
+- Adicionados testes Node sintéticos de hash, filtro estrito e falhas fechadas (CSV malformado, duplicado, vazio, checksum incompatível). CSV original grande ainda precisa ser obtido/verificado; **não há allowlist positiva real, item, consumo, teach ou novo golpe liberado**.
+- Código de combate, inventário, writer, saves/replays, UI, animações, GIFs e produção preservados; validação CI/merge/deploy ainda pendente.
+
 ## [v0.2-alpha — D-048 política de geração e preview TM09 sem desbloqueio] — 2026-11-18 (PUBLICADA PR #69)
 - **Decisão:** preservar o catálogo de movimentos jogáveis (metadados PokéAPI atuais, SP original), mas usar metadados históricos GenIII explicitamente para futuras TMs do recorte FRLG; evitar mistura silenciosa de poder25 Físico moderno com poder10 Especial da TM09.
 - Novo `catalog/kantoTmPreview.ts` e exports read-only: TM09 grupo7/método machine4/item313/Bullet Seed Move331 do snapshot fixo, ficha histórica Grass/Especial/power10/PP30/acc100, pesos 2–5 =3/8,3/8,1/8,1/8, todos **NÃO executáveis**; gate de ensino falso nas 151 espécies até compatibilidade verificada e inventário/writer TM implementados.
