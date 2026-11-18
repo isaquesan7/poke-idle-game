@@ -74,3 +74,10 @@
 - [x] CI final PR #65 (`44357355587` geral e `44357355602` Docker) SUCCESS; merge main SHA `db1fe0601275d2840a7355e26f97433fc2589e0c`; Railway deployment `81d23805-40ba-4eb6-a4ab-281946a483c0 SUCCESS` no SHA exato, /health interno aprovado. GET HTTP público externo /play não verificado diretamente.
 - [ ] D047: combater viés nos oito matchup, analisar +19,62p.p. de Double Kick antes de nerf/buff, checar teste manual NVDA/VoiceOver/Edge e futuras decisões de TM.
 
+## Gate D-047 — Fighting, Recover e barreira TM09 (18/11/2026)
+- [x] Teste novo de 1.152 pares com os 5 níveis de eficácia Fighting, mesmo nível/seed/oponente, assert 2 hits/18 SP uma vez, imunidade sem seleção, HP/SP e um frame por linha; comparador Fighting60 sintético NÃO equipável.
+- [x] Vitest de Recover HP crítico com SP suficiente, HP crítico após gastar SP e HP alto; mínimo uma cura válida, nenhuma sem SP, máximo uma/batalha, logs e RNG determinísticos.
+- [x] Guardar negativamente Bullet Seed fora do catálogo/multi-hit e da API de equipar do writer apesar da prévia de SP; documentar versão TM09 GenIII e contrato futuro de inventário/consumo.
+- [ ] Conferir CI final (TypeScript/Vitest, legado Node, 151 GIFs, E2E Chromium /play desktop/mobile, Docker), PR #67 merge e Railway Docker SUCCESS SHA exato /health. Não marcar publicada antes disso.
+- [ ] D-048: decidir dados históricos vs modernos antes de desenvolver sistema TM ou 2–5 golpes; NVDA/VoiceOver físico ainda não testado.
+
