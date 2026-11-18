@@ -1,6 +1,6 @@
 # Cura e golpes de múltiplos acertos — desenho técnico pré-implementação (D-044)
 
-**Atualização D-045 (18/11/2026, PR #63 EM TESTES):** este documento nasceu
+**Atualização D-045 (18/11/2026, PUBLICADA PR #63, CI e Railway SUCCESS):** este documento nasceu
 como design não executável na D-044; a D-045 implementou um recorte real:
 **Recover** (Staryu nv15/Starmie nv1, curar 50% do HP máximo, 36 SP,
 autocura até 1x por batalha com HP<=50% e até turno26) e **Double Kick**
