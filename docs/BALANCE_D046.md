@@ -1,6 +1,6 @@
 # D-046 — matriz pareada de balanceamento: Recover e Double Kick
 
-**Data:** 18/11/2026 · **Estado:** relatório de CI em branch `test/v02-d046-recover-doublekick-balance` (PR #65); confirmar gates finais e Railway antes de dizer publicado.
+**Data:** 18/11/2026 · **Estado:** relatório reproduzido em CI `44356247481 completed/success` e imagem Docker `44356247562 completed/success` após corrigir timeout da suíte. PR #65 ainda em branch; aguardar CI final, merge e Railway antes de dizer publicado.
 
 Este documento consolida as métricas sintéticas da rotina `packages/game-core/tests/kanto-d046-ability-balance.test.ts`. **Não é telemetria de jogadores reais**, amostragem probabilística do matchmaking nem compromisso de porcentagens de vitória. Sem alteração das fórmulas, loot/captura, learnsets, escritor de saves, cronômetro ou replays. O baseline D-040 de 1.920 simulações e o stress D-042 de 384 permanecem independentes.
 
@@ -10,7 +10,7 @@ Este documento consolida as métricas sintéticas da rotina `packages/game-core/
 - **Espécies que recebem habilidade:** Recover Staryu #120 / Starmie #121 (2); Double Kick Nidoran♀ #29 / Nidorina #30 / Nidoqueen #31 / Nidoran♂ #32 / Nidorino #33 / Nidoking #34 (6), validadas pelo learnset FRLG do código. Níveis 15, 30 e 60. Rivais #1, #4, #7, #25, #74, #92, #95 e #143; seeds `0,1,7,19,31,53,107,169`.
 - **Três modos:** `normal` usa `pokemonOwnStats` sem modificações. `fortified` multiplica artificialmente HP ×4 e as defesas ×5 de ambos para chegar ao teto30. `pressure` amplia HP de ambos ×3, atributos de dano do selvagem ×2 e as defesas dele ×2 para testar cura sob risco. **Stats artificiais jamais alteram o jogo**.
 - A matriz confere HP/SP entre 0 e máximos, frames 1:1 com o diário, `Concentrar` sem custo e recuperação real de SP, Double Kick com 2 impactos fixos (interrompendo em KO), cobrança 18 SP uma só vez, Recover 36 SP e até1 uso antes do turno27 com HP<=50%, sem curar o inimigo ou ultrapassar HP máximo. Confrontos controlados não usam as habilidades novas.
-- Fonte dos números: linha `D046_BALANCE_REPORT` nos logs do GitHub Actions do teste Vitest. **Na primeira execução houve timeout de 5s, embora os dados completos tenham sido emitidos (~22s); corrigido com timeout específico de 60s. Revalidar o relatório no commit final antes de declarar concluído.**
+- Fonte dos números: linha `D046_BALANCE_REPORT` nos logs do GitHub Actions do teste Vitest. **Na primeira execução houve timeout de 5s, embora os dados completos tenham sido emitidos (~22s); corrigido com timeout específico de 60s. Na repetição `44356247481 SUCCESS` o teste levou 18,5s e reproduziu as contagens (`4608` pares, `9216` lutas, `150` curas, `15960` eventos Double Kick, `1137` críticos). O commit final com documentação ainda precisará CI.**
 
 ## Comparação agregada por cenário
 
