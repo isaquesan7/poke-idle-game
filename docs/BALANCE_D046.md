@@ -1,6 +1,6 @@
 # D-046 — matriz pareada de balanceamento: Recover e Double Kick
 
-**Data:** 18/11/2026 · **Estado:** relatório reproduzido em CI `44356247481 completed/success` e imagem Docker `44356247562 completed/success` após corrigir timeout da suíte. PR #65 ainda em branch; aguardar CI final, merge e Railway antes de dizer publicado.
+**Data:** 18/11/2026 · **Estado: PUBLICADA PR #65**; PR integrada à main SHA `db1fe0601275d2840a7355e26f97433fc2589e0c`, CI final `44357355587 SUCCESS` (geral) e `44357355602 SUCCESS` (Docker), Railway deployment `81d23805-40ba-4eb6-a4ab-281946a483c0 SUCCESS` com `/health` interno aprovado. A suíte foi repetida antes, com relatório idêntico em `44356247481 SUCCESS`. GET externo público não aferido diretamente.
 
 Este documento consolida as métricas sintéticas da rotina `packages/game-core/tests/kanto-d046-ability-balance.test.ts`. **Não é telemetria de jogadores reais**, amostragem probabilística do matchmaking nem compromisso de porcentagens de vitória. Sem alteração das fórmulas, loot/captura, learnsets, escritor de saves, cronômetro ou replays. O baseline D-040 de 1.920 simulações e o stress D-042 de 384 permanecem independentes.
 
