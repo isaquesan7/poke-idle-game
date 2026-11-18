@@ -110,6 +110,19 @@ export type Combatant = Readonly<{
 
 export type BattleOutcome = 'win' | 'loss' | 'draw';
 
+/** Um snapshot visual por linha: não é comando para recalcular a batalha. */
+export type KantoBattleVisualKind =
+  'intro'|'attack'|'miss'|'status'|'heal'|'residual'|'outcome'|'info';
+
+export interface KantoBattleVisualFrame {
+  readonly playerHp: number;
+  readonly wildHp: number;
+  readonly kind: KantoBattleVisualKind;
+  readonly target: 'player'|'wild'|null;
+  /** Valor positivo de dano/recuperação; zero para status ou texto. */
+  readonly amount: number;
+}
+
 export interface KantoBattleResult {
   readonly outcome: BattleOutcome;
   readonly turns: number;
@@ -119,6 +132,14 @@ export interface KantoBattleResult {
   readonly affinityGain: number | null;
   readonly captured: boolean;
   readonly log: readonly string[];
+  /** Identidade e HP no MOMENTO do combate; não reutilizar Pokémon líder atual. */
+  readonly playerSpeciesId:number;
+  readonly playerName:string;
+  readonly playerLevel:number;
+  readonly playerMaxHp:number;
+  readonly wildMaxHp:number;
+  /** Trilha visual imutável com cardinalidade e ordem idênticas ao log. */
+  readonly frames:readonly KantoBattleVisualFrame[];
   /** Condições apenas do encontro, nunca persistidas no roster. */
   readonly playerStatus: KantoBattleStatus|null;
   readonly wildStatus: KantoBattleStatus|null;
@@ -245,6 +266,15 @@ export function simulateKantoBattle(
   let playerDefenseDrops=0,wildDefenseDrops=0;
   const pSupportUsed=new Set<string>(),wSupportUsed=new Set<string>();
   const log:string[]=[player.name+' (Nv. '+player.level+') vs '+wild.name+' (Nv. '+wild.level+')'];
+  const frames:KantoBattleVisualFrame[]=[{
+    playerHp,wildHp,kind:'intro',target:null,amount:0
+  }];
+  /** Uma linha nova e seu estado de HP são capturados na mesma operação. */
+  const note=(line:string,kind:KantoBattleVisualKind='info',
+    target:'player'|'wild'|null=null,amount=0):void=>{
+    log.push(line);
+    frames.push({playerHp,wildHp,kind,target,amount});
+  };
   const speed=(actor:Combatant):number=>{
     const status=actor===player?playerStatus:wildStatus;
     const drops=actor===player?playerSpeedDrops:wildSpeedDrops;
@@ -301,37 +331,38 @@ export function simulateKantoBattle(
       const actorStatus=isPlayer?playerStatus:wildStatus;
       if(move.category==='status')(isPlayer?pSupportUsed:wSupportUsed).add(move.name);
       if(actorStatus==='paralysis'&&roll()<0.25){
-        log.push('T'+turns+' · '+actor.name+' ficou paralisado e não conseguiu agir.');
+        note('T'+turns+' · '+actor.name+' ficou paralisado e não conseguiu agir.', 'status',isPlayer?'player':'wild');
         continue;
       }
       if(roll()*100>=move.accuracy){
-        log.push('T'+turns+' · '+actor.name+' errou '+move.name+'.');
+        note('T'+turns+' · '+actor.name+' errou '+move.name+'.','miss',isPlayer?'wild':'player');
         continue;
       }
       if(move.category==='status'){
         const support=kantoSupportEffect(move.name);
         if(!support||kantoTypeMultiplier(move.type,defender.types)===0){
-          log.push('T'+turns+' · '+defender.name+' é imune a '+move.name+'.');
+          note('T'+turns+' · '+defender.name+' é imune a '+move.name+'.','status',isPlayer?'wild':'player');
         }else if(support.kind==='status'){
           const current=isPlayer?wildStatus:playerStatus;
           if(current===null&&statusAllowed(support.status,defender)){
             if(isPlayer)wildStatus=support.status;else playerStatus=support.status;
-            log.push('T'+turns+' · '+actor.name+' usou '+move.name+
+            note('T'+turns+' · '+actor.name+' usou '+move.name+
               ': '+defender.name+' ficou '+
-              (support.status==='poison'?'envenenado':'paralisado')+'.');
-          }else log.push('T'+turns+' · '+move.name+' não teve efeito.');
+              (support.status==='poison'?'envenenado':'paralisado')+'.',
+              'status',isPlayer?'wild':'player');
+          }else note('T'+turns+' · '+move.name+' não teve efeito.','info');
         }else {
           const drops=support.kind==='lower-attack'
             ?(isPlayer?wildAttackDrops:playerAttackDrops)
             :(isPlayer?wildDefenseDrops:playerDefenseDrops);
-          if(drops>=6)log.push('T'+turns+' · '+move.name+' não teve efeito.');
+          if(drops>=6)note('T'+turns+' · '+move.name+' não teve efeito.','info');
           else {
             if(support.kind==='lower-attack'){
               if(isPlayer)wildAttackDrops++;else playerAttackDrops++;
             }else if(isPlayer)wildDefenseDrops++;else playerDefenseDrops++;
-            log.push('T'+turns+' · '+actor.name+' usou '+move.name+
+            note('T'+turns+' · '+actor.name+' usou '+move.name+
               ': '+(support.kind==='lower-attack'?'Ataque':'Defesa')+
-              ' de '+defender.name+' diminuiu.');
+              ' de '+defender.name+' diminuiu.','status',isPlayer?'wild':'player');
           }
         }
         continue;
@@ -348,13 +379,17 @@ export function simulateKantoBattle(
           defender.stats.defense*2/(2+foeDefenseDrop)))}};
       const hit=kantoDamage(stagedActor,stagedDefender,roll(),roll(),
         actorStatus==='burn'&&move.category==='physical'?0.5:1);
+      // O texto mantém o dano calculado; animação mostra só HP de fato perdido
+      // quando o golpe excede o HP restante (overkill).
+      const hpBeforeHit=isPlayer?wildHp:playerHp;
       if(isPlayer)wildHp=Math.max(0,wildHp-hit.damage);
       else playerHp=Math.max(0,playerHp-hit.damage);
       const effectText=hit.effectiveness===0?' · Imune'
         :hit.effectiveness>=2?' · Super efetivo'
           :hit.effectiveness<1?' · Resistido':'';
-      log.push('T'+turns+' · '+actor.name+' usou '+move.name+': '+
-        hit.damage+' dano'+(hit.critical?' · CRÍTICO':'')+effectText+'.');
+      note('T'+turns+' · '+actor.name+' usou '+move.name+': '+
+        hit.damage+' dano'+(hit.critical?' · CRÍTICO':'')+effectText+'.',
+        'attack',isPlayer?'wild':'player',Math.min(hpBeforeHit,hit.damage));
 
       // Sem hit efetivo ou alvo já derrotado não há efeitos adicionais.
       if(hit.damage===0||(isPlayer?wildHp:playerHp)===0)continue;
@@ -365,20 +400,22 @@ export function simulateKantoBattle(
           if(isPlayer)wildStatus=secondary.status;else playerStatus=secondary.status;
           const text=secondary.status==='burn'?'queimado':
             secondary.status==='poison'?'envenenado':'paralisado';
-          log.push('T'+turns+' · '+defender.name+' ficou '+text+'.');
+          note('T'+turns+' · '+defender.name+' ficou '+text+'.',
+            'status',isPlayer?'wild':'player');
         }
       }else if(secondary?.kind==='drain'){
         const missing=actor.stats.hp-(isPlayer?playerHp:wildHp);
         const restored=Math.min(missing,Math.max(1,Math.floor(hit.damage*secondary.percent/100)));
         if(restored>0){
           if(isPlayer)playerHp+=restored;else wildHp+=restored;
-          log.push('T'+turns+' · '+actor.name+' recuperou '+restored+' HP com '+move.name+'.');
+          note('T'+turns+' · '+actor.name+' recuperou '+restored+' HP com '+move.name+'.',
+            'heal',isPlayer?'player':'wild',restored);
         }
       }else if(secondary?.kind==='speed-drop'&&roll()*100<secondary.chance){
         const drops=isPlayer?wildSpeedDrops:playerSpeedDrops;
         if(drops<6){
           if(isPlayer)wildSpeedDrops++;else playerSpeedDrops++;
-          log.push('T'+turns+' · Velocidade de '+defender.name+' diminuiu.');
+          note('T'+turns+' · Velocidade de '+defender.name+' diminuiu.','status',isPlayer?'wild':'player');
         }
       }
     }
@@ -390,8 +427,9 @@ export function simulateKantoBattle(
       if(hp<=0||(status!=='burn'&&status!=='poison'))continue;
       const damage=Math.min(hp,Math.max(1,Math.floor(actor.stats.hp/8)));
       if(own)playerHp-=damage;else wildHp-=damage;
-      log.push('T'+turns+' · '+actor.name+' sofreu '+damage+' dano por '+
-        (status==='burn'?'queimadura':'envenenamento')+'.');
+      note('T'+turns+' · '+actor.name+' sofreu '+damage+' dano por '+
+        (status==='burn'?'queimadura':'envenenamento')+'.',
+        'residual',own?'player':'wild',damage);
     }
   }
   // KO simultâneo pelo dano residual = empate, sem bônus.
@@ -399,13 +437,15 @@ export function simulateKantoBattle(
     :wildHp===0?'win':playerHp===0?'loss':'draw';
   const affinityGain=outcome==='win'?2+Math.floor(roll()*4):null;
   const captured=outcome==='win'&&roll()<0.35;
-  log.push(outcome==='win'?'Vitória! Recompensas de combate recebidas.'
+  note(outcome==='win'?'Vitória! Recompensas de combate recebidas.'
     :outcome==='draw'?(playerHp===0?'Empate: ambos os Pokémon desmaiaram.':'Empate: limite de 30 turnos.')
-      :'Derrota. Treine seu Pokémon e tente novamente.');
-  if(captured)log.push('Captura! '+wild.name+' entrou na coleção.');
+      :'Derrota. Treine seu Pokémon e tente novamente.','outcome');
+  if(captured)note('Captura! '+wild.name+' entrou na coleção.','outcome');
   return{
     outcome,turns,playerRemainingHp:playerHp,wildRemainingHp:wildHp,
     wildSpeciesId:wild.speciesId,affinityGain,captured,log,
-    playerStatus,wildStatus
+    playerStatus,wildStatus,
+    playerSpeciesId:player.speciesId,playerName:player.name,playerLevel:player.level,
+    playerMaxHp:player.stats.hp,wildMaxHp:wild.stats.hp,frames
   };
 }

@@ -60,3 +60,6 @@ O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Ra
 > **Histórico de branch (17/11/2026):** `feat/v02-combat-status-secondary` foi integrada pela PR #42; histórico de CI/merge/deploy confirmado no último registro de `docs/PROJECT_STATE.md`.
 
 > **Histórico da etapa (17/11/2026):** branch `feat/v02-multi-moves-support-ai` publicada na PR #44. O último bloco de `docs/PROJECT_STATE.md` contém CI e Railway confirmados; próxima fase: HP/ataques animados.
+
+
+> ITERAÇÃO EM BRANCH (17/11/2026): feat/v02-animated-hp-battle-stage baseada em df0e3be96b77dadc3f866f782f819a451c26985e — HP por linha de log no core, palco animado com cura/impacto, backup compatível com antigos combates e reduced motion. PR/CI/deploy PENDENTES ao escrever; ver último bloco de docs/PROJECT_STATE.md. Nunca modificar isaquesan7/pokedex nem o protótipo v0.1.

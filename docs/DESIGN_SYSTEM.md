@@ -68,3 +68,8 @@ O `RecoveryExchangePanel` usa somente variáveis semânticas existentes do `styl
 
 ## Diagnóstico do gate fail-closed (prévia React)
 Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em lista textual acessível. Reutiliza tokens CSS (`--color-text`, `--color-text-muted`, espaçamentos) e comentários por seletor; não usar badge verde, ação de 'migrar' ou visual que sugira liberação. Mostrar que 'formato compatível' não é autorização de write.
+
+
+## D-036 — UI de HP por evento (2026-11-17)
+- Barras de HP textual e role=progressbar com aria-valuenow/valuemax, uma por Pokémon. Impacto, cura e status são marcados pelo frame mostrado e reiniciam com a chave do índice do log.
+- Paleta Kanto Dark preservada, sem hex fora de styles/tokens.css. Durações battle-health, battle-impact e battle-float ficam no :root. prefers-reduced-motion remove flash, shake, floating e transições, mantendo os valores e os logs. Layout mobile não pode gerar overflow horizontal.

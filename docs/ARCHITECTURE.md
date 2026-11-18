@@ -211,3 +211,9 @@ A Arena utiliza sempre `team[0]` para construir Combatant e recompensa no core. 
 - `packages/game-core/src/legacy/pokemonMoveSlotsReducer.ts`: transição pura e validada de slots por UID; `moveNames?: string[]` + `moveName` legado como slot 1, sem quebrar schema 2 nem chave `kanto-idle-play-v02`. A UI só manda UID/nome/operação; writer valida e grava uma única revisão.
 - `packages/game-core/src/combat/kantoBattle.ts`: `Combatant.moves` e `ranks` opcionais; validação dos golpes, escolha de suporte ou melhor ataque por heurística determinística, ordem de turnos pela prioridade do golpe escolhido, dano/debuff/status e log imutável para replay. O controlador de apresentação não muta o save. Sem `Math.random`, fetch, DOM ou estado global.
 - `apps/web/src/play/PlayApp.tsx`: mostra 4 slots, seleção de principal, inclusão/remoção de golpes e catálogo de suporte, sem duplicar regras de elegibilidade. `playSave.ts` é o ponto único de gravação local, com revisão e Web Lock cooperativo. Falta servidor autoritativo e economia real; não alegar antifraude.
+
+
+## D-036 — trilha visual de combate (2026-11-17)
+- O game-core registra log e frames em ordem 1:1 por helper único na simulação; cada frame imutável guarda playerHp, wildHp, kind, target, amount. O retorno inclui playerMaxHp, wildMaxHp e identidade histórica do Pokémon do jogador. RNG, estado e resultados continuam como antes.
+- O writer da Arena mantém uma só transação/revisão da batalha, incluindo lastBattle.frames; o BattlePlayback avisa seu índice visível ao PlayApp, que valida a trilha opcional e alimenta o BattleStage. O componente só desenha sprites, HP progressbar textual e animações; não importa writer nem simula turnos.
+- Compatibilidade: logs anteriores sem frames exibem o histórico sem barras. Replay/pular/pausa não têm acesso a atualização de progresso; novo save schema ou key NÃO foi criado.

@@ -116,9 +116,33 @@ async function exercise(browser, label, viewport) {
   assert.ok(battleSave.lastBattle.log.length>=2);
   assert.ok(battleSave.lastBattle.turns<=30);
   assert.equal(battleSave.lastBattle.battleId,'battle-v02-5');
+  // A trilha visual é persistida na mesma transação da batalha.
+  const visual=battleSave.lastBattle;
+  assert.equal(visual.frames.length,visual.log.length);
+  assert.equal(visual.frames[0].playerHp,visual.playerMaxHp);
+  assert.equal(visual.frames[0].wildHp,visual.wildMaxHp);
+  assert.equal(visual.frames.at(-1).playerHp,visual.playerRemainingHp);
+  assert.equal(visual.frames.at(-1).wildHp,visual.wildRemainingHp);
   // A batalha já está salva, mas o diário deve revelar um evento por vez.
   await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
   const lines=page.getByTestId('battle-log').locator('li');
+  const playerHp=page.getByTestId('battle-hp-player-value');
+  const wildHp=page.getByTestId('battle-hp-wild-value');
+  await playerHp.waitFor();
+  assert.equal(await playerHp.textContent(),visual.playerMaxHp+' / '+visual.playerMaxHp);
+  assert.equal(await wildHp.textContent(),visual.wildMaxHp+' / '+visual.wildMaxHp);
+  // Um único índice apresenta linha de log E estado visual, sem novo RNG.
+  await page.waitForFunction(key=>{
+    const game=JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).lastBattle;
+    const label=document.querySelector('[data-testid="battle-line-progress"]')?.textContent||'';
+    const visible=Number(label.split('/')[0]);
+    if(visible<2)return false;
+    const frame=game.frames[visible-1];
+    return document.querySelector('[data-testid="battle-hp-player-value"]')?.textContent===
+      frame.playerHp+' / '+game.playerMaxHp
+      &&document.querySelector('[data-testid="battle-hp-wild-value"]')?.textContent===
+      frame.wildHp+' / '+game.wildMaxHp;
+  },SAVE);
   assert.ok((await lines.count())<battleSave.lastBattle.log.length);
   await page.waitForFunction(()=>{
     const text=document.querySelector('[data-testid="battle-line-progress"]')?.textContent||'';
@@ -127,17 +151,26 @@ async function exercise(browser, label, viewport) {
   assert.notEqual(await page.getByTestId('battle-clock').textContent(),'00:00.0');
   await page.getByRole('button',{name:'Pausar'}).click();
   const pausedLines=await lines.count();
+  const pausedPlayerHp=await playerHp.textContent();
+  const pausedWildHp=await wildHp.textContent();
   await page.waitForTimeout(550);
   assert.equal(await lines.count(),pausedLines,'pausa não pode avançar o diário');
+  assert.equal(await playerHp.textContent(),pausedPlayerHp,'pausa também congela HP');
+  assert.equal(await wildHp.textContent(),pausedWildHp,'pausa também congela HP selvagem');
   await page.getByRole('button',{name:'Continuar'}).click();
   await page.getByRole('button',{name:'Alterar velocidade da apresentação'}).click();
   await page.getByRole('button',{name:'Pular apresentação'}).click();
   await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
   assert.equal(await lines.count(),battleSave.lastBattle.log.length);
+  assert.equal(await playerHp.textContent(),visual.playerRemainingHp+' / '+visual.playerMaxHp);
+  assert.equal(await wildHp.textContent(),visual.wildRemainingHp+' / '+visual.wildMaxHp);
   const battleSaved=await page.evaluate(key=>localStorage.getItem(key),SAVE);
   await page.getByRole('button',{name:'Reassistir à batalha'}).click();
   await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
   assert.ok((await lines.count())<battleSave.lastBattle.log.length);
+  await page.getByTestId('battle-hp-player-value').waitFor();
+  assert.equal(await playerHp.textContent(),visual.playerMaxHp+' / '+visual.playerMaxHp,
+    'Reassistir recomeça com HP cheio, sem recalcular o combate');
   await page.getByRole('button',{name:'Pular apresentação'}).click();
   await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),battleSaved,
@@ -298,6 +331,18 @@ async function exercise(browser, label, viewport) {
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1 pela coleção',exact:true}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===17,SAVE);
   await page.getByRole('button',{name:'Arena',exact:true}).click();
+  // Seed FIXA só para esta batalha E2E: contra Caterpie deve usar Growl e
+  // em seguida Scratch; sem depender da sorte do encontro no navegador.
+  await page.evaluate(()=>{
+    const original=window.crypto.getRandomValues.bind(window.crypto);
+    Object.defineProperty(window.crypto,'getRandomValues',{
+      configurable:true,
+      value(array){
+        if(array instanceof Uint32Array&&array.length===1){array[0]=0;return array;}
+        return original(array);
+      }
+    });
+  });
   await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===18,SAVE);
   const multi=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).lastBattle,SAVE);
@@ -306,7 +351,22 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Pular apresentação'}).click();
   await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
 
+  // Save alfa anterior ou frames opcionais corrompidos: não inventar HP nem travar UI.
   await page.screenshot({path:new URL(label+'-play.png',shots).pathname,fullPage:true,animations:'disabled'});
+  await page.evaluate(key=>{
+    const snapshot=JSON.parse(localStorage.getItem(key));
+    const game=JSON.parse(snapshot.journal.raw);
+    game.lastBattle.frames=[null];
+    snapshot.journal.raw=JSON.stringify(game);
+    localStorage.setItem(key,JSON.stringify(snapshot));
+  },SAVE);
+  await page.reload();
+  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.getByText('Este combate anterior não possui trilha de HP por evento').waitFor();
+  assert.equal(await page.getByTestId('battle-hp-player').count(),0);
+  assert.equal(await page.getByTestId('battle-hp-wild').count(),0);
+  assert.equal(await page.getByTestId('battle-log').locator('li').count(),multi.log.length);
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);
   assert.deepEqual(errors,[]);

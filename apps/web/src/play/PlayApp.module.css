@@ -330,3 +330,85 @@
 .evolutionTestTools{display:flex;gap:var(--space-3);align-items:center;justify-content:space-between;flex-wrap:wrap;margin:var(--space-4) 0;}
 .evolutionTestTools span{font-size:.78rem;color:var(--color-text-muted);flex:1;}
 @media(max-width:690px){.evolutionOption{flex-wrap:wrap;}.evolutionOption button{width:100%;}}
+
+/* Palco visual de batalha v0.2: os painéis herdam dimensões da .battleScene existente. */
+.battleFighter{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;min-width:0;gap:var(--space-2);
+}
+.battleSpriteStage{
+  display:grid;place-items:center;position:relative;width:100%;min-width:0;
+}
+.battleSpriteStage>div{min-width:0;width:100%;}
+/* Medidores HP: verde semântico, números precisos e width sincronizado ao log. */
+.battleHealth{width:100%;max-width:210px;margin-top:var(--space-1);}
+.battleHealthHeading{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);
+  font-size:.78rem;color:var(--color-text-muted);margin-bottom:var(--space-1);
+}
+.battleHealthHeading strong{
+  font-size:.85rem;color:var(--color-text);font-variant-numeric:tabular-nums;
+}
+.battleHealthTrack{
+  width:100%;height:10px;border-radius:var(--radius-pill);
+  background:var(--color-progress-background-1);border:1px solid var(--color-border);
+  overflow:hidden;
+}
+.battleHealthFill{
+  display:block;height:100%;background:linear-gradient(90deg,
+    var(--color-progress-hp-background-1),var(--color-progress-hp-background-2));
+  transition:width var(--duration-battle-health) ease-out;
+}
+.battleSpriteIdle{display:grid;place-items:center;}
+/* O hit é visual, não uma segunda rolagem de dano: usa a linha ativa. */
+.battleSpriteHit{display:grid;place-items:center;animation:battleSpriteHit var(--duration-battle-impact) ease-in-out both;}
+.battleSpriteHeal{display:grid;place-items:center;animation:battleSpriteHeal var(--duration-battle-impact) ease-out both;}
+.battleSpriteStatus{display:grid;place-items:center;animation:battleSpriteStatus var(--duration-battle-impact) ease-out both;}
+.battleFloatDamage,.battleFloatHeal{
+  position:absolute;z-index:1;top:var(--space-2);right:var(--space-2);
+  font-size:1rem;font-weight:900;font-variant-numeric:tabular-nums;
+  text-shadow:var(--shadow-pokemon-art);
+  animation:battleDamageFloat var(--duration-battle-float) ease-out both;
+  pointer-events:none;
+}
+.battleFloatDamage{color:var(--color-danger);}
+.battleFloatHeal{color:var(--color-success);}
+.battleOldReplayNote{
+  grid-column:1/-1;color:var(--color-text-muted);
+  font-size:.75rem;line-height:1.5;margin:0;
+}
+@keyframes battleSpriteHit{
+  0%{transform:translateX(0);}
+  28%{transform:translateX(-6px);opacity:.65;}
+  58%{transform:translateX(5px);}
+  100%{transform:translateX(0);opacity:1;}
+}
+@keyframes battleSpriteHeal{
+  0%{transform:scale(.96);}
+  50%{transform:scale(1.08);}
+  100%{transform:scale(1);}
+}
+@keyframes battleSpriteStatus{
+  0%{filter:brightness(1);}
+  50%{filter:brightness(1.55);}
+  100%{filter:brightness(1);}
+}
+@keyframes battleDamageFloat{
+  0%{opacity:0;transform:translateY(8px);}
+  35%{opacity:1;}
+  100%{opacity:0;transform:translateY(-14px);}
+}
+@media(max-width:690px){
+  /* No mobile, ambos HPs ficam alinhados dentro dos seus cards sem overflow. */
+  .battleHealth{width:100%;max-width:155px;}
+  .battleHealthHeading{font-size:.68rem;}
+  .battleHealthHeading strong{font-size:.75rem;}
+  .battleFloatDamage,.battleFloatHeal{font-size:.82rem;right:0;}
+}
+@media(prefers-reduced-motion:reduce){
+  /* Acessibilidade: números/HP e diário progridem sem shakes ou flashes. */
+  .battleSpriteHit,.battleSpriteHeal,.battleSpriteStatus,
+  .battleFloatDamage,.battleFloatHeal{animation:none;}
+  .battleFloatDamage,.battleFloatHeal{opacity:1;}
+  .battleHealthFill{transition:none;}
+}
