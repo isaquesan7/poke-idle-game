@@ -553,6 +553,92 @@ async function exercise(browser, label, viewport) {
   console.log(label+': /play, golpes/status, múltiplos slots, replay, evolução e reload OK');
 }
 
+
+/**
+ * D-045: usar os controles reais do jogador com espécies/níveis de teste.
+ * A injeção é local e só prepara duas capturas; a equipagem, o combate e o
+ * recibo passam pelo writer real, sem reexecutar combate durante a reprodução.
+ */
+async function exerciseNewMoves(browser,label,viewport){
+  const context=await browser.newContext({viewport});
+  const page=await context.newPage();
+  const errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.goto(BASE+'/play',{waitUntil:'domcontentloaded'});
+  await page.getByLabel('Nome do treinador').fill('Teste D045');
+  await page.getByRole('radio',{name:/Charmander/}).check();
+  await page.getByRole('checkbox',{name:/modo demonstração/}).check();
+  await page.getByRole('button',{name:'Começar aventura'}).click();
+  await page.getByRole('heading',{name:'Bem-vindo de volta, Teste D045!'}).waitFor();
+  const uids=await page.evaluate(key=>{
+    const snapshot=JSON.parse(localStorage.getItem(key));
+    const game=JSON.parse(snapshot.journal.raw);
+    const src=game.roster[0];
+    const uidA=Math.max(...game.roster.map(p=>p.uid))+1,uidB=uidA+1;
+    game.roster.push(
+      {...src,uid:uidA,pokemonId:120,level:15,moveName:'tackle',
+        moveNames:['tackle'],upgrades:{},affinity:0},
+      {...src,uid:uidB,pokemonId:32,level:12,moveName:'tackle',
+        moveNames:['tackle'],upgrades:{},affinity:0}
+    );
+    game.nextUid=uidB+1;
+    snapshot.journal.raw=JSON.stringify(game);
+    localStorage.setItem(key,JSON.stringify(snapshot));
+    return {recoverUid:uidA,kickUid:uidB};
+  },SAVE);
+  await page.reload();
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await page.getByTestId('pokemon-uid-'+uids.recoverUid)
+    .getByRole('button',{name:'Treinar UID '+uids.recoverUid}).click();
+  await page.getByRole('heading',{name:'Golpes do Pokémon'}).waitFor();
+  await page.getByRole('button',{name:'Adicionar golpe recover'}).click();
+  await page.getByTestId('equipped-moves').getByText('recover').waitFor();
+  assert.equal(await page.getByText('Recupera até 50% do HP, no máximo 1 vez por batalha').count(),1);
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await page.getByTestId('pokemon-uid-'+uids.kickUid)
+    .getByRole('button',{name:'Treinar UID '+uids.kickUid}).click();
+  await page.getByRole('button',{name:'Adicionar golpe double-kick'}).click();
+  await page.getByTestId('equipped-moves').getByText('double-kick').waitFor();
+  await page.getByRole('button',{name:'Retirar golpe tackle'}).click();
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  const kick=page.getByTestId('pokemon-uid-'+uids.kickUid);
+  await kick.getByRole('button',{name:'Adicionar UID '+uids.kickUid+' à equipe'}).click();
+  await kick.getByRole('button',{name:'Tornar líder UID '+uids.kickUid+' pela coleção'}).click();
+  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.evaluate(()=>{
+    const original=window.crypto.getRandomValues.bind(window.crypto);
+    Object.defineProperty(window.crypto,'getRandomValues',{
+      configurable:true,
+      value(array){
+        if(array instanceof Uint32Array&&array.length===1){array[0]=0;return array;}
+        return original(array);
+      }
+    });
+  });
+  const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
+  await page.waitForFunction(({key,before})=>
+    JSON.parse(localStorage.getItem(key))?.revision>before,
+    {key:SAVE,before:before.revision});
+  const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  const game=JSON.parse(after.journal.raw);
+  const battle=game.lastBattle;
+  assert.ok(battle?.frames?.some(f=>f.actor==='player'&&f.moveName==='double-kick'
+    &&f.hitIndex===1),'Double Kick equipado deve atingir na Arena');
+  assert.equal(battle.frames.length,battle.log.length);
+  assert.equal(game.team[0],uids.kickUid);
+  assert.equal(after.journal.receipts.length,before.journal.receipts.length+1);
+  await page.getByRole('button',{name:'Pular apresentação'}).click();
+  await page.getByRole('button',{name:'Reassistir à batalha'}).click();
+  const replay=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  assert.equal(replay.revision,after.revision);
+  assert.deepEqual(replay.journal.receipts,after.journal.receipts);
+  await page.getByRole('button',{name:'Pular apresentação'}).click();
+  assert.deepEqual(errors,[]);
+  await context.close();
+  console.log(label+': Recover/Double Kick por UID, hits e replay sem recompensas extras OK');
+}
+
 let browser;
 try {
   await ready();
@@ -561,6 +647,8 @@ try {
   browser=await chromium.launch({headless:true});
   await exercise(browser,'desktop',{width:1365,height:768});
   await exercise(browser,'mobile',{width:390,height:844});
+  await exerciseNewMoves(browser,'desktop',{width:1365,height:768});
+  await exerciseNewMoves(browser,'mobile',{width:390,height:844});
   console.log('PASS: experiência React jogável no servidor de produção');
 } catch(error) {
   console.error(error);
