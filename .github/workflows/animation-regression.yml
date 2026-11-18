@@ -1,4 +1,4 @@
-name: Regressão visual da Arena — desktop e mobile
+name: Regressão Playwright isolada — Arena e jornadas completas
 
 on:
   pull_request:
@@ -36,6 +36,22 @@ jobs:
         run: npm run build:web
       - name: Test runner na mesma versão do Chromium container
         run: npm install --no-save --package-lock=false playwright@1.56.1
+      - name: Domínio, storage, testes Node e 151 GIFs
+        run: |
+          npm run typecheck:core
+          npm run test:core
+          npm run typecheck:web
+          npm run test:web
+          npm test
+          npm run verify:gifs
+      - name: E2E do jogo v0.1
+        run: node tests/e2e/browser-smoke.mjs
+      - name: E2E da prévia React
+        run: node apps/web/tests/e2e/react-preview.mjs
+      - name: E2E do rascunho v0.2
+        run: node apps/web/tests/e2e/draft-preview.mjs
+      - name: E2E do sandbox de migração (origem de teste)
+        run: node apps/web/tests/e2e/browser-cutover-lab.mjs
       - name: GIF estável, combate/replay e reduced-motion desktop/mobile
         run: node apps/web/tests/e2e/playable-route.mjs
       - name: Capturas para revisão visual
@@ -43,5 +59,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: arena-motion-screenshots
-          path: artifacts/playable/*.png
+          path: |
+            artifacts/browser/*.png
+            artifacts/react-preview/*.png
+            artifacts/draft-preview/*.png
+            artifacts/playable/*.png
           if-no-files-found: ignore
