@@ -788,3 +788,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Não alterados: `KANTO_BATTLE_MOVES`, `kantoTmIsTeachEnabled` (fail-closed 151 espécies), combate, stats, SP, writer, inventário, recibos, save schema2, playback, CSS, 151 GIFs, Docker, `/` legado nem `isaquesan7/pokedex`.
 - **Próximo:** obter CSV original de snapshot pinado em ambiente com rede, executar extrator e revisar IDs contra fonte; decidir economia de obtenção/consumo TM antes de implementar `teach-tm` atômico e idempotente com UID/slot/revisão/expedição. Depois motor Bullet Seed 2..5 impactos/SP versionado em PR separado. Revisão manual NVDA/VoiceOver e Picomatch continuam pendentes. CI/PR/Railway para D049 não afirmados nesta entrada.
 
+
+- Documento `docs/TM_WRITER_PLAN_D049.md` adicionado à branch com contrato proposto: opções de obtenção ainda não aprovadas, estoque não negativo, escrita única de baixa+slot+receipt, idempotência, revisão, validação de expedição e rollback. **Só documentação**; próximos gates B/C/D permanecem bloqueados por CSV integral e decisão de economia.
