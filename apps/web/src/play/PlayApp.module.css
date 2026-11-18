@@ -479,3 +479,48 @@
   .battleSpriteFocus,.battleFloatFocus{animation:none;}
   .battleFloatFocus{opacity:1;}
 }
+
+
+/* D-039: teclado, leitura assistiva e realce de recarga de SP. */
+.battlePlaybackPanel:focus-visible{
+  outline:2px solid var(--color-primary);outline-offset:3px;
+}
+.battlePlaybackHelp,.battleFocusDescription{
+  color:var(--color-text-muted);font-size:.76rem;line-height:1.55;
+}
+.battleSrOnly{
+  position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+}
+.battleSpCharging .battleSpTrack{
+  border-color:var(--color-primary);
+  box-shadow:0 0 0 2px var(--color-progress-background-1);
+}
+.battleFocusDescription{
+  display:block;color:var(--color-primary);font-weight:800;text-align:center;
+}
+.battleFocusBurst{
+  position:absolute;bottom:var(--space-2);left:50%;z-index:3;
+  transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;
+  gap:1px;width:max-content;max-width:100%;padding:var(--space-2) var(--space-3);
+  color:var(--color-primary);background:var(--color-surface-raised);
+  border:1px solid var(--color-primary);border-radius:var(--radius-control);
+  box-shadow:var(--shadow-pokemon-art);font-size:.7rem;font-weight:800;
+  letter-spacing:.06em;line-height:1.2;pointer-events:none;
+  animation:battleFocusRise var(--duration-battle-float) ease-out both;
+}
+.battleFocusBurst strong{font-size:1.05rem;font-variant-numeric:tabular-nums;}
+.battleFocusSymbol{font-size:1.2rem;line-height:1;}
+@keyframes battleFocusRise{
+  from{opacity:0;transform:translate(-50%,8px);}
+  30%{opacity:1;}
+  to{opacity:1;transform:translate(-50%,0);}
+}
+@media(max-width:690px){
+  .battleFocusBurst{font-size:.6rem;padding:var(--space-1) var(--space-2);}
+  .battleFocusBurst strong{font-size:.8rem;}
+  .battlePlaybackHelp{font-size:.69rem;}
+}
+@media(prefers-reduced-motion:reduce){
+  .battleFocusBurst{animation:none;opacity:1;transform:translateX(-50%);}
+}

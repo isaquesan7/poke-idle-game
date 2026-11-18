@@ -123,8 +123,8 @@ async function exercise(browser, label, viewport) {
   assert.equal(visual.frames[0].wildHp,visual.wildMaxHp);
   assert.equal(visual.frames.at(-1).playerHp,visual.playerRemainingHp);
   assert.equal(visual.frames.at(-1).wildHp,visual.wildRemainingHp);
-  assert.ok(visual.playerMaxSp>=40&&visual.playerMaxSp<=100);
-  assert.ok(visual.wildMaxSp>=40&&visual.wildMaxSp<=100);
+  assert.ok(visual.playerMaxSp>=50&&visual.playerMaxSp<=100);
+  assert.ok(visual.wildMaxSp>=50&&visual.wildMaxSp<=100);
   assert.ok(visual.frames.filter(frame=>frame.kind==='focus'&&frame.actor==='player').length<=2);
   assert.ok(visual.frames.filter(frame=>frame.kind==='focus'&&frame.actor==='wild').length<=2);
   for(const frame of visual.frames.filter(frame=>frame.kind==='focus')){
@@ -136,8 +136,11 @@ async function exercise(browser, label, viewport) {
   assert.equal(visual.frames[0].wildSp,visual.wildMaxSp);
   assert.equal(visual.frames.at(-1).playerSp,visual.playerRemainingSp);
   assert.equal(visual.frames.at(-1).wildSp,visual.wildRemainingSp);
-  assert.ok(visual.frames.some(frame=>frame.moveName==='basic-attack'
-    &&frame.spCost===0),'Ataque básico obrigatório sem custo');
+  // Com piso 50, uma vitória rápida pode terminar antes do turno par:
+  // não exigir ataque básico em toda batalha, mas SEMPRE zero SP quando usado.
+  const basics=visual.frames.filter(frame=>frame.moveName==='basic-attack');
+  assert.ok(basics.every(frame=>frame.spCost===0),
+    'Todo ataque básico registrado deve custar zero SP');
   assert.ok(visual.frames.some(frame=>frame.spCost>0),'Habilidade deve consumir SP');
   // A batalha já está salva, mas o diário deve revelar um evento por vez.
   await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
@@ -185,6 +188,22 @@ async function exercise(browser, label, viewport) {
   assert.equal(await wildHp.textContent(),pausedWildHp,'pausa também congela HP selvagem');
   assert.equal(await playerSp.textContent(),pausedPlayerSp,'pausa congela SP');
   assert.equal(await wildSp.textContent(),pausedWildSp,'pausa congela SP selvagem');
+  const panel=page.locator('section[aria-label="Diário de combate"]');
+  assert.equal(await panel.getAttribute('tabindex'),'0');
+  assert.equal(await page.getByTestId('battle-log').getAttribute('aria-live'),'off');
+  assert.equal(await page.getByTestId('battle-clock').getAttribute('aria-live'),'off');
+  await page.getByRole('button',{name:'Avançar uma linha'}).click();
+  assert.equal(await lines.count(),pausedLines+1,'passo manual deve avançar 1 evento');
+  await panel.focus();
+  await page.keyboard.press('ArrowRight');
+  assert.equal(await lines.count(),pausedLines+2,'seta avança 1 evento em pausa');
+  await page.keyboard.press('Space');
+  await page.getByRole('button',{name:'Pausar'}).waitFor();
+  await page.keyboard.press('Space');
+  await page.getByRole('button',{name:'Continuar'}).waitFor();
+  await page.getByRole('button',{name:'Ativar leitura assistiva'}).click();
+  await page.getByRole('button',{name:'Desativar leitura assistiva'}).waitFor();
+  assert.equal(await page.getByTestId('battle-screenreader-status').getAttribute('aria-live'),'polite');
   await page.getByRole('button',{name:'Continuar'}).click();
   await page.getByRole('button',{name:'Alterar velocidade da apresentação'}).click();
   await page.getByRole('button',{name:'Pular apresentação'}).click();
@@ -219,6 +238,59 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Arena',exact:true}).click();
   await page.getByRole('heading',{name:'Diário de combate'}).waitFor();
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
+
+  // Reexecuta visualmente um frame Concentrar isolado sem recalcular batalha
+  // nem escrever outro receipt. A fixture deriva de um ataque REAL já gasto.
+  const focusFixture=structuredClone(fought);
+  const focusGame=JSON.parse(focusFixture.journal.raw);
+  const recorded=focusGame.lastBattle;
+  const skillIndex=recorded.frames.findIndex(frame=>
+    frame.actor==='player'&&frame.spCost>0&&frame.playerSp<recorded.playerMaxSp);
+  assert.ok(skillIndex>0,'fixture precisa ter golpe com custo SP do parceiro');
+  const spent=recorded.frames[skillIndex];
+  const gained=Math.min(6,recorded.playerMaxSp-spent.playerSp);
+  assert.ok(gained>0);
+  const focusLine='T2 · '+recorded.playerName+
+    ' usou Concentrar e recuperou '+gained+' SP (sem atacar).';
+  recorded.log=[recorded.log[0],recorded.log[skillIndex],focusLine,
+    'T3 · A apresentação segue após a recuperação de SP.'];
+  const focusFrame={
+    ...spent,kind:'focus',target:'player',amount:0,actor:'player',
+    moveName:'concentrate',moveType:'typeless',spCost:0,
+    spRecovery:gained,playerSp:spent.playerSp+gained
+  };
+  recorded.frames=[recorded.frames[0],spent,focusFrame,{
+    ...focusFrame,kind:'info',target:null,amount:0,
+    actor:undefined,moveName:undefined,spCost:undefined,spRecovery:undefined
+  }];
+  focusFixture.journal.raw=JSON.stringify(focusGame);
+  const focusContext=await browser.newContext({viewport,reducedMotion:'reduce'});
+  const focusPage=await focusContext.newPage();
+  const focusErrors=[];
+  focusPage.on('pageerror',error=>focusErrors.push(error.message));
+  await focusPage.goto(BASE+'/play');
+  await focusPage.evaluate(({key,seed})=>localStorage.setItem(key,JSON.stringify(seed)),
+    {key:SAVE,seed:focusFixture});
+  await focusPage.reload();
+  await focusPage.getByRole('button',{name:'Arena',exact:true}).click();
+  await focusPage.getByRole('button',{name:'Reassistir à batalha'}).click();
+  // Modo acessível desacelera para 3s/linha, deixando o frame Concentrar
+  // observável antes do próximo; não modifica o estado salvo.
+  await focusPage.getByRole('button',{name:'Ativar leitura assistiva'}).click();
+  await focusPage.getByTestId('battle-focus-player').waitFor();
+  assert.match(await focusPage.getByTestId('battle-focus-player').textContent(),/CONCENTRAR/);
+  assert.equal(await focusPage.getByTestId('battle-focus-text-player').textContent()
+    .then(s=>s.includes('+'+gained+' SP')),true);
+  assert.equal(await focusPage.getByTestId('battle-focus-player').evaluate(el=>
+    getComputedStyle(el).animationName),'none','reduced-motion remove animação de Concentrar');
+  assert.match(await focusPage.getByTestId('battle-screenreader-status').textContent(),/Concentrar/);
+  assert.equal(await focusPage.getByTestId('battle-sp-player-value').textContent(),
+    (spent.playerSp+gained)+' / '+recorded.playerMaxSp);
+  await focusPage.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
+  assert.equal(await focusPage.evaluate(key=>localStorage.getItem(key),SAVE),
+    JSON.stringify(focusFixture),'replay Concentrar não pode escrever novo save');
+  assert.deepEqual(focusErrors,[]);
+  await focusContext.close();
 
   // Fixtures de TESTE: duas capturas da mesma espécie com UIDs/afinidades diferentes.
   // Nenhuma espécie é concedida no produto pelo botão; aqui simulamos o resultado

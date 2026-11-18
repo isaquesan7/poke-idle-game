@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import styles from './PlayApp.module.css';
 
 interface BattlePlaybackProps {
@@ -28,7 +28,9 @@ export function BattlePlayback({log,turns,playing,onFinished,onProgress}:BattleP
   const [visible,setVisible]=useState(()=>playing?Math.min(log.length,1):log.length);
   const [speed,setSpeed]=useState<1|2>(1);
   const [paused,setPaused]=useState(false);
+  const [assistive,setAssistive]=useState(false);
   const [elapsed,setElapsed]=useState(0);
+  const helpId=useId();
   const elapsedRef=useRef(0);
   const listRef=useRef<HTMLOListElement|null>(null);
   const inProgress=playing && visible<log.length;
@@ -50,9 +52,11 @@ export function BattlePlayback({log,turns,playing,onFinished,onProgress}:BattleP
 
   useEffect(()=>{
     if(!inProgress||paused)return;
-    const timer=window.setTimeout(()=>setVisible(n=>Math.min(log.length,n+1)),900/speed);
+    // Leitura assistiva dá ao leitor de tela mais tempo para narrar cada linha.
+    const timer=window.setTimeout(()=>setVisible(n=>Math.min(log.length,n+1)),
+      (assistive?3000:900)/speed);
     return ()=>window.clearTimeout(timer);
-  },[inProgress,paused,speed,visible,log.length]);
+  },[inProgress,paused,speed,assistive,visible,log.length]);
 
   useEffect(()=>{
     if(playing&&visible>=log.length)onFinished();
@@ -70,11 +74,28 @@ export function BattlePlayback({log,turns,playing,onFinished,onProgress}:BattleP
   const latest=lines.at(-1)??'';
   const turnMatch=/^T(\d+)\s/.exec(latest);
   const shownTurn=turnMatch?Number(turnMatch[1]):0;
+  const isConcentrating=/\busou Concentrar\b/.test(latest);
+  const liveMessage=!inProgress
+    ?'Apresentação concluída. Resultado já registrado no progresso local.'
+    :paused?'Apresentação pausada no registro '+visible+' de '+log.length+'.'
+      :assistive?'Registro '+visible+' de '+log.length+'. '+latest
+        :isConcentrating?'Concentrar. '+latest:'';
   return (
-    <section className={styles.panel} aria-label="Diário de combate">
+    <section className={styles.panel+' '+styles.battlePlaybackPanel}
+      aria-label="Diário de combate" aria-describedby={helpId} tabIndex={0}
+      onKeyDown={event=>{
+        if(event.currentTarget!==event.target||!inProgress)return;
+        if(event.key===' '){
+          event.preventDefault();
+          setPaused(value=>!value);
+        }else if(event.key==='ArrowRight'&&paused){
+          event.preventDefault();
+          setVisible(value=>Math.min(log.length,value+1));
+        }
+      }}>
       <h2>Diário de combate</h2>
       <div className={styles.battlePlaybackMeta}>
-        <div><small>Tempo de apresentação</small><strong aria-label="Cronômetro da apresentação" data-testid="battle-clock">{fmt(elapsed)}</strong></div>
+        <div><small>Tempo de apresentação</small><strong aria-label="Cronômetro da apresentação" role="timer" aria-live="off" data-testid="battle-clock">{fmt(elapsed)}</strong></div>
         <div><small>Turno exibido</small><strong>{Math.min(turns,shownTurn)} / {turns}</strong></div>
         <div><small>Registro</small><strong data-testid="battle-line-progress">{visible} / {log.length}</strong></div>
       </div>
@@ -84,9 +105,10 @@ export function BattlePlayback({log,turns,playing,onFinished,onProgress}:BattleP
         <span style={{width:(log.length?visible/log.length*100:100)+'%'}} />
       </div>
       {playing&&(
-        <div className={styles.battlePlaybackControls}>
+        <div className={styles.battlePlaybackControls} role="group" aria-label="Controles do diário">
           <button type="button" className={styles.secondary}
-            onClick={()=>setPaused(value=>!value)} disabled={!inProgress}>
+            onClick={()=>setPaused(value=>!value)} disabled={!inProgress}
+            aria-pressed={paused}>
             {paused?'Continuar':'Pausar'}
           </button>
           <button type="button" className={styles.secondary}
@@ -94,17 +116,35 @@ export function BattlePlayback({log,turns,playing,onFinished,onProgress}:BattleP
             onClick={()=>setSpeed(value=>value===1?2:1)} disabled={!inProgress}>
             Velocidade {speed}×
           </button>
+          <button type="button" className={styles.secondary}
+            aria-pressed={assistive}
+            onClick={()=>setAssistive(value=>!value)} disabled={!inProgress}>
+            {assistive?'Desativar leitura assistiva':'Ativar leitura assistiva'}
+          </button>
+          <button type="button" className={styles.secondary}
+            onClick={()=>setVisible(value=>Math.min(log.length,value+1))}
+            disabled={!inProgress||!paused}>Avançar uma linha</button>
           <button type="button" className={styles.textButton}
             onClick={()=>setVisible(log.length)} disabled={!inProgress}>Pular apresentação</button>
         </div>
       )}
-      <ol ref={listRef} className={styles.battleLog} aria-label="Diário de combate"
+      <p id={helpId} className={styles.battlePlaybackHelp}>
+        Controle por teclado: Tab para focar o painel, Espaço para pausar ou continuar
+        e seta para a direita para avançar uma linha quando pausado.
+        A leitura assistiva reduz o ritmo e anuncia cada registro.
+      </p>
+      <ol ref={listRef} className={styles.battleLog} role="log"
+        aria-live="off" aria-label="Registros da batalha"
         data-testid="battle-log">
         {lines.map((line,i)=><li key={i} className={styles.battleLogEntry}>{line}</li>)}
       </ol>
-      <p className={styles.disclaimer} aria-live="polite" data-testid="battle-playback-status">
-        {inProgress ? paused?'Apresentação pausada.':'Combate em andamento · '+latest
+      <p className={styles.disclaimer} data-testid="battle-playback-status">
+        {inProgress ? paused?'Apresentação pausada.': 'Combate em andamento · '+latest
           : 'Apresentação concluída · resultado registrado no progresso local.'}
+      </p>
+      <p className={styles.battleSrOnly} role="status" aria-live="polite"
+        aria-atomic="true" data-testid="battle-screenreader-status">
+        {liveMessage}
       </p>
       <p className={styles.disclaimer}>O cronômetro mede o tempo de exibição dos ataques. O cálculo da batalha e o registro de recompensas são instantâneos; reproduzir ou pular não concede prêmios novamente.</p>
     </section>

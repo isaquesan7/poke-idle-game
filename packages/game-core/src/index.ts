@@ -75,8 +75,10 @@ export {
 export type { KantoBattleStatus, KantoSecondaryEffect } from './combat/kantoStatusEffects.js';
 export {
   KANTO_BASIC_ATTACK,KANTO_CONCENTRATE,KANTO_SP_BALANCE,
-  kantoMaxSp,kantoMovePp,kantoMoveSpCost,kantoFocusRecovery
+  kantoMaxSp,kantoMovePp,kantoMoveSpCost,kantoFocusRecovery,
+  kantoPreviewMoveSpCost
 } from './combat/kantoSkillEnergy.js';
+export type {KantoApiMoveSpPreview} from './combat/kantoSkillEnergy.js';
 export {
   KANTO_PP_SOURCE_COMMIT,KANTO_PP_SOURCE_BLOB,KANTO_MOVE_PP
 } from './catalog/kantoMovePp.js';

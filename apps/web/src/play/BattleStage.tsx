@@ -50,13 +50,16 @@ function HealthMeter({side,hp,max}:{
 }
 
 /** SP só aparece quando o combate original salvou ambos os valores exatos. */
-function SkillMeter({side,sp,max}:{
-  readonly side:Side;readonly sp:number;readonly max:number
+function SkillMeter({side,sp,max,focusRecovery}:{
+  readonly side:Side;readonly sp:number;readonly max:number;
+  readonly focusRecovery:number;
 }) {
   const safeSp=Math.max(0,Math.min(max,sp));
   const percent=Math.max(0,Math.min(100,safeSp/max*100));
   return (
-    <div className={styles.battleSp} data-testid={'battle-sp-'+side}>
+    <div className={styles.battleSp+
+      (focusRecovery>0?' '+styles.battleSpCharging:'')}
+      data-testid={'battle-sp-'+side}>
       <div className={styles.battleHealthHeading}>
         <span>SP</span>
         <strong data-testid={'battle-sp-'+side+'-value'}>{safeSp} / {max}</strong>
@@ -66,6 +69,10 @@ function SkillMeter({side,sp,max}:{
         aria-valuemin={0} aria-valuemax={max} aria-valuenow={safeSp}>
         <span className={styles.battleSpFill} style={{width:percent+'%'}} />
       </div>
+      {focusRecovery>0&&<small className={styles.battleFocusDescription}
+        data-testid={'battle-focus-text-'+side}>
+        Concentrar · +{focusRecovery} SP · sem atacar
+      </small>}
       {safeSp===0&&<small className={styles.battleSpEmpty}>
         Sem SP · ataque básico ou Concentrar
       </small>}
@@ -106,9 +113,11 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
           data-testid={'battle-impact-'+side} aria-hidden="true">
           {heal?'+':'−'}{frame.amount} HP
         </span>}
-        {focus&&<span className={styles.battleFloatFocus}
+        {focus&&<span className={styles.battleFocusBurst}
           data-testid={'battle-focus-'+side} aria-hidden="true">
-          +{frame.spRecovery} SP
+          <span className={styles.battleFocusSymbol}>✧</span>
+          <span>CONCENTRAR</span>
+          <strong>+{frame.spRecovery} SP</strong>
         </span>}
         {hit&&typeLabel&&<span data-testid="battle-effectiveness"
           className={styles.battleImpactLabel+' '+typeTone} aria-hidden="true">
@@ -122,7 +131,8 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
       )}
       {typeof sp==='number'&&Number.isSafeInteger(sp)&&maxSp!==null&&maxSp>0
         &&sp>=0&&sp<=maxSp&&(
-          <SkillMeter side={side} sp={sp} max={maxSp}/>
+          <SkillMeter side={side} sp={sp} max={maxSp}
+            focusRecovery={focus?(frame.spRecovery??0):0}/>
         )}
     </div>
   );

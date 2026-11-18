@@ -4,6 +4,7 @@ import {
   KANTO_SUPPORT_MOVES,KANTO_PP_SOURCE_BLOB,KANTO_PP_SOURCE_COMMIT,KANTO_MOVE_PP,
   KANTO_BATTLE_SPECIES,KANTO_POKEDEX,kantoDamage,
   kantoMaxSp,kantoMovePp,kantoMoveSpCost,kantoFocusRecovery,
+  kantoPreviewMoveSpCost,
   simulateKantoBattle,pokemonOwnStats,zeroStats
 } from '../src/index.js';
 import type {Combatant,KantoBattleResult} from '../src/index.js';
@@ -98,12 +99,12 @@ describe('D-038: custos híbridos PP/poder, SP por espécie e Concentrar',()=>{
       fighter('B',KANTO_BATTLE_MOVES.tackle!),0)).toThrow();
   });
   it('SP varia por espécie/nível usando stats-base, nunca bônus do treinador',()=>{
-    expect(kantoMaxSp(1,4)).toBe(40);
-    expect(kantoMaxSp(20,4)).toBe(44);
-    expect(kantoMaxSp(20,7)).toBe(46);
-    expect(kantoMaxSp(1,1)).toBe(41);
-    expect(kantoMaxSp(100,150)).toBe(85);
-    expect(kantoMaxSp(100,4)).toBe(71);
+    expect(kantoMaxSp(1,4)).toBe(50);
+    expect(kantoMaxSp(20,4)).toBe(50);
+    expect(kantoMaxSp(20,7)).toBe(52);
+    expect(kantoMaxSp(1,1)).toBe(50);
+    expect(kantoMaxSp(100,150)).toBe(91);
+    expect(kantoMaxSp(100,4)).toBe(77);
     expect(kantoMaxSp(20,4)).not.toBe(kantoMaxSp(20,7));
     expect(()=>kantoMaxSp(0,4)).toThrow();
     expect(()=>kantoMaxSp(101,4)).toThrow();
@@ -115,9 +116,62 @@ describe('D-038: custos híbridos PP/poder, SP por espécie e Concentrar',()=>{
       expect(info.id).toBe(id);
       for(const level of [1,25,50,100]){
         const max=kantoMaxSp(level,id);
-        expect(max).toBeGreaterThanOrEqual(40);
+        expect(max).toBeGreaterThanOrEqual(50);
         expect(max).toBeLessThanOrEqual(100);
       }
+    }
+  });
+  it('prévia PokéAPI: cura null+50% é cara; 2–5 hits usam 2,5 acertos',()=>{
+    // Dados oficiais do moves.csv + move_meta.csv do mesmo snapshot D-038:
+    // Recover PP5/power null/meta.category heal + healing50;
+    // Bullet Seed PP30/power25/meta.category damage/min2/max5.
+    const recover={
+      name:'recover',pp:5,power:null,priority:0,
+      damage_class:{name:'status'},
+      meta:{category:{name:'heal'},healing:50,min_hits:null,max_hits:null}
+    };
+    const seed={
+      name:'bullet-seed',pp:30,power:25,priority:0,
+      damage_class:{name:'physical'},
+      meta:{category:{name:'damage'},min_hits:2,max_hits:5}
+    };
+    expect(kantoPreviewMoveSpCost(recover)).toBe(36);
+    expect(kantoPreviewMoveSpCost({
+      ...recover,name:'soft-boiled'
+    })).toBe(36);
+    expect(kantoPreviewMoveSpCost(seed)).toBe(18);
+    expect(kantoPreviewMoveSpCost({...seed,meta:{...seed.meta,min_hits:null,max_hits:null}}))
+      .toBe(11);
+    expect(kantoPreviewMoveSpCost({...seed,power:250,pp:5})).toBe(40);
+    expect(kantoPreviewMoveSpCost({
+      ...seed,meta:{category:{name:'damage'},min_hits:3,max_hits:3}
+    })).toBe(20);
+    expect(kantoPreviewMoveSpCost({
+      name:'growl',pp:40,power:null,priority:0,
+      damage_class:{name:'status'},meta:{category:{name:'net-bad-stats'}}
+    })).toBe(14);
+    expect(()=>kantoPreviewMoveSpCost({...recover,pp:null})).toThrow();
+    expect(()=>kantoPreviewMoveSpCost({...recover,power:25})).toThrow();
+    expect(()=>kantoPreviewMoveSpCost({...seed,
+      meta:{...seed.meta,min_hits:5,max_hits:2}})).toThrow();
+    expect(()=>kantoPreviewMoveSpCost({...seed,
+      meta:{...seed.meta,min_hits:null,max_hits:5}})).toThrow();
+    expect(()=>kantoPreviewMoveSpCost({...seed,pp:0})).toThrow();
+    expect(()=>kantoMoveSpCost({...KANTO_BATTLE_MOVES.tackle!,name:'__proto__'}))
+      .not.toThrow();
+    expect(kantoMovePp('__proto__')).toBeNull();
+    // Prévia não desbloqueia Recover nem altera golpes equipáveis.
+    expect(KANTO_BATTLE_MOVES.recover).toBeUndefined();
+    expect(KANTO_SUPPORT_MOVES.recover).toBeUndefined();
+  });
+  it('SP mínimo 50 cobre custo máximo em 151 espécies e níveis baixos',()=>{
+    const mostExpensive=Math.max(...Object.values({
+      ...KANTO_BATTLE_MOVES,...KANTO_SUPPORT_MOVES
+    }).map(kantoMoveSpCost));
+    expect(mostExpensive).toBeLessThanOrEqual(40);
+    for(let id=1;id<=151;id++)for(const level of [1,5,20,50,100]){
+      expect(kantoMaxSp(level,id)).toBeGreaterThanOrEqual(50);
+      expect(kantoMaxSp(level,id)).toBeGreaterThanOrEqual(mostExpensive);
     }
   });
   it('Concentrar restaura até 30%, limitado ao máximo, sem regen passiva',()=>{
@@ -202,6 +256,50 @@ describe('D-038: custos híbridos PP/poder, SP por espécie e Concentrar',()=>{
     verifySp(result);
     expect(result.frames.some(frame=>frame.moveName==='basic-attack'
       &&frame.actor==='player'&&frame.amount>0)).toBe(true);
+  });
+  it('matriz de suportes: status, bônus, imunidades e SP entre níveis/tipos',()=>{
+    const supports=[
+      {id:1,name:'poison-powder'},
+      {id:4,name:'growl'},
+      {id:7,name:'tail-whip'},
+      {id:25,name:'thunder-wave'}
+    ] as const;
+    const targets=[1,4,7,25,74,92,95,143];
+    let duels=0,supportUsed=0,focusUsed=0,successfulDamage=0,draws=0;
+    for(const {id,name} of supports)for(const foeId of targets)
+    for(const level of [20,50,100])for(const seed of [0,1,7,19,31,53,107,169]){
+      const a=KANTO_BATTLE_SPECIES[id]!;
+      const b=KANTO_BATTLE_SPECIES[foeId]!;
+      const support=KANTO_SUPPORT_MOVES[name]!;
+      const player:Combatant={
+        speciesId:id,name:a.name,types:a.types,level,
+        stats:pokemonOwnStats(a.base,level,zeroStats()),
+        move:support,moves:[support,a.move],rank:0
+      };
+      const wild:Combatant={
+        speciesId:foeId,name:b.name,types:b.types,level,
+        stats:pokemonOwnStats(b.base,level,zeroStats()),
+        move:b.move,rank:0
+      };
+      const result=simulateKantoBattle(player,wild,seed);
+      verifySp(result);
+      expect(simulateKantoBattle(player,wild,seed)).toEqual(result);
+      const attacks=result.frames.filter(frame=>frame.actor==='player'
+        &&frame.moveName===name);
+      expect(attacks.length).toBeLessThanOrEqual(1);
+      supportUsed+=attacks.length;
+      focusUsed+=result.frames.filter(frame=>frame.kind==='focus').length;
+      successfulDamage+=result.frames.filter(frame=>frame.kind==='attack'
+        &&frame.amount>0).length;
+      if(result.outcome==='draw')draws++;
+      if(result.outcome!=='win')expect(result.captured).toBe(false);
+      duels++;
+    }
+    expect(duels).toBe(768);
+    expect(supportUsed).toBeGreaterThan(0);
+    expect(successfulDamage).toBeGreaterThan(duels);
+    expect(draws).toBeLessThan(duels);
+    expect(focusUsed).toBeGreaterThanOrEqual(0);
   });
   it('simula espécies, tipos e níveis sem travar, SP negativo nem prêmio repetido',()=>{
     const species=[1,4,7,10,25,37,43,60,74,92,94,95,113,129,131,143,150,151];
