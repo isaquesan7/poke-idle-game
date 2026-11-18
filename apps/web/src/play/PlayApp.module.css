@@ -524,3 +524,74 @@
 @media(prefers-reduced-motion:reduce){
   .battleFocusBurst{animation:none;opacity:1;transform:translateX(-50%);}
 }
+
+/* D-041: seletor de preferência visual independente do progresso do jogador. */
+.motionSetting{display:grid;gap:var(--space-2);font-size:.75rem;font-weight:800;color:var(--color-text);}
+.motionSetting select{
+  width:100%;max-width:100%;min-height:38px;padding:var(--space-2);
+  border:1px solid var(--color-border);border-radius:var(--radius-control);
+  background:var(--color-bg);color:var(--color-text);font:inherit;
+}
+.motionHint{font-size:.7rem;line-height:1.5;}
+
+/*
+ * D-041: o Windows/Edge pode enviar prefers-reduced-motion:reduce, enquanto
+ * o telefone não. O padrão continua respeitando o SO. Apenas uma escolha
+ * EXPLÍCITA do jogador permite reativar efeitos CSS em qualquer viewport.
+ * GIFs são imagens e não dependem desta regra.
+ */
+.appShell[data-motion='full'] .battleLogEntry{
+  animation:battleEntry .32s ease-out both;
+}
+.appShell[data-motion='full'] .battleSpriteHit{
+  animation:battleSpriteHit var(--duration-battle-impact) ease-in-out both;
+}
+.appShell[data-motion='full'] .battleSpriteHeal,
+.appShell[data-motion='full'] .battleSpriteFocus{
+  animation:battleSpriteHeal var(--duration-battle-impact) ease-out both;
+}
+.appShell[data-motion='full'] .battleSpriteStatus{
+  animation:battleSpriteStatus var(--duration-battle-impact) ease-out both;
+}
+.appShell[data-motion='full'] .battleSpriteCritical{
+  animation:battleCriticalImpact var(--duration-battle-impact) ease-in-out both;
+}
+.appShell[data-motion='full'] .battleFloatDamage,
+.appShell[data-motion='full'] .battleFloatHeal,
+.appShell[data-motion='full'] .battleFloatFocus,
+.appShell[data-motion='full'] .battleImpactLabel{
+  animation:battleDamageFloat var(--duration-battle-float) ease-out both;
+}
+.appShell[data-motion='full'] .battleFocusBurst{
+  animation:battleFocusRise var(--duration-battle-float) ease-out both;
+}
+.appShell[data-motion='full'] .battleHealthFill,
+.appShell[data-motion='full'] .battleSpFill{
+  transition:width var(--duration-battle-health) ease-out;
+}
+.appShell[data-motion='full'] .battlePlaybackProgress>span{
+  transition:width var(--duration-fast);
+}
+
+/* D-041: escolha Reduzir movimento vale inclusive quando o SO não a solicita. */
+.appShell[data-motion='reduce'] .battleLogEntry,
+.appShell[data-motion='reduce'] .battleSpriteHit,
+.appShell[data-motion='reduce'] .battleSpriteHeal,
+.appShell[data-motion='reduce'] .battleSpriteStatus,
+.appShell[data-motion='reduce'] .battleSpriteCritical,
+.appShell[data-motion='reduce'] .battleSpriteFocus,
+.appShell[data-motion='reduce'] .battleFloatDamage,
+.appShell[data-motion='reduce'] .battleFloatHeal,
+.appShell[data-motion='reduce'] .battleFloatFocus,
+.appShell[data-motion='reduce'] .battleImpactLabel,
+.appShell[data-motion='reduce'] .battleFocusBurst{animation:none;}
+.appShell[data-motion='reduce'] .battleFloatDamage,
+.appShell[data-motion='reduce'] .battleFloatHeal,
+.appShell[data-motion='reduce'] .battleFloatFocus,
+.appShell[data-motion='reduce'] .battleImpactLabel{opacity:1;}
+.appShell[data-motion='reduce'] .battleFocusBurst{
+  opacity:1;transform:translateX(-50%);
+}
+.appShell[data-motion='reduce'] .battleHealthFill,
+.appShell[data-motion='reduce'] .battleSpFill,
+.appShell[data-motion='reduce'] .battlePlaybackProgress>span{transition:none;}

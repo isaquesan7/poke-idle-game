@@ -43,6 +43,7 @@ jobs:
           npm run build:web
           npm test
           npm run verify:gifs
+          node --check apps/web/tests/e2e/playable-route.mjs
       - name: Preparar Chromium compatível
         run: |
           npm install --no-save --package-lock=false playwright@1.56.1

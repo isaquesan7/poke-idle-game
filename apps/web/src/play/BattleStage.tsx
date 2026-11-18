@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import type { KantoBattleVisualFrame } from '@kanto/game-core';
 import styles from './PlayApp.module.css';
@@ -105,21 +106,36 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
       :effective===0?'IMUNE'
         :effective<1?'RESISTIDO':'';
   const sp=side==='player'?frame?.playerSp:frame?.wildSp;
+  const animatedSprite=useRef<HTMLDivElement|null>(null);
+
+  useLayoutEffect(()=>{
+    // D-041: reinicia só a animação CSS do impacto. Remontar o palco
+    // reiniciava também o GIF do Pokémon a cada linha do diário (900 ms).
+    // O elemento <img> permanece o MESMO ao avançar e reassistir.
+    if(!playing||(!hit&&!heal&&!status&&!focus))return;
+    for(const animation of animatedSprite.current?.getAnimations({subtree:false})??[]){
+      animation.cancel();
+      animation.play();
+    }
+  },[cue,playing,hit,heal,status,focus]);
+
   return (
     <div className={styles.battleFighter} data-testid={'battle-fighter-'+side}>
-      <div className={styles.battleSpriteStage} key={cue+'-'+side}>
-        <div className={animateClass}>{fighter.art}</div>
-        {(hit||heal)&&<span className={heal?styles.battleFloatHeal:styles.battleFloatDamage}
+      <div className={styles.battleSpriteStage}>
+        <div className={animateClass} ref={animatedSprite}
+          data-testid={'battle-visual-'+side}>{fighter.art}</div>
+        {(hit||heal)&&<span key={cue+'-impact-'+side}
+          className={heal?styles.battleFloatHeal:styles.battleFloatDamage}
           data-testid={'battle-impact-'+side} aria-hidden="true">
           {heal?'+':'−'}{frame.amount} HP
         </span>}
-        {focus&&<span className={styles.battleFocusBurst}
+        {focus&&<span key={cue+'-focus-'+side} className={styles.battleFocusBurst}
           data-testid={'battle-focus-'+side} aria-hidden="true">
           <span className={styles.battleFocusSymbol}>✧</span>
           <span>CONCENTRAR</span>
           <strong>+{frame.spRecovery} SP</strong>
         </span>}
-        {hit&&typeLabel&&<span data-testid="battle-effectiveness"
+        {hit&&typeLabel&&<span key={cue+'-type-'+side} data-testid="battle-effectiveness"
           className={styles.battleImpactLabel+' '+typeTone} aria-hidden="true">
           {typeLabel}
         </span>}
