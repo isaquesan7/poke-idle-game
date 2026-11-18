@@ -30,6 +30,8 @@ jobs:
           cache: npm
       - name: Dependências reproduzíveis
         run: npm ci
+      - name: Sintaxe do teste de navegador
+        run: node --check apps/web/tests/e2e/playable-route.mjs
       - name: Build da rota jogável
         run: npm run build:web
       - name: Test runner na mesma versão do Chromium container
