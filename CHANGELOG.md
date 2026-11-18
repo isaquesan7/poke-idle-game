@@ -1,7 +1,7 @@
-## [v0.2-alpha — HP e impactos sincronizados] — 2026-11-17 (em branch, CI/PR pendentes)
+## [v0.2-alpha — HP e impactos sincronizados] — 2026-11-17 (PUBLICADO PR #46)
 - Trilha visual persistida com uma entrada por linha no diário: HP dos dois combatentes, tipo do evento, dano/cura, identidade histórica do parceiro e HP máximo. Não muda regras de dano, RNG, captura, XP ou recompensas.
 - Palco responsivo mostra HP numérico, animações de impacto, cura e status vinculadas ao progresso do diário (pausa, 2x, pular, replay). Sem novos recibos nem escrita visual. Saves anteriores sem trilha mostram o log completo sem HP inventado.
-- Tokens CSS no :root e prefers-reduced-motion, testes core/web e Chromium desktop/mobile adicionados. PR, CI, merge e Railway pendentes; próxima etapa: UX/acessibilidade e efeitos por tipo.
+- Tokens CSS no :root e prefers-reduced-motion, testes core/web e Chromium desktop/mobile aprovados. PR #46 merged em 82ae9f4837ff5c9448bdfa115fb2bc4ac77c6a52, CI PR 44203666664 e main 44204910003 SUCCESS; Railway a9dafccf-3be1-4381-9137-3fdb7044e3f2 SUCCESS e /health interno aprovado. Próxima etapa: UX/acessibilidade e efeitos por tipo.
 
 ## [v0.2-alpha — quatro golpes e IA determinística] — 2026-11-17 (PUBLICADO PR #44)
 - Até quatro slots de golpes por Pokémon UID, com ações de adicionar, retirar e definir principal. Saves anteriores com só `moveName` carregam como slot único; `moveNames` opcional, sem novo schema. O golpe principal anterior e seus ranks permanecem intactos até edição consciente.
