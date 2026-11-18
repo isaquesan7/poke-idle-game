@@ -91,11 +91,13 @@ export function kantoTmPreview(tmId:string):typeof KANTO_TM09_PREVIEW|null{
  * inventário e writer ainda não estão disponíveis. Nunca inferir que
  * "Bulbasaur pode aprender TM09" apenas por tipo ou por prévia de SP.
  */
+const ENABLED_MACHINE_IDS:ReadonlySet<string>=new Set();
+// Nenhuma TM liberada. Somente confirmar elegibilidade não bastará no futuro:
+// exigir também estoque, versão e escrita atômica no writer.
 export function kantoTmIsTeachEnabled(tmId:string,speciesId:number):boolean{
-  return !!kantoTmPreview(tmId)&&Number.isSafeInteger(speciesId)
+  return kantoTmPreview(tmId)!==null&&Number.isSafeInteger(speciesId)
     &&speciesId>=1&&speciesId<=151
-    &&KANTO_TM_VERSION_POLICY.releasedMachines>0
-    &&KANTO_TM09_PREVIEW.state!=='not-released';
+    &&ENABLED_MACHINE_IDS.has(tmId);
 }
 
 /** Valor esperado calculado dos pesos históricos, não heurística SP D-039. */
