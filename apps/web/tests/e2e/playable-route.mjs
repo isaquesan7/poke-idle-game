@@ -306,6 +306,8 @@ async function exercise(browser, label, viewport) {
   // observável antes do próximo; não modifica o estado salvo.
   await focusPage.getByRole('button',{name:'Ativar leitura assistiva'}).click();
   await focusPage.getByTestId('battle-focus-player').waitFor();
+  assert.match(await focusPage.getByTestId('battle-screenreader-status').textContent(),/Concentrar/,
+    'modo assistivo anuncia concentração ao chegar no frame');
   await focusPage.getByRole('button',{name:'Pausar'}).click();
   assert.match(await focusPage.getByTestId('battle-focus-player').textContent(),/CONCENTRAR/);
   assert.equal(await focusPage.getByTestId('battle-focus-text-player').textContent()
@@ -329,7 +331,8 @@ async function exercise(browser, label, viewport) {
     getComputedStyle(el).animationName),'none',
     'padrão deve respeitar a preferência do sistema');
   await motionSelect.selectOption('full');
-  assert.match(await focusPage.getByTestId('battle-screenreader-status').textContent(),/Concentrar/);
+  assert.match(await focusPage.getByTestId('battle-screenreader-status').textContent(),/pausada/,
+    'ao pausar, a live region informa a pausa em vez de repetir Concentrar');
   assert.equal(await focusPage.getByTestId('battle-sp-player-value').textContent(),
     (spent.playerSp+gained)+' / '+recorded.playerMaxSp);
   await focusPage.getByRole('button',{name:'Continuar'}).click();
