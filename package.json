@@ -6,7 +6,6 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "prestart": "npm run build:web",
     "test": "node --check server.mjs && node --check scripts/pokemon-sprites.js && node --test tests/*.test.mjs",
     "sync:gifs": "node scripts/sync-pokemon-gifs.mjs",
     "verify:gifs": "node scripts/verify-pokemon-gifs.mjs",
