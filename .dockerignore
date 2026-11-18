@@ -1,0 +1,18 @@
+# D-044: contexto de build reprodutível e sem dados de máquina.
+.git
+.gitignore
+.github
+**/node_modules
+**/dist
+**/coverage
+**/.cache
+artifacts
+**/artifacts
+*.log
+npm-debug.log*
+.env
+.env.*
+!.env.example
+.DS_Store
+docs
+README.md

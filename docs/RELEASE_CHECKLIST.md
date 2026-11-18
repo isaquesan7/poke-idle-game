@@ -51,3 +51,12 @@
 - [ ] Planejar correções sem `npm audit fix --force`, revalidando lockfile e E2E desktop/mobile.
 - [ ] Revisar distribuições por cenário/nível em `D040_BALANCE_REPORT`, principalmente lutas no limite de 30 turnos e dependência de ataque básico/Concentrar.
 - [ ] Validar leitores NVDA/VoiceOver, teclado e reduced-motion manualmente com usuário; E2E automatizado não prova compreensão pela tecnologia assistiva.
+
+## Gate D-044 — artefato Docker sem ferramentas de dev (2026-11-18)
+- [ ] CI `runtime-image-regression.yml` constrói Dockerfile multi-stage, `USER node`, sem `node_modules`, lock, fontes/tsconfig/docs/testes na imagem runtime; `npm start` inicia Node sem Vite/prestart.
+- [ ] `tests/e2e/runtime-image-smoke.mjs` valida /health, /, /play, /play/, assets Vite, CSS/JS legado, GIFs #1/#4/#25/#151 e 404 para arquivos privados.
+- [ ] CI legado TypeScript/Vitest, 151 GIFs, Node v0.1, Playwright desktop/mobile e sandbox passam com `npm run build:web` explícito.
+- [ ] Inspecionar logs de Railway: builder deve usar Dockerfile; SHA publicado exato, status SUCCESS, /health interno e /play com HTML/assets (não basta só healthcheck).
+- [ ] Nenhum save, writer, SP/PP, reward, RNG, animação full, catálogo/learnsets ou rota v0.1 alterado. Se seleção de Dockerfile falhar, manter release anterior; 503 /health protege /play.
+- [ ] Revisão de acessibilidade manual NVDA/VoiceOver continua **pendente** para beta; `docs/COMBAT_HEAL_MULTIHIT_DESIGN.md` é plano, NÃO conteúdo habilitado.
+
