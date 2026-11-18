@@ -68,8 +68,9 @@ describe('combate determinístico Kanto — fórmulas do protótipo',()=>{
     const miss:KantoMove={name:'falha',type:'normal',category:'physical',power:40,accuracy:0,priority:0};
     // Ambos têm 100 HP e no máximo 30 turnos. O básico agora é neutro
     // até contra Ghost, portanto o empate ocorre pelo limite de turnos.
-    const a=fighter({move:miss,types:['ghost']}),
-      b=enemyWithGround({move:miss,types:['ghost']});
+    const sturdy={...stats,hp:1000,defense:1000,specialDefense:1000};
+    const a=fighter({move:miss,types:['ghost'],stats:sturdy}),
+      b=enemyWithGround({move:miss,types:['ghost'],stats:sturdy});
     const r=simulateKantoBattle(a,b,2026);
     expect(r.outcome).toBe('draw');
     expect(r.turns).toBe(30);

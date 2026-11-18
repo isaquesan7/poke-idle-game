@@ -217,7 +217,7 @@ function validMove(m:KantoMove|undefined):boolean{
   return(m.category==='physical'||m.category==='special')
     &&Number.isFinite(m.power)&&m.power>0&&m.power<=250;
 }
-function validateCombatant(monster:Combatant):void {
+function validateCombatant(monster:Combatant,allowInternalBasic=false):void {
   if (!monster || !Number.isSafeInteger(monster.speciesId) || monster.speciesId<1 || monster.speciesId>151
     || typeof monster.name!=='string' || monster.name.length<1 || monster.name.length>80
     || !Number.isSafeInteger(monster.level) || monster.level<1 || monster.level>100
@@ -225,11 +225,14 @@ function validateCombatant(monster:Combatant):void {
     || monster.types.some(type=>!TYPES[type])
     || !Number.isSafeInteger(monster.rank) || monster.rank<0 || monster.rank>10
     || !monster.stats || !validMove(monster.move)
+    // Basic Attack só pode ser usado internamente na resolução do golpe.
+    || (!allowInternalBasic&&monster.move.name===KANTO_BASIC_ATTACK.name)
     || (monster.moves!==undefined&&(
       !Array.isArray(monster.moves)||monster.moves.length<1||monster.moves.length>4
       ||monster.moves[0]?.name!==monster.move.name
       ||new Set(monster.moves.map(m=>m.name)).size!==monster.moves.length
       ||!monster.moves.every(validMove)
+      ||monster.moves.some(m=>m.name===KANTO_BASIC_ATTACK.name)
     ))
     || (monster.ranks!==undefined&&(
       !monster.ranks||typeof monster.ranks!=='object'||Array.isArray(monster.ranks)
@@ -247,7 +250,7 @@ export function kantoDamage(
   /** Opcional para queimadura: reduz apenas ataque físico (1 ou 0,5). */
   attackScale:number=1
 ): {readonly damage:number;readonly critical:boolean;readonly effectiveness:number} {
-  validateCombatant(attacker);validateCombatant(defender);
+  validateCombatant(attacker,true);validateCombatant(defender,true);
   if(attacker.move.category==='status')throw new RangeError('Golpe sem dano.');
   if (![criticalRoll,varianceRoll].every(v=>Number.isFinite(v)&&v>=0&&v<1)
     || (attackScale!==1&&attackScale!==0.5)) {
