@@ -63,3 +63,5 @@ O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Ra
 
 
 > Histórico da etapa (17/11/2026): feat/v02-animated-hp-battle-stage foi integrada pela PR #46. CI e Railway confirmados no último bloco de docs/PROJECT_STATE.md; próximo passo: efeitos visuais por tipo/crítico e acessibilidade.
+
+> **Trabalho em branch (2026-11-17):** `feat/v02-sp-budget-and-battle-feedback` baseada em `41e1ae9948e8fcef55a94eb02fa18592c11d55bf`. Novo SP de batalha (não PP oficial da PokéAPI), custo de skills e ataque básico grátis, duas barras SP/HP e feedback de tipo/crítico com testes e D-037. Ainda sem PR/CI/merge/Railway confirmados. Consulte último bloco de `docs/PROJECT_STATE.md`. Preservar / v0.1, save v0.2, `isaquesan7/pokedex` sem mudanças.

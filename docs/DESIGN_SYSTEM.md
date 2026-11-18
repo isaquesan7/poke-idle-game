@@ -73,3 +73,8 @@ Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em 
 ## D-036 — UI de HP por evento (2026-11-17)
 - Barras de HP textual e role=progressbar com aria-valuenow/valuemax, uma por Pokémon. Impacto, cura e status são marcados pelo frame mostrado e reiniciam com a chave do índice do log.
 - Paleta Kanto Dark preservada, sem hex fora de styles/tokens.css. Durações battle-health, battle-impact e battle-float ficam no :root. prefers-reduced-motion remove flash, shake, floating e transições, mantendo os valores e os logs. Layout mobile não pode gerar overflow horizontal.
+
+## D-037: barras SP e feedback de efetividade na Arena (17/11/2026)
+- Barra SP abaixo do HP por combatente com texto `SP atual / máximo`, `role=progressbar`, `aria-valuenow` e `aria-valuemax`. Usa `--color-primary` ciano do Kanto Dark; HP continua verde. Quando SP=0, aviso textual de ataque básico. O indicador só aparece se `frames` e `maxSp` válidos foram persistidos no combate original.
+- Impacto crítico tem animação curta própria e aviso `CRÍTICO!`; efetividade dupla, resistência e imunidade têm rótulos semântico/cores de tipo via tokens `--color-tag-*`. O diário guarda os mesmos fatos em texto e o overlay decorativo tem `aria-hidden`; a informação nunca depende exclusivamente da cor. `prefers-reduced-motion: reduce` desliga shakes, flashes e transições de HP/SP sem perder números/rótulos.
+- Mesmo grid da Arena e limites responsivos mobile, sem hex/rgb hardcoded no CSS Module; tokens ficam no `:root` de `styles/tokens.css` quando houver novos valores visuais.
