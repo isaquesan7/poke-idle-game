@@ -8,7 +8,7 @@ O combate da Arena v0.2 usa uma mistura *deliberada* de catálogo de espécies/l
 
 - **TM09 em Pokémon FireRed/LeafGreen (Geração III)** ensina *Bullet Seed*, Grass/Especial e **10 de poder por impacto**; é TM, **não** aprendizado automático ao subir nível. Fontes de versão: https://pokemondb.net/move/bullet-seed ; https://www.dittobase.com/firered-and-leafgreen/items/tm09 ; https://bulbapedia.bulbagarden.net/wiki/Bullet_Seed_(move).
 - Na PokéAPI moderna, Bullet Seed aparece Grass/Físico e **25 por impacto**. A página de TM de FRLG em Pokémon Database pode apresentar uma tabela com valores **modernos** ao lado do item histórico; por isso a origem/geração deve constar campo a campo, em vez de confiar em um único quadro de UI.
-- Para 2–5 acertos nas regras comuns da GenIII, frequências condicionais **3/8, 3/8, 1/8, 1/8** para 2, 3, 4 e 5, respectivamente, valor esperado **2,75**; contexto: https://bulbapedia.bulbagarden.net/wiki/Multistrike_move. A prévia de custo D-039 **2,5 impactos** é orçamento heurístico, NÃO sorteio nem regra canônica.
+- Para 2–5 acertos nas regras comuns da GenIII, frequências condicionais **3/8, 3/8, 1/8, 1/8** para 2, 3, 4 e 5, respectivamente, valor esperado **3,0**; contexto: https://bulbapedia.bulbagarden.net/wiki/Multistrike_move. A prévia de custo D-039 **2,5 impactos** é orçamento heurístico, NÃO sorteio nem regra canônica.
 
 ## Contrato de dados proposto (somente documentação)
 
@@ -18,7 +18,7 @@ Separar *item*, *elegibilidade de espécie* e *atributos do golpe*:
 - `MachineCompatibility`: conjunto **positivo** dos IDs de espécies elegíveis, proveniente de `pokemon_moves.csv` com version_group 7 e method TM, e cadeia/evoluções permitidas; nunca inferir elegibilidade apenas de tipo/nível/forma. Se faltar compatibilidade verificada, negar.
 - `MoveVersion`: `type`, `damageClass`, `powerPerHit`, `accuracy`, `priority`, `pp`, `minHits`, `maxHits`, `weightsByHits`, `effectRulesVersion`. **A escolha entre usar toda a ficha histórica GenIII ou manter a ficha moderna coerente com o motor atual ainda está PENDENTE.** Não misturar categoria especial GenIII e poder moderno25 por acidente.
 - `kantoMoveSpCost` deve ser função estável para o **golpe autorizado**; a prévia `kantoPreviewMoveSpCost` não autoriza equipagem. Ao trocar regra do custo, versionar nos logs/recibos para replays antigos, não ressimular resultados.
-- Catálogo de múltiplos acertos `kantoMultiHit` continua **fechado** e contém apenas `double-kick:2/2`. Quando implementado variável, a resolução deve tirar **um único sorteio inteiro da seed** de batalha conforme pesos versionados, depois executar cada impacto com dano/crítico/RNG independentes e parar imediatamente em KO/imunidade. Para mudar orçamento baseado em 2,5→2,75, será necessária decisão formal com teste de SPmax, 30 turnos e Focus.
+- Catálogo de múltiplos acertos `kantoMultiHit` continua **fechado** e contém apenas `double-kick:2/2`. Quando implementado variável, a resolução deve tirar **um único sorteio inteiro da seed** de batalha conforme pesos versionados, depois executar cada impacto com dano/crítico/RNG independentes e parar imediatamente em KO/imunidade. Para mudar orçamento baseado em 2,5→3,0, será necessária decisão formal com teste de SPmax, 30 turnos e Focus.
 
 ## Escrita atômica e compatibilidade
 
