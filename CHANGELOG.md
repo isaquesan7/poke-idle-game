@@ -1,3 +1,15 @@
+# D-051 — polimento da tela do treinador (18/11/2026, em branch)
+
+## D-051 — primeira rodada de polimento do Treinador (branch, ainda não publicada)
+
+- Continuidade visual da D050: reduz sombra excessiva dos painéis, melhora hierarquia tipográfica, distribuição entre colunas, espaçamento e contraste usando **apenas tokens existentes** em `styles/tokens.css` (sem introduzir hex ou paleta paralela).
+- Arte `/assets/trainer-original.png` permanece **idêntica**: imagem maior/centralizada, halo e base sutis. Os nove equipamentos ficam simétricos nas laterais; tooltip não é mais cortado por `overflow:hidden` e pode ser revelado no hover/foco/toque. Usamos botão com nome acessível no lugar de `div tabIndex`.
+- Barras de atributos distinguem valor salvo (verde) e **aumento ainda não confirmado** (ciano); cada ponto de prévia pode ser desfeito individualmente com botão `−`, além de Cancelar global. Save só muda ao clicar em Confirmar; recibos, revisão e writer continuam os da D050.
+- Título ativo recebe cartão de destaque compacto dentro do perfil; contagem de equipamentos equipados visível na aba correspondente e aba Mochila com rótulo de estoque real. Insígnias mantêm seus IDs e bônus de catálogo.
+- Ajustes para 1200/700/430px, teclado e telas pequenas. E2E desktop/mobile amplia cobertura: PNG carregado, tooltip por foco, adicionar/remover ponto sem gravar, cancelar e confirmar em revisão única.
+- Não foram alterados GIFs, catálogo de TM, combate, economia, save schema/chave, dados de jogador, nem o repositório `isaquesan7/pokedex`.
+- **Gate:** abrir PR, validar CI completo (Node, Vitest/TypeScript, E2E, Docker), revisar a captura do navegador e só depois decidir merge/produção. D049B continua em PR separada.
+
 ## D-050 — tela do Treinador, prévia segura e Mochila (BRANCH, NÃO PUBLICADA; 18/11/2026)
 - Layout Perfil/Equipamentos/Mochila, títulos e insígnias diretamente no perfil, equipamentos com bônus em hover/foco, responsivo usando root tokens oficiais.
 - Prévia de distribuição sem salvar; confirmar aplica todos os pontos validados em uma revisão do writer, com rollback completo. Removida mensagem genérica de sucesso do treinador e Pokémon.
