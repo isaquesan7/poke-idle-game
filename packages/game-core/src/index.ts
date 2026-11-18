@@ -72,7 +72,7 @@ export type {MoveSlotAction,MoveSlotOperation,MoveSlotResult} from './legacy/pok
 export {
   KANTO_STATUS_SOURCE_COMMIT, KANTO_SECONDARY_EFFECTS, kantoMoveSecondaryEffect
 } from './combat/kantoStatusEffects.js';
-export type { KantoBattleStatus, KantoSecondaryEffect } from './combat/kantoStatusEffects.js';
+export type { KantoBattleStatus, KantoSecondaryEffect } from './combat/kantoStatusEffects.js';\nexport {KANTO_MULTI_HIT_MOVES,kantoMoveHitCount} from './combat/kantoMultiHit.js';
 export {
   KANTO_BASIC_ATTACK,KANTO_CONCENTRATE,KANTO_SP_BALANCE,
   kantoMaxSp,kantoMovePp,kantoMoveSpCost,kantoFocusRecovery,
