@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'apps/web/src/play/**'
+      - 'apps/web/package.json'
+      - 'packages/game-core/package.json'
+      - 'package-lock.json'
       - 'apps/web/tests/e2e/playable-route.mjs'
       - 'styles/**'
       - '.github/workflows/animation-regression.yml'
@@ -35,7 +38,9 @@ jobs:
       - name: Build da rota jogável
         run: npm run build:web
       - name: Test runner na mesma versão do Chromium container
-        run: npm install --no-save --package-lock=false playwright@1.56.1
+        run: |
+          npm install --global npm@11
+          npm install --no-save --package-lock=false playwright@1.56.1
       - name: Domínio, storage, testes Node e 151 GIFs
         run: |
           npm run typecheck:core
