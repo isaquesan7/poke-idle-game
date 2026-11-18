@@ -2,6 +2,7 @@
 - Adicionado extrator offline `scripts/extract-tm09-compatibility.mjs` que verifica hash Git do snapshot PokéAPI pinado antes de extrair a compatibilidade TM09 de `pokemon_moves.csv`, limitada a Kanto 1..151, grupo7, método4, golpe331. Produz JSON somente em caminho novo, não altera dados de jogo.
 - Adicionados testes Node sintéticos de hash, filtro estrito e falhas fechadas (CSV malformado, duplicado, vazio, checksum incompatível). CSV original grande ainda precisa ser obtido/verificado; **não há allowlist positiva real, item, consumo, teach ou novo golpe liberado**.
 - Planejamento detalhado em `docs/TM_WRITER_PLAN_D049.md`: origem fechada de compatibilidade, opções de aquisição, contrato idempotente com slot/UID/revisão e gates D049-B/C/D antes da liberação; nenhuma economia foi ativada.
+- Correção de parsing antes de publicar: coluna `order` vazia é válida em linhas de máquina do CSV; testes positivos de `level=0,order=''` e negativo para valor textual de `order`. Não confundir ausência de `order` com coluna ausente.
 - Código de combate, inventário, writer, saves/replays, UI, animações, GIFs e produção preservados; validação CI/merge/deploy ainda pendente.
 
 ## [v0.2-alpha — D-048 política de geração e preview TM09 sem desbloqueio] — 2026-11-18 (PUBLICADA PR #69)
