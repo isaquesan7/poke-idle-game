@@ -222,3 +222,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Pendências/alertas:
 - Próxima ação:
 ```
+
+- D050 UI compatível da rota legada `/`: retirado somente o card informativo de protótipo (botão de reinício continua presente), o selo "Dados locais" e o rótulo "PokéAPI conectada"; a disponibilidade do servidor agora vem de `GET /health`, independente da PokéAPI. O loop, ações e saves da v0.1 não foram modificados.
