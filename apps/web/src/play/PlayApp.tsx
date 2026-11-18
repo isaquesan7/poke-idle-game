@@ -599,7 +599,7 @@ export function PlayApp() {
                     {equippedNames.map((name,i)=><div key={name} className={styles.moveEquipped}>
                       <div><strong>{i+1}. {name}</strong>
                         <small>{i===0?'Principal':'Adicional'} ·
-                          {KANTO_SUPPORT_MOVES[name]?' Suporte':' Ataque'} ·
+                          {KANTO_SUPPORT_MOVES[name]?(name==='recover'?' Cura':' Suporte'):' Ataque'} ·
                           {KANTO_SUPPORT_MOVES[name]||KANTO_BATTLE_MOVES[name]
                             ?' '+kantoMoveSpCost((KANTO_SUPPORT_MOVES[name]??KANTO_BATTLE_MOVES[name])!)+' SP · PP '+(kantoMovePp(name)??'não catalogado')
                             :' Golpe provisório'}</small></div>
@@ -651,7 +651,7 @@ export function PlayApp() {
                       </div>;
                     })}
                   </div>
-                  <h3>Golpes de suporte aprendidos</h3>
+                  <h3>Golpes de suporte e cura aprendidos</h3>
                   <div className={styles.moveList}>
                     {supportMoves.map(({move,learnedAt})=>{
                       const inSlots=equippedNames.includes(move.name);
@@ -662,7 +662,7 @@ export function PlayApp() {
                             Custo {kantoMoveSpCost(move)} SP</small>
                           <small>{move.name==='growl'?'Reduz Ataque':
                             move.name==='tail-whip'?'Reduz Defesa':
-                              move.name==='thunder-wave'?'Paralisa':'Envenena'}</small></div>
+                              move.name==='thunder-wave'?'Paralisa':\n                            move.name==='recover'?'Recupera até 50% do HP, no máximo 1 vez por batalha':'Envenena'}</small></div>
                         <div className={styles.moveActions}>
                           {inSlots?<small>Equipado</small>:
                             <button type="button" className={styles.secondary}
