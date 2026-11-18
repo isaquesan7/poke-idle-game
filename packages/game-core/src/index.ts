@@ -75,6 +75,12 @@ export {
 export type { KantoBattleStatus, KantoSecondaryEffect } from './combat/kantoStatusEffects.js';
 export {KANTO_MULTI_HIT_MOVES,kantoMoveHitCount} from './combat/kantoMultiHit.js';
 export {
+  KANTO_TM_SOURCE_COMMIT,KANTO_TM_SOURCE_BLOBS,KANTO_TM_VERSION_POLICY,
+  KANTO_TM09_PREVIEW,kantoTmPreview,kantoTmIsTeachEnabled,
+  kantoTmPreviewMeanHits,kantoTmPreviewHitCount
+} from './catalog/kantoTmPreview.js';
+export type {KantoTmPreviewHit} from './catalog/kantoTmPreview.js';
+export {
   KANTO_BASIC_ATTACK,KANTO_CONCENTRATE,KANTO_SP_BALANCE,
   kantoMaxSp,kantoMovePp,kantoMoveSpCost,kantoFocusRecovery,
   kantoPreviewMoveSpCost
