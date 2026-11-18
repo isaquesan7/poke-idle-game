@@ -35,9 +35,9 @@ A TM09 histórica GenIII usa `grass/special/powerPerHit:10/PP:30/accuracy:100`. 
 
 ## Distribuição histórica isolada
 
-O helper puro `kantoTmPreviewHitCount('tm09',roll)` recebe número já sorteado em `[0,1)` e classifica 2/3/4/5 impactos pelos pesos **3/8,3/8,1/8,1/8**. `kantoTmPreviewMeanHits('tm09')=2,75`. Ele **não consome o RNG de `simulateKantoBattle`**, não executa danos nem cura nem credita recompensas; sua função é permitir validação matemática e futuro projeto. Roll inválido e TM desconhecida são rejeitados. Teste determinístico com 8.000 pontos distribuídos uniformemente encontrou exatamente **3.000/3.000/1.000/1.000** acertos. Não é estatística de players.
+O helper puro `kantoTmPreviewHitCount('tm09',roll)` recebe número já sorteado em `[0,1)` e classifica 2/3/4/5 impactos pelos pesos **3/8,3/8,1/8,1/8**. `kantoTmPreviewMeanHits('tm09')=3,0`. Ele **não consome o RNG de `simulateKantoBattle`**, não executa danos nem cura nem credita recompensas; sua função é permitir validação matemática e futuro projeto. Roll inválido e TM desconhecida são rejeitados. Teste determinístico com 8.000 pontos distribuídos uniformemente encontrou exatamente **3.000/3.000/1.000/1.000** acertos. Não é estatística de players.
 
-A prévia D-039 em dados modernos continua usando 2,5 impactos como heurística e retorna aproximadamente **18 SP** para modern power25/PP30, sem executar o golpe. Se futuramente a TM histórica passar ao jogo, a fórmula de SP com 10×2,75 sugeriria ~12 SP, mas **isso não é custo aprovado**, pois precisa de estudo de balanceamento vs Double Kick e do tratamento de múltiplas animações. Decisão de SP será explícita em nova PR.
+A prévia D-039 em dados modernos continua usando 2,5 impactos como heurística e retorna aproximadamente **18 SP** para modern power25/PP30, sem executar o golpe. Se futuramente a TM histórica passar ao jogo, a fórmula de SP com 10×3,0 sugeriria ~12 SP, mas **isso não é custo aprovado**, pois precisa de estudo de balanceamento vs Double Kick e do tratamento de múltiplas animações. Decisão de SP será explícita em nova PR.
 
 ## Inventário e writer futuros (não implementados)
 
