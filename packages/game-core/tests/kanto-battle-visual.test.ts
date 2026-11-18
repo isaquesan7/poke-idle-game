@@ -29,7 +29,12 @@ function verifyFrames(result:KantoBattleResult) {
     const target=frame.target;
     const before=target==='player'?prev.playerHp:prev.wildHp;
     const after=target==='player'?frame.playerHp:frame.wildHp;
-    if(frame.kind==='attack'||frame.kind==='residual'){
+    if(frame.kind==='focus'){
+      expect(target).not.toBeNull();
+      expect(frame.spRecovery).toBeGreaterThan(0);
+      expect(frame.playerHp).toBe(prev.playerHp);
+      expect(frame.wildHp).toBe(prev.wildHp);
+    }else if(frame.kind==='attack'||frame.kind==='residual'){
       expect(target).not.toBeNull();
       expect(before-after).toBe(frame.amount);
     }else if(frame.kind==='heal'){

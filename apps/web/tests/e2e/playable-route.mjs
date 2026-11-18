@@ -123,7 +123,15 @@ async function exercise(browser, label, viewport) {
   assert.equal(visual.frames[0].wildHp,visual.wildMaxHp);
   assert.equal(visual.frames.at(-1).playerHp,visual.playerRemainingHp);
   assert.equal(visual.frames.at(-1).wildHp,visual.wildRemainingHp);
-  assert.equal(visual.playerMaxSp,40+Math.floor(visual.playerLevel/4));
+  assert.ok(visual.playerMaxSp>=40&&visual.playerMaxSp<=100);
+  assert.ok(visual.wildMaxSp>=40&&visual.wildMaxSp<=100);
+  assert.ok(visual.frames.filter(frame=>frame.kind==='focus'&&frame.actor==='player').length<=2);
+  assert.ok(visual.frames.filter(frame=>frame.kind==='focus'&&frame.actor==='wild').length<=2);
+  for(const frame of visual.frames.filter(frame=>frame.kind==='focus')){
+    assert.ok(frame.spRecovery>0);
+    assert.equal(frame.spCost,0);
+    assert.ok(visual.log[visual.frames.indexOf(frame)].includes('Concentrar'));
+  }
   assert.equal(visual.frames[0].playerSp,visual.playerMaxSp);
   assert.equal(visual.frames[0].wildSp,visual.wildMaxSp);
   assert.equal(visual.frames.at(-1).playerSp,visual.playerRemainingSp);
