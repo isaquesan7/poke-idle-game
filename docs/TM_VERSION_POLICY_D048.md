@@ -1,6 +1,6 @@
 # D-048 — política de versões e base fechada de TMs
 
-**Data:** 18/11/2026 · **Estado:** contrato de código e testes em branch; **TM09 / Bullet Seed continuam não jogáveis** até inventário, elegibilidade e writer transacional serem desenvolvidos e testados em PR futura.
+**Data:** 18/11/2026 · **Estado: PUBLICADA como base técnica na PR #69**, main SHA `0c05087f87b31eef33dacf6759901d46f271dd4f`, CI geral `44375419460 SUCCESS`, Docker `44375419484 SUCCESS`, Railway `197a7a69-1089-4749-92f9-2b8f51223136 SUCCESS` com /health interno aprovado. **TM09 / Bullet Seed continuam não jogáveis** até inventário, elegibilidade e writer transacional serem desenvolvidos e testados em PR futura.
 
 ## Decisão formal de fontes (D-048)
 
