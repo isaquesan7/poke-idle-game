@@ -22,7 +22,9 @@ export function extractTm09(text){
   const line=lines[i].trim();
   if(!line||line==='pokemon_id,version_group_id,move_id,pokemon_move_method_id,level,order')continue;
   const fields=line.split(',');
-  if(fields.length!==6||!fields.every(x=>/^\d+$/.test(x.trim())))
+  // 'order' pode ser vazio no snapshot real para golpes de TM (level=0).
+  if(fields.length!==6||!fields.slice(0,5).every(x=>/^\d+$/.test(x.trim()))
+    ||(fields[5].trim()!==''&&!/^\d+$/.test(fields[5].trim())))
    throw new Error(`Linha CSV inválida ${i+1}`);
   scanned++;
   const [pokemon,version,move,method]=fields.map(Number);
