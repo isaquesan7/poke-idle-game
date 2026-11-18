@@ -52,6 +52,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
   const [portraitMissing,setPortraitMissing]=useState(false);
   const pending:Draft=draftRevision===revision?draft:{};
   const pendingCount=STATS.reduce((sum,stat)=>sum+(pending[stat]??0),0);
+  const hasStaleDraft=draftRevision!==revision&&STATS.some(stat=>(draft[stat]??0)>0);
   const remaining=Math.max(0,view.unspent-pendingCount);
   const equipped=(data.trainer.equipped??{}) as Record<string,string>;
   const stoneStock=(data.evolutionStones??{}) as Record<string,number>;
@@ -60,6 +61,13 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
     if(busy||submitting||remaining<=0||view.manual[stat]+(pending[stat]??0)>=40)return;
     setDraftRevision(revision);
     setDraft({...pending,[stat]:(pending[stat]??0)+1});
+  }
+  function unstage(stat:Stat){
+    if(busy||submitting||(pending[stat]??0)<1)return;
+    const next={...pending};
+    if(next[stat]===1)delete next[stat];
+    else next[stat]=(next[stat]??0)-1;
+    setDraft(next);
   }
   function clear(){
     setDraft({});
@@ -75,7 +83,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
   return <section className={styles.screen} aria-label="Perfil do treinador">
     <div className={styles.heading}>
       <div><span className={styles.eyebrow}>TREINADOR · KANTO</span>
-        <h2>Perfil do treinador</h2>
+        <h2>Seu treinador</h2>
         <p>Equipe-se, distribua atributos e acompanhe suas conquistas.</p>
       </div>
     </div>
@@ -106,6 +114,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
             <span style={{width:(view.xpNext===null?100:Math.min(100,view.xp/view.xpNext*100))+'%'}}/>
           </div>
           <div className={styles.portraitArea}>
+            <div className={styles.portraitHalo} aria-hidden="true"/>
             <div className={styles.ring} aria-hidden="true"/>
             {!portraitMissing
               ? <img className={styles.portrait} src="/assets/trainer-original.png"
@@ -122,8 +131,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
                 <GearCard key={slot} slot={slot} selected={equipped[slot]}/>)}
             </div>
           </div>
-          <p className={styles.hint}>Toque ou foque em um equipamento para conhecer seus bônus.
-            Gerencie seus itens na aba Equipamentos.</p>
+          <p className={styles.hint}>Passe o mouse, toque ou navegue com Tab para ver os detalhes dos equipamentos. Para trocar, abra Equipamentos.</p>
         </section>
       </div>
       <div className={styles.column}>
@@ -135,17 +143,25 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
               const next=view.totals[stat]+(pending[stat]??0);
               return <div className={styles.stat} key={stat}>
                 <span className={styles.statLabel}><i aria-hidden="true">{STAT_ICONS[stat]}</i>{STAT_LABELS[stat]}</span>
-                <div className={styles.track} aria-hidden="true"><span
-                  style={{width:Math.max(3,Math.min(100,next/50*100))+'%'}}/></div>
+                <div className={styles.track} aria-hidden="true">
+                  <span className={styles.trackPreview} style={{width:Math.max(3,Math.min(100,next/50*100))+'%'}}/>
+                  <span className={styles.trackCurrent} style={{width:Math.max(3,Math.min(100,view.totals[stat]/50*100))+'%'}}/>
+                </div>
                 <strong>{view.totals[stat]}</strong>
                 {pending[stat]?<small className={styles.plus}>→ {next}</small>:<small className={styles.noPlus}> </small>}
-                <button type="button" disabled={busy||submitting||remaining<1||view.manual[stat]+(pending[stat]??0)>=40}
-                  onClick={()=>stage(stat)} aria-label={'Pré-visualizar +1 em '+STAT_LABELS[stat]}>+1</button>
+                <div className={styles.statActions}>
+                  {(pending[stat]??0)>0&&<button type="button" className={styles.undoPoint}
+                    disabled={busy||submitting} onClick={()=>unstage(stat)}
+                    aria-label={'Retirar um ponto da prévia de '+STAT_LABELS[stat]}>−</button>}
+                  <button type="button" disabled={busy||submitting||remaining<1||view.manual[stat]+(pending[stat]??0)>=40}
+                    onClick={()=>stage(stat)} aria-label={'Pré-visualizar +1 em '+STAT_LABELS[stat]}>+1</button>
+                </div>
               </div>;
             })}
           </div>
           <div className={styles.points}><span>Pontos disponíveis: <strong>{remaining}</strong></span>
             <small>Máximo manual: 40 por atributo</small></div>
+          {hasStaleDraft&&<p className={styles.staleNotice} role="alert">Seu progresso mudou em outra ação. Refaça a distribuição para manter os valores corretos.</p>}
           {pendingCount>0&&<div className={styles.confirm}>
             <p role="status">Prévia: <strong>{pendingCount} ponto(s)</strong> ainda não aplicados.</p>
             <div>
@@ -159,8 +175,11 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
         </section>
         <section className={styles.panel}>
           <h3>♧ Títulos e Insígnias</h3>
-          <p className={styles.hint}>Título ativo: <strong>{view.title.name}</strong>.
-            As insígnias obtidas concedem bônus permanentes.</p>
+          <div className={styles.titleActive}>
+            <span className={styles.titleGlyph} aria-hidden="true">✦</span>
+            <span><small>TÍTULO ATIVO</small><strong>{view.title.name}</strong></span>
+          </div>
+          <p className={styles.hint}>As insígnias conquistadas concedem bônus permanentes ao treinador.</p>
           <div className={styles.badgeHeading}>Insígnias ({view.badges.length}/8)</div>
           <div className={styles.badges}>
             {LEGACY_BADGES.map(badge=>{
@@ -178,7 +197,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
     </div>}
 
     {section==='equipment'&&<section className={styles.panel}>
-      <h3>Equipamentos do treinador</h3>
+      <div className={styles.sectionHeader}><h3>Equipamentos do treinador</h3><span className={styles.smallTag}>{LEGACY_EQUIPMENT_SLOTS.filter(slot=>Boolean(equipped[slot])).length}/9 equipados</span></div>
       <p className={styles.hint}>Catálogo de equipamentos da versão de testes.
         O sistema de obtenção e propriedade dos itens ainda está em desenvolvimento.</p>
       <div className={styles.equipmentGrid}>
@@ -198,7 +217,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
     </section>}
 
     {section==='bag'&&<section className={styles.panel}>
-      <h3>▣ Mochila</h3>
+      <div className={styles.sectionHeader}><h3>▣ Mochila</h3><span className={styles.smallTag}>Itens do progresso</span></div>
       <p className={styles.hint}>Itens reais do progresso atual. Cura, Pokébolas e TMs
         aparecerão aqui quando seus sistemas de obtenção e consumo estiverem disponíveis.</p>
       <div className={styles.bagList}>
@@ -215,10 +234,10 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
 function GearCard({slot,selected}:{slot:EquipmentSlot;selected:string|undefined}){
   const item=LEGACY_ITEMS.find(x=>x.slot===slot&&x.id===selected);
   const description=item?item.name+' · '+bonusLabel(item.stats):SLOT_NAMES[slot]+' · Vazio';
-  return <div className={styles.gear} tabIndex={0} title={description}
-    aria-label={description}>
+  return <button type="button" className={styles.gear} title={description}
+    aria-label={description} aria-haspopup="true">
     <span className={styles.gearIcon} aria-hidden="true">{SLOT_ICONS[slot]}</span>
     <span className={styles.gearName}>{item?.name??SLOT_NAMES[slot]}</span>
-    <span className={styles.tooltip} role="tooltip">{item?bonusLabel(item.stats):'Sem equipamento'}</span>
-  </div>;
+    <span className={styles.tooltip} aria-hidden="true">{item?bonusLabel(item.stats):'Sem equipamento'}</span>
+  </button>;
 }
