@@ -13,3 +13,5 @@
 
 ## Não mexer
 Nenhuma alteração às mecânicas de TMs, status, combate, save chave/schema, 151 GIFs, assets de `isaquesan7/pokedex`, v0.1 `/`. D049B PR73 separada (sua regressão geral teve falha em E2E; não misturar). Não fazer merge nem deploy sem CI e arte original funcional.
+
+- D050 UI compatível da rota legada `/`: retirado somente o card informativo de protótipo (botão de reinício continua presente), o selo "Dados locais" e o rótulo "PokéAPI conectada"; a disponibilidade do servidor agora vem de `GET /health`, independente da PokéAPI. O loop, ações e saves da v0.1 não foram modificados.
