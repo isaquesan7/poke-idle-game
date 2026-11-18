@@ -312,25 +312,15 @@ async function exercise(browser, label, viewport) {
   assert.match(await focusPage.getByTestId('battle-focus-player').textContent(),/CONCENTRAR/);
   assert.equal(await focusPage.getByTestId('battle-focus-text-player').textContent()
     .then(s=>s.includes('+'+gained+' SP')),true);
-  assert.equal(await focusPage.getByTestId('battle-focus-player').evaluate(el=>
-    getComputedStyle(el).animationName),'none','reduced-motion remove animação de Concentrar');
-  // Windows/Edge podem respeitar "reduzir movimento" quando o celular não.
-  // Permitir escolha explícita e conferir o efeito computed sem mexer no save.
-  const motionSelect=focusPage.getByLabel('Efeitos visuais da Arena');
-  assert.equal(await motionSelect.inputValue(),'system');
-  await motionSelect.selectOption('full');
+  // D-042: animações completas sempre, inclusive quando o SO solicita redução.
+  // Não existe controle visual do jogador e preferências legadas são ignoradas.
+  assert.equal(await focusPage.getByLabel('Efeitos visuais da Arena').count(),0);
   assert.notEqual(await focusPage.getByTestId('battle-focus-player').evaluate(el=>
     getComputedStyle(el).animationName),'none',
-    'usuário deve poder ativar efeitos mesmo se o Windows pedir reduced motion');
-  await motionSelect.selectOption('reduce');
-  assert.equal(await focusPage.getByTestId('battle-focus-player').evaluate(el=>
-    getComputedStyle(el).animationName),'none',
-    'preferência reduzir deve ter prioridade sobre efeitos CSS');
-  await motionSelect.selectOption('system');
-  assert.equal(await focusPage.getByTestId('battle-focus-player').evaluate(el=>
-    getComputedStyle(el).animationName),'none',
-    'padrão deve respeitar a preferência do sistema');
-  await motionSelect.selectOption('full');
+    'Concentrar deve animar no PC e no celular mesmo com reducedMotion:reduce');
+  assert.equal(await focusPage.getByTestId('battle-stage').evaluate(el=>
+    el.closest('[data-motion]')?.getAttribute('data-motion')),'full',
+    'a Arena sempre usa efeitos completos');
   assert.match(await focusPage.getByTestId('battle-screenreader-status').textContent(),/pausada/,
     'ao pausar, a live region informa a pausa em vez de repetir Concentrar');
   assert.equal(await focusPage.getByTestId('battle-sp-player-value').textContent(),
@@ -339,12 +329,19 @@ async function exercise(browser, label, viewport) {
   await focusPage.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
   assert.equal(await focusPage.evaluate(key=>localStorage.getItem(key),SAVE),
     JSON.stringify(focusFixture),'replay Concentrar não pode escrever novo save');
+  await focusPage.evaluate(()=>{
+    // Simula browser antigo cujo jogador tinha escolhido reduzir movimento.
+    localStorage.setItem('kanto-idle-ui-motion-v01','reduce');
+  });
   await focusPage.reload();
   await focusPage.getByRole('button',{name:'Arena',exact:true}).click();
-  assert.equal(await focusPage.getByLabel('Efeitos visuais da Arena').inputValue(),'full',
-    'preferência visual deve persistir após reload');
+  assert.equal(await focusPage.getByLabel('Efeitos visuais da Arena').count(),0,
+    'não existe menu de animações no desktop ou celular');
+  assert.equal(await focusPage.getByTestId('battle-stage').evaluate(el=>
+    el.closest('[data-motion]')?.getAttribute('data-motion')),'full',
+    'preferências visuais antigas não podem desativar efeitos');
   assert.equal(await focusPage.evaluate(key=>localStorage.getItem(key),SAVE),
-    JSON.stringify(focusFixture),'configuração visual não altera progresso');
+    JSON.stringify(focusFixture),'animação sempre ligada não altera progresso');
   assert.deepEqual(focusErrors,[]);
   await focusContext.close();
 

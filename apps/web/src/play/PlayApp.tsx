@@ -23,19 +23,7 @@ import { BattleStage } from './BattleStage';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
-type MotionPreference = 'system' | 'full' | 'reduce';
-const MOTION_PREFERENCE_KEY = 'kanto-idle-ui-motion-v01';
-
-/** Preferência visual independente do save e de qualquer comando de combate. */
-function readMotionPreference():MotionPreference {
-  try {
-    const stored=window.localStorage.getItem(MOTION_PREFERENCE_KEY);
-    return stored==='full'||stored==='reduce'?stored:'system';
-  } catch {
-    return 'system';
-  }
-}
-
+/** D-042: animações completas na Arena independentemente do sistema operacional. */
 
 /** A prévia do core usa este catálogo como fonte LOCAL das espécies já jogáveis. */
 const BATTLE_SPECIES_CACHE = JSON.stringify({
@@ -113,14 +101,6 @@ function sectionName(tab: Tab): string {
  */
 export function PlayApp() {
   const [save, setSave] = useState<PlayRead>(readSafe);
-  const [motionPreference,setMotionPreference]=useState<MotionPreference>(readMotionPreference);
-  function changeMotionPreference(value:string):void {
-    if(value!=='system'&&value!=='full'&&value!=='reduce')return;
-    setMotionPreference(value);
-    // Uma preferência cosmética isolada. Nunca alterar nem remover saves.
-    try { window.localStorage.setItem(MOTION_PREFERENCE_KEY,value); }
-    catch { /* continua válida nesta sessão */ }
-  }
   const [tab, setTab] = useState<Tab>('overview');
   const [name, setName] = useState('');
   const [starter, setStarter] = useState(1);
@@ -386,7 +366,7 @@ export function PlayApp() {
   }
 
   return (
-    <div className={styles.appShell} data-testid="play-root" data-motion={motionPreference}>
+    <div className={styles.appShell} data-testid="play-root" data-motion="full">
       <aside className={styles.sidebar}>
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
@@ -849,20 +829,6 @@ export function PlayApp() {
                       Concentrar, abrindo mão de atacar para recuperar 30%,
                       até duas vezes por combate com quatro turnos de intervalo.
                       Não há regeneração passiva.</p>
-                    <label className={styles.motionSetting}>
-                      <span>Efeitos visuais da Arena</span>
-                      <select aria-label="Efeitos visuais da Arena"
-                        value={motionPreference}
-                        onChange={event=>changeMotionPreference(event.currentTarget.value)}>
-                        <option value="system">Padrão do dispositivo</option>
-                        <option value="full">Exibir animações</option>
-                        <option value="reduce">Reduzir movimento</option>
-                      </select>
-                    </label>
-                    <p className={styles.motionHint}>
-                      Se os impactos não aparecerem no PC, escolha “Exibir animações”.
-                      A opção padrão respeita as configurações de acessibilidade.
-                    </p>
                     <p>Líder: <strong>{speciesName(active.pokemonId)} · UID #{active.uid}</strong></p>
                     <p>Equipe: <strong>{data.team.length}/3</strong> ·
                       <button type="button" className={styles.textButton}
