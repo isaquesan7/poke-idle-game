@@ -109,8 +109,9 @@ export function kantoMoveSpCost(move:KantoMove):number{
 }
 
 /**
- * D-039: prévia de custo para metadados /move/{id} da PokéAPI (NÃO equipa,
- * não habilita golpes nem executa movimentos novos). A ausência de power
+ * D-039: prévia de custo para metadados /move/{id} da PokéAPI (NÃO equipa
+ * por si só). D-045 habilitou Recover em catálogo+motor SEPARADOS; Bullet
+ * Seed continua só prévia. A ausência de power
  * em suportes/cura da API é null; NÃO converter em NaN nem dano fictício.
  * Este tipo é um recorte explícito de /move e NÃO é o KantoMove canônico.
  */
@@ -134,7 +135,9 @@ export interface KantoApiMoveSpPreview {
  * conservadora, não simulação da distribuição real); hits fixos são exatos.
  * Recover, Soft-Boiled etc. recebem +18 pelo efeito de cura de HP
  * (meta.category.name='heal'), além da escassez de PP.
- * Não fornece sistema de cura real e não aceita payload malformado.
+ * A prévia sozinha não executa cura. Recover foi implementado na D-045
+ * via catálogo de suporte, kantoMoveSpCost e simulateKantoBattle, com
+ * limite de 1 uso por combate; não aceita payload malformado.
  */
 export function kantoPreviewMoveSpCost(move:KantoApiMoveSpPreview):number{
   if(!move||typeof move.name!=='string'||!move.name.trim()
