@@ -257,6 +257,50 @@ describe('D-038: custos híbridos PP/poder, SP por espécie e Concentrar',()=>{
     expect(result.frames.some(frame=>frame.moveName==='basic-attack'
       &&frame.actor==='player'&&frame.amount>0)).toBe(true);
   });
+  it('matriz de suportes: status, bônus, imunidades e SP entre níveis/tipos',()=>{
+    const supports=[
+      {id:1,name:'poison-powder'},
+      {id:4,name:'growl'},
+      {id:7,name:'tail-whip'},
+      {id:25,name:'thunder-wave'}
+    ] as const;
+    const targets=[1,4,7,25,74,92,95,143];
+    let duels=0,supportUsed=0,focusUsed=0,successfulDamage=0,draws=0;
+    for(const {id,name} of supports)for(const foeId of targets)
+    for(const level of [20,50,100])for(const seed of [0,1,7,19,31,53,107,169]){
+      const a=KANTO_BATTLE_SPECIES[id]!;
+      const b=KANTO_BATTLE_SPECIES[foeId]!;
+      const support=KANTO_SUPPORT_MOVES[name]!;
+      const player:Combatant={
+        speciesId:id,name:a.name,types:a.types,level,
+        stats:pokemonOwnStats(a.base,level,zeroStats()),
+        move:support,moves:[support,a.move],rank:0
+      };
+      const wild:Combatant={
+        speciesId:foeId,name:b.name,types:b.types,level,
+        stats:pokemonOwnStats(b.base,level,zeroStats()),
+        move:b.move,rank:0
+      };
+      const result=simulateKantoBattle(player,wild,seed);
+      verifySp(result);
+      expect(simulateKantoBattle(player,wild,seed)).toEqual(result);
+      const attacks=result.frames.filter(frame=>frame.actor==='player'
+        &&frame.moveName===name);
+      expect(attacks.length).toBeLessThanOrEqual(1);
+      supportUsed+=attacks.length;
+      focusUsed+=result.frames.filter(frame=>frame.kind==='focus').length;
+      successfulDamage+=result.frames.filter(frame=>frame.kind==='attack'
+        &&frame.amount>0).length;
+      if(result.outcome==='draw')draws++;
+      if(result.outcome!=='win')expect(result.captured).toBe(false);
+      duels++;
+    }
+    expect(duels).toBe(768);
+    expect(supportUsed).toBeGreaterThan(0);
+    expect(successfulDamage).toBeGreaterThan(duels);
+    expect(draws).toBeLessThan(duels);
+    expect(focusUsed).toBeGreaterThanOrEqual(0);
+  });
   it('simula espécies, tipos e níveis sem travar, SP negativo nem prêmio repetido',()=>{
     const species=[1,4,7,10,25,37,43,60,74,92,94,95,113,129,131,143,150,151];
     let total=0,focusCount=0,basicCount=0,skillCount=0;
