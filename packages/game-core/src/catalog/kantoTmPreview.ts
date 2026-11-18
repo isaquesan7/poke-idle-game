@@ -74,7 +74,7 @@ export const KANTO_TM09_PREVIEW=Object.freeze({
   ] as const satisfies readonly KantoTmPreviewHit[]),
   // Em nenhum caso um preview define o que pode ser ensinado ou equipado.
   state:'not-released',
-  speciesCompatibility:'not-verified',
+  speciesCompatibility:'verified-read-only',
   inventoryEconomy:'not-implemented'
 } as const);
 
