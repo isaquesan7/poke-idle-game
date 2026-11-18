@@ -30,7 +30,7 @@ describe('D-048 — fontes FRLG explícitas e barreira de TMs ainda não liberad
       machineNumber:9,itemId:313,moveId:331,moveName:'bullet-seed',
       versionGroupId:7,category:'special',powerPerHit:10,
       type:'grass',pp:30,accuracy:100,priority:0,
-      state:'not-released',speciesCompatibility:'not-verified',
+      state:'not-released',speciesCompatibility:'verified-read-only',
       inventoryEconomy:'not-implemented'
     });
     expect(kantoTmPreview('TM09')).toBeNull();
