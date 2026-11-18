@@ -13,6 +13,7 @@ function verifyFrames(result:KantoBattleResult) {
   expect(result.frames).toHaveLength(result.log.length);
   expect(result.frames[0]).toEqual({
     playerHp:result.playerMaxHp,wildHp:result.wildMaxHp,
+    playerSp:result.playerMaxSp,wildSp:result.wildMaxSp,
     kind:'intro',target:null,amount:0
   });
   expect(result.frames.at(-1)?.playerHp).toBe(result.playerRemainingHp);
