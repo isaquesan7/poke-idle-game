@@ -29,7 +29,7 @@ projeto inicial e os critérios ainda aplicáveis aos próximos golpes.
   probabilística dos jogos). A simulação futura precisa escolher uma
   distribuição explícita versionada; para a regra da Geração III as chances
   comuns de 2, 3, 4 e 5 acertos são 3/8, 3/8, 1/8 e 1/8, com expectativa
-  de **2,75** acertos. Fonte de contexto:
+  de **3,0** acertos. Fonte de contexto:
   https://bulbapedia.bulbagarden.net/wiki/Multistrike_move .
   Não alterar silenciosamente o custo de SP já publicado só por este dado.
 
@@ -118,7 +118,7 @@ disponível somente por existir uma prévia de custo.
   são deliberadamente separados; somente o catálogo e o writer podem
   liberar movimentos equipáveis.
 - A distribuição de 2..5 impactos segue **fora do motor**. D-039
-  preserva a prévia heurística 2,5; a média FRLG é 2,75 pela
+  preserva a prévia heurística 2,5; a média FRLG é 3,0 pela
   distribuição 3/8,3/8,1/8,1/8, para planejamento futuro.
 - Testes D-045: níveis de learnsets e evoluções, bloqueio de espécies
   indevidas, custo, HP/SP, limite 30, imunidade Ghost, KO no primeiro
