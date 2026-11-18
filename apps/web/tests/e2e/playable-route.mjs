@@ -144,6 +144,19 @@ async function exercise(browser, label, viewport) {
   assert.ok(visual.frames.some(frame=>frame.spCost>0),'Habilidade deve consumir SP');
   // A batalha já está salva, mas o diário deve revelar um evento por vez.
   await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
+  // D-041: o GIF é um elemento estável, não deve ser recriado por linha de log.
+  const spriteImage=page.getByTestId('battle-visual-player').locator('img');
+  await spriteImage.waitFor();
+  await page.waitForFunction(()=>{
+    const image=document.querySelector('[data-testid="battle-visual-player"] img');
+    return image?.complete&&image.naturalWidth>0;
+  });
+  assert.match(await spriteImage.getAttribute('src'),/\\/assets\\/pokemon-gifs\\/poke_4\\.gif$/);
+  assert.equal(await spriteImage.getAttribute('loading'),'eager',
+    'sprite ativo da Arena não deve aguardar lazy load fora do viewport desktop');
+  await page.evaluate(()=>{
+    window.__battleSpriteIdentity=document.querySelector('[data-testid="battle-visual-player"] img');
+  });
   const lines=page.getByTestId('battle-log').locator('li');
   const playerHp=page.getByTestId('battle-hp-player-value');
   const wildHp=page.getByTestId('battle-hp-wild-value');
@@ -201,9 +214,15 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Continuar'}).waitFor();
   await page.getByRole('button',{name:'Avançar uma linha'}).click();
   assert.equal(await lines.count(),pausedLines+1,'passo manual deve avançar 1 evento');
+  assert.equal(await page.evaluate(()=>window.__battleSpriteIdentity===
+    document.querySelector('[data-testid="battle-visual-player"] img')),true,
+  'a identidade do GIF não pode mudar quando avança o diário');
   await panel.focus();
   await page.keyboard.press('ArrowRight');
   assert.equal(await lines.count(),pausedLines+2,'seta avança 1 evento em pausa');
+  assert.equal(await page.evaluate(()=>window.__battleSpriteIdentity===
+    document.querySelector('[data-testid="battle-visual-player"] img')),true,
+  'o GIF deve permanecer montado mesmo após outra ação');
   // Se o segundo avanço foi o último, reassistir é 100% visual e read-only.
   if(!(await page.getByRole('button',{name:'Continuar'}).count())){
     await page.getByRole('button',{name:'Reassistir à batalha'}).click();
@@ -287,17 +306,42 @@ async function exercise(browser, label, viewport) {
   // observável antes do próximo; não modifica o estado salvo.
   await focusPage.getByRole('button',{name:'Ativar leitura assistiva'}).click();
   await focusPage.getByTestId('battle-focus-player').waitFor();
+  await focusPage.getByRole('button',{name:'Pausar'}).click();
   assert.match(await focusPage.getByTestId('battle-focus-player').textContent(),/CONCENTRAR/);
   assert.equal(await focusPage.getByTestId('battle-focus-text-player').textContent()
     .then(s=>s.includes('+'+gained+' SP')),true);
   assert.equal(await focusPage.getByTestId('battle-focus-player').evaluate(el=>
     getComputedStyle(el).animationName),'none','reduced-motion remove animação de Concentrar');
+  // Windows/Edge podem respeitar "reduzir movimento" quando o celular não.
+  // Permitir escolha explícita e conferir o efeito computed sem mexer no save.
+  const motionSelect=focusPage.getByLabel('Efeitos visuais da Arena');
+  assert.equal(await motionSelect.inputValue(),'system');
+  await motionSelect.selectOption('full');
+  assert.notEqual(await focusPage.getByTestId('battle-focus-player').evaluate(el=>
+    getComputedStyle(el).animationName),'none',
+    'usuário deve poder ativar efeitos mesmo se o Windows pedir reduced motion');
+  await motionSelect.selectOption('reduce');
+  assert.equal(await focusPage.getByTestId('battle-focus-player').evaluate(el=>
+    getComputedStyle(el).animationName),'none',
+    'preferência reduzir deve ter prioridade sobre efeitos CSS');
+  await motionSelect.selectOption('system');
+  assert.equal(await focusPage.getByTestId('battle-focus-player').evaluate(el=>
+    getComputedStyle(el).animationName),'none',
+    'padrão deve respeitar a preferência do sistema');
+  await motionSelect.selectOption('full');
   assert.match(await focusPage.getByTestId('battle-screenreader-status').textContent(),/Concentrar/);
   assert.equal(await focusPage.getByTestId('battle-sp-player-value').textContent(),
     (spent.playerSp+gained)+' / '+recorded.playerMaxSp);
+  await focusPage.getByRole('button',{name:'Continuar'}).click();
   await focusPage.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
   assert.equal(await focusPage.evaluate(key=>localStorage.getItem(key),SAVE),
     JSON.stringify(focusFixture),'replay Concentrar não pode escrever novo save');
+  await focusPage.reload();
+  await focusPage.getByRole('button',{name:'Arena',exact:true}).click();
+  assert.equal(await focusPage.getByLabel('Efeitos visuais da Arena').inputValue(),'full',
+    'preferência visual deve persistir após reload');
+  assert.equal(await focusPage.evaluate(key=>localStorage.getItem(key),SAVE),
+    JSON.stringify(focusFixture),'configuração visual não altera progresso');
   assert.deepEqual(focusErrors,[]);
   await focusContext.close();
 
