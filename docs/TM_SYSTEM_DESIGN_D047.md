@@ -1,6 +1,6 @@
 # D-047 — contrato de TMs versionadas (proposta; **não implementado**)
 
-**Data:** 18/11/2026 · **Status:** especificação para uma futura D-048, não habilita movimento/consumo de item, nem cria API pública.
+**Data:** 18/11/2026 · **Status:** documento publicado na PR #67, main `fca91202bc391bc2ebd4abe31183fbefed53a2a8`, CI/Railway SUCCESS. **O sistema TM continua NÃO IMPLEMENTADO**; esta especificação prepara uma futura D-048, não habilita movimento/consumo de item nem cria API pública.
 
 ## Problema concreto e fontes
 

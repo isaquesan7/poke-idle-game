@@ -78,6 +78,6 @@
 - [x] Teste novo de 1.152 pares com os 5 níveis de eficácia Fighting, mesmo nível/seed/oponente, assert 2 hits/18 SP uma vez, imunidade sem seleção, HP/SP e um frame por linha; comparador Fighting60 sintético NÃO equipável.
 - [x] Vitest de Recover HP crítico com SP suficiente, HP crítico após gastar SP e HP alto; mínimo uma cura válida, nenhuma sem SP, máximo uma/batalha, logs e RNG determinísticos.
 - [x] Guardar negativamente Bullet Seed fora do catálogo/multi-hit e da API de equipar do writer apesar da prévia de SP; documentar versão TM09 GenIII e contrato futuro de inventário/consumo.
-- [ ] Conferir CI final (TypeScript/Vitest, legado Node, 151 GIFs, E2E Chromium /play desktop/mobile, Docker), PR #67 merge e Railway Docker SUCCESS SHA exato /health. Não marcar publicada antes disso.
+- [x] CI PR #67 final `44363512579 SUCCESS` (TypeScript/Vitest, Node, 151 GIFs, E2E Chromium /play desktop/mobile) e Docker `44363512763 SUCCESS`; MERGED main SHA `fca91202bc391bc2ebd4abe31183fbefed53a2a8`; Railway Docker `2172dd7f-50e5-4fe0-bda2-0517b22e53f3 SUCCESS`, /health interno aprovado. GET externo /play não testado.
 - [ ] D-048: decidir dados históricos vs modernos antes de desenvolver sistema TM ou 2–5 golpes; NVDA/VoiceOver físico ainda não testado.
 
