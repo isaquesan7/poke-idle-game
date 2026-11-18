@@ -213,3 +213,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## 2026-11-18 — D-049 (branch; não publicada)
 - Adicionado extrator offline verificável de elegibilidade TM09 usando Git blob SHA-1 de snapshot fixado, filtro FRLG/método machine por espécie e JSON somente para revisão; testes Node de validação/fail-closed.
 - Nenhuma TM liberada, nenhuma mudança em combate, saves, rewards, UI ou deploy; ver `docs/TM_COMPATIBILITY_D049.md`.
+
+- D-049 (complemento na mesma PR #71): verificado blob integral de compatibilidade da PokéAPI, identificadas 15 espécies Kanto aptas à TM09 FRLG; novo catálogo read-only e teste de 151 espécies, sem conceder/ensinar TMs ou mudar a jogabilidade. CI do HEAD final e publicação pendentes.
