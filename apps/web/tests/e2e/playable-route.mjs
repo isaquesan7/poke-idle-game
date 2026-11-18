@@ -151,7 +151,7 @@ async function exercise(browser, label, viewport) {
     const image=document.querySelector('[data-testid="battle-visual-player"] img');
     return image?.complete&&image.naturalWidth>0;
   });
-  assert.match(await spriteImage.getAttribute('src'),/\\/assets\\/pokemon-gifs\\/poke_4\\.gif$/);
+  assert.equal((await spriteImage.getAttribute('src'))?.endsWith('/assets/pokemon-gifs/poke_4.gif'),true);
   assert.equal(await spriteImage.getAttribute('loading'),'eager',
     'sprite ativo da Arena não deve aguardar lazy load fora do viewport desktop');
   await page.evaluate(()=>{
