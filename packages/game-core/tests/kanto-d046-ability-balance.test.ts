@@ -264,5 +264,5 @@ describe('D-046 — balanceamento pareado Recover/Double Kick',()=>{
     };
     const runner=globalThis as unknown as {console:{info:(s:string)=>void}};
     runner.console.info('D046_BALANCE_REPORT '+JSON.stringify(report));
-  });
+  },60000); // Matriz de 9.216 simulações; Vitest padrão limita testes a 5s.
 });
