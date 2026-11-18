@@ -17,6 +17,9 @@ import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
 import { kantoMoveSecondaryEffect } from './kantoStatusEffects.js';
 import {KANTO_SUPPORT_MOVES,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import type { KantoBattleStatus } from './kantoStatusEffects.js';
+import {
+  KANTO_BASIC_ATTACK,KANTO_SP_BALANCE,kantoMaxSp,kantoMoveSpCost
+} from './kantoSkillEnergy.js';
 
 export type KantoMove = Readonly<{
   name: string;
@@ -121,6 +124,15 @@ export interface KantoBattleVisualFrame {
   readonly target: 'player'|'wild'|null;
   /** Valor positivo de dano/recuperação; zero para status ou texto. */
   readonly amount: number;
+  /** Trilha adicional de SP, opcional para batalhas de versões anteriores. */
+  readonly playerSp?:number;
+  readonly wildSp?:number;
+  readonly actor?:'player'|'wild';
+  readonly moveName?:string;
+  readonly moveType?:string;
+  readonly spCost?:number;
+  readonly critical?:boolean;
+  readonly effectiveness?:number;
 }
 
 export interface KantoBattleResult {
@@ -138,6 +150,10 @@ export interface KantoBattleResult {
   readonly playerLevel:number;
   readonly playerMaxHp:number;
   readonly wildMaxHp:number;
+  readonly playerMaxSp:number;
+  readonly wildMaxSp:number;
+  readonly playerRemainingSp:number;
+  readonly wildRemainingSp:number;
   /** Trilha visual imutável com cardinalidade e ordem idênticas ao log. */
   readonly frames:readonly KantoBattleVisualFrame[];
   /** Condições apenas do encontro, nunca persistidas no roster. */
@@ -183,6 +199,13 @@ function validMove(m:KantoMove|undefined):boolean{
   if(!m||typeof m.name!=='string'||m.name.length<1||m.name.length>100
     ||!TYPES[m.type]||!Number.isFinite(m.accuracy)||m.accuracy<0||m.accuracy>100
     ||!Number.isSafeInteger(m.priority)||m.priority< -7||m.priority>7)return false;
+  if(m.name===KANTO_BASIC_ATTACK.name){
+    return m.category===KANTO_BASIC_ATTACK.category
+      &&m.power===KANTO_BASIC_ATTACK.power
+      &&m.type===KANTO_BASIC_ATTACK.type
+      &&m.accuracy===KANTO_BASIC_ATTACK.accuracy
+      &&m.priority===KANTO_BASIC_ATTACK.priority;
+  }
   if(m.category==='status'){
     const canonical=KANTO_SUPPORT_MOVES[m.name];
     return !!canonical&&m.power===0&&m.type===canonical.type
@@ -260,20 +283,26 @@ export function simulateKantoBattle(
     return state/0x100000000;
   };
   let playerHp=player.stats.hp,wildHp=wild.stats.hp,turns=0;
+  const playerMaxSp=kantoMaxSp(player.level),wildMaxSp=kantoMaxSp(wild.level);
+  let playerSp=playerMaxSp,wildSp=wildMaxSp;
   let playerStatus:KantoBattleStatus|null=null,wildStatus:KantoBattleStatus|null=null;
   let playerSpeedDrops=0,wildSpeedDrops=0;
   let playerAttackDrops=0,wildAttackDrops=0;
   let playerDefenseDrops=0,wildDefenseDrops=0;
   const pSupportUsed=new Set<string>(),wSupportUsed=new Set<string>();
+  let playerSpExhaustionReported=false,wildSpExhaustionReported=false;
   const log:string[]=[player.name+' (Nv. '+player.level+') vs '+wild.name+' (Nv. '+wild.level+')'];
   const frames:KantoBattleVisualFrame[]=[{
-    playerHp,wildHp,kind:'intro',target:null,amount:0
+    playerHp,wildHp,playerSp,wildSp,kind:'intro',target:null,amount:0
   }];
-  /** Uma linha nova e seu estado de HP são capturados na mesma operação. */
+  type MoveCue=Pick<KantoBattleVisualFrame,'actor'|'moveName'|'moveType'|'spCost'
+    |'critical'|'effectiveness'>;
+  /** Texto, HP e SP são capturados no MESMO instante para cada evento. */
   const note=(line:string,kind:KantoBattleVisualKind='info',
-    target:'player'|'wild'|null=null,amount=0):void=>{
+    target:'player'|'wild'|null=null,amount=0,meta?:MoveCue):void=>{
     log.push(line);
-    frames.push({playerHp,wildHp,kind,target,amount});
+    frames.push({playerHp,wildHp,playerSp,wildSp,kind,target,amount,
+      ...(meta??{})});
   };
   const speed=(actor:Combatant):number=>{
     const status=actor===player?playerStatus:wildStatus;
@@ -287,14 +316,19 @@ export function simulateKantoBattle(
     status==='burn'?!target.types.includes('fire')
       :status==='poison'?!target.types.some(type=>type==='poison'||type==='steel'):true;
 
-  /** Sem RNG: suporte é tentado no início e ataque depois, sem spammar debuff. */
+  /**
+   * IA sem RNG: suporte válido nos dois primeiros turnos, habilidade ofensiva
+   * nos turnos ímpares se houver SP, e ataque básico gratuito no intervalo.
+   * Isso distribui habilidades e impede "spam" até esgotar a barra.
+   */
   const choose=(actor:Combatant,target:Combatant,ownHp:number,targetHp:number,
     targetStatus:KantoBattleStatus|null,attackDrop:number,defenseDrop:number,
-    used:Set<string>):KantoMove=>{
+    used:Set<string>,ownSp:number):KantoMove=>{
     const available=actor.moves??[actor.move];
     if(turns<=2&&ownHp>actor.stats.hp*.35&&targetHp>target.stats.hp*.5){
       const support=available.find(move=>{
         if(move.category!=='status'||used.has(move.name)
+          ||kantoMoveSpCost(move)>ownSp
           ||kantoTypeMultiplier(move.type,target.types)===0)return false;
         const effect=kantoSupportEffect(move.name);
         if(!effect)return false;
@@ -303,21 +337,26 @@ export function simulateKantoBattle(
       });
       if(support)return support;
     }
-    const attacks=available.filter(move=>move.category!=='status');
+    // Alternância deliberada: todo turno PAR usa básico, sem custo.
+    if(turns%KANTO_SP_BALANCE.skillIntervalTurns===0)return KANTO_BASIC_ATTACK;
+    const attacks=available.filter(move=>move.category!=='status'
+      &&kantoMoveSpCost(move)<=ownSp);
+    if(attacks.length===0)return KANTO_BASIC_ATTACK;
     const score=(move:KantoMove):number=>
       move.power*move.accuracy*kantoTypeMultiplier(move.type,target.types)
       *(actor.types.includes(move.type)?1.5:1)
       *(move.category==='physical'
         ?actor.stats.attack/Math.max(1,target.stats.defense)
         :actor.stats.specialAttack/Math.max(1,target.stats.specialDefense));
-    return attacks.reduce((best,move)=>score(move)>score(best)?move:best,attacks[0]??actor.move);
+    const best=attacks.reduce((selected,move)=>score(move)>score(selected)?move:selected,attacks[0]!);
+    return score(best)>score(KANTO_BASIC_ATTACK)?best:KANTO_BASIC_ATTACK;
   };
   while(turns<30&&playerHp>0&&wildHp>0){
     turns++;
     const playerMove=choose(player,wild,playerHp,wildHp,wildStatus,
-      wildAttackDrops,wildDefenseDrops,pSupportUsed);
+      wildAttackDrops,wildDefenseDrops,pSupportUsed,playerSp);
     const wildMove=choose(wild,player,wildHp,playerHp,playerStatus,
-      playerAttackDrops,playerDefenseDrops,wSupportUsed);
+      playerAttackDrops,playerDefenseDrops,wSupportUsed,wildSp);
     const first=playerMove.priority>wildMove.priority
       || playerMove.priority===wildMove.priority&&(
         speed(player)>speed(wild)||speed(player)===speed(wild)&&roll()<0.5
@@ -329,40 +368,67 @@ export function simulateKantoBattle(
       const defender=isPlayer?wild:player;
       const move=isPlayer?playerMove:wildMove;
       const actorStatus=isPlayer?playerStatus:wildStatus;
-      if(move.category==='status')(isPlayer?pSupportUsed:wSupportUsed).add(move.name);
       if(actorStatus==='paralysis'&&roll()<0.25){
-        note('T'+turns+' · '+actor.name+' ficou paralisado e não conseguiu agir.', 'status',isPlayer?'player':'wild');
+        note('T'+turns+' · '+actor.name+' ficou paralisado e não conseguiu agir.',
+          'status',isPlayer?'player':'wild');
         continue;
       }
+      const ownSp=isPlayer?playerSp:wildSp;
+      const cost=kantoMoveSpCost(move);
+      if(cost>ownSp)throw new RangeError('IA selecionou movimento sem SP.');
+      // Pagar ANTES do teste de precisão: erros/imunidade também gastam SP.
+      if(isPlayer)playerSp-=cost;else wildSp-=cost;
+      if(move.category==='status')(isPlayer?pSupportUsed:wSupportUsed).add(move.name);
+      const ownSide=isPlayer?'player' as const:'wild' as const;
+      const enemySide=isPlayer?'wild' as const:'player' as const;
+      const meta={actor:ownSide,moveName:move.name,moveType:move.type,spCost:cost};
+      const spText=cost?' · -'+cost+' SP':'';
+      const isBasic=move.name===KANTO_BASIC_ATTACK.name;
+      const displayName=isBasic?'ataque básico':move.name;
+      // Comunicar apenas a primeira transição por falta de SP em cada Pokémon.
+      const attackSlots=actor.moves??[actor.move];
+      const noAttackAffordable=!attackSlots.some(skill=>skill.category!=='status'
+        &&kantoMoveSpCost(skill)<=(isPlayer?playerSp:wildSp));
+      if(isBasic&&noAttackAffordable
+        &&!(isPlayer?playerSpExhaustionReported:wildSpExhaustionReported)){
+        if(isPlayer)playerSpExhaustionReported=true;else wildSpExhaustionReported=true;
+        note('T'+turns+' · '+actor.name+
+          ' ficou sem SP suficiente para habilidades: apenas ataque básico.');
+      }
       if(roll()*100>=move.accuracy){
-        note('T'+turns+' · '+actor.name+' errou '+move.name+'.','miss',isPlayer?'wild':'player');
+        note('T'+turns+' · '+actor.name+' errou '+displayName+spText+'.',
+          'miss',enemySide,0,meta);
         continue;
       }
       if(move.category==='status'){
         const support=kantoSupportEffect(move.name);
         if(!support||kantoTypeMultiplier(move.type,defender.types)===0){
-          note('T'+turns+' · '+defender.name+' é imune a '+move.name+'.','status',isPlayer?'wild':'player');
+          note('T'+turns+' · '+defender.name+' é imune a '+move.name+spText+'.',
+            'status',enemySide,0,meta);
         }else if(support.kind==='status'){
           const current=isPlayer?wildStatus:playerStatus;
           if(current===null&&statusAllowed(support.status,defender)){
             if(isPlayer)wildStatus=support.status;else playerStatus=support.status;
             note('T'+turns+' · '+actor.name+' usou '+move.name+
               ': '+defender.name+' ficou '+
-              (support.status==='poison'?'envenenado':'paralisado')+'.',
-              'status',isPlayer?'wild':'player');
-          }else note('T'+turns+' · '+move.name+' não teve efeito.','info');
+              (support.status==='poison'?'envenenado':'paralisado')+spText+'.',
+              'status',enemySide,0,meta);
+          }else note('T'+turns+' · '+move.name+' não teve efeito'+spText+'.',
+            'info',enemySide,0,meta);
         }else {
           const drops=support.kind==='lower-attack'
             ?(isPlayer?wildAttackDrops:playerAttackDrops)
             :(isPlayer?wildDefenseDrops:playerDefenseDrops);
-          if(drops>=6)note('T'+turns+' · '+move.name+' não teve efeito.','info');
+          if(drops>=6)note('T'+turns+' · '+move.name+' não teve efeito'+spText+'.',
+            'info',enemySide,0,meta);
           else {
             if(support.kind==='lower-attack'){
               if(isPlayer)wildAttackDrops++;else playerAttackDrops++;
             }else if(isPlayer)wildDefenseDrops++;else playerDefenseDrops++;
             note('T'+turns+' · '+actor.name+' usou '+move.name+
               ': '+(support.kind==='lower-attack'?'Ataque':'Defesa')+
-              ' de '+defender.name+' diminuiu.','status',isPlayer?'wild':'player');
+              ' de '+defender.name+' diminuiu'+spText+'.',
+              'status',enemySide,0,meta);
           }
         }
         continue;
@@ -371,7 +437,7 @@ export function simulateKantoBattle(
       const foeDefenseDrop=isPlayer?wildDefenseDrops:playerDefenseDrops;
       const stagedActor:Combatant={
         speciesId:actor.speciesId,name:actor.name,types:actor.types,level:actor.level,
-        move,rank:actor.ranks?.[move.name]??(actor.move.name===move.name?actor.rank:0),
+        move,rank:isBasic?0:actor.ranks?.[move.name]??(actor.move.name===move.name?actor.rank:0),
         stats:{...actor.stats,attack:Math.max(1,Math.floor(
           actor.stats.attack*2/(2+ownAttackDrop)))}};
       const stagedDefender={...defender,
@@ -387,9 +453,10 @@ export function simulateKantoBattle(
       const effectText=hit.effectiveness===0?' · Imune'
         :hit.effectiveness>=2?' · Super efetivo'
           :hit.effectiveness<1?' · Resistido':'';
-      note('T'+turns+' · '+actor.name+' usou '+move.name+': '+
-        hit.damage+' dano'+(hit.critical?' · CRÍTICO':'')+effectText+'.',
-        'attack',isPlayer?'wild':'player',Math.min(hpBeforeHit,hit.damage));
+      note('T'+turns+' · '+actor.name+' usou '+displayName+': '+
+        hit.damage+' dano'+(hit.critical?' · CRÍTICO':'')+effectText+spText+'.',
+        'attack',enemySide,Math.min(hpBeforeHit,hit.damage),
+        {...meta,critical:hit.critical,effectiveness:hit.effectiveness});
 
       // Sem hit efetivo ou alvo já derrotado não há efeitos adicionais.
       if(hit.damage===0||(isPlayer?wildHp:playerHp)===0)continue;
@@ -443,6 +510,7 @@ export function simulateKantoBattle(
   if(captured)note('Captura! '+wild.name+' entrou na coleção.','outcome');
   return{
     outcome,turns,playerRemainingHp:playerHp,wildRemainingHp:wildHp,
+    playerMaxSp,wildMaxSp,playerRemainingSp:playerSp,wildRemainingSp:wildSp,
     wildSpeciesId:wild.speciesId,affinityGain,captured,log,
     playerStatus,wildStatus,
     playerSpeciesId:player.speciesId,playerName:player.name,playerLevel:player.level,
