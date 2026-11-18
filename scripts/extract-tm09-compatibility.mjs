@@ -20,11 +20,12 @@ export function extractTm09(text){
  let scanned=0, matchingRows=0;
  for(let i=0;i<lines.length;i++){
   const line=lines[i].trim();
-  if(!line||line==='pokemon_id,version_group_id,move_id,pokemon_move_method_id,level,order')continue;
+  if(!line||line==='pokemon_id,version_group_id,move_id,pokemon_move_method_id,level,order,enhancement_level')continue;
   const fields=line.split(',');
-  // 'order' pode ser vazio no snapshot real para golpes de TM (level=0).
-  if(fields.length!==6||!fields.slice(0,5).every(x=>/^\d+$/.test(x.trim()))
-    ||(fields[5].trim()!==''&&!/^\d+$/.test(fields[5].trim())))
+  // Snapshot PokeAPI pinado: 7 colunas; 'order' e 'enhancement_level'
+  // podem vir vazias. Nunca aceitar coluna ausente ou campo inventado.
+  if(fields.length!==7||!fields.slice(0,5).every(x=>/^\d+$/.test(x.trim()))
+    ||!fields.slice(5).every(x=>x.trim()===''||/^\d+$/.test(x.trim())))
    throw new Error(`Linha CSV inválida ${i+1}`);
   scanned++;
   const [pokemon,version,move,method]=fields.map(Number);
