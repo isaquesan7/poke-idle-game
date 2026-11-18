@@ -412,3 +412,51 @@
   .battleFloatDamage,.battleFloatHeal{opacity:1;}
   .battleHealthFill{transition:none;}
 }
+
+
+/* D-037: SP usa cor primária ciano e acompanha os frames do diário, sem writer. */
+.battleSp{width:100%;max-width:210px;margin-top:var(--space-1);}
+.battleSpTrack{
+  width:100%;height:8px;background:var(--color-progress-background-1);
+  border-radius:var(--radius-pill);border:1px solid var(--color-border);overflow:hidden;
+}
+.battleSpFill{
+  display:block;height:100%;background:var(--color-primary);
+  transition:width var(--duration-battle-health) ease-out;
+}
+.battleSpEmpty{display:block;font-size:.69rem;color:var(--color-gold);margin-top:var(--space-1);}
+.battleImpactLabel{
+  position:absolute;top:var(--space-8);left:0;right:0;z-index:2;
+  font-size:.73rem;font-weight:900;letter-spacing:.07em;
+  color:var(--color-primary);text-shadow:var(--shadow-pokemon-art);
+  animation:battleDamageFloat var(--duration-battle-float) ease-out both;
+  pointer-events:none;
+}
+/* Variações por tipo e crítico usam tokens já existentes, não cores hardcoded. */
+.battleTypeDefault{color:var(--color-gold);}
+.battleTypeFire{color:var(--color-tag-fire-text-1);}
+.battleTypeWater{color:var(--color-tag-water-text-1);}
+.battleTypeGrass{color:var(--color-tag-grass-text-1);}
+.battleTypeElectric{color:var(--color-tag-electric-text-1);}
+.battleTypePoison{color:var(--color-tag-poison-text-1);}
+.battleTypePsychic{color:var(--color-tag-psychic-text-1);}
+.battleSpriteCritical{
+  display:grid;place-items:center;
+  animation:battleCriticalImpact var(--duration-battle-impact) ease-in-out both;
+}
+@keyframes battleCriticalImpact{
+  0%{transform:scale(1);}
+  30%{transform:scale(.9) rotate(-3deg);filter:brightness(1.6);}
+  68%{transform:scale(1.06) rotate(2deg);}
+  100%{transform:scale(1) rotate(0);filter:brightness(1);}
+}
+@media(max-width:690px){
+  .battleSp{max-width:155px;}
+  .battleSpEmpty{font-size:.6rem;}
+  .battleImpactLabel{font-size:.62rem;}
+}
+@media(prefers-reduced-motion:reduce){
+  .battleSpFill{transition:none;}
+  .battleImpactLabel,.battleSpriteCritical{animation:none;}
+  .battleImpactLabel{opacity:1;}
+}

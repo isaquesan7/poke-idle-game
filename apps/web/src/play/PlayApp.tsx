@@ -5,6 +5,7 @@ import {
   KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats,
   kantoLevelMoves,kantoSupportMoves,KANTO_SUPPORT_MOVES,pokemonMoveSlots,
   legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
+  KANTO_BASIC_ATTACK,kantoMaxSp,kantoMoveSpCost,
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame } from '@kanto/game-core';
@@ -257,6 +258,8 @@ export function PlayApp() {
         battleId?:string;
         playerSpeciesId?:number;playerName?:string;playerLevel?:number;
         playerMaxHp?:number;wildMaxHp?:number;
+        playerMaxSp?:number;wildMaxSp?:number;
+        playerRemainingSp?:number;wildRemainingSp?:number;
         frames?:readonly KantoBattleVisualFrame[];
         playerStatus?:'burn'|'poison'|'paralysis'|null;
         wildStatus?:'burn'|'poison'|'paralysis'|null;
@@ -288,6 +291,17 @@ export function PlayApp() {
       &&frame.wildHp>=0&&frame.wildHp<=(lastBattle.wildMaxHp??0)
       &&Number.isSafeInteger(frame.amount)&&frame.amount>=0)
     ?battleFrames:null;
+  /** Para saves antigos com HP mas sem SP, preservar HP e ocultar só SP. */
+  const validSp=lastBattle&&validFrames
+    &&Number.isSafeInteger(lastBattle.playerMaxSp)
+    &&Number.isSafeInteger(lastBattle.wildMaxSp)
+    &&(lastBattle.playerMaxSp??0)>0&&(lastBattle.wildMaxSp??0)>0
+    &&validFrames.every(frame=>typeof frame.playerSp==='number'
+      &&typeof frame.wildSp==='number'
+      &&Number.isSafeInteger(frame.playerSp)&&Number.isSafeInteger(frame.wildSp)
+      &&frame.playerSp>=0&&frame.playerSp<=(lastBattle.playerMaxSp??0)
+      &&frame.wildSp>=0&&frame.wildSp<=(lastBattle.wildMaxSp??0))
+    ?true:false;
   const revealedLines=battlePlaying
     ?battleReveal?.key===playbackKey?battleReveal.visible:Math.min(lastBattle?.log.length??0,1)
     :lastBattle?.log.length??0;
@@ -570,12 +584,20 @@ export function PlayApp() {
                   <p>Golpes equipados: <strong>{equippedNames.length}/4</strong> ·
                     principal: <strong>{currentMoveName || 'Padrão'}</strong>.
                     A Arena escolhe ataques e pode usar suportes na abertura;
-                    pelo menos um golpe de dano deve permanecer equipado.</p>
+                    pelo menos um golpe de dano deve permanecer equipado.
+                    Cada habilidade gasta SP, e o ataque básico é gratuito.</p>
+                  <p>SP de combate por encontro: <strong>{focused?kantoMaxSp(focused.level):0}</strong> ·
+                    ataque básico gratuito (Poder {KANTO_BASIC_ATTACK.power}).
+                    O SP só recarrega no próximo encontro; não se confunde com
+                    pontos de aprimoramento.</p>
                   <div className={styles.moveList} aria-label="Golpes equipados" data-testid="equipped-moves">
                     {equippedNames.map((name,i)=><div key={name} className={styles.moveEquipped}>
                       <div><strong>{i+1}. {name}</strong>
                         <small>{i===0?'Principal':'Adicional'} ·
-                          {KANTO_SUPPORT_MOVES[name]?' Suporte':' Ataque'}</small></div>
+                          {KANTO_SUPPORT_MOVES[name]?' Suporte':' Ataque'} ·
+                          {KANTO_SUPPORT_MOVES[name]||KANTO_BATTLE_MOVES[name]
+                            ?' '+kantoMoveSpCost((KANTO_SUPPORT_MOVES[name]??KANTO_BATTLE_MOVES[name])!)+' SP'
+                            :' Golpe provisório'}</small></div>
                       <div className={styles.moveActions}>
                         {i>0&&<button type="button" className={styles.secondary}
                           aria-label={'Tornar principal '+name} disabled={busy}
@@ -588,7 +610,7 @@ export function PlayApp() {
                       </div>
                     </div>)}
                   </div>
-                  <p>Pontos de habilidade disponíveis: <strong>{moveLimits?moveLimits.skillPoints-moveSpent:0}</strong>
+                  <p>Pontos para aprimorar golpes: <strong>{moveLimits?moveLimits.skillPoints-moveSpent:0}</strong>
                     {moveLimits ? ' · Rank máximo por golpe: '+moveLimits.maxRankPerMove : ''}</p>
                   <div className={styles.moveList}>
                     {levelMoves.map(({move,learnedAt})=>{
@@ -598,7 +620,8 @@ export function PlayApp() {
                       return <div key={move.name} className={equipped?styles.moveEquipped:styles.moveOption}>
                         <div><strong>{move.name}</strong><small>Nv. {learnedAt} · {move.type} ·
                           Poder {move.power} · Precisão {move.accuracy}%</small>
-                          <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'}</small>
+                          <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'} ·
+                            Custo {kantoMoveSpCost(move)} SP na Arena</small>
                            {effectLabel(move.name)&&<small>{effectLabel(move.name)}</small>}
                         </div>
                         <div className={styles.moveActions}>
@@ -628,7 +651,8 @@ export function PlayApp() {
                       const inSlots=equippedNames.includes(move.name);
                       return <div key={move.name} className={inSlots?styles.moveEquipped:styles.moveOption}>
                         <div><strong>{move.name}</strong>
-                          <small>Nv. {learnedAt} · {move.type} · Precisão {move.accuracy}%</small>
+                          <small>Nv. {learnedAt} · {move.type} · Precisão {move.accuracy}% ·
+                            Custo {kantoMoveSpCost(move)} SP</small>
                           <small>{move.name==='growl'?'Reduz Ataque':
                             move.name==='tail-whip'?'Reduz Defesa':
                               move.name==='thunder-wave'?'Paralisa':'Envenena'}</small></div>
@@ -788,6 +812,11 @@ export function PlayApp() {
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
                     <h2>Arena de batalha</h2>
                     <p>Seu Pokémon enfrenta automaticamente um encontro de Kanto em até 30 turnos. O motor calcula precisão, dano, críticos, tipos e condições temporárias (queimadura, envenenamento e paralisia). Vitória concede XP, moedas, afinidade e chance de captura de 35%.</p>
+                    <p>SP de combate: <strong>40 + floor(nível / 4)</strong> por Pokémon.
+                      Habilidades consomem SP ao tentar usá-las, mesmo se errarem;
+                      a IA intercala golpes com ataque básico gratuito (Poder 30).
+                      Se faltar SP, só poderá usar o básico até o próximo encontro.
+                      O SP não se regenera durante a batalha.</p>
                     <p>Líder: <strong>{speciesName(active.pokemonId)} · UID #{active.uid}</strong></p>
                     <p>Equipe: <strong>{data.team.length}/3</strong> ·
                       <button type="button" className={styles.textButton}
@@ -813,6 +842,8 @@ export function PlayApp() {
                     frame={currentFrame}
                     playerMaxHp={validFrames?lastBattle?.playerMaxHp??null:null}
                     wildMaxHp={validFrames?lastBattle?.wildMaxHp??null:null}
+                    playerMaxSp={validSp?lastBattle?.playerMaxSp??null:null}
+                    wildMaxSp={validSp?lastBattle?.wildMaxSp??null:null}
                     cue={playbackKey+':'+revealedLines}
                     playing={battlePlaying}
                   />
