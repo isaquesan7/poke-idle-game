@@ -8,6 +8,13 @@ on:
       - 'apps/web/package.json'
       - 'packages/game-core/package.json'
       - 'package-lock.json'
+      # D-044: quando infraestrutura/servidor muda, repetir a jornada Chromium.
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'server.mjs'
+      - 'package.json'
+      - 'tests/e2e/runtime-image-smoke.mjs'
+      - '.github/workflows/runtime-image-regression.yml'
       - 'apps/web/tests/e2e/playable-route.mjs'
       - 'styles/**'
       - '.github/workflows/animation-regression.yml'
