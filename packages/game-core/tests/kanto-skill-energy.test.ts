@@ -90,12 +90,20 @@ describe('D-037: reserva SP própria, diferenciada do PP da PokéAPI',()=>{
     expect(result.log.some(s=>s.includes('usou ataque básico'))).toBe(true);
   });
   it('erro cobra SP antes de validar precisão; paralisia impede ação sem cobrança',()=>{
-    const miss={...KANTO_BATTLE_MOVES.tackle!,accuracy:0};
+    // Poder alto + precisão baixa ainda faz a IA tentar o golpe;
+    // um erro deve consumir SP de forma observável.
+    const miss={...KANTO_BATTLE_MOVES.tackle!,power:200,accuracy:30};
     const a=fighter('A',miss,20,{stats:{...durable,speed:100}});
     const b=fighter('B',KANTO_BATTLE_MOVES.tackle!,20);
-    const result=simulateKantoBattle(a,b,444);
-    verifySp(result);
-    expect(result.frames.some(f=>f.kind==='miss'&&f.actor==='player'&&f.spCost===14)).toBe(true);
+    let chargedMiss=false;
+    for(let seed=0;seed<20;seed++){
+      const result=simulateKantoBattle(a,b,seed);
+      verifySp(result);
+      chargedMiss||=result.frames.some(f=>f.kind==='miss'
+        &&f.actor==='player'&&f.spCost===27);
+      if(chargedMiss)break;
+    }
+    expect(chargedMiss).toBe(true);
     // Efeitos podem ou não ocorrer em determinada seed, porém frames de
     // impossibilidade de ação nunca devem debitar SP do combatente.
     const electric=fighter('B',KANTO_SUPPORT_MOVES['thunder-wave']!,20,{
