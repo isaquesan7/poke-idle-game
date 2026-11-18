@@ -81,3 +81,11 @@
 - [x] CI PR #67 final `44363512579 SUCCESS` (TypeScript/Vitest, Node, 151 GIFs, E2E Chromium /play desktop/mobile) e Docker `44363512763 SUCCESS`; MERGED main SHA `fca91202bc391bc2ebd4abe31183fbefed53a2a8`; Railway Docker `2172dd7f-50e5-4fe0-bda2-0517b22e53f3 SUCCESS`, /health interno aprovado. GET externo /play não testado.
 - [ ] D-048: decidir dados históricos vs modernos antes de desenvolver sistema TM ou 2–5 golpes; NVDA/VoiceOver físico ainda não testado.
 
+## Gate D-048 — contrato TM09 e correção da média (18/11/2026)
+- [x] Conferir PokéAPI commit fixo `ac2f1ac...`, machines `9,7,313,331`, método4 machine e grupo7 FRLG, ficha TM09 histórica vs atual, com hashes de CSV e documentação de origem por campo.
+- [x] Escolher preservação do catálogo moderno já jogável e histórico GenIII somente em NOVAS TMs, sem alterar golpes atuais/Concentrar/HP/SP/replay.
+- [x] Corrigir aritmética GenIII (3/8,3/8,1/8,1/8 gera MÉDIA3,0, não 2,75) e testar distribuição 8.000 rolls exatos e roll inválido.
+- [x] Catálogo TM09 read-only e gate `not-released` + zero máquinas liberadas; writer add/replace não ensina Bullet Seed, mesmo nível100; nenhuma alteração de save, itens ou economia.
+- [ ] Testar CI HEAD final TS/Vitest/Node/151 GIFs/Chromium desktop/mobile e Docker, PR merge, Railway deployment SUCCESS SHA exato /health interno.
+- [ ] D049: ler CSV completo `pokemon_moves.csv` método4/group7 com checksum, inventário, concessão, writer atômico/idempotência e motor2–5 com SP versionado antes de habilitar. NVDA/VoiceOver/Edge físico pendente.
+

@@ -41,7 +41,7 @@ O registro da PokéAPI moderna que embasa a prévia D-039 usa **poder25, categor
 - https://bulbapedia.bulbagarden.net/wiki/Bullet_Seed_(move)
 - https://bulbapedia.bulbagarden.net/wiki/Multistrike_move
 
-Para hits 2–5 na Geração III, a distribuição registrada é **2 hits 3/8; 3 hits 3/8; 4 hits 1/8; 5 hits 1/8**, média **2,75** impactos por acerto. Na Gen V em diante, a distribuição comum muda (média 3,1). A prévia de custo atual D-039 usa **2,5** apenas como heurística simplificada de orçamento, e não define RNG ou poder por hit no combate. Antes de um golpe TM ser equipável, implementar sistema de obtenção/consumo e learnsets compatíveis com a versão de origem, decidir versão de estatísticas (Geração III ou snapshot moderno), definir custo SP versionado e validar probabilidades, frames e limites de turno. **Nenhuma alteração jogável de Bullet Seed foi incluída na D-046.**
+Para hits 2–5 na Geração III, a distribuição registrada é **2 hits 3/8; 3 hits 3/8; 4 hits 1/8; 5 hits 1/8**, média **3,0** impactos por acerto. Na Gen V em diante, a distribuição comum muda (média 3,1). A prévia de custo atual D-039 usa **2,5** apenas como heurística simplificada de orçamento, e não define RNG ou poder por hit no combate. Antes de um golpe TM ser equipável, implementar sistema de obtenção/consumo e learnsets compatíveis com a versão de origem, decidir versão de estatísticas (Geração III ou snapshot moderno), definir custo SP versionado e validar probabilidades, frames e limites de turno. **Nenhuma alteração jogável de Bullet Seed foi incluída na D-046.**
 
 ## Critérios para uma D-047
 
