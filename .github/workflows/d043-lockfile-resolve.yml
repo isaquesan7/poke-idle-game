@@ -30,7 +30,20 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Resolver somente lockfile, sem script de instalação
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+        shell: bash
+        run: |
+          set -eu
+          # npm 10.9.9 (Node 22 runner) pode lançar edgesOut:null ao reconciliar
+          # lockfile antigo com a major Vitest 4; usar npm 11 para atualização.
+          npm install --global npm@11
+          npm --version
+          if ! npm install --package-lock-only --ignore-scripts --no-audit --no-fund; then
+            echo "Falhou atualização incremental do lock; regenerando com npm 11."
+            cp package-lock.json /tmp/d043-lock-original.json
+            rm package-lock.json
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
+          test -s package-lock.json
       - name: Instalação integral reproduzível
         run: npm ci
       - name: Auditar versões realmente resolvidas (não auto-fix)
