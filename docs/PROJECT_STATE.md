@@ -790,3 +790,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 
 
 - Documento `docs/TM_WRITER_PLAN_D049.md` adicionado à branch com contrato proposto: opções de obtenção ainda não aprovadas, estoque não negativo, escrita única de baixa+slot+receipt, idempotência, revisão, validação de expedição e rollback. **Só documentação**; próximos gates B/C/D permanecem bloqueados por CSV integral e decisão de economia.
+
+- Revisão da D049: o CSV real pode ter a coluna `order` VAZIA para aprendizados por máquina; extrator e teste aceitam o sexto campo em branco, mas continuam rejeitando coluna ausente ou dado malformado. CI da nova HEAD e geração da allowlist real ainda pendentes.
