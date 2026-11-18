@@ -16,6 +16,7 @@ import { KANTO_POKEDEX } from '../catalog/kantoSpecies.js';
 import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
 import { kantoMoveSecondaryEffect } from './kantoStatusEffects.js';
 import {KANTO_SUPPORT_MOVES,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
+import {kantoMoveHitCount} from './kantoMultiHit.js';
 import type { KantoBattleStatus } from './kantoStatusEffects.js';
 import {
   KANTO_BASIC_ATTACK,KANTO_CONCENTRATE,KANTO_SP_BALANCE,
@@ -136,6 +137,9 @@ export interface KantoBattleVisualFrame {
   readonly spRecovery?:number;
   readonly critical?:boolean;
   readonly effectiveness?:number;
+  /** Acertos por ação (D-045); opcional em replays antigos e golpes de 1 hit. */
+  readonly hitIndex?:number;
+  readonly hitTotal?:number;
 }
 
 export interface KantoBattleResult {
@@ -213,6 +217,13 @@ function validMove(m:KantoMove|undefined):boolean{
     const canonical=KANTO_SUPPORT_MOVES[m.name];
     return !!canonical&&m.power===0&&m.type===canonical.type
       &&m.accuracy===canonical.accuracy&&m.priority===canonical.priority;
+  }
+  // D-045: o nome do golpe com 2 hits não pode aceitar potência/tipo adulterados.
+  if(m.name==='double-kick'){
+    const fixed=KANTO_BATTLE_MOVES['double-kick'];
+    return !!fixed&&m.type===fixed.type&&m.category===fixed.category
+      &&m.power===fixed.power&&m.accuracy===fixed.accuracy
+      &&m.priority===fixed.priority;
   }
   return(m.category==='physical'||m.category==='special')
     &&Number.isFinite(m.power)&&m.power>0&&m.power<=250;
@@ -338,13 +349,21 @@ export function simulateKantoBattle(
     used:Set<string>,ownSp:number,ownMaxSp:number,
     focusUsed:number,lastFocus:number):KantoMove=>{
     const available=actor.moves??[actor.move];
+    // D-045: cura própria 1x/batalha apenas quando HP <=50%, se houver SP.
+    // Não requer que o inimigo seja atingível por tipo Normal (inclui Ghost).
+    const recovery=available.find(move=>{
+      if(move.category!=='status'||used.has(move.name)||kantoMoveSpCost(move)>ownSp
+        ||turns>26||ownHp>actor.stats.hp*.5||ownHp>=actor.stats.hp)return false;
+      return kantoSupportEffect(move.name)?.kind==='heal';
+    });
+    if(recovery)return recovery;
     if(turns<=2&&ownHp>actor.stats.hp*.35&&targetHp>target.stats.hp*.5){
       const support=available.find(move=>{
         if(move.category!=='status'||used.has(move.name)
-          ||kantoMoveSpCost(move)>ownSp
-          ||kantoTypeMultiplier(move.type,target.types)===0)return false;
+          ||kantoMoveSpCost(move)>ownSp)return false;
         const effect=kantoSupportEffect(move.name);
-        if(!effect)return false;
+        if(!effect||effect.kind==='heal'
+          ||kantoTypeMultiplier(move.type,target.types)===0)return false;
         if(effect.kind==='status')return targetStatus===null&&statusAllowed(effect.status,target);
         return effect.kind==='lower-attack'?attackDrop<3:defenseDrop<3;
       });
@@ -372,7 +391,7 @@ export function simulateKantoBattle(
       &&kantoMoveSpCost(move)<=ownSp);
     if(attacks.length===0)return KANTO_BASIC_ATTACK;
     const score=(move:KantoMove):number=>
-      move.power*move.accuracy*kantoTypeMultiplier(move.type,target.types)
+      move.power*kantoMoveHitCount(move.name)*move.accuracy*kantoTypeMultiplier(move.type,target.types)
       *(actor.types.includes(move.type)?1.5:1)
       *(move.category==='physical'
         ?actor.stats.attack/Math.max(1,target.stats.defense)
@@ -450,7 +469,17 @@ export function simulateKantoBattle(
       }
       if(move.category==='status'){
         const support=kantoSupportEffect(move.name);
-        if(!support||kantoTypeMultiplier(move.type,defender.types)===0){
+        if(support?.kind==='heal'){
+          const before=isPlayer?playerHp:wildHp;
+          const restored=Math.min(actor.stats.hp-before,
+            Math.max(1,Math.floor(actor.stats.hp*support.healing/100)));
+          if(restored>0){
+            if(isPlayer)playerHp+=restored;else wildHp+=restored;
+            note('T'+turns+' · '+actor.name+' usou recover e recuperou '+
+              restored+' HP'+spText+'.','heal',ownSide,restored,meta);
+          }else note('T'+turns+' · recover não teve efeito'+spText+'.',
+            'info',ownSide,0,meta);
+        }else if(!support||kantoTypeMultiplier(move.type,defender.types)===0){
           note('T'+turns+' · '+defender.name+' é imune a '+move.name+spText+'.',
             'status',enemySide,0,meta);
         }else if(support.kind==='status'){
@@ -491,23 +520,33 @@ export function simulateKantoBattle(
       const stagedDefender={...defender,
         stats:{...defender.stats,defense:Math.max(1,Math.floor(
           defender.stats.defense*2/(2+foeDefenseDrop)))}};
-      const hit=kantoDamage(stagedActor,stagedDefender,roll(),roll(),
-        actorStatus==='burn'&&move.category==='physical'?0.5:1);
-      // O texto mantém o dano calculado; animação mostra só HP de fato perdido
-      // quando o golpe excede o HP restante (overkill).
-      const hpBeforeHit=isPlayer?wildHp:playerHp;
-      if(isPlayer)wildHp=Math.max(0,wildHp-hit.damage);
-      else playerHp=Math.max(0,playerHp-hit.damage);
-      const effectText=hit.effectiveness===0?' · Imune'
-        :hit.effectiveness>=2?' · Super efetivo'
-          :hit.effectiveness<1?' · Resistido':'';
-      note('T'+turns+' · '+actor.name+' usou '+displayName+': '+
-        hit.damage+' dano'+(hit.critical?' · CRÍTICO':'')+effectText+spText+'.',
-        'attack',enemySide,Math.min(hpBeforeHit,hit.damage),
-        {...meta,critical:hit.critical,effectiveness:hit.effectiveness});
+      const hitTotal=kantoMoveHitCount(move.name);
+      let hit:ReturnType<typeof kantoDamage>|null=null;
+      // Double Kick: UMA ação/precisão/custo SP, dois danos com RNG de cada
+      // impacto. Cada acerto vira uma linha/frame; interrompe imediatamente
+      // no KO ou imunidade. Não reinicia turnos nem duplica recibos.
+      for(let index=1;index<=hitTotal;index++){
+        hit=kantoDamage(stagedActor,stagedDefender,roll(),roll(),
+          actorStatus==='burn'&&move.category==='physical'?0.5:1);
+        const hpBeforeHit=isPlayer?wildHp:playerHp;
+        if(isPlayer)wildHp=Math.max(0,wildHp-hit.damage);
+        else playerHp=Math.max(0,playerHp-hit.damage);
+        const effectText=hit.effectiveness===0?' · Imune'
+          :hit.effectiveness>=2?' · Super efetivo'
+            :hit.effectiveness<1?' · Resistido':'';
+        const part=hitTotal>1?' (acerto '+index+'/'+hitTotal+')':'';
+        note('T'+turns+' · '+actor.name+' usou '+displayName+part+': '+
+          hit.damage+' dano'+(hit.critical?' · CRÍTICO':'')+effectText+
+          (index===1?spText:'')+'.',
+          'attack',enemySide,Math.min(hpBeforeHit,hit.damage),
+          {...meta,...(index>1?{spCost:0}:{}),
+            ...(hitTotal>1?{hitIndex:index,hitTotal}:{}),
+            critical:hit.critical,effectiveness:hit.effectiveness});
+        if(hit.damage===0||(isPlayer?wildHp:playerHp)===0)break;
+      }
 
       // Sem hit efetivo ou alvo já derrotado não há efeitos adicionais.
-      if(hit.damage===0||(isPlayer?wildHp:playerHp)===0)continue;
+      if(!hit||hit.damage===0||(isPlayer?wildHp:playerHp)===0)continue;
       const secondary=kantoMoveSecondaryEffect(move.name);
       if(secondary?.kind==='status'&&roll()*100<secondary.chance){
         const targetStatus=isPlayer?wildStatus:playerStatus;
