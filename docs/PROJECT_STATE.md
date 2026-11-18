@@ -781,3 +781,18 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Documentação:** `docs/TM_VERSION_POLICY_D048.md`, `docs/TM_SYSTEM_DESIGN_D047.md` e `docs/COMBAT_HEAL_MULTIHIT_DESIGN.md` descrevem fontes e barreiras. **D049 próxima:** gerar extrator offline do grande `pokemon_moves.csv` com validação de checksum e compatibilidade máquina grupo7/método4 para TM09; definir economia sem conceder itens arbitrários, writer idempotente de `teach-tm` em transação única, validar 1–4 slots/UID/expedição/versão/replay e depois fase separada de RNG2–5 + custo SP. Acessibilidade manual NVDA/VoiceOver e browser Edge Windows físico ainda PENDENTES; Picomatch somente na fase BUILD deve ser reavaliado upstream.
 - Handoff desta release `docs/v02-d048-release-handoff` ainda requer PR/CI/merge/deployment próprios; código D048 já está publicado e saudável no SHA anterior.
 
+
+
+## D-049 EM BRANCH — extrator offline de TM09 (18/11/2026)
+- Base: main após D048 e handoff #70 (commit b6671abc0053b25174e3962da93d76b89e1efdd5); branch `chore/v02-d049-tm-compatibility-extractor`. A D048 permanece última release funcional confirmada.
+- `scripts/extract-tm09-compatibility.mjs` confere SHA-1 Git blob do CSV fonte `PokeAPI/pokeapi@ac2f1ac...` esperado `f66f614adf535af6940c65f434efe5ddeec4687a`, antes de filtrar espécie Kanto1..151, version_group7, move331, method4. Gera somente relatório JSON revisável, não importado pelo jogo; `--output` não sobrescreve arquivo existente.
+- `tests/tm09-compatibility-extractor.test.mjs` exercita fixtures, filtro, checagem de checksum e rejeição de CSV inválido. `docs/TM_COMPATIBILITY_D049.md` documenta operação e limites. **O CSV oficial integral ainda NÃO foi extraído/verificado; não há allowlist real**, TMs continuam bloqueadas e nenhum inventário, writer, loot ou motor2–5 foi implementado.
+- Preservados: battle/IA, HP/SP/PP/Recover/Double Kick, RNG, save schema2, replay, animação FULL sem seletor, 151 GIFs, Docker, rotas / e /play, `isaquesan7/pokedex` intocado.
+- **PR, CI, merge e Railway desta branch:** verificar ao final da etapa; não assumir publicação. Próxima ação concreta: executar extrator contra CSV oficial fixado, revisar lista positiva e formas; depois economia/teach writer atômico idempotente em etapa independente e 2–5 hits em PR separada. NVDA/VoiceOver manual e Picomatch BUILD seguem pendentes.
+
+
+### D-049 atualização — fonte real TM09 confirmada (18/11/2026, mesma branch)
+- CI inicial PR #71, execução GitHub Actions `44380655504 completed/success` no HEAD anterior `1f94c86d9ffb33acfcfcbcba690d4f2680357c68` (antes de incorporar catálogo de compatibilidade real). **HEAD novo requer outra CI**, não reutilizar a aprovação anterior para ele.
+- Recuperado pelo conector GitHub o blob completo `pokemon_moves.csv` SHA `f66f614adf535af6940c65f434efe5ddeec4687a`: 665.810 linhas dados, 15 registros de Kanto compatíveis com TM09 FRLG group7/move331/method4, outros 29 registros fora de Kanto. IDs [1,2,3,43,44,45,46,47,69,70,71,102,103,114,151].
+- Novo `catalog/kantoTmCompatibility.ts`, export em core/index, teste Vitest D049 de 151 espécies, marca `speciesCompatibility:'verified-read-only'` na prévia; **release gate deny-all preservado**, motor, save, inventário, replay e UI inalterados.
+- PR #71 aberta, merge e deploy **não confirmados**. Próximo: aguardar CI do HEAD final, revisar merge e Railway; somente depois desenhar estoque/aquisição e teach-tm atômico idempotente, motor 2–5 hits em etapa própria.

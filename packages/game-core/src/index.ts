@@ -98,3 +98,8 @@ export { reduceKantoEvolutionJson } from './legacy/pokemonEvolutionReducer.js';
 export type {
   KantoEvolutionAction, KantoEvolutionEditResult
 } from './legacy/pokemonEvolutionReducer.js';
+
+export {
+  KANTO_TM09_COMPATIBILITY_SOURCE,KANTO_TM09_COMPATIBLE_SPECIES,
+  kantoTm09SpeciesCompatible
+} from './catalog/kantoTmCompatibility.js';
