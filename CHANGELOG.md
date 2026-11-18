@@ -1,3 +1,10 @@
+## D-050 — tela do Treinador, prévia segura e Mochila (BRANCH, NÃO PUBLICADA; 18/11/2026)
+- Layout Perfil/Equipamentos/Mochila, títulos e insígnias diretamente no perfil, equipamentos com bônus em hover/foco, responsivo usando root tokens oficiais.
+- Prévia de distribuição sem salvar; confirmar aplica todos os pontos validados em uma revisão do writer, com rollback completo. Removida mensagem genérica de sucesso do treinador e Pokémon.
+- Chip /health verifica status real antes de mostrar Servidor Online. Mochila não inventa consumíveis ou itens que não existem.
+- **Pendente antes da publicação visual:** transferir arte original anexada do jogador para `apps/web/public/assets/trainer-original.png` (PNG binário), para que Vite a inclua no dist e Docker; fallback acessível temporário. Não dizer que a imagem está publicada.
+- Preservados combate, economia/TMs, save schema2/chave, v0.1, 151 GIFs, repositório pokedex; detalhes em `docs/TRAINER_UI_D050.md`.
+
 ## [v0.2-alpha — D-049 preparação de compatibilidade TM09] — 2026-11-18 (BRANCH, NÃO PUBLICADA)
 - Adicionado extrator offline `scripts/extract-tm09-compatibility.mjs` que verifica hash Git do snapshot PokéAPI pinado antes de extrair a compatibilidade TM09 de `pokemon_moves.csv`, limitada a Kanto 1..151, grupo7, método4, golpe331. Produz JSON somente em caminho novo, não altera dados de jogo.
 - Adicionados testes Node sintéticos de hash, filtro estrito e falhas fechadas (CSV malformado, duplicado, vazio, checksum incompatível). CSV original grande ainda precisa ser obtido/verificado; **não há allowlist positiva real, item, consumo, teach ou novo golpe liberado**.
