@@ -1,0 +1,64 @@
+name: D-049B — auditar fonte de compatibilidade TM09 sem liberar gameplay
+
+on:
+  push:
+    branches: [chore/v02-d049b-tm09-snapshot-audit]
+    paths:
+      - '.github/workflows/d049b-tm09-snapshot-audit.yml'
+      - 'scripts/extract-tm09-compatibility.mjs'
+      - 'tests/tm09-extractor.test.mjs'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/d049b-tm09-snapshot-audit.yml'
+      - 'scripts/extract-tm09-compatibility.mjs'
+      - 'tests/tm09-extractor.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-pinned-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Testar extrator isolado
+        run: node --test tests/tm09-extractor.test.mjs
+      - name: Baixar snapshot pinado e verificar hash ANTES de extrair
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/d049b
+          curl --fail --location --silent --show-error \
+            --retry 3 --max-time 120 \
+            'https://raw.githubusercontent.com/PokeAPI/pokeapi/ac2f1acb055026e3dff1e0aca743bb46256a810a/data/v2/csv/pokemon_moves.csv' \
+            --output /tmp/d049b-pokemon-moves.csv
+          node scripts/extract-tm09-compatibility.mjs /tmp/d049b-pokemon-moves.csv artifacts/d049b/tm09-machine-compatibility.json
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFile} from 'node:fs/promises';
+          const p='artifacts/d049b/tm09-machine-compatibility.json';
+          const a=JSON.parse(await readFile(p,'utf8'));
+          assert.equal(a.status,'verified-snapshot-only-not-released');
+          assert.equal(a.sourceGitBlobSha,'f66f614adf535af6940c65f434efe5ddeec4687a');
+          assert.equal(a.versionGroupId,7);
+          assert.equal(a.learnMethodId,4);
+          assert.equal(a.moveId,331);
+          assert.ok(a.rowsScanned>1000,'CSV incompleto ou inesperado');
+          assert.ok(a.pokemonIds.length>0,'Lista positiva não pode ser vazia');
+          assert.equal(a.pokemonIds.length,new Set(a.pokemonIds).size);
+          assert.ok(a.pokemonIds.every(x=>Number.isInteger(x)&&x>=1&&x<=151));
+          console.log('D049B_AUDIT '+JSON.stringify({source:a.sourceGitBlobSha,rows:a.rowsScanned,matches:a.matchingRows,speciesCount:a.pokemonIds.length,pokemonIds:a.pokemonIds}));
+          NODE
+      - name: Anexar somente a allowlist auditável (NUNCA o CSV bruto)
+        uses: actions/upload-artifact@v4
+        with:
+          name: d049b-tm09-snapshot-audit
+          path: artifacts/d049b/tm09-machine-compatibility.json
+          if-no-files-found: error
+          retention-days: 30
