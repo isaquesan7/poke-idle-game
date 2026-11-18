@@ -5,9 +5,9 @@
  * data/v2/csv/moves.csv + types.csv.
  *
  * Alfa simplificada: somente movimentos de dano direto effect_id=1 e os 11
- * golpes já existentes na Arena. Efeitos secundários desses 11 (paralisia,
+ * golpes já existentes na Arena, mais Double Kick D-045. Efeitos secundários (paralisia,
  * drenagem, etc.) ainda não são simulados. Status, multi-hit, recoil, TM,
- * tutor, egg moves e movimentos sem poder direto NÃO estão incluídos.
+ * tutor, egg moves e movimentos sem poder direto NÃO estão incluídos,\n * EXCETO Double Kick D-045 (2 impactos fixos e catálogo pequeno verificado).
  *
  * Poison Sting de Weedle a partir do nível 1 foi conferido também em
  * https://pokemondb.net/pokedex/weedle/moves/3 (FireRed/LeafGreen).
@@ -155,6 +155,25 @@ const LEARNS: Readonly<Record<number,readonly (readonly [number,number])[]>> = {
   149:[[29,6],[55,5]],
   151:[[1,0],[20,1]],
 };
+/**
+ * D-045: Double Kick = 2 acertos FIXOS, 30 de poder por impacto.
+ * Learnsets FRLG de Nidoran♀/♂, Nidorina/Nidorino e Nidoqueen/Nidoking.
+ * Nas evoluções por pedra o golpe aparece como movimento do nível 1,
+ * preservando a possibilidade de reequipar um golpe já aprendido pelo UID.
+ * https://pokemondb.net/pokedex/nidoran-f/moves/3
+ * https://pokemondb.net/pokedex/nidoran-m/moves/3
+ */
+const EXTRA_LEVEL_MOVES:Readonly<Record<string,KantoMove>>={
+  'double-kick':Object.freeze({
+    name:'double-kick',type:'fighting',category:'physical',
+    power:30,accuracy:100,priority:0
+  })
+};
+const EXTRA_LEARNS:Readonly<Record<number,readonly (readonly [number,string])[]>>={
+  29:[[12,'double-kick']],30:[[12,'double-kick']],31:[[1,'double-kick']],
+  32:[[12,'double-kick']],33:[[12,'double-kick']],34:[[1,'double-kick']]
+};
+
 export interface KantoLearnableMove {
   readonly move: KantoMove;
   readonly learnedAt: number;
@@ -171,9 +190,15 @@ export function kantoLevelMoves(speciesId:number,level:number):readonly KantoLea
       found.set(move.name,{move,learnedAt});
     }
   }
+  for(const [learnedAt,name] of EXTRA_LEARNS[speciesId]??[]){
+    if(learnedAt>level)continue;
+    const move=EXTRA_LEVEL_MOVES[name];
+    if(move&&(!found.has(name)||learnedAt<found.get(name)!.learnedAt))
+      found.set(name,{move,learnedAt});
+  }
   return [...found.values()].sort((a,b)=>a.learnedAt-b.learnedAt||a.move.name.localeCompare(b.move.name));
 }
 
 /** Nome único → dados de combate verificados no mesmo snapshot. */
 export const KANTO_LEVELUP_DAMAGE_MOVES: Readonly<Record<string,KantoMove>> =
-  Object.fromEntries(MOVES.map(move=>[move.name,move]));
+  Object.fromEntries([...MOVES,...Object.values(EXTRA_LEVEL_MOVES)].map(move=>[move.name,move]));
