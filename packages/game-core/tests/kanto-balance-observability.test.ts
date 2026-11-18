@@ -1,4 +1,5 @@
 import {describe,expect,it} from 'vitest';
+import {stdout} from 'node:process';
 import {
   KANTO_BATTLE_SPECIES,KANTO_SUPPORT_MOVES,pokemonOwnStats,simulateKantoBattle,zeroStats
 } from '../src/index.js';
@@ -117,7 +118,7 @@ describe('D-040: diagnóstico reproduzível de balanceamento da Arena',()=>{
       total:summarize(all),segments:sections
     };
     // Saída intencional e versionável no log de CI para revisão do design.
-    console.info('D040_BALANCE_REPORT '+JSON.stringify(report));
+    stdout.write('D040_BALANCE_REPORT '+JSON.stringify(report)+'\n');
     expect(report.total.samples).toBe(1920);
     expect(report.total.p95Turns).toBeLessThanOrEqual(30);
   });
