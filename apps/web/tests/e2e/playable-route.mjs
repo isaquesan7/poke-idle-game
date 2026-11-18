@@ -334,7 +334,10 @@ async function exercise(browser, label, viewport) {
   let teamSnapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   let teamGame=JSON.parse(teamSnapshot.journal.raw);
   assert.deepEqual(teamGame.team,[firstUid,1,secondUid]);
-  assert.equal(teamGame.roster.filter(p=>p.pokemonId===16).length,2);
+  // O primeiro combate pode capturar outro Pidgey aleatoriamente: validar somente os UIDs injetados.
+  const injectedPidgeys=teamGame.roster.filter(p=>p.uid===firstUid||p.uid===secondUid);
+  assert.deepEqual(injectedPidgeys.map(p=>p.uid),[firstUid,secondUid]);
+  assert.ok(injectedPidgeys.every(p=>p.pokemonId===16));
 
   // A seleção da espécie não deve misturar UIDs de treinamentos independentes.
   await page.getByLabel('Buscar Pokémon na coleção').fill('pidgey');
