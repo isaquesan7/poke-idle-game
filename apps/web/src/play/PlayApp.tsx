@@ -5,7 +5,7 @@ import {
   KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats,
   kantoLevelMoves,kantoSupportMoves,KANTO_SUPPORT_MOVES,pokemonMoveSlots,
   legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
-  KANTO_BASIC_ATTACK,kantoMaxSp,kantoMoveSpCost,
+  KANTO_BASIC_ATTACK,KANTO_SP_BALANCE,kantoMaxSp,kantoMoveSpCost,kantoMovePp,
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame } from '@kanto/game-core';
@@ -283,7 +283,7 @@ export function PlayApp() {
     &&Number.isSafeInteger(lastBattle.playerMaxHp)&&Number.isSafeInteger(lastBattle.wildMaxHp)
     &&(lastBattle.playerMaxHp??0)>0&&(lastBattle.wildMaxHp??0)>0
     &&battleFrames.every(frame=>frame!==null&&typeof frame==='object'
-      &&['intro','attack','miss','status','heal','residual','outcome','info'].includes(frame.kind)
+      &&['intro','attack','miss','status','heal','residual','focus','outcome','info'].includes(frame.kind)
       &&(frame.target===null||frame.target==='player'||frame.target==='wild')
       &&Number.isSafeInteger(frame.playerHp)
       &&Number.isSafeInteger(frame.wildHp)
@@ -586,17 +586,20 @@ export function PlayApp() {
                     A Arena escolhe ataques e pode usar suportes na abertura;
                     pelo menos um golpe de dano deve permanecer equipado.
                     Cada habilidade gasta SP, e o ataque básico é gratuito.</p>
-                  <p>SP de combate por encontro: <strong>{focused?kantoMaxSp(focused.level):0}</strong> ·
+                  <p>SP de combate por encontro: <strong>{focused?kantoMaxSp(focused.level,focused.pokemonId):0}</strong> ·
                     ataque básico gratuito (Poder {KANTO_BASIC_ATTACK.power}).
-                    O SP só recarrega no próximo encontro; não se confunde com
-                    pontos de aprimoramento.</p>
+                    cada espécie possui energia própria conforme nível e atributos-base.
+                    Se faltar SP, a IA pode usar Concentrar (30% do máximo,
+                    no máximo {KANTO_SP_BALANCE.maxFocusUses} vezes por batalha, com
+                    intervalo de {KANTO_SP_BALANCE.focusCooldownTurns} turnos).
+                    SP é diferente dos pontos permanentes de aprimoramento.</p>
                   <div className={styles.moveList} aria-label="Golpes equipados" data-testid="equipped-moves">
                     {equippedNames.map((name,i)=><div key={name} className={styles.moveEquipped}>
                       <div><strong>{i+1}. {name}</strong>
                         <small>{i===0?'Principal':'Adicional'} ·
                           {KANTO_SUPPORT_MOVES[name]?' Suporte':' Ataque'} ·
                           {KANTO_SUPPORT_MOVES[name]||KANTO_BATTLE_MOVES[name]
-                            ?' '+kantoMoveSpCost((KANTO_SUPPORT_MOVES[name]??KANTO_BATTLE_MOVES[name])!)+' SP'
+                            ?' '+kantoMoveSpCost((KANTO_SUPPORT_MOVES[name]??KANTO_BATTLE_MOVES[name])!)+' SP · PP '+(kantoMovePp(name)??'não catalogado')
                             :' Golpe provisório'}</small></div>
                       <div className={styles.moveActions}>
                         {i>0&&<button type="button" className={styles.secondary}
@@ -621,6 +624,7 @@ export function PlayApp() {
                         <div><strong>{move.name}</strong><small>Nv. {learnedAt} · {move.type} ·
                           Poder {move.power} · Precisão {move.accuracy}%</small>
                           <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'} ·
+                            PP {kantoMovePp(move.name)??'não catalogado'} ·
                             Custo {kantoMoveSpCost(move)} SP na Arena</small>
                            {effectLabel(move.name)&&<small>{effectLabel(move.name)}</small>}
                         </div>
@@ -652,6 +656,7 @@ export function PlayApp() {
                       return <div key={move.name} className={inSlots?styles.moveEquipped:styles.moveOption}>
                         <div><strong>{move.name}</strong>
                           <small>Nv. {learnedAt} · {move.type} · Precisão {move.accuracy}% ·
+                            PP {kantoMovePp(move.name)??'não catalogado'} ·
                             Custo {kantoMoveSpCost(move)} SP</small>
                           <small>{move.name==='growl'?'Reduz Ataque':
                             move.name==='tail-whip'?'Reduz Defesa':
@@ -812,11 +817,14 @@ export function PlayApp() {
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
                     <h2>Arena de batalha</h2>
                     <p>Seu Pokémon enfrenta automaticamente um encontro de Kanto em até 30 turnos. O motor calcula precisão, dano, críticos, tipos e condições temporárias (queimadura, envenenamento e paralisia). Vitória concede XP, moedas, afinidade e chance de captura de 35%.</p>
-                    <p>SP de combate: <strong>40 + floor(nível / 4)</strong> por Pokémon.
-                      Habilidades consomem SP ao tentar usá-las, mesmo se errarem;
-                      a IA intercala golpes com ataque básico gratuito (Poder 30).
-                      Se faltar SP, só poderá usar o básico até o próximo encontro.
-                      O SP não se regenera durante a batalha.</p>
+                    <p>SP individual (40–100) é calculado por nível e stats-base
+                      de HP, Sp. Atk e Sp. Def; o custo de habilidades combina
+                      PP oficial da PokéAPI, poder, prioridade e efeitos.
+                      O ataque básico é gratuito, neutro contra todos os tipos (Poder 30).
+                      Quando faltar SP para habilidades, a IA pode usar
+                      Concentrar, abrindo mão de atacar para recuperar 30%,
+                      até duas vezes por combate com quatro turnos de intervalo.
+                      Não há regeneração passiva.</p>
                     <p>Líder: <strong>{speciesName(active.pokemonId)} · UID #{active.uid}</strong></p>
                     <p>Equipe: <strong>{data.team.length}/3</strong> ·
                       <button type="button" className={styles.textButton}
