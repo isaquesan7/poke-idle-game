@@ -41,3 +41,6 @@ Pré-condições aplicadas ao snapshot atual, todas falham fechado:
 **Invariantes permanentes:** não modificar `isaquesan7/pokedex`; não apagar `kanto-idle-play-v02`; não usar `localStorage.clear()`; preservar `/` v0.1, 151 GIFs e animações full. NVDA/VoiceOver em dispositivos reais ainda exigem validação humana; o laboratório não equivale à experiência assistiva real.
 
 **Detalhe de formato validado:** nas linhas de método `machine`, o campo CSV `order` pode ser vazio; as seis colunas continuam obrigatórias. O extrator aceita sexto campo vazio, exige os cinco primeiros numéricos e rejeita sexto campo não numérico não vazio.
+
+## Evidência posterior da fonte (D049B)
+A auditoria no runner GitHub Actions `44390972440` processou 665.810 registros de fonte com hash do objeto Git validado e selecionou 15 IDs de Pokémon Kanto: `1,2,3,43,44,45,46,47,69,70,71,102,103,114,151`. O CSV real possui sete colunas, incluindo `enhancement_level`; a implementação foi corrigida e testada. **Elegibilidade do catálogo não equivale a permissão de ensino no Idle**: o sistema de TMs, inventário, compatibilidade positiva integrada ao writer, receipts e golpe executável ainda não existem. Próxima PR deverá fixar lista READ-ONLY com origem e testes e manter `kantoTmIsTeachEnabled=false` até todos os gates.

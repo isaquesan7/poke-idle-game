@@ -9,9 +9,9 @@ test('hash de Git blob em bytes conhecidos',()=>{
  assert.equal(gitBlobSha(Buffer.from('test\n')),'9daeafb9864cf43055ae93beb0afd6c7d144bfa4');
 });
 test('filtra grupo7, machine4, move331 e Kanto; IDs ordenados',()=>{
- const csv='pokemon_id,version_group_id,move_id,pokemon_move_method_id,level,order\n'+[
-  '25,7,331,4,0,','1,7,331,4,0,','1,7,331,1,0,1',
-  '2,8,331,4,0,1','3,7,332,4,0,1','4,7,331,3,0,1','152,7,331,4,0,1'
+ const csv='pokemon_id,version_group_id,move_id,pokemon_move_method_id,level,order,enhancement_level\n'+[
+  '25,7,331,4,0,,','1,7,331,4,0,,','1,7,331,1,0,1,0',
+  '2,8,331,4,0,1,0','3,7,332,4,0,1,0','4,7,331,3,0,1,0','152,7,331,4,0,1,0'
  ].join('\n');
  const out=extractTm09(csv);
  assert.deepEqual(out.pokemonIds,[1,25]);
@@ -22,10 +22,11 @@ test('filtra grupo7, machine4, move331 e Kanto; IDs ordenados',()=>{
 test('bloqueia CSV vazio, inválido, sem TM e duplicado',()=>{
  assert.throws(()=>extractTm09(''),/vazio/);
  assert.throws(()=>extractTm09('25,7,331,4,0'),/inválida/);
- assert.throws(()=>extractTm09('25,7,331,4,0,abc'),/inválida/);
- assert.deepEqual(extractTm09('25,7,331,4,0,').pokemonIds,[25]);
- assert.throws(()=>extractTm09('25,7,331,4,0,1\n25,7,331,4,0,1'),/Duplicata/);
- assert.throws(()=>extractTm09('25,7,331,1,0,1'),/sem TM09/);
+ assert.throws(()=>extractTm09('25,7,331,4,0,'),/inválida/);
+ assert.throws(()=>extractTm09('25,7,331,4,0,abc,'),/inválida/);
+ assert.deepEqual(extractTm09('25,7,331,4,0,,').pokemonIds,[25]);
+ assert.throws(()=>extractTm09('25,7,331,4,0,1,0\n25,7,331,4,0,1,0'),/Duplicata/);
+ assert.throws(()=>extractTm09('25,7,331,1,0,1,0'),/sem TM09/);
 });
 test('hash divergente nunca gera arquivo',async()=>{
  const dir=await mkdtemp(join(tmpdir(),'tm09-test-'));
