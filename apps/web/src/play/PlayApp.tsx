@@ -20,6 +20,7 @@ import styles from './PlayApp.module.css';
 import { PokedexPanel } from './PokedexPanel';
 import { BattlePlayback } from './BattlePlayback';
 import { BattleStage } from './BattleStage';
+import { TrainerScreen } from './TrainerScreen';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -110,6 +111,7 @@ export function PlayApp() {
   const [collectionQuery, setCollectionQuery] = useState('');
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all');
   const [feedback, setFeedback] = useState('');
+  const [serverOnline,setServerOnline]=useState<boolean|null>(null);
   const [battlePlayback, setBattlePlayback] = useState<{id:string;seq:number;done:boolean}|null>(null);
   /** Apenas reprodução: não faz parte do save do jogo. */
   const [battleReveal,setBattleReveal]=useState<{key:string;visible:number}|null>(null);
@@ -127,6 +129,15 @@ export function PlayApp() {
     };
   }, []);
 
+  /** Status real do endpoint /health, sem confundir com a PokéAPI. */
+  useEffect(()=>{
+    const controller=new AbortController();
+    fetch('/health',{signal:controller.signal,cache:'no-store'})
+      .then(response=>setServerOnline(response.ok))
+      .catch(()=>{if(!controller.signal.aborted)setServerOnline(false);});
+    return ()=>controller.abort();
+  },[]);
+
   /** Preferir Web Lock; sem suporte o modo alfa oferece revisão otimista local. */
   async function transact(callback: () => PlayWrite): Promise<PlayWrite|null> {
     if (busy) return null;
@@ -137,7 +148,7 @@ export function PlayApp() {
         ? await navigator.locks.request(PLAY_LOCK_NAME, { mode: 'exclusive' }, execute)
         : execute();
       setSave(readSafe());
-      setFeedback(outcome.status === 'ok' ? 'Progresso salvo neste navegador.' : outcome.reason);
+      setFeedback(outcome.status === 'ok' ? '' : outcome.reason);
       return outcome;
     } catch {
       setSave(readSafe());
@@ -154,6 +165,15 @@ export function PlayApp() {
     if (save.status !== 'ready') return;
     const expected = save.snapshot.revision;
     void transact(() => updatePlaySave(window.localStorage, expected, action));
+  }
+
+  /** D050: confirmação única para os pontos mostrados na prévia. */
+  async function investTrainerBatch(increments:Partial<Record<Stat,number>>,revision:number):Promise<boolean>{
+    if(save.status!=='ready'||save.snapshot.revision!==revision)return false;
+    const outcome=await transact(()=>updatePlaySave(window.localStorage,revision,{
+      type:'trainer-invest-batch',increments
+    }));
+    return outcome?.status==='ok';
   }
 
   /** Browser seguro: sorteia seed uint32, resolução real ocorre no game-core. */
@@ -389,7 +409,7 @@ export function PlayApp() {
             <div className={styles.kicker}>REGIÃO DE KANTO · SEASON 1</div>
             <h1>{sectionName(tab)}</h1>
           </div>
-          <div className={styles.trainerChip}><span className={styles.avatar}>★</span>
+          <div className={styles.trainerChip}><span className={serverOnline===true?styles.serverOnline:styles.serverOffline} role="status">{serverOnline===null?'Verificando servidor':serverOnline?'● Servidor Online':'● Servidor indisponível'}</span><span className={styles.avatar}>★</span>
             <span><strong>{view?.name ?? data?.name}</strong><small>Nível {view?.level ?? '?'}</small></span>
             <span className={styles.coins}>◈ {data?.coins ?? 0}</span>
           </div>
@@ -449,53 +469,10 @@ export function PlayApp() {
                 </div>
               </>
             )}
-            {tab === 'trainer' && (
-              <div className={styles.twoColumn}>
-                <section className={styles.panel}>
-                  <div className={styles.panelHeading}><h2>{view.name}</h2><span className={styles.levelTag}>Nível {view.level}</span></div>
-                  <p>{view.title.name} · {view.unspent} ponto(s) para distribuir</p>
-                  <div className={styles.progress} role="progressbar" aria-label="Experiência do treinador"
-                    aria-valuemin={0} aria-valuemax={view.xpNext ?? 1}
-                    aria-valuenow={view.xpNext === null ? 1 : view.xp}>
-                    <span style={{width: (view.xpNext === null ? 100 : Math.min(100, view.xp / view.xpNext * 100)) + '%'}} />
-                  </div>
-                  <div className={styles.statList}>
-                    {STATS.map(stat => (
-                      <div className={styles.stat} key={stat}>
-                        <span>{STAT_LABELS[stat]}</span><strong>{view.totals[stat]}</strong>
-                        <small>{view.manual[stat]} manual</small>
-                        <button type="button" disabled={busy || view.unspent < 1 || view.manual[stat] >= 40}
-                          onClick={() => dispatch({type:'trainer',value:{type:'invest',stat}})}
-                          aria-label={`Adicionar ponto em ${STAT_LABELS[stat]} do treinador`}>+1</button>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-                <section className={styles.panel}>
-                  <h2>Equipamentos provisórios</h2>
-                  <p>Itens de teste disponíveis para explorar os bônus. A economia definitiva será implementada depois.</p>
-                  <div className={styles.equipmentList}>
-                    {LEGACY_EQUIPMENT_SLOTS.map((slot: EquipmentSlot) => {
-                      const trainer = data.trainer as Record<string, unknown>;
-                      const equipped = (trainer.equipped ?? {}) as Record<string, string>;
-                      return (
-                        <label key={slot}><span>{slot}</span>
-                          <select aria-label={`Equipamento: ${slot}`} disabled={busy}
-                            value={equipped[slot] || ''}
-                            onChange={event => dispatch({type:'trainer',value:{type:'equip',slot,itemId:event.target.value}})}>
-                            <option value="">Sem equipamento</option>
-                            {LEGACY_ITEMS.filter(item => item.slot === slot).map(item => (
-                              <option key={item.id} value={item.id}>{item.name}</option>
-                            ))}
-                          </select>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p>Insígnias: {view.badges.length}/8 · Título: {view.title.name}</p>
-                </section>
-              </div>
-            )}
+            {tab === 'trainer' && <TrainerScreen view={view} data={data}
+              revision={save.snapshot.revision} busy={busy}
+              onInvest={investTrainerBatch}
+              onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}/> }
             {tab === 'pokemon' && (
               <div className={styles.twoColumn}>
                 <section className={styles.panel}>

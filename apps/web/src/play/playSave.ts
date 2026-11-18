@@ -34,6 +34,7 @@ export type PlayRead =
 export type PlayAction =
   | { readonly type: 'trainer'; readonly value: TrainerDraftAction }
   | { readonly type: 'pokemon'; readonly value: LegacyPokemonTeamAction }
+  | { readonly type: 'trainer-invest-batch'; readonly increments: Readonly<Partial<Record<keyof StatValues, number>>> }
   | { readonly type: 'battle'; readonly seed: number }
   | { readonly type: 'evolution'; readonly uid:number; readonly targetSpeciesId:number }
   | { readonly type: 'evolution-test-kit' }
@@ -275,6 +276,23 @@ export function updatePlaySave(
       : reduceLegacyPokemonTeamJson(journal.raw, action.value);
     if (result.status !== 'ok') return { status: 'blocked', reason: result.reason };
     next = { ...journal, raw: result.json };
+  } else if (action.type === 'trainer-invest-batch') {
+    // D-050: a prévia nunca grava. Validamos TODO o lote contra o snapshot
+    // atual e fazemos apenas um commit/revision. Falha = nenhum ponto aplicado.
+    const increments = action.increments;
+    const requested = Object.entries(increments) as [keyof StatValues, number][];
+    if (requested.length === 0 || requested.some(([stat, count]) =>
+      !STATS.includes(stat) || !Number.isSafeInteger(count) || count < 1 || count > 40
+    )) return {status:'blocked',reason:'Distribuição de pontos inválida.'};
+    let candidate = journal.raw;
+    for (const [stat, count] of requested) {
+      for (let i = 0; i < count; i++) {
+        const result = editLegacyTrainerJson(candidate,{type:'invest',stat});
+        if (result.status !== 'ok') return {status:'blocked',reason:result.reason};
+        candidate = result.json;
+      }
+    }
+    next = {...journal,raw:candidate};
   } else if (action.type === 'move') {
     // O cliente NÃO fornece lista de golpes, poder ou elegibilidade.
     // Este writer deriva do snapshot FireRed/LeafGreen e do UID real.

@@ -65,8 +65,15 @@ async function exercise(browser, label, viewport) {
   assert.equal(snapshot.revision,0);
   assert.equal(JSON.parse(snapshot.journal.raw).roster[0].pokemonId,4);
   await page.getByRole('button',{name:'Treinador',exact:true}).click();
-  await page.getByRole('button',{name:'Adicionar ponto em ATK do treinador'}).click();
+  // D-050: clicar em +1 altera apenas a prévia; nenhum ponto é salvo sem confirmar.
+  await page.getByRole('button',{name:'Pré-visualizar +1 em ATK'}).click();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
+  await page.getByRole('button',{name:'Cancelar'}).click();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
+  await page.getByRole('button',{name:'Pré-visualizar +1 em ATK'}).click();
+  await page.getByRole('button',{name:'Confirmar distribuição'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===1,SAVE);
+  assert.equal(await page.getByText('Progresso salvo neste navegador.').count(),0);
   await page.getByRole('button',{name:'Pokémon',exact:true}).click();
   await page.getByRole('button',{name:'Adicionar ponto em DEF do Pokémon'}).click();
   await page.getByText('10% de queimadura').waitFor();

@@ -563,3 +563,9 @@
 .appShell[data-motion='full'] .battlePlaybackProgress>span{
   transition:width var(--duration-fast);
 }
+
+/* D-050: o selo verifica /health real; estado visual nunca simula conexão. */
+.serverOnline,.serverOffline{font-size:.74rem;border-radius:var(--radius-pill);padding:var(--space-2);white-space:nowrap}
+.serverOnline{color:var(--color-success);border:1px solid var(--color-pill-online-border-1)}
+.serverOffline{color:var(--color-text-muted);border:1px solid var(--color-border)}
+@media(max-width:690px){.trainerChip{flex-wrap:wrap}}
