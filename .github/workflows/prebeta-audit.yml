@@ -1,0 +1,62 @@
+name: Pré-beta — inventário de dependências npm
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'packages/**/package.json'
+      - 'apps/**/package.json'
+      - 'scripts/report-npm-audit.mjs'
+      - '.github/workflows/prebeta-audit.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'packages/**/package.json'
+      - 'apps/**/package.json'
+      - 'scripts/report-npm-audit.mjs'
+      - '.github/workflows/prebeta-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Conferir lockfile e instalar versões reproduzíveis
+        run: npm ci
+      - name: Coletar resultados npm audit (não aplicar fixes automaticamente)
+        shell: bash
+        run: |
+          set +e
+          npm audit --json > audit-all.json
+          all_exit=$?
+          npm audit --omit=dev --json > audit-prod.json
+          prod_exit=$?
+          set -e
+          echo "npm audit all exit=$all_exit; production exit=$prod_exit"
+          # Exit 1 normalmente informa vulnerabilidades; outros erros serão
+          # classificados pelo parser e não exibidos como "zero vulnerabilidades".
+          node scripts/report-npm-audit.mjs audit-all.json audit-prod.json
+          cat audit-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Guardar relatórios completos para investigação
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prebeta-npm-audit
+          path: |
+            audit-all.json
+            audit-prod.json
+            audit-summary.md
+          if-no-files-found: ignore

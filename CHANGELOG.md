@@ -1,3 +1,9 @@
+## [v0.2-alpha — D-040 Diagnóstico de balanceamento e inventário npm] — 2026-11-18 (BRANCH; NÃO PUBLICADO)
+- Novo teste somente diagnóstico: mede vitórias/derrotas/empates, turnos médio/mediano/p95, 30 turnos, usos de ataque básico, skills pagas, Concentrar e saldo SP por nível/cenário nas **mesmas 1.920 combinações determinísticas** de D-039. Imprime relatório estruturado `D040_BALANCE_REPORT` nos logs Vitest/CI; NÃO é telemetria real de jogadores.
+- Workflow npm audit separa vulnerabilidades do lockfile de produção (`--omit=dev`) e ferramentas de desenvolvimento; gera resumo no GitHub Actions e artifact JSON, **sem npm audit fix nem mudanças de versões**. Relatório é triagem, não garante explorabilidade; a decisão de atualização depende de análise humana e regressão.
+- Nenhum ajuste de fórmula, catálogo, movimentação, autenticação, schema/localStorage, RNG, prêmios ou replays. Nova leitura de tela humana NVDA/VoiceOver permanece pendente antes da beta.
+- Testes/CI, PR e Railway desta etapa: **pendentes de confirmação**. Branch `chore/v02-prebeta-audit-balance-d040`.
+
 ## [v0.2-alpha — D-039 Acessibilidade Arena, preparo de cura/multi-hit e SP mínimo 50] — 2026-11-17 (PUBLICADA PR #52; CI PR/main e Railway SUCCESS)
 - **SP:** piso por Pokémon 40→50, base 30→36, teto100 conservado, mantendo fórmula por nível/espécie e garantia de poder pagar uma habilidade com custo até40 mesmo no nível1. Concentrar (recarga30%, 2x, cooldown4) e ataque básico neutro preservados.
 - **Movimentos futuros, sem disponibilizá-los na Arena:** função pura de prévia `kantoPreviewMoveSpCost` para /move/{id} com `power:null`, `meta.category.name=heal` (+18 SP; Recover PP5 custa36), multi-hit 2..5 com fator2.5 (Bullet Seed PP30/power25 custa18 em vez de11), inputs inválidos rejeitados. Gameplay dos 29 movimentos não muda.
