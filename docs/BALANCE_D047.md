@@ -1,6 +1,6 @@
 # D-047 — Double Kick por tipos e Recover nos limites críticos
 
-**Data:** 18/11/2026 · **Estado:** relatório de CI no branch `test/v02-d047-type-matchups-recover-tm-contract` / PR #67; **não declarar release sem CI final, merge e Railway SUCCESS no SHA**.
+**Data:** 18/11/2026 · **Estado: PUBLICADA** na PR #67, main `fca91202bc391bc2ebd4abe31183fbefed53a2a8`; CI final `44363512579 SUCCESS` (geral) e `44363512763 SUCCESS` (Docker); Railway deployment `2172dd7f-50e5-4fe0-bda2-0517b22e53f3 SUCCESS` com healthcheck interno /health. Sem GET público externo verificado diretamente.
 
 Este documento complementa `docs/BALANCE_D046.md`. É **teste determinístico de laboratório**, nunca telemetria de jogadores. A D-047 não modifica `simulateKantoBattle`, custo de SP, RNG, IA, learnset, recompensas, `localStorage`, interface ou GIFs.
 
