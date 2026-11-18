@@ -1,3 +1,7 @@
+## [D-049B — pipeline de auditoria do CSV TM09] — 2026-11-18 (BRANCH, NÃO PUBLICADA)
+- Workflow read-only `.github/workflows/d049b-tm09-snapshot-audit.yml`: GitHub runner baixa apenas snapshot fixo PokeAPI, executa extrator D049A com SHA Git exigido e testes Node; confere formato, grupo7/método4/move331 e anexa JSON para revisão humana, sem push automático, sem adicionar lista ao runtime e sem distribuir TM.
+- Nenhuma mudança de jogabilidade, save, inventário, IA, sprites ou Docker. Exigir sucesso real da execução e inspeção do artefato antes de criar uma allowlist versionada no catálogo; o hash SHA sozinho não decide compatibilidade por espécie/forma.
+
 ## [v0.2-alpha — D-049 preparação de compatibilidade TM09] — 2026-11-18 (BRANCH, NÃO PUBLICADA)
 - Adicionado extrator offline `scripts/extract-tm09-compatibility.mjs` que verifica hash Git do snapshot PokéAPI pinado antes de extrair a compatibilidade TM09 de `pokemon_moves.csv`, limitada a Kanto 1..151, grupo7, método4, golpe331. Produz JSON somente em caminho novo, não altera dados de jogo.
 - Adicionados testes Node sintéticos de hash, filtro estrito e falhas fechadas (CSV malformado, duplicado, vazio, checksum incompatível). CSV original grande ainda precisa ser obtido/verificado; **não há allowlist positiva real, item, consumo, teach ou novo golpe liberado**.
