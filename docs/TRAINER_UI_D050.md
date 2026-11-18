@@ -9,7 +9,7 @@
 - Testes de gravação única, limites e rollback de atributos.
 
 ## Dependência de arte binária
-**Arte original do usuário** disponível como anexo da conversa, ainda não comitada: `image(7).png` deve ser copiada **sem alterações** para `assets/trainer-original.png`. O JSX já aponta para essa rota, com fallback acessível temporário. O conector de escrita do GitHub utilizado aceita texto UTF-8, não transfere automaticamente os bytes PNG da conversa; não alegar que a imagem já foi integrada. Quando transferida, verificar hash/rota servida pelo Docker e navegador desktop/mobile, e remover fallback se apropriado.
+**Arte original do usuário** disponível como anexo da conversa, ainda não comitada: `image(7).png` deve ser copiada **sem alterações** para `apps/web/public/assets/trainer-original.png`. O JSX já aponta para essa rota, com fallback acessível temporário. O conector de escrita do GitHub utilizado aceita texto UTF-8, não transfere automaticamente os bytes PNG da conversa; não alegar que a imagem já foi integrada. A pasta `apps/web/public/assets/` é copiada pelo Vite para `apps/web/dist/assets/`, já servida pelo `server.mjs` e Docker sem novos endpoints. Quando transferida, verificar hash/rota servida pelo Docker e navegador desktop/mobile, e remover fallback se apropriado.
 
 ## Não mexer
 Nenhuma alteração às mecânicas de TMs, status, combate, save chave/schema, 151 GIFs, assets de `isaquesan7/pokedex`, v0.1 `/`. D049B PR73 separada (sua regressão geral teve falha em E2E; não misturar). Não fazer merge nem deploy sem CI e arte original funcional.
