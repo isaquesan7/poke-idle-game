@@ -249,11 +249,16 @@ async function exercise(browser, label, viewport) {
   assert.ok(gained>0);
   const focusLine='T2 · '+recorded.playerName+
     ' usou Concentrar e recuperou '+gained+' SP (sem atacar).';
-  recorded.log=[recorded.log[0],recorded.log[skillIndex],focusLine];
-  recorded.frames=[recorded.frames[0],spent,{
+  recorded.log=[recorded.log[0],recorded.log[skillIndex],focusLine,
+    'T3 · A apresentação segue após a recuperação de SP.'];
+  const focusFrame={
     ...spent,kind:'focus',target:'player',amount:0,actor:'player',
     moveName:'concentrate',moveType:'typeless',spCost:0,
     spRecovery:gained,playerSp:spent.playerSp+gained
+  };
+  recorded.frames=[recorded.frames[0],spent,focusFrame,{
+    ...focusFrame,kind:'info',target:null,amount:0,
+    actor:undefined,moveName:undefined,spCost:undefined,spRecovery:undefined
   }];
   focusFixture.journal.raw=JSON.stringify(focusGame);
   const focusContext=await browser.newContext({viewport,reducedMotion:'reduce'});
@@ -266,6 +271,9 @@ async function exercise(browser, label, viewport) {
   await focusPage.reload();
   await focusPage.getByRole('button',{name:'Arena',exact:true}).click();
   await focusPage.getByRole('button',{name:'Reassistir à batalha'}).click();
+  // Modo acessível desacelera para 3s/linha, deixando o frame Concentrar
+  // observável antes do próximo; não modifica o estado salvo.
+  await focusPage.getByRole('button',{name:'Ativar leitura assistiva'}).click();
   await focusPage.getByTestId('battle-focus-player').waitFor();
   assert.match(await focusPage.getByTestId('battle-focus-player').textContent(),/CONCENTRAR/);
   assert.equal(await focusPage.getByTestId('battle-focus-text-player').textContent()
