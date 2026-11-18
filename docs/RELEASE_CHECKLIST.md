@@ -45,3 +45,9 @@
 - [ ] Documentar que o alfa pode reiniciar dados de teste; reset somente da chave `kanto-idle-play-v02` e com confirmação.
 - [ ] Não descrever armazenamento local como backend ou proteção antifraude.
 - [ ] Reavaliar compatibilidade e persistência antes de abrir cadastro a jogadores reais.
+
+## Gate de dependências e equilíbrio antes da beta (D-040)
+- [ ] Inspecionar artifact `prebeta-npm-audit`, registrar CVEs/advisories de produção e desenvolvimento por severidade, impacto real e caminho de dependência.
+- [ ] Planejar correções sem `npm audit fix --force`, revalidando lockfile e E2E desktop/mobile.
+- [ ] Revisar distribuições por cenário/nível em `D040_BALANCE_REPORT`, principalmente lutas no limite de 30 turnos e dependência de ataque básico/Concentrar.
+- [ ] Validar leitores NVDA/VoiceOver, teclado e reduced-motion manualmente com usuário; E2E automatizado não prova compreensão pela tecnologia assistiva.
