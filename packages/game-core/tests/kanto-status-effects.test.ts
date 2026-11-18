@@ -19,7 +19,9 @@ function duel(move:KantoMove,targetTypes:readonly string[]=['normal'],seed=23) {
 }
 function saw(move:KantoMove,message:RegExp,types:readonly string[]=['normal']) {
   for(let seed=0;seed<200;seed++) {
-    const result=duel(move,types,seed);
+    // Seeds espaçadas evitam a correlação dos primeiros rolls de seeds
+    // LCG sequenciais na nova cadência limitada por SP.
+    const result=duel(move,types,Math.imul(seed+1,2654435761)>>>0);
     if(result.log.some(line=>message.test(line)))return result;
   }
   return null;

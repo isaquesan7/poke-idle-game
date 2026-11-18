@@ -61,10 +61,11 @@ describe('timeline visual determinística alinhada ao diário',()=>{
     const poisoner:Combatant={...p,types:['poison'],move:KANTO_BATTLE_MOVES['poison-sting']!};
     let drained=false,residual=false;
     for(let seed=0;seed<200;seed++){
-      const withDrain=simulateKantoBattle(absorber,w,seed);
+      const variedSeed=Math.imul(seed+1,2654435761)>>>0;
+      const withDrain=simulateKantoBattle(absorber,w,variedSeed);
       verifyFrames(withDrain);
       drained||=withDrain.frames.some(f=>f.kind==='heal'&&f.amount>0);
-      const poisoned=simulateKantoBattle(poisoner,w,seed);
+      const poisoned=simulateKantoBattle(poisoner,w,variedSeed);
       verifyFrames(poisoned);
       residual||=poisoned.frames.some(f=>f.kind==='residual'&&f.amount>0);
       if(drained&&residual)break;

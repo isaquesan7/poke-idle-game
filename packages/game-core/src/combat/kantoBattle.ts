@@ -349,7 +349,9 @@ export function simulateKantoBattle(
         ?actor.stats.attack/Math.max(1,target.stats.defense)
         :actor.stats.specialAttack/Math.max(1,target.stats.specialDefense));
     const best=attacks.reduce((selected,move)=>score(move)>score(selected)?move:selected,attacks[0]!);
-    return score(best)>score(KANTO_BASIC_ATTACK)?best:KANTO_BASIC_ATTACK;
+    // Não desconsiderar movimentos de poder baixo: drain e status secundário
+    // fazem parte da identidade da skill. Com SP e tipo eficaz, utilizá-la.
+    return score(best)>0?best:KANTO_BASIC_ATTACK;
   };
   while(turns<30&&playerHp>0&&wildHp>0){
     turns++;

@@ -92,7 +92,7 @@ describe('D-037: reserva SP própria, diferenciada do PP da PokéAPI',()=>{
   it('erro cobra SP antes de validar precisão; paralisia impede ação sem cobrança',()=>{
     // Poder alto + precisão baixa ainda faz a IA tentar o golpe;
     // um erro deve consumir SP de forma observável.
-    const miss={...KANTO_BATTLE_MOVES.tackle!,power:200,accuracy:30};
+    const miss={...KANTO_BATTLE_MOVES.tackle!,power:200,accuracy:20};
     const a=fighter('A',miss,20,{stats:{...durable,speed:100}});
     const b=fighter('B',KANTO_BATTLE_MOVES.tackle!,20);
     let chargedMiss=false;
