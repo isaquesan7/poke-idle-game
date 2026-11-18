@@ -19,7 +19,8 @@ export const KANTO_CONCENTRATE:KantoMove=Object.freeze({
 });
 
 export const KANTO_SP_BALANCE=Object.freeze({
-  minSp:40,maxSp:100,baseSp:30,
+  // D-039: piso 50 garante um uso da skill mais cara (40 SP) no nível 1.
+  minSp:50,maxSp:100,baseSp:36,
   levelDivisor:3,specialDivisor:14,hpDivisor:20,
   skillIntervalTurns:2,basicPower:30,
   minMoveSpCost:8,maxMoveSpCost:40,
@@ -33,14 +34,15 @@ const clamp=(min:number,max:number,value:number)=>Math.max(min,Math.min(max,valu
  * Retorna null para golpe não catalogado, sem sugerir PP inventado.
  */
 export function kantoMovePp(name:string):number|null{
-  return KANTO_MOVE_PP[name]??null;
+  const value=Object.hasOwn(KANTO_MOVE_PP,name)?KANTO_MOVE_PP[name]:undefined;
+  return typeof value==='number'?value:null;
 }
 
 /**
  * Capacidade por espécie + nível, usando stats BASE da PokéAPI (não soma
  * treino, item ou bônus de treinador, e não usa HP atual de combate).
- * 30 + floor(nível/3) + floor((Sp.Atk+Sp.Def)/14) + floor(HP_base/20),
- * com piso 40 e teto 100. Recalcula somente no começo do encontro.
+ * 36 + floor(nível/3) + floor((Sp.Atk+Sp.Def)/14) + floor(HP_base/20),
+ * com piso 50 e teto 100 (D-039). Recalcula somente no começo do encontro.
  */
 export function kantoMaxSp(level:number,speciesId:number):number{
   if(!Number.isSafeInteger(level)||level<1||level>100
@@ -82,7 +84,7 @@ export function kantoMoveSpCost(move:KantoMove):number{
       throw new RangeError('Ataque básico adulterado.');
     return 0;
   }
-  const pp=KANTO_MOVE_PP[move.name]??20;
+  const pp=kantoMovePp(move.name)??20;
   const scarcity=.45*(45-pp);
   if(move.category==='status'){
     const weights:Readonly<Record<string,number>>={
@@ -99,4 +101,78 @@ export function kantoMoveSpCost(move:KantoMove):number{
   const priority=move.priority>0?3:0;
   return clamp(KANTO_SP_BALANCE.minMoveSpCost,KANTO_SP_BALANCE.maxMoveSpCost,
     Math.round(scarcity+.18*move.power+secondary+priority));
+}
+
+/**
+ * D-039: prévia de custo para metadados /move/{id} da PokéAPI (NÃO equipa,
+ * não habilita golpes nem executa movimentos novos). A ausência de power
+ * em suportes/cura da API é null; NÃO converter em NaN nem dano fictício.
+ * Este tipo é um recorte explícito de /move e NÃO é o KantoMove canônico.
+ */
+export interface KantoApiMoveSpPreview {
+  readonly name:string;
+  readonly pp:number|null;
+  readonly power:number|null;
+  readonly priority:number;
+  readonly damage_class:Readonly<{name:string}>;
+  readonly meta?:Readonly<{
+    readonly category?:Readonly<{name:string}>|null;
+    readonly min_hits?:number|null;
+    readonly max_hits?:number|null;
+    readonly healing?:number|null;
+  }>|null;
+}
+
+/**
+ * Os golpes em gameplay ainda usam kantoMoveSpCost e seu catálogo fixo.
+ * 2–5 hits têm expectativa de 2.5 no recorte simplificado (aproximação
+ * conservadora, não simulação da distribuição real); hits fixos são exatos.
+ * Recover, Soft-Boiled etc. recebem +18 pelo efeito de cura de HP
+ * (meta.category.name='heal'), além da escassez de PP.
+ * Não fornece sistema de cura real e não aceita payload malformado.
+ */
+export function kantoPreviewMoveSpCost(move:KantoApiMoveSpPreview):number{
+  if(!move||typeof move.name!=='string'||!move.name.trim()
+    ||!Number.isSafeInteger(move.pp)||move.pp===null||move.pp<1||move.pp>64
+    ||!Number.isSafeInteger(move.priority)||move.priority< -7||move.priority>7
+    ||(move.power!==null&&(!Number.isSafeInteger(move.power)
+      ||move.power<0||move.power>250))
+    ||!move.damage_class||!['status','special','physical'].includes(move.damage_class.name))
+    throw new RangeError('Metadados de golpe inválidos.');
+  const meta=move.meta;
+  const category=meta?.category?.name??'';
+  const healing=meta?.healing;
+  if(healing!==null&&healing!==undefined
+    &&(!Number.isSafeInteger(healing)||healing<0||healing>100))
+    throw new RangeError('Porcentagem de cura inválida.');
+  const hasMin=meta?.min_hits!==null&&meta?.min_hits!==undefined;
+  const hasMax=meta?.max_hits!==null&&meta?.max_hits!==undefined;
+  if(hasMin!==hasMax)throw new RangeError('Faixa de acertos incompleta.');
+  if(hasMin&&(!Number.isSafeInteger(meta!.min_hits)
+    ||!Number.isSafeInteger(meta!.max_hits)
+    ||meta!.min_hits!<1||meta!.max_hits!>10
+    ||meta!.min_hits!>meta!.max_hits!))
+    throw new RangeError('Faixa de acertos inválida.');
+  const scarcity=.45*(45-move.pp);
+  const priority=move.priority>0?3:0;
+  const power=move.power??0;
+  if(move.damage_class.name==='status'){
+    if(power!==0||hasMin)throw new RangeError('Suporte com dano impossível.');
+    if(category==='heal'){
+      // 50% de cura: 18 de escassez + 18 do poder de cura = 36 SP.
+      // Cura maior de 50% tem custo adicional, sempre teto 40 SP.
+      const healingBonus=18+Math.max(0,Math.ceil(((healing??50)-50)/5));
+      return clamp(10,KANTO_SP_BALANCE.maxMoveSpCost,
+        Math.round(scarcity+healingBonus+priority));
+    }
+    // Prévia genérica para buff/debuff/ailment: ainda NÃO equipável.
+    return clamp(10,36,Math.round(scarcity+12+priority));
+  }
+  if(power<=0)throw new RangeError('Golpe de dano sem poder.');
+  const hits=!hasMin?1
+    :meta!.min_hits===2&&meta!.max_hits===5?2.5
+      :(meta!.min_hits!+meta!.max_hits!)/2;
+  const effect=category&&category!=='damage'?4:0;
+  return clamp(KANTO_SP_BALANCE.minMoveSpCost,KANTO_SP_BALANCE.maxMoveSpCost,
+    Math.round(scarcity+.18*power*hits+effect+priority));
 }
