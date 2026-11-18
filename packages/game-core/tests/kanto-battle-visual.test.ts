@@ -13,6 +13,7 @@ function verifyFrames(result:KantoBattleResult) {
   expect(result.frames).toHaveLength(result.log.length);
   expect(result.frames[0]).toEqual({
     playerHp:result.playerMaxHp,wildHp:result.wildMaxHp,
+    playerSp:result.playerMaxSp,wildSp:result.wildMaxSp,
     kind:'intro',target:null,amount:0
   });
   expect(result.frames.at(-1)?.playerHp).toBe(result.playerRemainingHp);
@@ -60,10 +61,11 @@ describe('timeline visual determinística alinhada ao diário',()=>{
     const poisoner:Combatant={...p,types:['poison'],move:KANTO_BATTLE_MOVES['poison-sting']!};
     let drained=false,residual=false;
     for(let seed=0;seed<200;seed++){
-      const withDrain=simulateKantoBattle(absorber,w,seed);
+      const variedSeed=Math.imul(seed+1,2654435761)>>>0;
+      const withDrain=simulateKantoBattle(absorber,w,variedSeed);
       verifyFrames(withDrain);
       drained||=withDrain.frames.some(f=>f.kind==='heal'&&f.amount>0);
-      const poisoned=simulateKantoBattle(poisoner,w,seed);
+      const poisoned=simulateKantoBattle(poisoner,w,variedSeed);
       verifyFrames(poisoned);
       residual||=poisoned.frames.some(f=>f.kind==='residual'&&f.amount>0);
       if(drained&&residual)break;

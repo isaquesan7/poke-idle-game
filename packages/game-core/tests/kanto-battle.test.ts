@@ -66,7 +66,10 @@ describe('combate determinístico Kanto — fórmulas do protótipo',()=>{
 
   it('atinge empate por limite 30 se ambos erram; não concede captura',()=>{
     const miss:KantoMove={name:'falha',type:'normal',category:'physical',power:40,accuracy:0,priority:0};
-    const a=fighter({move:miss}),b=enemyWithGround({move:miss});
+    // Com SP esgotado há ataque básico gratuito; ambos precisam ser Ghost
+    // para manter a imunidade Normal e empatar sem dano em 30 turnos.
+    const a=fighter({move:miss,types:['ghost']}),
+      b=enemyWithGround({move:miss,types:['ghost']});
     const r=simulateKantoBattle(a,b,2026);
     expect(r.outcome).toBe('draw');
     expect(r.turns).toBe(30);

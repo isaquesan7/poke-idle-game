@@ -1,3 +1,9 @@
+## [v0.2-alpha — SP compartilhado, ataque básico e feedback de golpes] — 2026-11-17 (branch; PR/CI pendentes)
+- Reserva de SP individual por Pokémon em cada combate: 40+floor(nível/4), 40–65 pontos; habilidades equipadas consumem 14–30 SP por poder/efeito/prioridade, suportes Growl/Tail Whip=16, Poison Powder=22, Thunder Wave=24. Ataque básico gratuito (Normal físico, poder30) não ocupa slot nem ganha rank. IA intercala básico/skills, alterna turnos e usa só básico quando falta SP; reset apenas por encontro.
+- Novas trilhas SP/HP sincronizadas na Arena com duas barras numéricas, custos por movimento no treino, crítico/efetividade por tipo em overlay, reduced motion. SP debitado mesmo em erro/imunidade, não em paralisia que impede agir. PP oficial da PokéAPI é por movimento; SP é regra própria do Idle.
+- Dados antigos sem SP permanecem legíveis com HP e diário, mesmo esquema/key v0.2 e nenhuma transação/recompensa extra ao reassistir. Testes core e E2E desktop/mobile para fórmula/limite/pausa/skip/replay/legado.
+- **Aguardando CI/PR/merge/Railway**; após validação e deploy registrar IDs exatos. Próxima etapa: balanceamento por espécies/tipos e auditoria de acessibilidade da Arena.
+
 ## [v0.2-alpha — HP e impactos sincronizados] — 2026-11-17 (PUBLICADO PR #46)
 - Trilha visual persistida com uma entrada por linha no diário: HP dos dois combatentes, tipo do evento, dano/cura, identidade histórica do parceiro e HP máximo. Não muda regras de dano, RNG, captura, XP ou recompensas.
 - Palco responsivo mostra HP numérico, animações de impacto, cura e status vinculadas ao progresso do diário (pausa, 2x, pular, replay). Sem novos recibos nem escrita visual. Saves anteriores sem trilha mostram o log completo sem HP inventado.
