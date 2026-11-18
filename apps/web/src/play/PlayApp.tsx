@@ -588,7 +588,8 @@ export function PlayApp() {
                     Cada habilidade gasta SP, e o ataque básico é gratuito.</p>
                   <p>SP de combate por encontro: <strong>{focused?kantoMaxSp(focused.level,focused.pokemonId):0}</strong> ·
                     ataque básico gratuito (Poder {KANTO_BASIC_ATTACK.power}).
-                    cada espécie possui energia própria conforme nível e atributos-base.
+                    cada espécie possui energia própria conforme nível e atributos-base
+                    (mínimo de 50, máximo de 100 SP).
                     Se faltar SP, a IA pode usar Concentrar (30% do máximo,
                     no máximo {KANTO_SP_BALANCE.maxFocusUses} vezes por batalha, com
                     intervalo de {KANTO_SP_BALANCE.focusCooldownTurns} turnos).
@@ -817,9 +818,11 @@ export function PlayApp() {
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
                     <h2>Arena de batalha</h2>
                     <p>Seu Pokémon enfrenta automaticamente um encontro de Kanto em até 30 turnos. O motor calcula precisão, dano, críticos, tipos e condições temporárias (queimadura, envenenamento e paralisia). Vitória concede XP, moedas, afinidade e chance de captura de 35%.</p>
-                    <p>SP individual (40–100) é calculado por nível e stats-base
+                    <p>SP individual (50–100) é calculado por nível e stats-base
                       de HP, Sp. Atk e Sp. Def; o custo de habilidades combina
                       PP oficial da PokéAPI, poder, prioridade e efeitos.
+                      O custo máximo é 40 SP, garantindo ao menos uma habilidade
+                      cara com a barra cheia em qualquer nível.
                       O ataque básico é gratuito, neutro contra todos os tipos (Poder 30).
                       Quando faltar SP para habilidades, a IA pode usar
                       Concentrar, abrindo mão de atacar para recuperar 30%,
