@@ -208,3 +208,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Pendências/alertas:
 - Próxima ação:
 ```
+
+
+## 2026-11-18 — D-049 (branch; não publicada)
+- Adicionado extrator offline verificável de elegibilidade TM09 usando Git blob SHA-1 de snapshot fixado, filtro FRLG/método machine por espécie e JSON somente para revisão; testes Node de validação/fail-closed.
+- Nenhuma TM liberada, nenhuma mudança em combate, saves, rewards, UI ou deploy; ver `docs/TM_COMPATIBILITY_D049.md`.
