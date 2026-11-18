@@ -235,7 +235,7 @@ function GearCard({slot,selected}:{slot:EquipmentSlot;selected:string|undefined}
   const item=LEGACY_ITEMS.find(x=>x.slot===slot&&x.id===selected);
   const description=item?item.name+' · '+bonusLabel(item.stats):SLOT_NAMES[slot]+' · Vazio';
   return <button type="button" className={styles.gear} title={description}
-    aria-label={description} aria-haspopup="true">
+    aria-label={description}>
     <span className={styles.gearIcon} aria-hidden="true">{SLOT_ICONS[slot]}</span>
     <span className={styles.gearName}>{item?.name??SLOT_NAMES[slot]}</span>
     <span className={styles.tooltip} aria-hidden="true">{item?bonusLabel(item.stats):'Sem equipamento'}</span>
