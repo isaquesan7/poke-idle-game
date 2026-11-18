@@ -40,11 +40,11 @@ describe('D-048 — fontes FRLG explícitas e barreira de TMs ainda não liberad
     expect(Object.isFrozen(KANTO_TM09_PREVIEW.hitWeights[0])).toBe(true);
   });
 
-  it('distribuição GenIII usa pesos 3:3:1:1 e exatamente 2,75 de esperança',()=>{
+  it('distribuição GenIII usa pesos 3:3:1:1 e exatamente 3,0 de esperança',()=>{
     const expected=[2,3,4,5];
     expect(KANTO_TM09_PREVIEW.hitWeights.map(x=>x.hits)).toEqual(expected);
     expect(KANTO_TM09_PREVIEW.hitWeights.map(x=>x.weight)).toEqual([3,3,1,1]);
-    expect(kantoTmPreviewMeanHits('tm09')).toBe(2.75);
+    expect(kantoTmPreviewMeanHits('tm09')).toBe(3.0);
     expect(kantoTmPreviewHitCount('tm09',0)).toBe(2);
     expect(kantoTmPreviewHitCount('tm09',3/8-Number.EPSILON)).toBe(2);
     expect(kantoTmPreviewHitCount('tm09',3/8)).toBe(3);
