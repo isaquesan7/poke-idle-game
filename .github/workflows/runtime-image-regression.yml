@@ -1,0 +1,81 @@
+name: D-044 — imagem de produção sem ferramentas de desenvolvimento
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'server.mjs'
+      - 'apps/**'
+      - 'packages/**'
+      - 'index.html'
+      - 'styles/**'
+      - 'scripts/pokemon-sprites.js'
+      - 'assets/pokemon-gifs/**'
+      - 'tests/e2e/runtime-image-smoke.mjs'
+      - '.github/workflows/runtime-image-regression.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'server.mjs'
+      - 'apps/**'
+      - 'packages/**'
+      - 'index.html'
+      - 'styles/**'
+      - 'scripts/pokemon-sprites.js'
+      - 'assets/pokemon-gifs/**'
+      - 'tests/e2e/runtime-image-smoke.mjs'
+      - '.github/workflows/runtime-image-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-isolated:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validar sintaxe de verificação HTTP
+        run: node --check tests/e2e/runtime-image-smoke.mjs
+      - name: Construir imagem de produção em dois estágios
+        run: docker build --tag kanto-d044-runtime --file Dockerfile .
+      - name: Confirmar usuário e ausência de código de desenvolvimento
+        shell: bash
+        run: |
+          set -eu
+          test "$(docker image inspect --format '{{.Config.User}}' kanto-d044-runtime)" = "node"
+          docker run --rm --entrypoint sh kanto-d044-runtime -c '
+            set -eu
+            test ! -e /app/node_modules
+            test ! -e /app/package-lock.json
+            test ! -e /app/apps/web/src
+            test ! -e /app/packages
+            test ! -e /app/docs
+            test ! -e /app/.git
+            test -s /app/apps/web/dist/index.html
+            test -s /app/assets/pokemon-gifs/poke_1.gif
+            test -s /app/assets/pokemon-gifs/poke_151.gif
+            test "$(id -un)" = node
+          '
+      - name: Inicializar com o mesmo npm start configurado no Railway
+        run: docker run --detach --rm --name kanto-d044-smoke -p 127.0.0.1:18080:8080 -e PORT=8080 kanto-d044-runtime npm start
+      - name: Testar rotas legadas/React, GIFs e isolamento HTTP
+        run: D044_SMOKE_BASE_URL=http://127.0.0.1:18080 node tests/e2e/runtime-image-smoke.mjs
+      - name: Ver logs e encerrar servidor isolado
+        if: always()
+        shell: bash
+        run: |
+          docker logs kanto-d044-smoke 2>&1 || true
+          docker stop kanto-d044-smoke 2>/dev/null || true
