@@ -73,8 +73,13 @@ export {
   KANTO_STATUS_SOURCE_COMMIT, KANTO_SECONDARY_EFFECTS, kantoMoveSecondaryEffect
 } from './combat/kantoStatusEffects.js';
 export type { KantoBattleStatus, KantoSecondaryEffect } from './combat/kantoStatusEffects.js';
-export {KANTO_BASIC_ATTACK,KANTO_SP_BALANCE,kantoMaxSp,kantoMoveSpCost}
-  from './combat/kantoSkillEnergy.js';
+export {
+  KANTO_BASIC_ATTACK,KANTO_CONCENTRATE,KANTO_SP_BALANCE,
+  kantoMaxSp,kantoMovePp,kantoMoveSpCost,kantoFocusRecovery
+} from './combat/kantoSkillEnergy.js';
+export {
+  KANTO_PP_SOURCE_COMMIT,KANTO_PP_SOURCE_BLOB,KANTO_MOVE_PP
+} from './catalog/kantoMovePp.js';
 export {
   KANTO_EVOLUTION_SOURCE_COMMIT, KANTO_EVOLUTION_STONES,
   KANTO_EVOLUTION_RULES, kantoEvolutionOptions

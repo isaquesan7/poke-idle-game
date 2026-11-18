@@ -67,7 +67,7 @@ function SkillMeter({side,sp,max}:{
         <span className={styles.battleSpFill} style={{width:percent+'%'}} />
       </div>
       {safeSp===0&&<small className={styles.battleSpEmpty}>
-        Sem SP · somente ataque básico
+        Sem SP · ataque básico ou Concentrar
       </small>}
     </div>
   );
@@ -83,12 +83,15 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
   const targeted=playing&&frame?.target===side;
   const hit=targeted&&(frame.kind==='attack'||frame.kind==='residual')&&frame.amount>0;
   const heal=targeted&&frame.kind==='heal'&&frame.amount>0;
+  const focus=targeted&&frame.kind==='focus'&&Number.isSafeInteger(frame.spRecovery)
+    &&(frame.spRecovery??0)>0;
   const status=targeted&&frame.kind==='status';
   const critical=hit&&frame.critical===true;
   const typeTone=hit?(TYPE_COLORS[frame.moveType??'']??styles.battleTypeDefault):'';
   const animateClass=hit
     ?critical?styles.battleSpriteCritical:styles.battleSpriteHit
-    :heal?styles.battleSpriteHeal:status?styles.battleSpriteStatus:styles.battleSpriteIdle;
+    :focus?styles.battleSpriteFocus
+      :heal?styles.battleSpriteHeal:status?styles.battleSpriteStatus:styles.battleSpriteIdle;
   const effective=hit?(frame.effectiveness??1):1;
   const typeLabel=critical?'CRÍTICO!'
     :effective>=2?'SUPER EFETIVO!'
@@ -102,6 +105,10 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
         {(hit||heal)&&<span className={heal?styles.battleFloatHeal:styles.battleFloatDamage}
           data-testid={'battle-impact-'+side} aria-hidden="true">
           {heal?'+':'−'}{frame.amount} HP
+        </span>}
+        {focus&&<span className={styles.battleFloatFocus}
+          data-testid={'battle-focus-'+side} aria-hidden="true">
+          +{frame.spRecovery} SP
         </span>}
         {hit&&typeLabel&&<span data-testid="battle-effectiveness"
           className={styles.battleImpactLabel+' '+typeTone} aria-hidden="true">

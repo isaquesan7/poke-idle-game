@@ -460,3 +460,22 @@
   .battleImpactLabel,.battleSpriteCritical{animation:none;}
   .battleImpactLabel{opacity:1;}
 }
+
+
+/* D-038: Concentrar consome a ação, recupera SP e pulsa em ciano sem flash. */
+.battleSpriteFocus{
+  display:grid;place-items:center;
+  animation:battleSpriteHeal var(--duration-battle-impact) ease-out both;
+}
+.battleFloatFocus{
+  position:absolute;z-index:1;top:var(--space-2);right:var(--space-2);
+  font-size:1rem;font-weight:900;font-variant-numeric:tabular-nums;
+  color:var(--color-primary);text-shadow:var(--shadow-pokemon-art);
+  animation:battleDamageFloat var(--duration-battle-float) ease-out both;
+  pointer-events:none;
+}
+@media(max-width:690px){.battleFloatFocus{font-size:.82rem;right:0;}}
+@media(prefers-reduced-motion:reduce){
+  .battleSpriteFocus,.battleFloatFocus{animation:none;}
+  .battleFloatFocus{opacity:1;}
+}
