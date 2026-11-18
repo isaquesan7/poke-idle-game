@@ -1,5 +1,6 @@
 ## [D-049B — pipeline de auditoria do CSV TM09] — 2026-11-18 (BRANCH, NÃO PUBLICADA)
 - Workflow read-only `.github/workflows/d049b-tm09-snapshot-audit.yml`: GitHub runner baixa apenas snapshot fixo PokeAPI, executa extrator D049A com SHA Git exigido e testes Node; confere formato, grupo7/método4/move331 e anexa JSON para revisão humana, sem push automático, sem adicionar lista ao runtime e sem distribuir TM.
+- **Auditoria real confirmada no workflow D049B `44390972440 completed/success`:** snapshot Git blob esperado `f66f614adf535af6940c65f434efe5ddeec4687a`, 665.810 registros lidos, 15 matches por máquina grupo7/método4/move331, IDs `[1,2,3,43,44,45,46,47,69,70,71,102,103,114,151]`; JSON anexado como artifact. Cabeçalho real contém sete colunas incluindo `enhancement_level`, corrigidos extrator e testes. Esses dados são de elegibilidade de versão, **NÃO** desbloqueiam TM e não vão ainda ao runtime.
 - Nenhuma mudança de jogabilidade, save, inventário, IA, sprites ou Docker. Exigir sucesso real da execução e inspeção do artefato antes de criar uma allowlist versionada no catálogo; o hash SHA sozinho não decide compatibilidade por espécie/forma.
 
 ## [v0.2-alpha — D-049 preparação de compatibilidade TM09] — 2026-11-18 (BRANCH, NÃO PUBLICADA)
