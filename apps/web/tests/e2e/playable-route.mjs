@@ -65,7 +65,20 @@ async function exercise(browser, label, viewport) {
   assert.equal(snapshot.revision,0);
   assert.equal(JSON.parse(snapshot.journal.raw).roster[0].pokemonId,4);
   await page.getByRole('button',{name:'Treinador',exact:true}).click();
+  // D-051: avatar original presente; slot responde a foco e exibe bônus sob demanda.
+  const avatar=page.getByRole('img',{name:'Personagem original do treinador Kanto'});
+  await avatar.waitFor();
+  await page.waitForFunction(()=>{
+    const portrait=document.querySelector('img[alt="Personagem original do treinador Kanto"]');
+    return portrait?.complete&&portrait.naturalWidth>0;
+  });
+  const hat=page.getByRole('button',{name:'Chapéu · Vazio'});
+  await hat.focus();
+  await page.getByText('Sem equipamento',{exact:true}).waitFor();
   // D-050: clicar em +1 altera apenas a prévia; nenhum ponto é salvo sem confirmar.
+  await page.getByRole('button',{name:'Pré-visualizar +1 em ATK'}).click();
+  await page.getByRole('button',{name:'Retirar um ponto da prévia de ATK'}).click();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
   await page.getByRole('button',{name:'Pré-visualizar +1 em ATK'}).click();
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
   await page.getByRole('button',{name:'Cancelar'}).click();
