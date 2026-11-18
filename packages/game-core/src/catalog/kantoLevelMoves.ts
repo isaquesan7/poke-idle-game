@@ -7,7 +7,8 @@
  * Alfa simplificada: somente movimentos de dano direto effect_id=1 e os 11
  * golpes já existentes na Arena, mais Double Kick D-045. Efeitos secundários (paralisia,
  * drenagem, etc.) ainda não são simulados. Status, multi-hit, recoil, TM,
- * tutor, egg moves e movimentos sem poder direto NÃO estão incluídos,\n * EXCETO Double Kick D-045 (2 impactos fixos e catálogo pequeno verificado).
+ * tutor, egg moves e movimentos sem poder direto NÃO estão incluídos,
+ * EXCETO Double Kick D-045 (2 impactos fixos e catálogo pequeno verificado).
  *
  * Poison Sting de Weedle a partir do nível 1 foi conferido também em
  * https://pokemondb.net/pokedex/weedle/moves/3 (FireRed/LeafGreen).
