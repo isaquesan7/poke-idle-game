@@ -86,6 +86,6 @@
 - [x] Escolher preservação do catálogo moderno já jogável e histórico GenIII somente em NOVAS TMs, sem alterar golpes atuais/Concentrar/HP/SP/replay.
 - [x] Corrigir aritmética GenIII (3/8,3/8,1/8,1/8 gera MÉDIA3,0, não 2,75) e testar distribuição 8.000 rolls exatos e roll inválido.
 - [x] Catálogo TM09 read-only e gate `not-released` + zero máquinas liberadas; writer add/replace não ensina Bullet Seed, mesmo nível100; nenhuma alteração de save, itens ou economia.
-- [ ] Testar CI HEAD final TS/Vitest/Node/151 GIFs/Chromium desktop/mobile e Docker, PR merge, Railway deployment SUCCESS SHA exato /health interno.
+- [x] CI HEAD final PR #69 geral `44375419460 SUCCESS` (TS/Vitest/Node/151 GIFs/Chromium desktop+mobile) e Docker `44375419484 SUCCESS`, merge main `0c05087f87b31eef33dacf6759901d46f271dd4f`, Railway Docker `197a7a69-1089-4749-92f9-2b8f51223136 SUCCESS` no SHA exato e /health interno aprovado. GET público externo /play ainda não verificado diretamente.
 - [ ] D049: ler CSV completo `pokemon_moves.csv` método4/group7 com checksum, inventário, concessão, writer atômico/idempotência e motor2–5 com SP versionado antes de habilitar. NVDA/VoiceOver/Edge físico pendente.
 
