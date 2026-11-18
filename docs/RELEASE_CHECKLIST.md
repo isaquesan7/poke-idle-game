@@ -60,3 +60,10 @@
 - [x] Nenhum save, writer, SP/PP, reward, RNG, animação full, catálogo/learnsets ou rota v0.1 alterado. Se seleção de Dockerfile falhar, manter release anterior; 503 /health protege /play.
 - [ ] Revisão de acessibilidade manual NVDA/VoiceOver continua **pendente** para beta; `docs/COMBAT_HEAL_MULTIHIT_DESIGN.md` é plano, NÃO conteúdo habilitado.
 
+## Gate D-045 — cura e dois hits fixos (2026-11-18)
+- [ ] Validar catálogo FRLG Staryu15/Starmie1 Recover, família Nidoran Double Kick (quatro formas Nv12/duas Nv1), PP5/30 do snapshot PokeAPI e custos SP36/18.
+- [ ] Vitest garante HP/SP não negativos, heal no máximo 1x com limiar, sem imunidade Ghost falsa, hits 2/2, 1 custo/ação, frame/log 1:1, KO intermediário e seed determinística. Saves antigos/writer/replay não sofrem reset.
+- [ ] E2E Chromium desktop/mobile adiciona os golpes por UI, combate, valida `hitIndex/hitTotal`, replays read-only sem duplicar recibos; 151 GIFs/Animações FULL e / v0.1 preservados.
+- [ ] CI geral Node/TypeScript/Vitest/build/Playwright, Docker mínima e audit se aplicável; integrar PR após verde; Railway Docker SUCCESS SHA exato, /health interno.
+- [ ] Bullet Seed e Soft-Boiled seguem bloqueados. Registrar métricas de balanceamento antes de expandir cura a outras espécies, multi-hit 2..5 ou TMs.
+

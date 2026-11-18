@@ -182,3 +182,11 @@ PR #38 integrada em main `8748d315`, CI `44120721898` SUCCESS, Railway deploy `d
 ## D-042 — movimento padrão e stress longo (18/11/2026, branch)
 - Animações visuais da Arena permanecem COMPLETAS em PC e celular sem escolha no menu, a pedido explícito: `data-motion="full"` independe de `prefers-reduced-motion` e de preferências cosméticas antigas. Acessibilidade de textos, leitor assistivo opt-in, status, HP/SP e teclado permanece. Uma alternativa de movimento reduzido não está disponível nesta configuração.
 - O stress D-042 de 384 simulações usa HP/Def/SpDef artificialmente ampliados APENAS em fixtures Vitest para medir 20–30 turnos. Não é fórmula nova de stats, não libera golpes nem muda SP/Concentrar, probabilidades, recompensas ou dificuldade real; relatórios de stress não representam taxa de vitória dos jogadores.
+
+## D-045 — primeiro par de cura/multi-hit executável (18/11/2026, PR #63)
+- Escopo restrito a **Recover** (Staryu Nv15, Starmie Nv1) e **Double Kick** (família Nidoran, por nível FRLG); não liberar Bullet Seed, Soft-Boiled, TM ou múltiplos golpes genéricos só porque têm prévia de SP.
+- Recover custa **36 SP** por tentativa, repõe até **50% do HP máximo** somente do usuário e nunca ultrapassa o máximo. IA apenas com HP<=50%, SP suficiente, até turno26 e no máximo uma vez por combate, para limitar stalling. Normalizar `power:null→0`; recuperação própria não verifica imunidade Normal/Ghost do inimigo. Paralisia que cancela turno não paga/cura.
+- Double Kick custa **18 SP por ação**, causa 2 hits fixos de **30 de poder** por impacto, um teste de precisão, variação/crítico por hit, parada após KO/interação imune; a trilha de replay guarda uma linha por impacto e `hitIndex/hitTotal` sem custo repetido. IA considera os dois golpes no score sem alterar cadência básico/skill/Concentrar D-038.
+- Ambos preservam PP da PokéAPI **como dado distinto de SP**. Recover PP5 é valor do snapshot atual usado no jogo, diferente do PP20 dos jogos GenIII. SP não é regra oficial. Ao entrar na coleção por UID, um golpe só é adicionável após aprendizado legítimo do nível/espécie do recorte FRLG.
+- Replays e combates anteriores permanecem read-only, mesmo se nova IA alterou resultados de partidas futuras nesta alfa sem jogadores reais. As animações sempre ativas (D-042) e o tempo de apresentação linha por linha continuam.
+

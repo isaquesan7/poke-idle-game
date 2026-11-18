@@ -160,9 +160,12 @@ describe('D-038: custos híbridos PP/poder, SP por espécie e Concentrar',()=>{
     expect(()=>kantoMoveSpCost({...KANTO_BATTLE_MOVES.tackle!,name:'__proto__'}))
       .not.toThrow();
     expect(kantoMovePp('__proto__')).toBeNull();
-    // Prévia não desbloqueia Recover nem altera golpes equipáveis.
+    // D-045: Recover passou a ser executável apenas no recorte FRLG
+    // de Staryu/Starmie. A prévia segue válida, Bullet Seed não é jogável.
     expect(KANTO_BATTLE_MOVES.recover).toBeUndefined();
-    expect(KANTO_SUPPORT_MOVES.recover).toBeUndefined();
+    expect(KANTO_SUPPORT_MOVES.recover).toBeDefined();
+    expect(kantoMoveSpCost(KANTO_SUPPORT_MOVES.recover!)).toBe(36);
+    expect(KANTO_BATTLE_MOVES['bullet-seed']).toBeUndefined();
   });
   it('SP mínimo 50 cobre custo máximo em 151 espécies e níveis baixos',()=>{
     const mostExpensive=Math.max(...Object.values({

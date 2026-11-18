@@ -1,10 +1,18 @@
 # Cura e golpes de múltiplos acertos — desenho técnico pré-implementação (D-044)
 
-**Estado em 18/11/2026: PLANEJADO.** Este documento **não habilita** Recover,
-Soft-Boiled, Bullet Seed, Double Kick ou novos golpes no /play. A mecânica
-jogável permanece a lista validada de 29 golpes com Concentrar e 4 slots por UID.
-Nenhuma alteração na função `simulateKantoBattle`, nas probabilidades, nos
-learnsets ou no writer será introduzida por este documento.
+**Atualização D-045 (18/11/2026, PR #63 EM TESTES):** este documento nasceu
+como design não executável na D-044; a D-045 implementou um recorte real:
+**Recover** (Staryu nv15/Starmie nv1, curar 50% do HP máximo, 36 SP,
+autocura até 1x por batalha com HP<=50% e até turno26) e **Double Kick**
+(Nidoran♀/♂ e Nidorina/Nidorino nv12, Nidoqueen/Nidoking nv1, 2 hits
+FIXOS de poder30, uma cobrança de 18 SP, uma precisão, crítico/variação
+por impacto e frames/logs 1:1). Replays anteriores não são recalculados;
+nenhum dado salvo foi migrado ou apagado. **Soft-Boiled, Bullet Seed e
+outros multi-hit 2–5 continuam BLOQUEADOS** até regra de geração/learnset
+verificado e testes próprios. O catálogo novo usa PP do snapshot PokéAPI
+atual (Recover PP5); a cartucha FRLG tinha Recover PP20, e esse contraste
+é intencional — SP é regra original do idle. A seção abaixo preserva o
+projeto inicial e os critérios ainda aplicáveis aos próximos golpes.
 
 ## Fontes e limites
 
@@ -93,3 +101,26 @@ subconjunto verificado de golpes e fechar a IA de cura (teto/cooldown),
 a distribuição por geração e o protocolo de logs por hit; atualizar a
 fonte fixa de dados com revisão pública. Nenhuma mecânica fica
 disponível somente por existir uma prévia de custo.
+
+
+## Implementação incremental da D-045 — critérios validados antes do release
+- `KANTO_SUPPORT_MOVES.recover` tem `category:status`, poder 0
+  (normalizado de `power:null`) e efeito `kind:'heal',healing:50`,
+  escolhido para si mesmo **antes** da triagem de imunidade do alvo.
+  IA usa no máximo uma vez se HP <=50% e até turno26, SP>=36,
+  tentativa após checagem de paralisia (se bloqueou, não consome nada).
+- `KANTO_LEVELUP_DAMAGE_MOVES['double-kick']` e
+  `KANTO_MULTI_HIT_MOVES` registram dois golpes fixos. Um custo SP18
+  e uma precisão por ação; dois rolls críticos/variação e dois eventos
+  individuais com `hitIndex`/`hitTotal`, sem segundo débito.
+  Para após imunidade ou KO intermediário. Score da IA considera 2×30.
+- `kantoMoveSpCost` executável e `kantoPreviewMoveSpCost` de pesquisa
+  são deliberadamente separados; somente o catálogo e o writer podem
+  liberar movimentos equipáveis.
+- A distribuição de 2..5 impactos segue **fora do motor**. D-039
+  preserva a prévia heurística 2,5; a média FRLG é 2,75 pela
+  distribuição 3/8,3/8,1/8,1/8, para planejamento futuro.
+- Testes D-045: níveis de learnsets e evoluções, bloqueio de espécies
+  indevidas, custo, HP/SP, limite 30, imunidade Ghost, KO no primeiro
+  hit, recuperações sem loop, seed determinística, UI e replay sem
+  novo recibo em desktop/mobile. Não são métricas de jogadores.

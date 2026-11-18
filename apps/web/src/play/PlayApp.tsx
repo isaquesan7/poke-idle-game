@@ -599,7 +599,7 @@ export function PlayApp() {
                     {equippedNames.map((name,i)=><div key={name} className={styles.moveEquipped}>
                       <div><strong>{i+1}. {name}</strong>
                         <small>{i===0?'Principal':'Adicional'} ·
-                          {KANTO_SUPPORT_MOVES[name]?' Suporte':' Ataque'} ·
+                          {KANTO_SUPPORT_MOVES[name]?(name==='recover'?' Cura':' Suporte'):' Ataque'} ·
                           {KANTO_SUPPORT_MOVES[name]||KANTO_BATTLE_MOVES[name]
                             ?' '+kantoMoveSpCost((KANTO_SUPPORT_MOVES[name]??KANTO_BATTLE_MOVES[name])!)+' SP · PP '+(kantoMovePp(name)??'não catalogado')
                             :' Golpe provisório'}</small></div>
@@ -624,7 +624,7 @@ export function PlayApp() {
                       const rank=moveRanks[move.name]??0;
                       return <div key={move.name} className={equipped?styles.moveEquipped:styles.moveOption}>
                         <div><strong>{move.name}</strong><small>Nv. {learnedAt} · {move.type} ·
-                          Poder {move.power} · Precisão {move.accuracy}%</small>
+                          Poder {move.power}{move.name==='double-kick'?' × 2 impactos':''} · Precisão {move.accuracy}%</small>
                           <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'} ·
                             PP {kantoMovePp(move.name)??'não catalogado'} ·
                             Custo {kantoMoveSpCost(move)} SP na Arena</small>
@@ -651,7 +651,7 @@ export function PlayApp() {
                       </div>;
                     })}
                   </div>
-                  <h3>Golpes de suporte aprendidos</h3>
+                  <h3>Golpes de suporte e cura aprendidos</h3>
                   <div className={styles.moveList}>
                     {supportMoves.map(({move,learnedAt})=>{
                       const inSlots=equippedNames.includes(move.name);
@@ -662,7 +662,8 @@ export function PlayApp() {
                             Custo {kantoMoveSpCost(move)} SP</small>
                           <small>{move.name==='growl'?'Reduz Ataque':
                             move.name==='tail-whip'?'Reduz Defesa':
-                              move.name==='thunder-wave'?'Paralisa':'Envenena'}</small></div>
+                              move.name==='thunder-wave'?'Paralisa':
+                            move.name==='recover'?'Recupera até 50% do HP, no máximo 1 vez por batalha':'Envenena'}</small></div>
                         <div className={styles.moveActions}>
                           {inSlots?<small>Equipado</small>:
                             <button type="button" className={styles.secondary}
@@ -829,6 +830,13 @@ export function PlayApp() {
                       Concentrar, abrindo mão de atacar para recuperar 30%,
                       até duas vezes por combate com quatro turnos de intervalo.
                       Não há regeneração passiva.</p>
+                    <p>Golpes avançados deste recorte: <strong>Recover</strong> recupera até
+                      50% do HP máximo, custa 36 SP e é usado no máximo uma vez
+                      por combate quando o Pokémon está ferido.
+                      <strong> Double Kick</strong> acerta duas vezes, com
+                      cobrança única de 18 SP; cada impacto aparece como
+                      uma linha separada no diário. O golpe Bullet Seed
+                      ainda não está disponível.</p>
                     <p>Líder: <strong>{speciesName(active.pokemonId)} · UID #{active.uid}</strong></p>
                     <p>Equipe: <strong>{data.team.length}/3</strong> ·
                       <button type="button" className={styles.textButton}

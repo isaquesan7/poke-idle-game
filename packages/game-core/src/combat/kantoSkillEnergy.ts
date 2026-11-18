@@ -7,6 +7,7 @@ import type {KantoMove} from './kantoBattle.js';
 import {KANTO_POKEDEX} from '../catalog/kantoSpecies.js';
 import {KANTO_MOVE_PP} from '../catalog/kantoMovePp.js';
 import {kantoMoveSecondaryEffect} from './kantoStatusEffects.js';
+import {kantoMoveHitCount} from './kantoMultiHit.js';
 
 export const KANTO_BASIC_ATTACK:KantoMove=Object.freeze({
   name:'basic-attack',type:'normal',category:'physical',
@@ -69,6 +70,8 @@ export function kantoFocusRecovery(maxSp:number,currentSp:number):number{
  * Custo híbrido próprio: potência + escassez de PP na PokéAPI + efeitos.
  * Ofensiva: clamp(8,40,round(0.45*(45-pp)+0.18*poder+4 secundário+3 prioridade)).
  * Suporte: clamp(10,36,round(0.45*(45-pp)+peso de efeito)).
+ * D-045: Recover com bônus18 (PP5 =>36 SP); Double Kick cobra 2 impactos,
+ * 1 custo por ação, e 30×2 em vez de 30 no componente potência.
  * PP ausente (somente testes/golpes provisórios) usa 20 como fallback
  * de CÁLCULO, sem afirmar que seja PP oficial.
  * Rank melhora dano sem alterar custo.
@@ -88,11 +91,13 @@ export function kantoMoveSpCost(move:KantoMove):number{
   const scarcity=.45*(45-pp);
   if(move.category==='status'){
     const weights:Readonly<Record<string,number>>={
-      growl:10,'tail-whip':10,'poison-powder':14,'thunder-wave':16
+      growl:10,'tail-whip':10,'poison-powder':14,'thunder-wave':16,
+      // A cura de 50% HP paga escassez de PP + bônus fixo 18 (D-039).
+      recover:18
     };
     const weight=weights[move.name];
     if(weight===undefined)throw new RangeError('Suporte sem custo catalogado.');
-    return clamp(10,36,Math.round(scarcity+weight));
+    return clamp(10,move.name==='recover'?40:36,Math.round(scarcity+weight));
   }
   if((move.category!=='physical'&&move.category!=='special')
     ||!Number.isFinite(move.power)||move.power<=0||move.power>250)
@@ -100,12 +105,13 @@ export function kantoMoveSpCost(move:KantoMove):number{
   const secondary=kantoMoveSecondaryEffect(move.name)?4:0;
   const priority=move.priority>0?3:0;
   return clamp(KANTO_SP_BALANCE.minMoveSpCost,KANTO_SP_BALANCE.maxMoveSpCost,
-    Math.round(scarcity+.18*move.power+secondary+priority));
+    Math.round(scarcity+.18*move.power*kantoMoveHitCount(move.name)+secondary+priority));
 }
 
 /**
- * D-039: prévia de custo para metadados /move/{id} da PokéAPI (NÃO equipa,
- * não habilita golpes nem executa movimentos novos). A ausência de power
+ * D-039: prévia de custo para metadados /move/{id} da PokéAPI (NÃO equipa
+ * por si só). D-045 habilitou Recover em catálogo+motor SEPARADOS; Bullet
+ * Seed continua só prévia. A ausência de power
  * em suportes/cura da API é null; NÃO converter em NaN nem dano fictício.
  * Este tipo é um recorte explícito de /move e NÃO é o KantoMove canônico.
  */
@@ -129,7 +135,9 @@ export interface KantoApiMoveSpPreview {
  * conservadora, não simulação da distribuição real); hits fixos são exatos.
  * Recover, Soft-Boiled etc. recebem +18 pelo efeito de cura de HP
  * (meta.category.name='heal'), além da escassez de PP.
- * Não fornece sistema de cura real e não aceita payload malformado.
+ * A prévia sozinha não executa cura. Recover foi implementado na D-045
+ * via catálogo de suporte, kantoMoveSpCost e simulateKantoBattle, com
+ * limite de 1 uso por combate; não aceita payload malformado.
  */
 export function kantoPreviewMoveSpCost(move:KantoApiMoveSpPreview):number{
   if(!move||typeof move.name!=='string'||!move.name.trim()
