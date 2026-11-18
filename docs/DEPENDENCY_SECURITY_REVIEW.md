@@ -51,3 +51,11 @@
 A correção de GIFs e opção explícita de movimento não requer alterar nenhum
 pacote, JavaScript de combate, writer, schema, chance de captura ou economia.
 O processo de atualização do lockfile é **independente** da correção visual.
+
+## D-043 — atualização coordenada do Vitest (18/11/2026; branch, sem release)
+- A auditoria D-041 mostrou `vitest@3.2.4`, `tinypool@1.1.1`, `@vitest/mocker@3.2.4` e `picomatch@4.0.7` no lockfile antigo. Os 7 alertas reportados não são 7 falhas independentes.
+- Fontes públicas de 2026 recomendam `vitest >=4.1.12` para corrigir advisories da `@vitest/mocker` (incluindo bypass Windows e registro de mocks); Vitest 4.1.12 foi selecionado nos **dois** workspaces. Referências: https://github.com/vitest-dev/vitest/security/advisories/GHSA-qxg6-89mg-rqv8 e https://github.com/advisories/GHSA-82fw-gwwq-j7x9.
+- **A atualização não está válida até regenerar `package-lock.json` usando `npm install --package-lock-only --ignore-scripts`, passar `npm ci`, CI TypeScript/Vitest/Node/build/GIFs/E2E e executar `npm audit` depois.** O workflow TEMPORÁRIO de PR `.github/workflows/d043-lockfile-resolve.yml` foi criado para calcular e commitar APENAS o lockfile se GitHub Actions permitir; **deverá ser excluído ANTES do merge**, para que a main não herde job de PR com permissão de escrita.
+- **Picomatch CVE-2026-112366:** as fontes npm pesquisadas em 18/11/2026 ainda listam `4.0.7` como última versão publicada, vulnerável a ReDoS via extglob adversarial. Referências: https://www.npmjs.com/package/picomatch e https://github.com/advisories/GHSA-fc5q-39xc-vjpf. Não inventar `4.0.8` nem aplicar override para versão indisponível. Exposição mitigada por não publicar dev server Vite e não processar globs fornecidos por usuários externos; reavaliar com npm audit real e upstream.
+- Se o lockfile puder ser resolvido e os testes ficarem verdes, integrar somente após retirar o workflow temporário; se não, registrar bloqueio e manter a versão de produção anterior. GitHub Actions é fonte da resolução; jamais gerar lock na mão nem usar `npm audit fix --force`.
+
