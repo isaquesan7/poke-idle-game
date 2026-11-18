@@ -2,7 +2,9 @@
  * PP por movimento em snapshot fixo de PokeAPI/pokeapi (moves.csv).
  * Origem: https://github.com/PokeAPI/pokeapi/blob/ac2f1acb055026e3dff1e0aca743bb46256a810a/data/v2/csv/moves.csv
  * Blob SHA: a55116329ca22f230fea953de94c2d1dffe2ad0e
- * Cobre TODOS os movimentos atualmente executáveis da Arena v0.2,\n * incluindo Double Kick e Recover (D-045). PP é do CSV PokéAPI atual,\n * não PP histórico da cartucha FireRed/LeafGreen.
+ * Cobre TODOS os movimentos atualmente executáveis da Arena v0.2,
+ * incluindo Double Kick e Recover (D-045). PP é do CSV PokéAPI atual,
+ * não PP histórico da cartucha FireRed/LeafGreen.
  * PP é dado OFICIAL por golpe; custo de SP é REGRA PRÓPRIA do Idle.
  * Consultas não acontecem durante combate/replay, para manter determinismo.
  */
@@ -11,7 +13,8 @@ export const KANTO_PP_SOURCE_BLOB='a55116329ca22f230fea953de94c2d1dffe2ad0e';
 export const KANTO_MOVE_PP:Readonly<Record<string,number>>={
   'absorb':25,
   'bubble':30,
-  'drill-peck':20,\n  'double-kick':30,
+  'drill-peck':20,
+  'double-kick':30,
   'egg-bomb':10,
   'ember':25,
   'growl':40,
@@ -26,7 +29,8 @@ export const KANTO_MOVE_PP:Readonly<Record<string,number>>={
   'poison-powder':35,
   'poison-sting':35,
   'pound':35,
-  'quick-attack':30,\n  'recover':5,
+  'quick-attack':30,
+  'recover':5,
   'rock-throw':15,
   'scratch':35,
   'slam':20,
