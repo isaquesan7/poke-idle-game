@@ -38,7 +38,7 @@ jobs:
             --retry 3 --max-time 120 \
             'https://raw.githubusercontent.com/PokeAPI/pokeapi/ac2f1acb055026e3dff1e0aca743bb46256a810a/data/v2/csv/pokemon_moves.csv' \
             --output /tmp/d049b-pokemon-moves.csv
-          node scripts/extract-tm09-compatibility.mjs /tmp/d049b-pokemon-moves.csv artifacts/d049b/tm09-machine-compatibility.json
+          node --input-type=module -e "import {readFileSync} from 'node:fs'; const first=readFileSync('/tmp/d049b-pokemon-moves.csv','utf8').split(/\\r?\\n/,1)[0]; console.log('D049B_SOURCE_HEADER '+JSON.stringify(first)+' columns='+first.split(',').length)"\n          node scripts/extract-tm09-compatibility.mjs /tmp/d049b-pokemon-moves.csv artifacts/d049b/tm09-machine-compatibility.json
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
           import {readFile} from 'node:fs/promises';
