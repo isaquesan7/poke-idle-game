@@ -205,7 +205,8 @@ describe('D-038: custos híbridos PP/poder, SP por espécie e Concentrar',()=>{
   });
   it('simula espécies, tipos e níveis sem travar, SP negativo nem prêmio repetido',()=>{
     const species=[1,4,7,10,25,37,43,60,74,92,94,95,113,129,131,143,150,151];
-    let total=0,focusCount=0,basicCount=0;
+    let total=0,focusCount=0,basicCount=0,skillCount=0;
+    let winCount=0,drawCount=0,turnSum=0;
     for(const level of [5,25,60,100])for(const id of species){
       const info=KANTO_BATTLE_SPECIES[id]!;
       const foe=KANTO_BATTLE_SPECIES[species[(species.indexOf(id)+7)%species.length]!]!;
@@ -217,7 +218,7 @@ describe('D-038: custos híbridos PP/poder, SP por espécie e Concentrar',()=>{
         speciesId:foe.id,name:foe.name,types:foe.types,level,
         stats:pokemonOwnStats(foe.base,level,zeroStats()),move:foe.move,rank:0
       };
-      for(const seed of [0,53,107,239,1024,99991]){
+      for(const seed of [0,1,7,19,31,53,107,169,239,345,777,1024,4556,99991,149331,987654]){
         const result=simulateKantoBattle(player,wild,seed);
         verifySp(result);
         expect(result.turns).toBeGreaterThan(0);
@@ -225,13 +226,21 @@ describe('D-038: custos híbridos PP/poder, SP por espécie e Concentrar',()=>{
         if(result.outcome!=='win')expect(result.captured).toBe(false);
         focusCount+=result.frames.filter(x=>x.kind==='focus').length;
         basicCount+=result.frames.filter(x=>x.moveName==='basic-attack').length;
+        skillCount+=result.frames.filter(x=>x.spCost!==undefined&&x.spCost>0).length;
+        if(result.outcome==='win')winCount++;
+        if(result.outcome==='draw')drawCount++;
+        turnSum+=result.turns;
         total++;
       }
     }
-    expect(total).toBe(432);
+    expect(total).toBe(1152);
     expect(basicCount).toBeGreaterThan(0);
-    // Não exigir quantidade arbitrária de Concentrar nos duelos rápidos,
-    // mas reportar medição explícita na asserção e no handoff.
+    expect(skillCount).toBeGreaterThan(0);
+    expect(winCount).toBeGreaterThan(0);
+    expect(drawCount).toBeLessThan(total);
+    expect(turnSum/total).toBeGreaterThan(1);
+    // Não exigir arbitrariamente uma frequência fixa de Concentrar:
+    // partidas terminadas antes do SP acabar não precisam utilizá-lo.
     expect(focusCount).toBeGreaterThanOrEqual(0);
   });
 });
