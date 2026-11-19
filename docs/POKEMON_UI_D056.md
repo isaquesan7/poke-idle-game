@@ -17,3 +17,4 @@
 - Itens, raridades, drops e crafting continuam pendentes na PR #78; D056 não altera economia.
 - A interface do kit foi removida, sem editar a regra de domínio das pedras ou inventar fonte de obtenção; o comando de kit experimental permanece isolado sem botão de UI nesta etapa.
 - Não publicar antes de testes e autorização.
+- Ajuste de precisão D056: a prévia de status Pokémon usa obrigatoriamente pokemonFinalStats do game-core sobre os pontos manuais projetados, inclusive HP (+2 finais por ponto manual) e contribuições do Treinador/afinidade; evita prévia numérica linear incorreta. E2E confirma HP preview +2, desfaz e garante zero escrita antes do commit.
