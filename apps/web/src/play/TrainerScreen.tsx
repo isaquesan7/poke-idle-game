@@ -5,7 +5,7 @@
  */
 import {useState} from 'react';
 import {
-  LEGACY_BADGES, LEGACY_EQUIPMENT_SLOTS, LEGACY_ITEMS, STATS
+  LEGACY_BADGES, LEGACY_EQUIPMENT_SLOTS, LEGACY_ITEMS, inspectInventoryOwnership, BASE_BAG_SLOTS, STATS
 } from '@kanto/game-core';
 import type {EquipmentSlot, Stat, StatValues} from '@kanto/game-core';
 import type {TrainerViewModel} from '../features/trainer/legacyProjection';
@@ -58,11 +58,16 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
   const seenCount=Array.isArray(data.seen)?data.seen.length:0;
   const totalWins=typeof data.wins==='number'&&Number.isSafeInteger(data.wins)?data.wins:0;
   const equippedIds=new Set(Object.values(equipped).filter(Boolean));
+  const ownership=inspectInventoryOwnership(data.inventory);
+  const legacyCatalog=ownership.status==='legacy-untracked';
+  const bagCapacity=ownership.status==='valid'?BASE_BAG_SLOTS+ownership.inventory.extraBagSlots:BASE_BAG_SLOTS;
   // O catálogo legado ainda NÃO é inventário de propriedade; os equipamentos
   // seguem selecionáveis no laboratório, sem alegar que foram conquistados.
-  const equipmentEntries:InventorySlotItem[]=LEGACY_ITEMS.map(item=>({
+  const equipmentEntries:InventorySlotItem[]=LEGACY_ITEMS
+    .filter(item=>legacyCatalog||ownership.status==='valid'&&(ownership.inventory.ownedEquipment[item.id]??0)>0)
+    .map(item=>({
     id:item.id,name:item.name,description:'Equipamento de '+SLOT_NAMES[item.slot]+' do catálogo de testes.',
-    icon:SLOT_ICONS[item.slot],quantity:1,
+    icon:SLOT_ICONS[item.slot],quantity:ownership.status==='valid'?ownership.inventory.ownedEquipment[item.id]??1:1,
     detail:bonusLabel(item.stats)||'Sem bônus',
     status:equippedIds.has(item.id)?'Equipado':'Não equipado'
   }));
@@ -228,7 +233,8 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
         <span className={styles.smallTag}>{equippedIds.size} equipados</span>
       </div>
       <p className={styles.hint}>Clique ou toque em um cubo para conferir atributos e equipar/remover.
-        No laboratório, o catálogo permanece disponível para testes; a aquisição real será implementada separadamente.</p>
+        {legacyCatalog?' No save atual, o catálogo permanece disponível como laboratório até a migração de propriedade.':' Exibindo somente os equipamentos registrados no inventário versionado.'}</p>
+      {ownership.status==='invalid'&&<p className={styles.staleNotice} role="alert">Dados de propriedade inválidos. Equipamentos bloqueados por segurança.</p>}
       <div className={styles.inventoryFilters} role="group" aria-label="Filtrar equipamentos">
         <button type="button" className={equipmentFilter==='all'?styles.filterActive:styles.filter}
           aria-pressed={equipmentFilter==='all'} onClick={()=>setEquipmentFilter('all')}>
@@ -268,12 +274,12 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
 
     {section==='bag'&&<section className={styles.panel}>
       <div className={styles.sectionHeader}><h3><Fa name="fa-bag-shopping"/> Mochila</h3>
-        <span className={styles.smallTag}>Capacidade inicial: 10</span></div>
+        <span className={styles.smallTag}>Capacidade: {bagCapacity}</span></div>
       <p className={styles.hint}>Cada tipo de item empilhado ocupa um cubo, independentemente da quantidade.
         Passe o mouse ou use o foco do teclado para ver detalhes. No celular, toque no cubo.</p>
-      <InventoryGrid title="Mochila" items={bagEntries} capacity={10}/>
+      <InventoryGrid title="Mochila" items={bagEntries} capacity={bagCapacity}/>
       <p className={styles.hint}>A expansão da mochila será desbloqueada por um item futuro.
-        Esta capacidade é visual até existir regra de limite no inventário.
+        A capacidade é informativa até ser ligada às regras de aquisição e ao writer de itens.
         Pokébolas, cura e TMs aparecerão apenas quando forem adquiridos.</p>
     </section>}
   </section>;
