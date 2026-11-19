@@ -5,6 +5,7 @@
  */
 import {useEffect,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
+import {createPortal} from 'react-dom';
 import styles from './InventoryGrid.module.css';
 
 export interface InventorySlotItem {
@@ -51,6 +52,7 @@ export function InventoryGrid({title,items,capacity,onSelect,actionLabel,emptyLa
           aria-label={actionLabel? actionLabel(item):item.name+', quantidade '+item.quantity+', '+item.description}
           title={item.name}>
             <span className={styles.itemIcon}><i className={'fa-solid '+item.icon} aria-hidden="true"/></span>
+            {item.status==='Equipado'&&<span className={styles.equippedMarker} aria-hidden="true"><i className="fa-solid fa-circle-check"/></span>}
             <span className={styles.tooltip} aria-hidden="true">
               <strong>{item.name}</strong><small>Quantidade: {item.quantity}</small>
               <small>{item.description}</small>
@@ -75,7 +77,7 @@ export function InventoryDialog({title,children,onClose}:{
     closeRef.current?.focus();
     return ()=>{if(previous instanceof HTMLElement)previous.focus();};
   },[]);
-  return <div className={styles.backdrop} onMouseDown={event=>{
+  return createPortal(<div className={styles.backdrop} onMouseDown={event=>{
     if(event.target===event.currentTarget)onClose();
   }}>
     <div role="dialog" aria-modal="true" aria-label={title}
@@ -96,5 +98,5 @@ export function InventoryDialog({title,children,onClose}:{
       </div>
       {children}
     </div>
-  </div>;
+  </div>,document.body);
 }
