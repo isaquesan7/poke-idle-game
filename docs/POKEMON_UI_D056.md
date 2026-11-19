@@ -20,3 +20,10 @@
 - Ajuste de precisão D056: a prévia de status Pokémon usa obrigatoriamente pokemonFinalStats do game-core sobre os pontos manuais projetados, inclusive HP (+2 finais por ponto manual) e contribuições do Treinador/afinidade; evita prévia numérica linear incorreta. E2E confirma HP preview +2, desfaz e garante zero escrita antes do commit.
 
 - E2E D056: jornada de dois Pidgey independentes por UID atualizada para usar prévia + confirmação de SPD (não mais incremento imediato). Confirma revisão intacta antes do commit, depois incremento somente no UID selecionado, preservando o primeiro exemplar.
+
+
+## D-057 — ajustes posteriores solicitados
+- Arte de Perfil menor (max 210px PC / 190px mobile), com altura automática e proporção original.
+- Texto de instrução em Evolução condicionado à existência de opções; mensagem de Pokémon sem evolução abreviada.
+- Na área de Golpes aprendidos, não apresentar “Equipar” quando golpe já ocupa um dos quatro slots; mudança de golpe principal ocorre em Golpes equipados. Custo de aprimorar: 1 ponto por rank no motor atual, indicado no cartão e no botão com saldo disponível.
+- Regressão de interface em apps/web/tests/e2e/playable-route.mjs; sem mudanças em save, combate, TMs ou sprites.

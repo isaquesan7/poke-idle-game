@@ -306,3 +306,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Ajuste de precisão D056: a prévia de status Pokémon usa obrigatoriamente pokemonFinalStats do game-core sobre os pontos manuais projetados, inclusive HP (+2 finais por ponto manual) e contribuições do Treinador/afinidade; evita prévia numérica linear incorreta. E2E confirma HP preview +2, desfaz e garante zero escrita antes do commit.
 
 - E2E D056: jornada de dois Pidgey independentes por UID atualizada para usar prévia + confirmação de SPD (não mais incremento imediato). Confirma revisão intacta antes do commit, depois incremento somente no UID selecionado, preservando o primeiro exemplar.
+
+
+## D-057 — acabamento das telas Pokémon (2026-11-19)
+- Reduzida a exibição do GIF do Pokémon, preservando proporção intrínseca no desktop e mobile.
+- Evolução: frase introdutória aparece só quando existem opções; mensagem final simplificada para “Nenhuma evolução disponível para este Pokémon.”.
+- Golpes: ação Equipar omitida para golpes já nos slots; custo de aprimoramento explícito de 1 ponto com saldo restante, sem mudar writer ou rank.
+- Testes E2E atualizados; CI/merge/deploy dependem dos gates da nova PR.

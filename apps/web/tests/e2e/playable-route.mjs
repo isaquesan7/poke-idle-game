@@ -151,6 +151,9 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('region',{name:'Treinar golpes do Pokémon'}).waitFor();
   await page.getByRole('heading',{name:'Golpes equipados'}).waitFor();
   await page.getByRole('heading',{name:'Golpes aprendidos'}).waitFor();
+  await page.getByText('Custo do próximo aprimoramento: 1 ponto',{exact:false}).first().waitFor();
+  const primaryMove=(await page.locator('[data-testid="equipped-moves"]').innerText()).toLowerCase();
+  assert.ok(primaryMove.includes('equipado')||primaryMove.includes('principal'));
   assert.equal(await page.getByText('SP de combate por encontro:',{exact:false}).count(),0);
   assert.equal(await page.getByText('Recorte de movimentos por nível',{exact:false}).count(),0);
   assert.equal(await page.locator('#pokemon-attributes').count(),0);
@@ -562,8 +565,17 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Pokémon',exact:true}).click();
   await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Golpes'}).click();
   await page.getByRole('heading',{name:'Golpes do Pokémon'}).waitFor();
-  await page.getByRole('button',{name:'Equipar golpe tackle'}).click();
+  const equipTackle=page.getByRole('button',{name:'Equipar golpe tackle'});
+  if(await equipTackle.count()){
+    await equipTackle.click();
+  }else{
+    // Um golpe já presente nos slots nunca mostra Equipar novamente.
+    assert.equal(await equipTackle.count(),0);
+    await page.getByRole('button',{name:'Tornar principal tackle'}).click();
+  }
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===12,SAVE);
+  assert.equal(await page.getByRole('button',{name:'Equipar golpe tackle'}).count(),0,
+    'Golpe equipado não pode exibir botão de equipar');
   await page.getByRole('button',{name:'Aprimorar golpe tackle'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===13,SAVE);
   const moved=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);

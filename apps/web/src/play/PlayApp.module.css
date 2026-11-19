@@ -740,3 +740,14 @@
  .pokemonMovesPanel .pokemonEquippedGrid,
  .pokemonMovesPanel .pokemonLearnedGrid{grid-template-columns:minmax(0,1fr)}
 }
+
+/* D-057 · GIF menor sem deformação: largura natural proporcional em todas as telas. */
+.pokemonProfileGrid .pokemonArtStage{min-height:235px}
+.pokemonProfileGrid .pokemonArtStage .pokemonLarge{
+  display:block;width:auto;max-width:min(100%,210px);height:auto;max-height:210px;
+  object-fit:contain;aspect-ratio:auto;
+}
+@media(max-width:430px){
+  .pokemonProfileGrid .pokemonArtStage{min-height:215px}
+  .pokemonProfileGrid .pokemonArtStage .pokemonLarge{max-width:min(100%,190px);max-height:190px}
+}
