@@ -139,3 +139,10 @@ O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Ra
 - Não alterar `isaquesan7/pokedex`, sistema de TM09, combate, chave/schema v0.2, avatar ou 151 GIFs. Exigir CI completo e screenshots desktop/mobile no HEAD da PR antes de merge/deploy.
 
 - **D053 gate opt-in conectado (sem migração/concessão):** se o JSON `journal.raw` possui `inventory:{version:1,ownedEquipment,extraBagSlots}` válido, `TrainerScreen` lista apenas equipamentos com quantidade positiva, exibe `10+extraBagSlots` de capacidade e `editLegacyTrainerJson` + `validLegacyTrainerDraft` impedem equipar qualquer item não possuído. Ledger corrompido bloqueia equipagem. Saves sem campo `inventory` preservam laboratório e os equipamentos antes equipados; NÃO adicionamos automaticamente nenhum ledger ou item. O limite de capacidade continua informativo até writer de aquisição; expandir de fato depende de fonte de recompensa autorizada. Testes unitários contra forgery e E2E desktop/mobile com fixture de ledger injetado apenas no teste.
+
+
+## D-055 — tela Pokémon, primeira passagem UI (19/11/2026, branch ainda não publicada)
+- Nova tela do Pokémon em `apps/web/src/play/PlayApp.tsx`: hero com GIF original da espécie e efeitos de halo ciano/violeta, nível, UID, afinidade com medidor, papel líder/equipe/coleção; navegação interna entre Atributos, Evolução e Golpes. Painéis seguem todos os comandos e requisitos reais, sem alterar writer nem gameplay.
+- CSS responsivo no `PlayApp.module.css` com SOMENTE os tokens `styles/tokens.css` definidos anteriormente e Font Awesome. GIF local `poke_<id>.gif` preservado (jamais modificar `isaquesan7/pokedex`).
+- E2E captura `pokemon-profile-desktop.png` e `pokemon-profile-mobile.png`, confirma arte carregada, IDs de navegação e +1 DEF Pokémon gerando uma revisão como antes. Detalhes, limitações e gates: `docs/POKEMON_UI_D055.md`.
+- **Pendências econômicas mantidas**: itens, raridades, drops e crafting sem decisão numérica; D054 PR #78 independente. Nunca inferir que o design do Pokémon altera regras de combate, save schema2 ou TM09.
