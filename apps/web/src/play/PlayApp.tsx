@@ -472,7 +472,8 @@ export function PlayApp() {
             {tab === 'trainer' && <TrainerScreen view={view} data={data}
               revision={save.snapshot.revision} busy={busy}
               onInvest={investTrainerBatch}
-              onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}/> }
+              onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}
+              onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
             {tab === 'pokemon' && (
               <div className={styles.twoColumn}>
                 <section className={styles.panel}>
