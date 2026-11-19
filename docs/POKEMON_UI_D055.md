@@ -16,3 +16,13 @@
 
 ## Gates antes do merge
 TypeScript/Vitest/Node, regressão Playwright desktop e mobile, imagem Docker, revisão das capturas, merge via PR e verificação do Railway no SHA publicado somente mediante autorização de publicação.
+
+
+## D-055B — Conteúdos exclusivos por tela (ajuste solicitado)
+- Menu interno do Pokémon com **três botões/abas mutuamente exclusivas**, mantendo a rota Pokémon do app:
+  - **Perfil:** GIF original, identidade, nível, UID, afinidade, posição na equipe, atributos e distribuição atual de pontos.
+  - **Evolução:** apenas evolução, requisitos por nível/pedra/troca, estoque de pedras de teste e comandos existentes.
+  - **Golpes:** apenas movimentos, slots, suporte, PP/SP, ranks e comandos existentes.
+- **Nenhum painel de evolução ou golpe é renderizado no Perfil**. Navegação acessível por teclado, aria-current e estilo ativo Kanto Dark, sem âncoras que exibam tudo simultaneamente.
+- Ao abrir um Pokémon pela coleção ou clicar no menu principal Pokémon, **retorna ao Perfil**, sem herdar seção de outro UID. Alterar tela é estado React apenas, sem revisão, recompensa ou gravação no save.
+- E2E desktop/mobile testa exclusividade de painéis, contador de revisão preservado e faz capturas separadas de Perfil, Evolução e Golpes, além das jornadas antigas de golpes e evolução.
