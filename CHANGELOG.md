@@ -1,3 +1,10 @@
+# D-055B — telas Pokémon separadas
+
+## D-055B — separação visual da tela Pokémon (19/11/2026, PR #79 sem publicação)
+- Menu interno agora é exclusivamente `Perfil | Evolução | Golpes` com botões/abas acessíveis, não âncoras; renderiza **somente a seção selecionada**, jamais os três painéis de uma vez. Perfil mostra GIF original/identidade/afinidade/atributos; Evolução mostra apenas requisitos e controles de evolução; Golpes apenas slots/PP/SP/ranks e treino de golpes.
+- Navegação por essas telas não altera save/revisão. Menu principal Pokémon e abrir UID pela Coleção retornam à seção Perfil. Atualizados PlayApp.tsx e PlayApp.module.css com estilo de aba selecionada, painéis de largura total e regras mobile, sempre reutilizando tokens Kanto Dark.
+- E2E Playwright reforçado: ausência de seções ocultas, captura das três telas desktop/mobile e preservação dos cenários existentes de evolução, reabertura por UID e treino de golpes. Mais detalhes em docs/POKEMON_UI_D055.md. Loja/drop/crafting, catálogo de itens e D054 PR #78 continuam PENDENTES e independentes.
+
 # D-055 — visual da tela Pokémon (em revisão)
 
 ## D-055 — tela Pokémon, primeira passagem UI (19/11/2026, branch ainda não publicada)
