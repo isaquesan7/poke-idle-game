@@ -569,3 +569,41 @@
 .serverOnline{color:var(--color-success);border:1px solid var(--color-pill-online-border-1)}
 .serverOffline{color:var(--color-text-muted);border:1px solid var(--color-border)}
 @media(max-width:690px){.trainerChip{flex-wrap:wrap}}
+
+
+/* D-051 · Navegação e moldura no mesmo estilo neon do mockup do treinador. */
+.appShell{
+ background:radial-gradient(ellipse at 90% 10%,var(--trainer-glow-violet-soft),transparent 38%),
+ radial-gradient(ellipse at 22% 85%,var(--trainer-glow-deep-blue),transparent 45%),var(--color-bg);
+}
+.sidebar{
+ background:linear-gradient(165deg,var(--color-surface),var(--trainer-stage-surface));
+ border-right:1px solid var(--trainer-card-border);
+ box-shadow:inset -1px 0 0 var(--trainer-card-highlight);
+}
+.brand{letter-spacing:-.03em}
+.brandBall{color:var(--color-primary);filter:drop-shadow(0 0 9px var(--trainer-glow-cyan))}
+.alpha{color:var(--color-primary)}
+.menu{gap:var(--space-2)}
+.menuItem,.menuActive{
+ display:flex;align-items:center;gap:var(--space-3);
+ border:1px solid transparent;transition:background var(--duration-fast),box-shadow var(--duration-fast),border-color var(--duration-fast);
+ font-weight:650;
+}
+.menuItem>i,.menuActive>i{width:19px;text-align:center;font-size:1.05rem}
+.menuItem:hover{border-color:var(--trainer-card-border);background:var(--trainer-glow-cyan-soft)}
+.menuActive{
+ color:var(--color-primary);border-color:var(--color-primary);
+ background:linear-gradient(100deg,var(--trainer-glow-cyan-soft),var(--color-navbtn-active-background-1));
+ box-shadow:inset 0 1px 0 var(--trainer-card-highlight),0 0 16px var(--trainer-glow-cyan-soft);
+}
+.menuActive>i{filter:drop-shadow(0 0 7px var(--trainer-glow-cyan))}
+.menuItem:focus-visible,.menuActive:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.topbar{border-bottom:1px solid var(--trainer-card-border);padding-bottom:var(--space-5)}
+.topbar h1{text-shadow:0 2px 12px var(--trainer-shadow-depth)}
+.trainerChip{border-color:var(--trainer-card-border);box-shadow:inset 0 1px 0 var(--trainer-card-highlight),0 0 15px var(--trainer-glow-cyan-soft)}
+@media(max-width:690px){
+ .sidebar{box-shadow:inset 0 -1px 0 var(--trainer-card-highlight)}
+ .menuItem,.menuActive{gap:var(--space-2)}
+ .topbar{padding-bottom:var(--space-3)}
+}
