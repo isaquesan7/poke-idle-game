@@ -1,3 +1,10 @@
+
+## D-054 — inventário: migração explícita e grant offline (19/11/2026, BRANCH, NÃO PUBLICADA)
+- Arquivos novos: packages/game-core/src/inventory/transactions.ts e packages/game-core/tests/inventory-transactions.test.ts. Proposta de migração preserva **somente equipamentos já equipados**, valida slots/IDs e não salva automaticamente. Motor puro de grants valida tipo/quantidade, revisions e eventId/receipts; replay idêntico não concede duas vezes, conflito e limites falham fechado. Em particular, inventory grant NÃO está exposto por index.ts, PlayAction, UI, loja, save writer ou backend.
+- Esse motor NÃO prova autoridade: só deve receber evento validado por futura camada de autorização, ainda ausente. Sem aprovação de regras de drops/loja/preços ou expansão, não liberar nenhum item nem alterar save v0.2. Documentação completa e próximos gates: docs/INVENTORY_TRANSACTIONS_D054.md.
+- D053 já está MERGED/produção pelo PR #77, commit bbc7a02c23a192b4d52537bdf09794450b20120f, Railway deploy 1182fddf-a52a-42ce-86e9-4c7b84b25c4b SUCCESS com /health aprovado.
+- CI da D054 ainda depende de validação; não alterar TMs, combate, GIFs, avatar, isaquesan7/pokedex ou key/schema save.
+
 # D-053 — interface e propriedade de inventário em preparação (2026-11-18)
 
 ## D-053 — bônus em hover, título estilizado, portal de modal e propriedade de itens (branch, ainda NÃO publicada)
