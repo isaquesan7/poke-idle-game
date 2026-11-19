@@ -175,6 +175,14 @@ async function exercise(browser, label, viewport) {
   }
   const pokemonTrain=page.getByRole('region',{name:'Treinamento Pokémon'});
   const pointRevision=(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision;
+  // HP usa o cálculo real do core (+2 HP final por ponto manual).
+  const hpButton=pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em HP'});
+  const hpRow=hpButton.locator('xpath=../..');
+  const hpBefore=Number(await hpRow.locator('strong').innerText());
+  await hpButton.click();
+  await hpRow.getByText('+ 1 → '+(hpBefore+2)).waitFor();
+  await pokemonTrain.getByRole('button',{name:'Retirar um ponto da prévia de HP'}).click();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,pointRevision);
   await pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em DEF'}).click();
   await pokemonTrain.getByRole('button',{name:'Retirar um ponto da prévia de DEF'}).click();
   await pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em DEF'}).click();
