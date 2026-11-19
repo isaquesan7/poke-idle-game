@@ -126,3 +126,5 @@ O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Ra
 - Não alterar save schema/key, economia, TMs, combate, 151 GIFs, avatar, repositório `isaquesan7/pokedex` ou rota legada `/`. Gates: CI completo no HEAD final, revisão de telas desktop/mobile; PR independente, sem merge/deploy até validação.
 
 - QA visual das capturas reais da D052: grade de equipamentos desktop estava com células excessivamente grandes (expandindo 5 colunas pela largura toda). Ajustada para cubos compactos de largura máx. ~78px com auto-fill, mantendo 4 colunas mobile e 3 em telas muito estreitas. Preserva slots quadrados, hover/toque e contador. Testes de screenshots desktop/mobile continuam gates da PR.
+
+- Cobertura E2E D052 ampliada: em contextos independentes desktop/mobile, usar o modal para **Equipar** o Boné de Kanto (revisão +1) e **Remover** (revisão +1), conferir `trainer.equipped.hat`, moedas, equipe e título preservados; além de confirmar Cancela sem gravação no fluxo principal. Não altera a fonte de estoque/ownership existente.
