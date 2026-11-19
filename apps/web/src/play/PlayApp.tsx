@@ -541,7 +541,7 @@ export function PlayApp() {
                     </div>
                   </div>
                 </section>
-                <section className={styles.panel} id="pokemon-attributes">
+                <section className={styles.panel+' '+styles.pokemonAttributesPanel} id="pokemon-attributes">
                   <h2><i className="fa-solid fa-chart-simple" aria-hidden="true"/> Treinamento Pokémon</h2>
                   <p>Pontos disponíveis: <strong>{pokemonBudget - pokemonSpent}</strong> de {pokemonBudget}</p>
                   {!focusedStats && <p>Atributos de batalha desta espécie ainda não constam no catálogo piloto.</p>}
@@ -564,7 +564,7 @@ export function PlayApp() {
                 </section>
                 </>}
                 {pokemonSection==='evolution'&&<>
-                <section className={styles.panel} id="pokemon-evolution" aria-label="Evolução do Pokémon">
+                <section className={styles.panel+' '+styles.pokemonEvolutionPanel} id="pokemon-evolution" aria-label="Evolução do Pokémon">
                   <h2><i className="fa-solid fa-dna" aria-hidden="true"/> Evolução</h2>
                   <p>Seu Pokémon conserva UID, nível, XP, afinidade, pontos e golpes ao evoluir.</p>
                   {focusedEvolutions.length===0
