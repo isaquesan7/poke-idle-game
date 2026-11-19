@@ -1,3 +1,15 @@
+# D-052 — Inventário visual em cubos (em branch)
+
+## D-052 — Mochila e Equipamentos em cubos (18/11/2026, branch, NÃO PUBLICADA)
+
+- Nova grade **reutilizável** em `InventoryGrid.tsx` e CSS Module: cubos com estados cheio/vazio, destaque ciano, tooltip com **nome, quantidade, descrição** somente em hover/foco/toque, painel de ocupação e navegação por teclado; todos os efeitos usam tokens existentes de `styles/tokens.css`. `InventoryDialog` abre detalhes compactos com fechar/cancelar, Escape, clique no fundo e foco retido/devolvido.
+- Mochila com **10 espaços iniciais de exibição**, contador `ocupados / 10` e espaços vazios visíveis, 1 pilha de item=1 espaço. Apenas `evolutionStones` já persistidos são projetados como itens; nenhum item de cura/Pokébola/TM foi concedido. Caso haja mais de 10 tipos persistidos, exibir TODOS e aviso sem descartar itens.
+- Capacidade 10 **ainda é apresentação**, não limitação de recebimento, pois o inventário/economia real não têm writer e schema de capacidade. O item de expansão será criado em etapa independente, com regra versionada e validação do lado do domínio.
+- Equipamentos em cubos compartilham o mesmo estilo; filtro `Todos/Equipados`, tooltip com atributos e estado, clique abre modal **Equipar/Remover/Cancelar**. Ação reutiliza o escritor já existente `trainer.equip` (revisão, slot e validação existentes). Nenhum outro efeito de jogo introduzido.
+- **Importante limitação da fase atual:** o jogo ainda não armazena equipamentos adquiridos. Portanto o grid de equipamentos é explicitamente identificado como **catálogo do laboratório**, preservando as seleções disponíveis antes; ele **não afirma que os 14 equipamentos foram conquistados**. Uma etapa futura deve criar inventário real de propriedade, grants e validação de equipe possuída antes de liberá-lo como inventário autêntico.
+- Teste E2E verifica 10 espaços vazios iniciais na Mochila, modal de Boné de Kanto e Cancelar sem alterar revisão, além da jornada anterior. O tooltip não expõe quantidade ou descrição no cubo; apenas na interação.
+- Não alterar save schema/key, economia, TMs, combate, 151 GIFs, avatar, repositório `isaquesan7/pokedex` ou rota legada `/`. Gates: CI completo no HEAD final, revisão de telas desktop/mobile; PR independente, sem merge/deploy até validação.
+
 
 ## D-051.1 — títulos selecionáveis, Font Awesome e acabamento luminoso (18/11/2026, PR #75 ainda aberta)
 - Títulos na seção Perfil agora podem ser **selecionados pelo jogador** através de um `select`, com opções indisponíveis marcadas e requisitos informados. Mesmas regras legadas: `aprendiz` livre, `veterano` após 4 vitórias, `explorador` após 10 vistos, `mestre` após 8 insígnias. A função `legacyTitleIsUnlocked` foi centralizada no catálogo e usada tanto pela UI quanto pelo writer `trainer`, sem confiar na seleção enviada pelo cliente.
