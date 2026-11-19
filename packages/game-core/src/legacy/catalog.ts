@@ -61,17 +61,20 @@ export const LEGACY_TITLES: readonly LegacyTitle[] = [
   { id: 'mestre', name: 'Mestre de Ginásios', stats: { attack: 2, specialAttack: 2 } }
 ];
 
+/** Regras originais de desbloqueio; compartilhadas entre projeção e writer. */
+export function legacyTitleIsUnlocked(id:string,wins:number,seenCount:number,badgeCount:number):boolean {
+  return id==='aprendiz'
+    || id==='veterano' && wins>=4
+    || id==='explorador' && seenCount>=10
+    || id==='mestre' && badgeCount===8;
+}
+
 /** Repete o guard de título que a v0.1 aplica ao renderizar (sem escrever save). */
 export function effectiveLegacyTitle(
   selectedId: unknown, wins: number, seenCount: number, badgeCount: number
 ): LegacyTitle {
   const selected = LEGACY_TITLES.find(x => x.id === selectedId);
-  const valid = selected && (
-    selected.id === 'aprendiz'
-    || selected.id === 'veterano' && wins >= 4
-    || selected.id === 'explorador' && seenCount >= 10
-    || selected.id === 'mestre' && badgeCount === 8
-  );
+  const valid = selected && legacyTitleIsUnlocked(selected.id,wins,seenCount,badgeCount);
   return valid && selected ? selected : LEGACY_TITLES[0]!;
 }
 
