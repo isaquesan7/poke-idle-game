@@ -701,3 +701,36 @@
 @media(prefers-reduced-motion:reduce){
  .pokemonQuickButton,.pokemonQuickActive{transition:none}
 }
+
+
+/* D-056 · Perfil Pokémon e treino em duas colunas no desktop. */
+.pokemonGrid.pokemonProfileGrid{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);align-items:stretch}
+.pokemonProfileGrid .pokemonHero{grid-column:auto;min-height:100%}
+.pokemonProfileGrid .pokemonShowcase{grid-template-columns:minmax(0,1fr);gap:var(--space-2);min-height:0}
+.pokemonProfileGrid .pokemonArtStage{min-height:265px}
+.pokemonProfileGrid .pokemonArtStage .pokemonLarge{height:255px}
+.pokemonProfileGrid .pokemonIdentity{padding:var(--space-2) var(--space-3)}
+.pokemonProfileGrid .pokemonHero,.pokemonProfileGrid #pokemon-attributes{align-self:stretch}
+.pokemonMovesHeader{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap;margin:var(--space-5) 0 var(--space-3);border-bottom:1px solid var(--trainer-card-border);padding-bottom:var(--space-3)}
+.pokemonMovesHeader h3,.pokemonMoveSubheading{margin:0;display:flex;align-items:center;gap:var(--space-2);font-size:1.03rem}
+.pokemonMovesHeader h3 i,.pokemonMoveSubheading i{color:var(--color-primary)}
+.pokemonMovesHeader p{margin:var(--space-1) 0 0;font-size:.8rem;color:var(--color-text-muted)}
+.pokemonMovesCount{display:inline-flex;align-items:center;padding:var(--space-2) var(--space-3);background:var(--trainer-glow-cyan-soft);border:1px solid var(--trainer-card-border);border-radius:var(--radius-pill);font-size:.79rem;font-weight:800;color:var(--color-primary)}
+.pokemonEquippedGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.pokemonLearnedGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.pokemonMoveCard{min-width:0;display:flex;flex-direction:column;align-items:stretch;gap:var(--space-3);border:1px solid var(--trainer-card-border);border-radius:var(--radius-control);background:linear-gradient(135deg,var(--color-surface-raised),var(--trainer-stage-surface));box-shadow:inset 0 1px 0 var(--trainer-card-highlight),0 7px 16px var(--trainer-shadow-depth);padding:var(--space-4)}
+.pokemonMoveCard.moveEquipped{border-color:var(--color-primary);box-shadow:inset 0 1px 0 var(--trainer-card-highlight),0 0 18px var(--trainer-glow-cyan-soft)}
+.pokemonMoveCard strong{display:flex;align-items:center;gap:var(--space-2);text-transform:capitalize}
+.pokemonMoveCard strong i{color:var(--color-primary)}
+.pokemonMoveBadge{display:inline-flex;align-items:center;gap:var(--space-1);color:var(--color-success);font-size:.73rem;font-weight:800}
+.pokemonMoveSubheading{margin-top:var(--space-6)}
+.pokemonMoveCard .moveActions{display:flex;gap:var(--space-2);flex-wrap:wrap;margin-top:auto}
+.pokemonMoveCard .moveActions button{min-height:38px;padding:var(--space-2) var(--space-3);border-radius:var(--radius-control);font-weight:700;font-size:.78rem;transition:border-color var(--duration-fast),box-shadow var(--duration-fast)}
+.pokemonMoveCard .moveActions button i{margin-right:var(--space-1)}
+.pokemonMoveCard .moveActions button:hover:not(:disabled){border-color:var(--color-primary);box-shadow:0 0 13px var(--trainer-glow-cyan)}
+.pokemonMoveCard .moveActions button:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.pokemonEmptyMoveSlot{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:132px;border:1px dashed var(--trainer-card-border);border-radius:var(--radius-control);background:var(--trainer-stage-surface);color:var(--color-text-muted);gap:var(--space-2);font-size:.78rem}
+.pokemonEmptyMoveSlot i{font-size:1.5rem;opacity:.5}
+@media(max-width:1000px){.pokemonGrid.pokemonProfileGrid{grid-template-columns:minmax(0,1fr)}.pokemonProfileGrid .pokemonHero{grid-column:auto}.pokemonProfileGrid .pokemonShowcase{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:700px){.pokemonEquippedGrid,.pokemonLearnedGrid{grid-template-columns:minmax(0,1fr)}.pokemonMoveCard{padding:var(--space-3)}}
+@media(prefers-reduced-motion:reduce){.pokemonMoveCard .moveActions button{transition:none}}
