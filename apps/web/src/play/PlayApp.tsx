@@ -481,22 +481,52 @@ export function PlayApp() {
               onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
             {tab === 'pokemon' && (
-              <div className={styles.twoColumn}>
-                <section className={styles.panel}>
+              <div className={styles.pokemonWorkspace}>
+                <header className={styles.pokemonHeading}>
+                  <div>
+                    <span className={styles.pokemonEyebrow}><i className="fa-solid fa-dragon" aria-hidden="true"/> SEU PARCEIRO POKÉMON</span>
+                    <h2>Perfil do Pokémon</h2>
+                    <p>Seu parceiro em destaque: atributos, evolução e golpes organizados em um só lugar.</p>
+                  </div>
+                  <button type="button" className={styles.secondary} onClick={()=>setTab('collection')}>
+                    <i className="fa-solid fa-layer-group" aria-hidden="true"/> Ver coleção</button>
+                </header>
+                <nav className={styles.pokemonQuickNav} aria-label="Seções do Pokémon">
+                  <a href="#pokemon-attributes"><i className="fa-solid fa-chart-simple" aria-hidden="true"/> Atributos</a>
+                  <a href="#pokemon-evolution"><i className="fa-solid fa-dna" aria-hidden="true"/> Evolução</a>
+                  <a href="#pokemon-moves"><i className="fa-solid fa-bolt" aria-hidden="true"/> Golpes</a>
+                </nav>
+                <div className={styles.pokemonGrid}>
+                <section className={styles.pokemonHero}>
                   <div className={styles.pokemonShowcase}>
-                    <PokemonArt id={focused.pokemonId} name={speciesName(focused.pokemonId)} large />
-                    <h2>{speciesName(focused.pokemonId)} <span className={styles.levelTag}>Lv. {focused.level}</span></h2>
-                    <p>Instância UID #{focused.uid} · Afinidade {focused.affinity}%</p>
-                    <p>Transferência de atributos do treinador: {(affinityRate(focused.affinity)*100).toFixed(1)}%</p>
-                    <p>{data.team[0]===focused.uid ? 'Líder da equipe · participa da Arena'
-                      : data.team.includes(focused.uid) ? 'Na equipe · reserva de combate'
-                        : 'Na coleção · fora da equipe'}</p>
-                    <button type="button" className={styles.secondary}
-                      onClick={()=>setTab('collection')}>Voltar à coleção</button>
+                    <div className={styles.pokemonArtStage}>
+                      <span className={styles.pokemonArtHalo} aria-hidden="true"/>
+                      <PokemonArt id={focused.pokemonId} name={speciesName(focused.pokemonId)} large />
+                      <span className={styles.pokemonArtRing} aria-hidden="true"/>
+                    </div>
+                    <div className={styles.pokemonIdentity}>
+                      <span className={styles.pokemonSpeciesNumber}># {String(focused.pokemonId).padStart(3,'0')} · UID {focused.uid}</span>
+                      <h2>{speciesName(focused.pokemonId)}</h2>
+                      <div className={styles.pokemonChips}>
+                        <span><i className="fa-solid fa-star" aria-hidden="true"/> Nível {focused.level}</span>
+                        <span><i className="fa-solid fa-shield-heart" aria-hidden="true"/> Afinidade {focused.affinity}%</span>
+                        <span><i className="fa-solid fa-users" aria-hidden="true"/> {data.team[0]===focused.uid?'Líder da equipe':data.team.includes(focused.uid)?'Na equipe':'Na coleção'}</span>
+                      </div>
+                      <div className={styles.pokemonAffinity}>
+                        <div><strong>Vínculo com o treinador</strong><span>{focused.affinity}%</span></div>
+                        <div className={styles.pokemonAffinityTrack} role="progressbar" aria-label="Afinidade do Pokémon"
+                          aria-valuemin={0} aria-valuemax={100} aria-valuenow={focused.affinity}>
+                          <span style={{width:focused.affinity+'%'}}/>
+                        </div>
+                        <small>Transferência de atributos: {(affinityRate(focused.affinity)*100).toFixed(1)}%</small>
+                      </div>
+                      <p className={styles.pokemonRole}>{data.team[0]===focused.uid?'Participa da Arena como líder da equipe.'
+                        :data.team.includes(focused.uid)?'Está na equipe, podendo ser escolhido como líder.':'Está na coleção, fora da equipe ativa.'}</p>
+                    </div>
                   </div>
                 </section>
-                <section className={styles.panel}>
-                  <h2>Treinamento Pokémon</h2>
+                <section className={styles.panel} id="pokemon-attributes">
+                  <h2><i className="fa-solid fa-chart-simple" aria-hidden="true"/> Treinamento Pokémon</h2>
                   <p>Pontos disponíveis: <strong>{pokemonBudget - pokemonSpent}</strong> de {pokemonBudget}</p>
                   {!focusedStats && <p>Atributos de batalha desta espécie ainda não constam no catálogo piloto.</p>}
                   <div className={styles.statList}>
@@ -504,6 +534,7 @@ export function PlayApp() {
                       <div className={styles.stat} key={stat}>
                         <span>{STAT_LABELS[stat]}</span>
                         <strong>{focusedStats?.[stat] ?? '—'}</strong>
+                        <span className={styles.pokemonStatTrack} aria-hidden="true"><span style={{width:Math.min(100,((focusedStats?.[stat]??0)/400)*100)+'%'}}/></span>
                         <small>{pokemonManual?.[stat] ?? 0} manual</small>
                         <button type="button" disabled={busy || pokemonSpent >= pokemonBudget}
                           onClick={() => dispatch({type:'pokemon',value:{type:'invest-pokemon',uid:focused.uid,stat}})}
@@ -515,8 +546,8 @@ export function PlayApp() {
                     onClick={() => dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}})}>
                     Redistribuir pontos</button>
                 </section>
-                <section className={styles.panel} aria-label="Evolução do Pokémon">
-                  <h2>Evolução</h2>
+                <section className={styles.panel} id="pokemon-evolution" aria-label="Evolução do Pokémon">
+                  <h2><i className="fa-solid fa-dna" aria-hidden="true"/> Evolução</h2>
                   <p>Seu Pokémon conserva UID, nível, XP, afinidade, pontos e golpes ao evoluir.</p>
                   {focusedEvolutions.length===0
                     ? <p>Nenhuma evolução disponível para esta espécie dentro dos 151 de Kanto.</p>
@@ -564,8 +595,8 @@ export function PlayApp() {
                     nem uma regra definitiva de obtenção de itens. Trocas não estão implementadas.
                     Durante expedições, evolução fica bloqueada.</p>
                 </section>
-                <section className={styles.panel} aria-label="Treinar golpes do Pokémon">
-                  <h2>Golpes do Pokémon</h2>
+                <section className={styles.panel+' '+styles.pokemonMovesPanel} id="pokemon-moves" aria-label="Treinar golpes do Pokémon">
+                  <h2><i className="fa-solid fa-bolt" aria-hidden="true"/> Golpes do Pokémon</h2>
                   <p>Golpes equipados: <strong>{equippedNames.length}/4</strong> ·
                     principal: <strong>{currentMoveName || 'Padrão'}</strong>.
                     A Arena escolhe ataques e pode usar suportes na abertura;
@@ -668,6 +699,7 @@ export function PlayApp() {
                     suporte válido na abertura e depois prioriza dano. Sem PP ou
                     escolha manual por turno na alfa; status são temporários.</p>
                 </section>
+                </div>
               </div>
             )}
 
