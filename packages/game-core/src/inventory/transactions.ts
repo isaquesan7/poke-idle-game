@@ -11,6 +11,8 @@ import {LEGACY_ITEMS} from '../legacy/catalog.js';
 import {LEGACY_EQUIPMENT_SLOTS} from '../legacy/trainerDraft.js';
 import {inspectInventoryOwnership} from './ownership.js';
 import type {InventoryOwnershipV1} from './ownership.js';
+import {canAcquireItemFromSource} from './acquisitionPolicy.js';
+import type {AcquisitionSource} from './acquisitionPolicy.js';
 
 type RecordValue=Record<string,unknown>;
 const isRecord=(v:unknown):v is RecordValue=>v!==null&&typeof v==='object'&&!Array.isArray(v);
@@ -22,8 +24,8 @@ export const INVENTORY_EQUIPMENT_STACK_MAX=99;
 export const INVENTORY_BAG_EXTRA_SLOTS_MAX=1000;
 
 export type InventoryGrant=
-  | {readonly kind:'equipment';readonly eventId:string;readonly itemId:string;readonly count:number}
-  | {readonly kind:'bag-capacity';readonly eventId:string;readonly slots:number};
+  | {readonly kind:'equipment';readonly source:AcquisitionSource;readonly eventId:string;readonly itemId:string;readonly count:number}
+  | {readonly kind:'bag-capacity';readonly source:AcquisitionSource;readonly eventId:string;readonly slots:number};
 
 export interface InventoryGrantReceipt {
   readonly eventId:string;
@@ -70,8 +72,8 @@ export function planLegacyEquipmentMigration(raw:string):
 
 function payload(grant:InventoryGrant):string{
   return grant.kind==='equipment'
-    ? JSON.stringify(['equipment',grant.itemId,grant.count])
-    : JSON.stringify(['bag-capacity',grant.slots]);
+    ? JSON.stringify(['equipment',grant.source,grant.itemId,grant.count])
+    : JSON.stringify(['bag-capacity',grant.source,grant.slots]);
 }
 function journalValid(j:InventoryGrantJournal):boolean{
   if(typeof j?.raw!=='string'||!natural(j.revision)
@@ -96,6 +98,12 @@ export function applyAuthorizedInventoryGrant(
   if(!journalValid(journal)||!natural(expectedRevision)
     ||typeof grant?.eventId!=='string'||!validEventId(grant.eventId))
     return reject('Journal, revisão ou identificador inválido.');
+  // A fonte declarada NÃO autentica o evento: só é aceita após uma futura
+  // validação real de compra. Jamais converter drops/criação em grants da loja.
+  const exclusiveKind=grant.kind==='equipment'?'equipment':
+    grant.kind==='bag-capacity'?'bag-expansion':null;
+  if(!exclusiveKind||!canAcquireItemFromSource(exclusiveKind,grant.source))
+    return reject('Estes itens só podem ser adquiridos por compra na Loja.');
   const fingerprint=payload(grant);
   const existing=journal.receipts.find(r=>r.eventId===grant.eventId);
   if(existing){
