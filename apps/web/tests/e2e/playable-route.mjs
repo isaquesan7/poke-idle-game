@@ -161,6 +161,8 @@ async function exercise(browser, label, viewport) {
   });
   await page.screenshot({path:new URL('pokemon-profile-'+label+'.png',shots).pathname,fullPage:true});
   await page.getByRole('button',{name:'Adicionar ponto em DEF do Pokémon'}).click();
+  // O efeito do golpe só aparece na tela exclusiva de Golpes.
+  await pokemonTabs.getByRole('button',{name:'Golpes'}).click();
   await page.getByText('10% de queimadura').waitFor();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===2,SAVE);
   snapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
