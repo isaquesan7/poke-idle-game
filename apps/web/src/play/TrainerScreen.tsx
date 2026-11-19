@@ -5,7 +5,7 @@
  */
 import {useState} from 'react';
 import {
-  LEGACY_BADGES, LEGACY_EQUIPMENT_SLOTS, LEGACY_ITEMS, STATS
+  LEGACY_BADGES, LEGACY_EQUIPMENT_SLOTS, LEGACY_ITEMS, LEGACY_TITLES, legacyTitleIsUnlocked, STATS
 } from '@kanto/game-core';
 import type {EquipmentSlot, Stat, StatValues} from '@kanto/game-core';
 import type {TrainerViewModel} from '../features/trainer/legacyProjection';
@@ -21,18 +21,10 @@ const SLOT_NAMES:Readonly<Record<EquipmentSlot,string>>={
   shoes:'Sapatos',necklace:'Colar',ring1:'Anel 1',ring2:'Anel 2',
   earrings:'Brincos'
 };
-const SLOT_ICONS:Readonly<Record<EquipmentSlot,string>>={
-  hat:'🧢',jacket:'🧥',gloves:'🧤',pants:'👖',
-  shoes:'👟',necklace:'📿',ring1:'💍',ring2:'💍',earrings:'💠'
-};
-const BADGE_ICONS:Readonly<Record<string,string>>={
-  boulder:'⬡',cascade:'💧',thunder:'ϟ',rainbow:'🌈',
-  soul:'♥',marsh:'✦',volcano:'▲',earth:'◉'
-};
-const STAT_ICONS:Readonly<Record<Stat,string>>={
-  hp:'♡',attack:'⚔',defense:'⬟',specialAttack:'✺',
-  specialDefense:'◇',speed:'»'
-};
+const SLOT_ICONS:Readonly<Record<EquipmentSlot,string>>={hat:'fa-hat-cowboy',jacket:'fa-vest',gloves:'fa-mitten',pants:'fa-person',shoes:'fa-shoe-prints',necklace:'fa-gem',ring1:'fa-ring',ring2:'fa-ring',earrings:'fa-gem'};
+const BADGE_ICONS:Readonly<Record<string,string>>={boulder:'fa-mountain',cascade:'fa-droplet',thunder:'fa-bolt',rainbow:'fa-rainbow',soul:'fa-heart',marsh:'fa-water',volcano:'fa-fire',earth:'fa-earth-americas'};
+const STAT_ICONS:Readonly<Record<Stat,string>>={hp:'fa-heart-pulse',attack:'fa-khanda',defense:'fa-shield-halved',specialAttack:'fa-wand-magic-sparkles',specialDefense:'fa-shield-heart',speed:'fa-angles-right'};
+function Fa({name}:{name:string}){return <i className={'fa-solid '+name} aria-hidden="true"/>;}
 function bonusLabel(stats:Partial<StatValues>):string{
   return STATS.filter(stat=>stats[stat]).map(stat=>STAT_LABELS[stat]+' +'+stats[stat]).join(' · ');
 }
@@ -43,8 +35,9 @@ export interface TrainerScreenProps{
   busy:boolean;
   onInvest:(increments:Draft,revision:number)=>Promise<boolean>;
   onEquip:(slot:EquipmentSlot,itemId:string)=>void;
+  onTitle:(titleId:string)=>void;
 }
-export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:TrainerScreenProps){
+export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}:TrainerScreenProps){
   const [section,setSection]=useState<Section>('profile');
   const [draft,setDraft]=useState<Draft>({});
   const [draftRevision,setDraftRevision]=useState(revision);
@@ -56,6 +49,9 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
   const remaining=Math.max(0,view.unspent-pendingCount);
   const equipped=(data.trainer.equipped??{}) as Record<string,string>;
   const stoneStock=(data.evolutionStones??{}) as Record<string,number>;
+  const badgeCount=Array.isArray(data.badges)?data.badges.length:0;
+  const seenCount=Array.isArray(data.seen)?data.seen.length:0;
+  const totalWins=Number.isSafeInteger(data.wins)?data.wins:0;
 
   function stage(stat:Stat){
     if(busy||submitting||remaining<=0||view.manual[stat]+(pending[stat]??0)>=40)return;
@@ -83,18 +79,18 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
   return <section className={styles.screen} aria-label="Perfil do treinador">
     <div className={styles.heading}>
       <div><span className={styles.eyebrow}>TREINADOR · KANTO</span>
-        <h2>Seu treinador</h2>
+        <h2><Fa name="fa-user-astronaut"/> Seu treinador</h2>
         <p>Equipe-se, distribua atributos e acompanhe suas conquistas.</p>
       </div>
     </div>
     <nav className={styles.tabs} aria-label="Seções do treinador">
       {([
-        ['profile','♙','Perfil'],['equipment','▱','Equipamentos'],['bag','▣','Mochila']
+        ['profile','fa-user','Perfil'],['equipment','fa-layer-group','Equipamentos'],['bag','fa-bag-shopping','Mochila']
       ] as const).map(([key,icon,label])=>
         <button type="button" key={key} aria-current={section===key?'page':undefined}
           className={section===key?styles.tabActive:styles.tab}
           onClick={()=>setSection(key)}>
-          <span aria-hidden="true">{icon}</span>{label}
+          <Fa name={icon}/>{label}
         </button>
       )}
     </nav>
@@ -113,7 +109,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
             aria-valuenow={view.xpNext===null?1:view.xp}>
             <span style={{width:(view.xpNext===null?100:Math.min(100,view.xp/view.xpNext*100))+'%'}}/>
           </div>
-          <div className={styles.portraitArea}>
+          <div className={styles.portraitArea}><div className={styles.stageGrid} aria-hidden="true"/>
             <div className={styles.portraitHalo} aria-hidden="true"/>
             <div className={styles.ring} aria-hidden="true"/>
             {!portraitMissing
@@ -136,13 +132,13 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
       </div>
       <div className={styles.column}>
         <section className={styles.panel}>
-          <div className={styles.sectionHeader}><h3>✧ Atributos do treinador</h3>
+          <div className={styles.sectionHeader}><h3><Fa name="fa-chart-simple"/> Atributos do treinador</h3>
             <span className={styles.smallTag}>Prévia antes de confirmar</span></div>
           <div className={styles.stats}>
             {STATS.map(stat=>{
               const next=view.totals[stat]+(pending[stat]??0);
               return <div className={styles.stat} key={stat}>
-                <span className={styles.statLabel}><i aria-hidden="true">{STAT_ICONS[stat]}</i>{STAT_LABELS[stat]}</span>
+                <span className={styles.statLabel}><Fa name={STAT_ICONS[stat]}/>{STAT_LABELS[stat]}</span>
                 <div className={styles.track} aria-hidden="true">
                   <span className={styles.trackPreview} style={{width:Math.max(3,Math.min(100,next/50*100))+'%'}}/>
                   <span className={styles.trackCurrent} style={{width:Math.max(3,Math.min(100,view.totals[stat]/50*100))+'%'}}/>
@@ -174,11 +170,25 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
           </div>}
         </section>
         <section className={styles.panel}>
-          <h3>♧ Títulos e Insígnias</h3>
+          <h3><Fa name="fa-medal"/> Títulos e Insígnias</h3>
           <div className={styles.titleActive}>
-            <span className={styles.titleGlyph} aria-hidden="true">✦</span>
+            <span className={styles.titleGlyph}><Fa name="fa-award"/></span>
             <span><small>TÍTULO ATIVO</small><strong>{view.title.name}</strong></span>
           </div>
+          <label className={styles.titleLabel} htmlFor="trainer-active-title">Escolha seu título</label>
+          <select id="trainer-active-title" className={styles.titleSelect} aria-label="Título ativo do treinador"
+            disabled={busy||submitting} value={view.title.id}
+            onChange={event=>onTitle(event.target.value)}>
+            {LEGACY_TITLES.map(title=>{
+              const unlocked=legacyTitleIsUnlocked(title.id,totalWins,seenCount,badgeCount);
+              const requirement=title.id==='veterano'?'4 vitórias':title.id==='explorador'?'10 vistos':
+                title.id==='mestre'?'8 insígnias':'Inicial';
+              return <option key={title.id} value={title.id} disabled={!unlocked}>
+                {title.name}{unlocked?'':' · Bloqueado ('+requirement+')'}
+              </option>;
+            })}
+          </select>
+          <p className={styles.titleHint}>Somente títulos desbloqueados podem ser usados. O bônus do título ativo é aplicado automaticamente.</p>
           <p className={styles.hint}>As insígnias conquistadas concedem bônus permanentes ao treinador.</p>
           <div className={styles.badgeHeading}>Insígnias ({view.badges.length}/8)</div>
           <div className={styles.badges}>
@@ -187,7 +197,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
               return <div key={badge.id} className={won?styles.badgeWon:styles.badgeLocked}
                 tabIndex={0} title={badge.name+' · '+badge.wins+' vitórias · '+bonusLabel(badge.stats)}
                 aria-label={badge.name+(won?' conquistada':' bloqueada')+'. '+badge.wins+' vitórias'}>
-                <span aria-hidden="true">{BADGE_ICONS[badge.id]??'◆'}</span>
+                <span><Fa name={BADGE_ICONS[badge.id]??'fa-medal'}/></span>
                 <strong>{badge.name}</strong><small>{badge.wins} vitória(s)</small>
               </div>;
             })}
@@ -202,7 +212,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
         O sistema de obtenção e propriedade dos itens ainda está em desenvolvimento.</p>
       <div className={styles.equipmentGrid}>
         {LEGACY_EQUIPMENT_SLOTS.map(slot=><label className={styles.equipField} key={slot}>
-          <span aria-hidden="true">{SLOT_ICONS[slot]}</span>
+          <span><Fa name={SLOT_ICONS[slot]}/></span>
           <strong>{SLOT_NAMES[slot]}</strong>
           <select aria-label={'Equipamento: '+slot} value={equipped[slot]||''}
             disabled={busy} onChange={event=>onEquip(slot,event.target.value)}>
@@ -217,13 +227,13 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip}:Trainer
     </section>}
 
     {section==='bag'&&<section className={styles.panel}>
-      <div className={styles.sectionHeader}><h3>▣ Mochila</h3><span className={styles.smallTag}>Itens do progresso</span></div>
+      <div className={styles.sectionHeader}><h3><Fa name="fa-bag-shopping"/> Mochila</h3><span className={styles.smallTag}>Itens do progresso</span></div>
       <p className={styles.hint}>Itens reais do progresso atual. Cura, Pokébolas e TMs
         aparecerão aqui quando seus sistemas de obtenção e consumo estiverem disponíveis.</p>
       <div className={styles.bagList}>
         {Object.entries(stoneStock).filter(([,qty])=>Number.isSafeInteger(qty)&&qty>0)
           .map(([name,qty])=><div className={styles.bagItem} key={name}>
-            <span aria-hidden="true">◆</span><strong>{name.replaceAll('-',' ')}</strong><small>×{qty}</small>
+            <span><Fa name="fa-gem"/></span><strong>{name.replaceAll('-',' ')}</strong><small>×{qty}</small>
           </div>)}
         {!Object.values(stoneStock).some(q=>Number.isSafeInteger(q)&&q>0)
           &&<p>Você ainda não possui itens para exibir.</p>}
@@ -236,7 +246,7 @@ function GearCard({slot,selected}:{slot:EquipmentSlot;selected:string|undefined}
   const description=item?item.name+' · '+bonusLabel(item.stats):SLOT_NAMES[slot]+' · Vazio';
   return <button type="button" className={styles.gear} title={description}
     aria-label={description}>
-    <span className={styles.gearIcon} aria-hidden="true">{SLOT_ICONS[slot]}</span>
+    <span className={styles.gearIcon}><Fa name={SLOT_ICONS[slot]}/></span>
     <span className={styles.gearName}>{item?.name??SLOT_NAMES[slot]}</span>
     <span className={styles.tooltip} aria-hidden="true">{item?bonusLabel(item.stats):'Sem equipamento'}</span>
   </button>;
