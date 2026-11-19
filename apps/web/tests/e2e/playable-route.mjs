@@ -281,13 +281,16 @@ async function exercise(browser, label, viewport) {
   assert.equal(await page.evaluate(()=>window.__battleSpriteIdentity===
     document.querySelector('[data-testid="battle-visual-player"] img')),true,
   'o GIF deve permanecer montado mesmo após outra ação');
-  // Se o segundo avanço foi o último, reassistir é 100% visual e read-only.
-  if(!(await page.getByRole('button',{name:'Continuar'}).count())){
+  // D-054: em batalhas curtas, o segundo avanço pode concluir o log,
+  // mantendo controles desabilitados por um render. Checar disponibilidade,
+  // não apenas a existência do botão, antes do teste de leitura assistiva.
+  const assistiveButton=page.getByRole('button',{name:'Ativar leitura assistiva'});
+  if(!(await assistiveButton.isEnabled().catch(()=>false))){
     await page.getByRole('button',{name:'Reassistir à batalha'}).click();
     await page.getByRole('button',{name:'Pausar'}).click();
     await page.getByRole('button',{name:'Continuar'}).waitFor();
   }
-  await page.getByRole('button',{name:'Ativar leitura assistiva'}).click();
+  await assistiveButton.click();
   await page.getByRole('button',{name:'Desativar leitura assistiva'}).waitFor();
   assert.equal(await page.getByTestId('battle-screenreader-status').getAttribute('aria-live'),'polite');
   await page.getByRole('button',{name:'Continuar'}).click();
