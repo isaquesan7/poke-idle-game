@@ -20,6 +20,20 @@
   --color-danger: #fc7c86;
   --color-affinity: #b49aff;
   --color-white: #ffffff;
+  /* D-051: iluminação do perfil inspirada no mockup, derivada da paleta Kanto. */
+  --trainer-glow-cyan: rgba(105,214,229,.35);
+  --trainer-glow-cyan-soft: rgba(105,214,229,.15);
+  --trainer-glow-violet: rgba(180,154,255,.30);
+  --trainer-glow-violet-soft: rgba(180,154,255,.12);
+  --trainer-glow-deep-blue: rgba(56,112,192,.27);
+  --trainer-stage-surface: rgba(18,31,58,.88);
+  --trainer-stage-grid: rgba(105,214,229,.08);
+  --trainer-card-border: rgba(117,162,231,.46);
+  --trainer-card-highlight: rgba(105,214,229,.20);
+  --trainer-card-bottom: rgba(180,154,255,.11);
+  --trainer-shadow-depth: rgba(4,8,23,.62);
+  --trainer-shadow-cyan: 0 0 22px rgba(105,214,229,.15);
+  --trainer-shadow-pink: 0 0 28px rgba(180,154,255,.18);
   /* Escala de espaçamentos (4px), usada em grids, margens e paddings. */
   --space-1: 4px;
   --space-2: 8px;
