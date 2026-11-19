@@ -46,7 +46,7 @@ export function InventoryGrid({title,items,capacity,onSelect,actionLabel,emptyLa
     <div className={styles.grid}>
       {slots.map((item,index)=>item
         ? <button key={item.id} type="button" data-testid={'inventory-item-'+item.id}
-          onClick={()=>{setSelected(current=>current===item.id?null:item.id);onSelect?.(item.id);}}
+          onClick={()=>{if(onSelect){setSelected(null);onSelect(item.id);}else setSelected(current=>current===item.id?null:item.id);}}
           className={selected===item.id?styles.slotSelected:styles.slotFilled}
           aria-label={actionLabel? actionLabel(item):item.name+', quantidade '+item.quantity+', '+item.description}
           title={item.name}>
