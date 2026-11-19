@@ -1,3 +1,13 @@
+# D-056 — melhorias no Pokémon
+
+## D-056 — refinamento das telas Pokémon (19/11/2026, BRANCH, NÃO PUBLICADA)
+- Perfil: informações/arte do Pokémon e Treinamento lado a lado no desktop, com empilhamento no mobile e tokens do root. Identidade, GIF, UID e afinidade preservados.
+- Treino: novo PokemonTraining.tsx com prévia, desfazer, cancelar, confirmação e aviso por revisão stale, isolado por UID. Writer pokemon-invest-batch agrega múltiplos pontos em UM commit/revisão, revalidando todos pelo reducer core. Não modifica orçamento, limite, atributos, regras de combate ou save schema2.
+- Evolução: nova frase 'Treine seu Pokémon para que ele possa evoluir.'; retirados kit de pedras e indicação de estoque da interface. Requisitos genuínos, condições e consumo de pedras continuam no writer.
+- Golpes: removidas explicações técnicas internas, reorganizados em Golpes equipados (até quatro slots, vazios visíveis) e Golpes aprendidos (ataque/suporte), com ícones, cards, indicador de principal/equipado e botões de ação aprimorados. Writers e lógica de golpes preservados.
+- Novo teste de domínio apps/web/src/play/pokemonBatch.test.ts e regressão Playwright com previews/undo/cancel sem save + confirmação em uma revisão, layout PC/mobile e alterações de texto. Escopo detalhado em docs/POKEMON_UI_D056.md.
+- Itemização, raridades, crafting, drop, loja e D054 PR #78 seguem pendentes e separados; não alterar TM09, v0.1, save key/schema, GIFs, avatar nem isaquesan7/pokedex. Publicar somente após testes e autorização.
+
 # D-055B — telas Pokémon separadas
 
 ## D-055B — separação visual da tela Pokémon (19/11/2026, PR #79 sem publicação)
@@ -292,3 +302,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Cobertura E2E D052 ampliada: em contextos independentes desktop/mobile, usar o modal para **Equipar** o Boné de Kanto (revisão +1) e **Remover** (revisão +1), conferir `trainer.equipped.hat`, moedas, equipe e título preservados; além de confirmar Cancela sem gravação no fluxo principal. Não altera a fonte de estoque/ownership existente.
 
 - **D053 gate opt-in conectado (sem migração/concessão):** se o JSON `journal.raw` possui `inventory:{version:1,ownedEquipment,extraBagSlots}` válido, `TrainerScreen` lista apenas equipamentos com quantidade positiva, exibe `10+extraBagSlots` de capacidade e `editLegacyTrainerJson` + `validLegacyTrainerDraft` impedem equipar qualquer item não possuído. Ledger corrompido bloqueia equipagem. Saves sem campo `inventory` preservam laboratório e os equipamentos antes equipados; NÃO adicionamos automaticamente nenhum ledger ou item. O limite de capacidade continua informativo até writer de aquisição; expandir de fato depende de fonte de recompensa autorizada. Testes unitários contra forgery e E2E desktop/mobile com fixture de ledger injetado apenas no teste.
+
+- Ajuste de precisão D056: a prévia de status Pokémon usa obrigatoriamente pokemonFinalStats do game-core sobre os pontos manuais projetados, inclusive HP (+2 finais por ponto manual) e contribuições do Treinador/afinidade; evita prévia numérica linear incorreta. E2E confirma HP preview +2, desfaz e garante zero escrita antes do commit.
+
+- E2E D056: jornada de dois Pidgey independentes por UID atualizada para usar prévia + confirmação de SPD (não mais incremento imediato). Confirma revisão intacta antes do commit, depois incremento somente no UID selecionado, preservando o primeiro exemplar.

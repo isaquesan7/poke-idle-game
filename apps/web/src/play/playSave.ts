@@ -35,6 +35,7 @@ export type PlayAction =
   | { readonly type: 'trainer'; readonly value: TrainerDraftAction }
   | { readonly type: 'pokemon'; readonly value: LegacyPokemonTeamAction }
   | { readonly type: 'trainer-invest-batch'; readonly increments: Readonly<Partial<Record<keyof StatValues, number>>> }
+  | { readonly type: 'pokemon-invest-batch'; readonly uid:number; readonly increments: Readonly<Partial<Record<keyof StatValues,number>>> }
   | { readonly type: 'battle'; readonly seed: number }
   | { readonly type: 'evolution'; readonly uid:number; readonly targetSpeciesId:number }
   | { readonly type: 'evolution-test-kit' }
@@ -293,6 +294,26 @@ export function updatePlaySave(
       }
     }
     next = {...journal,raw:candidate};
+  } else if (action.type === 'pokemon-invest-batch') {
+    // D-056: um lote, um commit. O UID e todos os incrementos são
+    // revalidados pelo reducer de domínio sobre o JSON candidato. Qualquer
+    // falha devolve blocked sem gravar absolutamente nenhum ponto.
+    const requested=Object.entries(action.increments) as [keyof StatValues,number][];
+    if(!Number.isSafeInteger(action.uid)||action.uid<1||
+      requested.length===0||requested.some(([stat,count])=>
+        !STATS.includes(stat)||!Number.isSafeInteger(count)||count<1||count>198
+      ))return{status:'blocked',reason:'Distribuição Pokémon inválida.'};
+    let candidate=journal.raw;
+    for(const [stat,count] of requested){
+      for(let i=0;i<count;i++){
+        const result=reduceLegacyPokemonTeamJson(candidate,{
+          type:'invest-pokemon',uid:action.uid,stat
+        });
+        if(result.status!=='ok')return{status:'blocked',reason:result.reason};
+        candidate=result.json;
+      }
+    }
+    next={...journal,raw:candidate};
   } else if (action.type === 'move') {
     // O cliente NÃO fornece lista de golpes, poder ou elegibilidade.
     // Este writer deriva do snapshot FireRed/LeafGreen e do UID real.

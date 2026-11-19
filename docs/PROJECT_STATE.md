@@ -862,3 +862,15 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Menu interno agora é exclusivamente `Perfil | Evolução | Golpes` com botões/abas acessíveis, não âncoras; renderiza **somente a seção selecionada**, jamais os três painéis de uma vez. Perfil mostra GIF original/identidade/afinidade/atributos; Evolução mostra apenas requisitos e controles de evolução; Golpes apenas slots/PP/SP/ranks e treino de golpes.
 - Navegação por essas telas não altera save/revisão. Menu principal Pokémon e abrir UID pela Coleção retornam à seção Perfil. Atualizados PlayApp.tsx e PlayApp.module.css com estilo de aba selecionada, painéis de largura total e regras mobile, sempre reutilizando tokens Kanto Dark.
 - E2E Playwright reforçado: ausência de seções ocultas, captura das três telas desktop/mobile e preservação dos cenários existentes de evolução, reabertura por UID e treino de golpes. Mais detalhes em docs/POKEMON_UI_D055.md. Loja/drop/crafting, catálogo de itens e D054 PR #78 continuam PENDENTES e independentes.
+
+## D-056 — refinamento das telas Pokémon (19/11/2026, BRANCH, NÃO PUBLICADA)
+- Perfil: informações/arte do Pokémon e Treinamento lado a lado no desktop, com empilhamento no mobile e tokens do root. Identidade, GIF, UID e afinidade preservados.
+- Treino: novo PokemonTraining.tsx com prévia, desfazer, cancelar, confirmação e aviso por revisão stale, isolado por UID. Writer pokemon-invest-batch agrega múltiplos pontos em UM commit/revisão, revalidando todos pelo reducer core. Não modifica orçamento, limite, atributos, regras de combate ou save schema2.
+- Evolução: nova frase 'Treine seu Pokémon para que ele possa evoluir.'; retirados kit de pedras e indicação de estoque da interface. Requisitos genuínos, condições e consumo de pedras continuam no writer.
+- Golpes: removidas explicações técnicas internas, reorganizados em Golpes equipados (até quatro slots, vazios visíveis) e Golpes aprendidos (ataque/suporte), com ícones, cards, indicador de principal/equipado e botões de ação aprimorados. Writers e lógica de golpes preservados.
+- Novo teste de domínio apps/web/src/play/pokemonBatch.test.ts e regressão Playwright com previews/undo/cancel sem save + confirmação em uma revisão, layout PC/mobile e alterações de texto. Escopo detalhado em docs/POKEMON_UI_D056.md.
+- Itemização, raridades, crafting, drop, loja e D054 PR #78 seguem pendentes e separados; não alterar TM09, v0.1, save key/schema, GIFs, avatar nem isaquesan7/pokedex. Publicar somente após testes e autorização.
+
+- Ajuste de precisão D056: a prévia de status Pokémon usa obrigatoriamente pokemonFinalStats do game-core sobre os pontos manuais projetados, inclusive HP (+2 finais por ponto manual) e contribuições do Treinador/afinidade; evita prévia numérica linear incorreta. E2E confirma HP preview +2, desfaz e garante zero escrita antes do commit.
+
+- E2E D056: jornada de dois Pidgey independentes por UID atualizada para usar prévia + confirmação de SPD (não mais incremento imediato). Confirma revisão intacta antes do commit, depois incremento somente no UID selecionado, preservando o primeiro exemplar.
