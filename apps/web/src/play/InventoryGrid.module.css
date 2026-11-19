@@ -45,3 +45,9 @@
 .slotSelected .tooltip,.slotSelected:focus-visible .tooltip{display:block}
 .slotSelected:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
 @media(max-width:550px){.slotSelected{min-height:52px}}
+
+
+/* D-052 QA desktop: cubos COMPACTOS como na referência de inventário. */
+.grid{grid-template-columns:repeat(auto-fill,minmax(60px,78px));justify-content:start;gap:var(--space-2)}
+@media(max-width:550px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:360px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
