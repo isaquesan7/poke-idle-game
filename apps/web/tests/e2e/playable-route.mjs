@@ -126,7 +126,43 @@ async function exercise(browser, label, viewport) {
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===1,SAVE);
   assert.equal(await page.getByText('Progresso salvo neste navegador.').count(),0);
   await page.getByRole('button',{name:'Pokémon',exact:true}).click();
+  // D-055: perfil novo usa GIF original e mantém comandos de progresso inalterados.
+  await page.getByRole('heading',{name:'Perfil do Pokémon'}).waitFor();
+  const pokemonProfile=page.locator('[class*="pokemonWorkspace"]');
+  await pokemonProfile.getByRole('img',{name:/charmander/i}).waitFor();
+  await page.getByRole('progressbar',{name:'Afinidade do Pokémon'}).waitFor();
+  const pokemonTabs=pokemonProfile.getByRole('navigation',{name:'Seções do Pokémon'});
+  assert.equal(await pokemonTabs.getByRole('button').count(),3);
+  assert.equal(await pokemonTabs.getByRole('button',{name:'Perfil'}).getAttribute('aria-current'),'page');
+  assert.equal(await page.locator('#pokemon-attributes').count(),1);
+  assert.equal(await page.locator('#pokemon-evolution').count(),0);
+  assert.equal(await page.locator('#pokemon-moves').count(),0);
+  const untouchedRevision=(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision;
+  await pokemonTabs.getByRole('button',{name:'Evolução'}).click();
+  await page.getByRole('region',{name:'Evolução do Pokémon'}).waitFor();
+  assert.equal(await page.locator('#pokemon-attributes').count(),0);
+  assert.equal(await page.locator('#pokemon-moves').count(),0);
+  assert.equal(await page.locator('[class*="pokemonHero"]').count(),0);
+  await page.screenshot({path:new URL('pokemon-evolution-'+label+'.png',shots).pathname,fullPage:true});
+  await pokemonTabs.getByRole('button',{name:'Golpes'}).click();
+  await page.getByRole('region',{name:'Treinar golpes do Pokémon'}).waitFor();
+  assert.equal(await page.locator('#pokemon-attributes').count(),0);
+  assert.equal(await page.locator('#pokemon-evolution').count(),0);
+  await page.screenshot({path:new URL('pokemon-moves-'+label+'.png',shots).pathname,fullPage:true});
+  await pokemonTabs.getByRole('button',{name:'Perfil'}).click();
+  await page.locator('#pokemon-attributes').waitFor();
+  assert.equal(await page.locator('#pokemon-evolution').count(),0);
+  assert.equal(await page.locator('#pokemon-moves').count(),0);
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,untouchedRevision,
+    'Trocar telas Pokémon não pode gerar revisão no save');
+  await page.waitForFunction(()=>{
+    const hero=document.querySelector('[class*="pokemonHero"] img');
+    return hero?.complete && hero.naturalWidth>0;
+  });
+  await page.screenshot({path:new URL('pokemon-profile-'+label+'.png',shots).pathname,fullPage:true});
   await page.getByRole('button',{name:'Adicionar ponto em DEF do Pokémon'}).click();
+  // O efeito do golpe só aparece na tela exclusiva de Golpes.
+  await pokemonTabs.getByRole('button',{name:'Golpes'}).click();
   await page.getByText('10% de queimadura').waitFor();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===2,SAVE);
   snapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
@@ -460,7 +496,7 @@ async function exercise(browser, label, viewport) {
   assert.equal(await first.count(),0);
   await page.getByRole('button',{name:'Todos',exact:true}).click();
   await second.getByRole('button',{name:'Treinar UID '+secondUid}).click();
-  await page.getByText('Instância UID #'+secondUid).waitFor();
+  await page.getByText('UID '+secondUid,{exact:false}).waitFor();
   await page.getByRole('button',{name:'Adicionar ponto em SPD do Pokémon'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===10,SAVE);
   teamSnapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
@@ -490,6 +526,7 @@ async function exercise(browser, label, viewport) {
 
   // Aprendizado FRLG e rank: Pokémon em equipe permanece com UID original.
   await page.getByRole('button',{name:'Pokémon',exact:true}).click();
+  await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Golpes'}).click();
   await page.getByRole('heading',{name:'Golpes do Pokémon'}).waitFor();
   await page.getByRole('button',{name:'Equipar golpe tackle'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===12,SAVE);
@@ -512,6 +549,7 @@ async function exercise(browser, label, viewport) {
   await page.reload();
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await page.getByTestId('pokemon-uid-'+firstUid).getByRole('button',{name:'Treinar UID '+firstUid}).click();
+  await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Evolução'}).click();
   await page.getByRole('heading',{name:'Evolução'}).waitFor();
   page.once('dialog',dialog=>void dialog.accept());
   await page.getByRole('button',{name:'Evoluir para Pidgeotto'}).click();
@@ -532,6 +570,7 @@ async function exercise(browser, label, viewport) {
   // Montagem de 2 golpes no Charmander original, preservando o UID já testado.
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Treinar UID 1'}).click();
+  await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Golpes'}).click();
   await page.getByRole('heading',{name:'Golpes do Pokémon'}).waitFor();
   await page.getByRole('button',{name:'Adicionar golpe growl'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===15,SAVE);
@@ -544,6 +583,7 @@ async function exercise(browser, label, viewport) {
   await page.reload();
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Treinar UID 1'}).click();
+  await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Golpes'}).click();
   assert.equal(await page.getByTestId('equipped-moves').getByText(/growl/).count(),1);
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1 pela coleção',exact:true}).click();
@@ -648,6 +688,7 @@ async function exerciseNewMoves(browser,label,viewport){
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await page.getByTestId('pokemon-uid-'+uids.recoverUid)
     .getByRole('button',{name:'Treinar UID '+uids.recoverUid}).click();
+  await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Golpes'}).click();
   await page.getByRole('heading',{name:'Golpes do Pokémon'}).waitFor();
   await page.getByRole('button',{name:'Adicionar golpe recover'}).click();
   await page.getByTestId('equipped-moves').getByText('recover').waitFor();
@@ -655,6 +696,7 @@ async function exerciseNewMoves(browser,label,viewport){
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await page.getByTestId('pokemon-uid-'+uids.kickUid)
     .getByRole('button',{name:'Treinar UID '+uids.kickUid}).click();
+  await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Golpes'}).click();
   await page.getByRole('button',{name:'Adicionar golpe double-kick'}).click();
   await page.getByTestId('equipped-moves').getByText('double-kick').waitFor();
   await page.getByRole('button',{name:'Retirar golpe tackle'}).click();

@@ -607,3 +607,97 @@
  .menuItem,.menuActive{gap:var(--space-2)}
  .topbar{padding-bottom:var(--space-3)}
 }
+
+
+/* D-055 · Tela Pokémon — mesmo vocabulário visual do Treinador.
+   Cor, brilho, sombras, cantos e escalas são SEMPRE variáveis do :root. */
+.pokemonWorkspace{display:grid;align-content:start;gap:var(--space-5);min-width:0}
+.pokemonHeading{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:var(--space-4)}
+.pokemonHeading h2{font-size:clamp(1.5rem,2.8vw,2rem);letter-spacing:-.035em;margin:var(--space-1) 0;font-weight:850}
+.pokemonHeading p{margin:0;color:var(--color-text-muted);font-size:.86rem;max-width:55rem}
+.pokemonEyebrow{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--color-primary);font-size:.72rem;letter-spacing:.12em;font-weight:800}
+.pokemonHeading button i{margin-right:var(--space-2)}
+.pokemonQuickNav{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
+.pokemonQuickNav a{min-height:52px;display:flex;align-items:center;justify-content:center;gap:var(--space-3);border:1px solid var(--trainer-card-border);background:linear-gradient(135deg,var(--color-surface-raised),var(--trainer-stage-surface));box-shadow:inset 0 1px 0 var(--trainer-card-highlight),0 8px 18px var(--trainer-shadow-depth);color:var(--color-text);border-radius:var(--radius-control);font-weight:750;text-decoration:none;transition:border-color var(--duration-fast),box-shadow var(--duration-fast)}
+.pokemonQuickNav a i{color:var(--color-primary);font-size:1.15rem;filter:drop-shadow(0 0 8px var(--trainer-glow-cyan))}
+.pokemonQuickNav a:hover,.pokemonQuickNav a:focus-visible{border-color:var(--color-primary);box-shadow:0 0 20px var(--trainer-glow-cyan)}
+.pokemonQuickNav a:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.pokemonGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-5);align-items:start}
+.pokemonGrid>.panel,.pokemonHero{min-width:0;border:1px solid var(--trainer-card-border);border-radius:var(--radius-panel);background:radial-gradient(ellipse at 100% 100%,var(--trainer-card-bottom),transparent 55%),linear-gradient(155deg,var(--color-panel-gradient-1),var(--color-panel-gradient-2));box-shadow:inset 0 1px 0 var(--trainer-card-highlight),0 12px 30px var(--trainer-shadow-depth),var(--trainer-shadow-cyan)}
+.pokemonGrid>.panel{padding:clamp(var(--space-4),2.3vw,var(--space-6))}
+.pokemonGrid>.panel h2{display:flex;align-items:center;gap:var(--space-3);font-size:1.13rem;letter-spacing:-.02em}
+.pokemonGrid>.panel h2 i{color:var(--color-primary);filter:drop-shadow(0 0 7px var(--trainer-glow-cyan))}
+.pokemonGrid>.panel:target{border-color:var(--color-primary)}
+.pokemonHero{grid-column:1/-1;overflow:hidden;padding:var(--space-4)}
+.pokemonShowcase{display:grid;grid-template-columns:minmax(220px,.84fr) minmax(0,1.16fr);gap:clamp(var(--space-4),3vw,var(--space-8));align-items:center;text-align:left;min-height:315px}
+.pokemonArtStage{position:relative;isolation:isolate;min-height:305px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 60%,var(--trainer-glow-deep-blue),transparent 68%)}
+.pokemonArtStage::before{content:"";position:absolute;z-index:0;inset:13% 17%;border-radius:50%;border:1px solid var(--trainer-glow-cyan-soft);box-shadow:inset 0 0 35px var(--trainer-glow-deep-blue),0 0 32px var(--trainer-glow-deep-blue)}
+.pokemonArtStage .pokemonLarge{position:relative;z-index:2;width:min(100%,300px);height:285px;object-fit:contain;filter:drop-shadow(0 15px 15px var(--trainer-shadow-depth)) drop-shadow(0 0 15px var(--trainer-glow-violet))}
+.pokemonArtHalo{pointer-events:none;position:absolute;inset:3% 16%;border:1px solid var(--trainer-card-border);border-radius:50%;box-shadow:0 0 25px var(--trainer-glow-cyan-soft),inset 0 0 22px var(--trainer-glow-violet-soft)}
+.pokemonArtRing{position:absolute;z-index:1;left:18%;right:18%;bottom:4%;height:35px;border:2px solid var(--color-primary);border-radius:50%;box-shadow:0 0 22px var(--trainer-glow-cyan),0 0 27px var(--trainer-glow-violet);transform:perspective(180px) rotateX(50deg)}
+.pokemonIdentity{min-width:0;display:grid;align-content:center;gap:var(--space-3);padding:var(--space-3) var(--space-4)}
+.pokemonIdentity h2{font-size:clamp(1.7rem,3vw,2.4rem);letter-spacing:-.03em;margin:0;font-weight:850;text-transform:capitalize}
+.pokemonSpeciesNumber{font-size:.75rem;color:var(--color-primary);letter-spacing:.1em;font-weight:750}
+.pokemonChips{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.pokemonChips span{display:inline-flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);background:var(--trainer-glow-cyan-soft);border:1px solid var(--trainer-card-border);border-radius:var(--radius-pill);font-size:.79rem;font-weight:700}
+.pokemonChips i{color:var(--color-primary)}
+.pokemonAffinity{display:grid;gap:var(--space-2);max-width:400px}
+.pokemonAffinity>div:first-child{display:flex;justify-content:space-between;gap:var(--space-3);font-size:.83rem}
+.pokemonAffinity>div:first-child>span{font-weight:800;color:var(--color-primary)}
+.pokemonAffinity small{font-size:.78rem;color:var(--color-text-muted)}
+.pokemonAffinityTrack{height:10px;overflow:hidden;border-radius:var(--radius-pill);background:var(--color-surface);border:1px solid var(--trainer-card-border)}
+.pokemonAffinityTrack span{display:block;height:100%;background:linear-gradient(90deg,var(--color-affinity),var(--color-primary));box-shadow:0 0 11px var(--trainer-glow-violet);transition:width var(--duration-fast)}
+.pokemonRole{margin:0!important;color:var(--color-text-muted);font-size:.82rem}
+.pokemonWorkspace .stat{grid-template-columns:minmax(50px,.75fr) 55px minmax(55px,1.2fr) 75px 44px;gap:var(--space-2);min-height:48px;border-color:var(--trainer-card-border)}
+.pokemonWorkspace .stat>span:first-child{font-weight:700;font-size:.79rem}
+.pokemonWorkspace .stat strong{font-variant-numeric:tabular-nums}
+.pokemonStatTrack{height:7px;overflow:hidden;border-radius:var(--radius-pill);background:var(--color-surface);border:1px solid var(--trainer-card-border)}
+.pokemonStatTrack>span{display:block;height:100%;background:linear-gradient(90deg,var(--color-success),var(--color-primary));box-shadow:0 0 8px var(--trainer-glow-cyan)}
+.pokemonWorkspace .stat button{font-weight:800}
+.pokemonWorkspace .stat button:hover:not(:disabled){border-color:var(--color-primary);box-shadow:var(--trainer-shadow-cyan)}
+.pokemonMovesPanel{grid-column:1/-1}
+.pokemonMovesPanel .moveList{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pokemonGrid .evolutionOption{border-color:var(--trainer-card-border);background:linear-gradient(130deg,var(--color-surface-raised),var(--trainer-stage-surface));box-shadow:inset 0 1px 0 var(--trainer-card-highlight)}
+.pokemonGrid .evolutionOption:hover{border-color:var(--color-primary)}
+@media(max-width:1200px){.pokemonGrid{grid-template-columns:minmax(0,1fr)}.pokemonMovesPanel{grid-column:auto}.pokemonMovesPanel .moveList{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:750px){.pokemonShowcase{grid-template-columns:minmax(0,1fr);gap:var(--space-2)}.pokemonArtStage{min-height:265px}.pokemonArtStage .pokemonLarge{height:255px}.pokemonIdentity{padding:var(--space-3)}.pokemonMovesPanel .moveList{grid-template-columns:minmax(0,1fr)}.pokemonQuickNav{gap:var(--space-2)}.pokemonQuickNav a{min-height:45px;font-size:.82rem;gap:var(--space-2)}}
+@media(max-width:430px){.pokemonHero{padding:var(--space-3)}.pokemonArtStage{min-height:240px}.pokemonArtStage .pokemonLarge{height:235px}.pokemonIdentity h2{font-size:1.8rem}.pokemonQuickNav a{font-size:.73rem;gap:var(--space-1)}.pokemonQuickNav a i{font-size:1rem}.pokemonWorkspace .stat{grid-template-columns:39px 38px minmax(26px,1fr) 59px 38px;gap:var(--space-1)}.pokemonWorkspace .stat>span:first-child{font-size:.7rem}.pokemonWorkspace .stat small{font-size:.67rem}}
+@media(prefers-reduced-motion:reduce){.pokemonQuickNav a,.pokemonAffinityTrack span{transition:none}}
+
+
+/* D-055B · Abas EXCLUSIVAS: perfil, evolução e golpes.
+   Botões substituem âncoras para não exibir as três áreas simultaneamente. */
+.pokemonQuickButton,.pokemonQuickActive{
+ min-height:52px;display:flex;align-items:center;justify-content:center;gap:var(--space-3);
+ border:1px solid var(--trainer-card-border);border-radius:var(--radius-control);
+ background:linear-gradient(135deg,var(--color-surface-raised),var(--trainer-stage-surface));
+ box-shadow:inset 0 1px 0 var(--trainer-card-highlight),0 8px 18px var(--trainer-shadow-depth);
+ color:var(--color-text);font:inherit;font-weight:750;cursor:pointer;
+ transition:border-color var(--duration-fast),box-shadow var(--duration-fast);
+}
+.pokemonQuickButton i,.pokemonQuickActive i{
+ color:var(--color-primary);font-size:1.15rem;filter:drop-shadow(0 0 8px var(--trainer-glow-cyan));
+}
+.pokemonQuickActive{
+ border-color:var(--color-primary);
+ background:linear-gradient(135deg,var(--trainer-glow-cyan-soft),var(--trainer-stage-surface));
+ box-shadow:inset 0 1px 0 var(--trainer-card-highlight),0 0 20px var(--trainer-glow-cyan);
+}
+.pokemonQuickButton:hover,.pokemonQuickActive:hover,
+.pokemonQuickButton:focus-visible,.pokemonQuickActive:focus-visible{
+ border-color:var(--color-primary);box-shadow:0 0 20px var(--trainer-glow-cyan);
+}
+.pokemonQuickButton:focus-visible,.pokemonQuickActive:focus-visible{
+ outline:2px solid var(--color-primary);outline-offset:2px;
+}
+.pokemonAttributesPanel,.pokemonEvolutionPanel{grid-column:1/-1}
+@media(max-width:750px){
+ .pokemonQuickButton,.pokemonQuickActive{min-height:45px;font-size:.82rem;gap:var(--space-2)}
+}
+@media(max-width:430px){
+ .pokemonQuickButton,.pokemonQuickActive{font-size:.73rem;gap:var(--space-1)}
+ .pokemonQuickButton i,.pokemonQuickActive i{font-size:1rem}
+}
+@media(prefers-reduced-motion:reduce){
+ .pokemonQuickButton,.pokemonQuickActive{transition:none}
+}
