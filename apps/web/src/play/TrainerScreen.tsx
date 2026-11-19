@@ -12,6 +12,8 @@ import type {TrainerViewModel} from '../features/trainer/legacyProjection';
 import {STAT_LABELS} from '../features/trainer/legacyProjection';
 import type {LegacySave} from '../storage/legacySave';
 import styles from './TrainerScreen.module.css';
+import {InventoryGrid,InventoryDialog} from './InventoryGrid';
+import type {InventorySlotItem} from './InventoryGrid';
 
 type Section='profile'|'equipment'|'bag';
 type Draft=Partial<Record<Stat,number>>;
@@ -39,6 +41,8 @@ export interface TrainerScreenProps{
 }
 export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}:TrainerScreenProps){
   const [section,setSection]=useState<Section>('profile');
+  const [selectedEquipment,setSelectedEquipment]=useState<string|null>(null);
+  const [equipmentFilter,setEquipmentFilter]=useState<'all'|'equipped'>('all');
   const [draft,setDraft]=useState<Draft>({});
   const [draftRevision,setDraftRevision]=useState(revision);
   const [submitting,setSubmitting]=useState(false);
@@ -52,6 +56,29 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
   const badgeCount=Array.isArray(data.badges)?data.badges.length:0;
   const seenCount=Array.isArray(data.seen)?data.seen.length:0;
   const totalWins=typeof data.wins==='number'&&Number.isSafeInteger(data.wins)?data.wins:0;
+  const equippedIds=new Set(Object.values(equipped).filter(Boolean));
+  // O catálogo legado ainda NÃO é inventário de propriedade; os equipamentos
+  // seguem selecionáveis no laboratório, sem alegar que foram conquistados.
+  const equipmentEntries:InventorySlotItem[]=LEGACY_ITEMS.map(item=>({
+    id:item.id,name:item.name,description:'Equipamento de '+SLOT_NAMES[item.slot]+' do catálogo de testes.',
+    icon:SLOT_ICONS[item.slot],quantity:1,
+    detail:bonusLabel(item.stats)||'Sem bônus',
+    status:equippedIds.has(item.id)?'Equipado':'Não equipado'
+  }));
+  const visibleEquipment=equipmentFilter==='equipped'
+    ? equipmentEntries.filter(item=>equippedIds.has(item.id)):equipmentEntries;
+  const equipmentChoice=selectedEquipment
+    ? LEGACY_ITEMS.find(item=>item.id===selectedEquipment):undefined;
+  const equipmentEquipped=equipmentChoice!==undefined&&equipped[equipmentChoice.slot]===equipmentChoice.id;
+  // Apenas stones no save. Cada stack ocupa um espaço, sem concessão.
+  const bagEntries:InventorySlotItem[]=Object.entries(stoneStock)
+    .filter(([,qty])=>Number.isSafeInteger(qty)&&qty>0)
+    .sort(([a],[b])=>a.localeCompare(b))
+    .map(([name,quantity])=>({
+      id:name,name:name.replaceAll('-',' '),quantity,
+      icon:'fa-gem',description:'Pedra de evolução. Uso somente pelo sistema de evolução.'
+    }));
+
 
   function stage(stat:Stat){
     if(busy||submitting||remaining<=0||view.manual[stat]+(pending[stat]??0)>=40)return;
@@ -207,37 +234,57 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
     </div>}
 
     {section==='equipment'&&<section className={styles.panel}>
-      <div className={styles.sectionHeader}><h3>Equipamentos do treinador</h3><span className={styles.smallTag}>{LEGACY_EQUIPMENT_SLOTS.filter(slot=>Boolean(equipped[slot])).length}/9 equipados</span></div>
-      <p className={styles.hint}>Catálogo de equipamentos da versão de testes.
-        O sistema de obtenção e propriedade dos itens ainda está em desenvolvimento.</p>
-      <div className={styles.equipmentGrid}>
-        {LEGACY_EQUIPMENT_SLOTS.map(slot=><label className={styles.equipField} key={slot}>
-          <span><Fa name={SLOT_ICONS[slot]}/></span>
-          <strong>{SLOT_NAMES[slot]}</strong>
-          <select aria-label={'Equipamento: '+slot} value={equipped[slot]||''}
-            disabled={busy} onChange={event=>onEquip(slot,event.target.value)}>
-            <option value="">Sem equipamento</option>
-            {LEGACY_ITEMS.filter(item=>item.slot===slot).map(item=>
-              <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
-          {equipped[slot]&&<small>Equipado</small>}
-        </label>)}
+      <div className={styles.sectionHeader}><h3><Fa name="fa-layer-group"/> Equipamentos</h3>
+        <span className={styles.smallTag}>{equippedIds.size} equipados</span>
       </div>
-      <p className={styles.hint}>Bônus podem ser consultados no perfil com mouse, foco ou toque.</p>
+      <p className={styles.hint}>Clique ou toque em um cubo para conferir atributos e equipar/remover.
+        No laboratório, o catálogo permanece disponível para testes; a aquisição real será implementada separadamente.</p>
+      <div className={styles.inventoryFilters} role="group" aria-label="Filtrar equipamentos">
+        <button type="button" className={equipmentFilter==='all'?styles.filterActive:styles.filter}
+          aria-pressed={equipmentFilter==='all'} onClick={()=>setEquipmentFilter('all')}>
+          Todos ({equipmentEntries.length})</button>
+        <button type="button" className={equipmentFilter==='equipped'?styles.filterActive:styles.filter}
+          aria-pressed={equipmentFilter==='equipped'} onClick={()=>setEquipmentFilter('equipped')}>
+          Equipados ({equippedIds.size})</button>
+      </div>
+      <InventoryGrid title="Equipamentos" items={visibleEquipment}
+        capacity={Math.max(15,equipmentEntries.length)}
+        onSelect={setSelectedEquipment}
+        actionLabel={item=>item.name+', '+item.status+'. Abrir detalhes'}
+      />
+      {equipmentChoice&&<InventoryDialog title={equipmentChoice.name}
+        onClose={()=>setSelectedEquipment(null)}>
+        <div className={styles.detailItem}>
+          <span className={styles.detailIcon}><Fa name={SLOT_ICONS[equipmentChoice.slot]}/></span>
+          <div><strong>{SLOT_NAMES[equipmentChoice.slot]}</strong>
+            <p>{'Equipamento de '+SLOT_NAMES[equipmentChoice.slot]+' do catálogo de testes.'}</p></div>
+        </div>
+        <div className={styles.detailStats}>
+          <strong>Atributos</strong><p>{bonusLabel(equipmentChoice.stats)||'Sem bônus adicional'}</p>
+          <strong>Status</strong><p>{equipmentEquipped?'Equipado':'Não equipado'}</p>
+        </div>
+        <div className={styles.detailActions}>
+          <button type="button" className={styles.cancel} onClick={()=>setSelectedEquipment(null)}>Cancelar</button>
+          <button type="button" className={styles.confirmButton} disabled={busy}
+            onClick={()=>{
+              onEquip(equipmentChoice.slot,equipmentEquipped?'':equipmentChoice.id);
+              setSelectedEquipment(null);
+            }}>
+            <Fa name={equipmentEquipped?'fa-xmark':'fa-check'}/> {equipmentEquipped?'Remover':'Equipar'}
+          </button>
+        </div>
+      </InventoryDialog>}
     </section>}
 
     {section==='bag'&&<section className={styles.panel}>
-      <div className={styles.sectionHeader}><h3><Fa name="fa-bag-shopping"/> Mochila</h3><span className={styles.smallTag}>Itens do progresso</span></div>
-      <p className={styles.hint}>Itens reais do progresso atual. Cura, Pokébolas e TMs
-        aparecerão aqui quando seus sistemas de obtenção e consumo estiverem disponíveis.</p>
-      <div className={styles.bagList}>
-        {Object.entries(stoneStock).filter(([,qty])=>Number.isSafeInteger(qty)&&qty>0)
-          .map(([name,qty])=><div className={styles.bagItem} key={name}>
-            <span><Fa name="fa-gem"/></span><strong>{name.replaceAll('-',' ')}</strong><small>×{qty}</small>
-          </div>)}
-        {!Object.values(stoneStock).some(q=>Number.isSafeInteger(q)&&q>0)
-          &&<p>Você ainda não possui itens para exibir.</p>}
-      </div>
+      <div className={styles.sectionHeader}><h3><Fa name="fa-bag-shopping"/> Mochila</h3>
+        <span className={styles.smallTag}>Capacidade inicial: 10</span></div>
+      <p className={styles.hint}>Cada tipo de item empilhado ocupa um cubo, independentemente da quantidade.
+        Passe o mouse ou use o foco do teclado para ver detalhes. No celular, toque no cubo.</p>
+      <InventoryGrid title="Mochila" items={bagEntries} capacity={10}/>
+      <p className={styles.hint}>A expansão da mochila será desbloqueada por um item futuro.
+        Esta capacidade é visual até existir regra de limite no inventário.
+        Pokébolas, cura e TMs aparecerão apenas quando forem adquiridos.</p>
     </section>}
   </section>;
 }
