@@ -11,7 +11,7 @@ describe('D054 — itens exclusivos de compra na loja',()=>{
       'equipment','bag-expansion','pokeball','healing'
     ]);
   });
-  it.each(STORE_EXCLUSIVE_ITEM_KIN)(
+  it.each(STORE_EXCLUSIVE_ITEM_KINDS)(
     '%s: permite loja e proíbe drop/criação',kind=>{
       expect(isStoreExclusiveItemKind(kind)).toBe(true);
       expect(canAcquireItemFromSource(kind,'shop')).toBe(true);
