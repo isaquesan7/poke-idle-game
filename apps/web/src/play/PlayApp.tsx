@@ -570,9 +570,9 @@ export function PlayApp() {
                 {pokemonSection==='evolution'&&<>
                 <section className={styles.panel+' '+styles.pokemonEvolutionPanel} id="pokemon-evolution" aria-label="Evolução do Pokémon">
                   <h2><i className="fa-solid fa-dna" aria-hidden="true"/> Evolução</h2>
-                  <p>Treine seu Pokémon para que ele possa evoluir.</p>
+                  {focusedEvolutions.length>0&&<p>Treine seu Pokémon para que ele possa evoluir.</p>}
                   {focusedEvolutions.length===0
-                    ? <p>Nenhuma evolução disponível para esta espécie dentro dos 151 de Kanto.</p>
+                    ? <p>Nenhuma evolução disponível para este Pokémon.</p>
                     : <div className={styles.evolutionList}>
                         {focusedEvolutions.map(rule=>{
                           const target=speciesName(rule.to);
@@ -657,6 +657,7 @@ export function PlayApp() {
                           <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'} ·
                             PP {kantoMovePp(move.name)??'não catalogado'} ·
                             Custo {kantoMoveSpCost(move)} SP na Arena</small>
+                          <small>Custo do próximo aprimoramento: 1 ponto · Disponíveis: {Math.max(0,(moveLimits?.skillPoints??0)-moveSpent)}</small>
                            {effectLabel(move.name)&&<small>{effectLabel(move.name)}</small>}
                         </div>
                         <div className={styles.moveActions}>
@@ -665,17 +666,17 @@ export function PlayApp() {
                             aria-label={'Adicionar golpe '+move.name}
                             onClick={()=>dispatch({type:'move-set',uid:focused.uid,
                               moveName:move.name,operation:'add'})}><i className="fa-solid fa-plus" aria-hidden="true"/> Adicionar</button>}
-                          <button type="button" className={styles.secondary}
-                            disabled={busy||equipped}
+                          {!inSlots&&<button type="button" className={styles.secondary}
+                            disabled={busy||equippedNames.length>=4}
                             aria-label={'Equipar golpe '+move.name}
                             onClick={()=>dispatch({type:'move',uid:focused.uid,moveName:move.name,operation:'select'})}>
-                            <i className={'fa-solid '+(equipped?'fa-circle-check':'fa-check')} aria-hidden="true"/> {equipped?'Equipado':'Equipar'}</button>
+                            <i className="fa-solid fa-check" aria-hidden="true"/> Equipar</button>}
                           <button type="button" className={styles.primary}
                             aria-label={'Aprimorar golpe '+move.name}
                             disabled={busy||!equipped||moveSpent>=(moveLimits?.skillPoints??0)
                               ||rank>=(moveLimits?.maxRankPerMove??0)}
                             onClick={()=>dispatch({type:'move',uid:focused.uid,moveName:move.name,operation:'upgrade'})}>
-                            <i className="fa-solid fa-arrow-up" aria-hidden="true"/> Aprimorar</button>
+                            <i className="fa-solid fa-arrow-up" aria-hidden="true"/> Aprimorar · 1 ponto</button>
                         </div>
                       </div>;
                     })}
