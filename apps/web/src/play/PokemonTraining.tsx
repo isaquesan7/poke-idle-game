@@ -16,10 +16,11 @@ const ICONS:Readonly<Record<Stat,string>>={
 interface Props{
   uid:number;revision:number;busy:boolean;
   stats:StatValues|null;manual:StatValues;budget:number;
+  previewStats:(increments:Draft)=>StatValues|null;
   onConfirm:(uid:number,increments:Draft,revision:number)=>Promise<boolean>;
   onReset:()=>void;
 }
-export function PokemonTraining({uid,revision,busy,stats,manual,budget,onConfirm,onReset}:Props){
+export function PokemonTraining({uid,revision,busy,stats,manual,budget,previewStats,onConfirm,onReset}:Props){
   const [draft,setDraft]=useState<Draft>({});
   const [draftRevision,setDraftRevision]=useState(revision);
   const [submitting,setSubmitting]=useState(false);
@@ -27,6 +28,8 @@ export function PokemonTraining({uid,revision,busy,stats,manual,budget,onConfirm
   const staged=STATS.reduce((sum,stat)=>sum+(pending[stat]??0),0);
   const spent=STATS.reduce((sum,stat)=>sum+manual[stat],0);
   const remaining=Math.max(0,budget-spent-staged);
+  // Valores exatos do game-core; HP manual escala em 2, outros atributos em 1.
+  const computedPreview=staged>0?previewStats(pending):stats;
   const stale=draftRevision!==revision&&STATS.some(stat=>(draft[stat]??0)>0);
   function clear(){setDraft({});setDraftRevision(revision);}
   function stage(stat:Stat){
@@ -57,14 +60,15 @@ export function PokemonTraining({uid,revision,busy,stats,manual,budget,onConfirm
       {STATS.map(stat=>{
         const increment=pending[stat]??0;
         const value=stats?.[stat]??0;
+        const after=computedPreview?.[stat]??value;
         return <div className={styles.stat} key={stat}>
           <span className={styles.statName}><i className={'fa-solid '+ICONS[stat]} aria-hidden="true"/>{STAT_LABELS[stat]}</span>
           <div className={styles.track} aria-hidden="true">
-            <span className={styles.trackPreview} style={{width:Math.min(100,(value+increment)/400*100)+'%'}}/>
+            <span className={styles.trackPreview} style={{width:Math.min(100,after/400*100)+'%'}}/>
             <span className={styles.trackCurrent} style={{width:Math.min(100,value/400*100)+'%'}}/>
           </div>
           <strong>{stats?value:'—'}</strong>
-          <small className={increment?styles.preview:styles.manual}>{increment?'+ '+increment+' → '+(value+increment):manual[stat]+' manual'}</small>
+          <small className={increment?styles.preview:styles.manual}>{increment?'+ '+increment+' → '+after:manual[stat]+' manual'}</small>
           <div className={styles.actions}>
             <button type="button" className={styles.remove} aria-label={'Retirar um ponto da prévia de '+STAT_LABELS[stat]}
               disabled={busy||submitting||stale||increment===0} onClick={()=>undo(stat)}>−</button>
