@@ -40,7 +40,7 @@ describe('D-054 — plano explícito de migração, sem concessão automática',
 describe('D-054 — motor de grant offline, idempotente e sem integração com UI',()=>{
   it('aplica equipamento em uma revisão; repetir mesmo ID não duplica',()=>{
     const before=ready();
-    const grant={kind:'equipment' as const,eventId:'milestone:example.1',itemId:'gloves',count:1};
+    const grant={kind:'equipment' as const,source:'shop' as const,eventId:'shop:example.1',itemId:'gloves',count:1};
     const applied=applyAuthorizedInventoryGrant(before,0,grant);
     expect(applied.status).toBe('applied');
     if(applied.status!=='applied')return;
@@ -60,7 +60,7 @@ describe('D-054 — motor de grant offline, idempotente e sem integração com U
   });
   it('aplica expansão futura de slots sem conceder item mágico',()=>{
     const before=ready();
-    const result=applyAuthorizedInventoryGrant(before,0,{kind:'bag-capacity',eventId:'authorized:test.2',slots:5});
+    const result=applyAuthorizedInventoryGrant(before,0,{kind:'bag-capacity',source:'shop',eventId:'authorized:test.2',slots:5});
     expect(result.status).toBe('applied');
     if(result.status!=='applied')return;
     const after=JSON.parse(result.journal.raw);
@@ -71,28 +71,41 @@ describe('D-054 — motor de grant offline, idempotente e sem integração com U
   it('bloqueia revisão velha, excesso de estoque, IDs forjados e saves legados',()=>{
     const before=ready();
     const invalid=[
-      {kind:'equipment' as const,eventId:'invalid.1',itemId:'made-up',count:1},
-      {kind:'equipment' as const,eventId:'invalid.2',itemId:'cap',count:100},
-      {kind:'equipment' as const,eventId:'invalid.3',itemId:'cap',count:0},
-      {kind:'bag-capacity' as const,eventId:'invalid.4',slots:1001},
-      {kind:'bag-capacity' as const,eventId:'invalid.5',slots:-1}
+      {kind:'equipment' as const,source:'shop' as const,eventId:'invalid.1',itemId:'made-up',count:1},
+      {kind:'equipment' as const,source:'shop' as const,eventId:'invalid.2',itemId:'cap',count:100},
+      {kind:'equipment' as const,source:'shop' as const,eventId:'invalid.3',itemId:'cap',count:0},
+      {kind:'bag-capacity' as const,source:'shop' as const,eventId:'invalid.4',slots:1001},
+      {kind:'bag-capacity' as const,source:'shop' as const,eventId:'invalid.5',slots:-1}
     ];
     for(const grant of invalid){
       const result=applyAuthorizedInventoryGrant(before,0,grant);
       expect(result.status).toBe('rejected');
       expect(result.journal).toBe(before);
     }
-    expect(applyAuthorizedInventoryGrant(before,1,{kind:'equipment',eventId:'ok.1',itemId:'cap',count:1}).status).toBe('rejected');
+    expect(applyAuthorizedInventoryGrant(before,1,{kind:'equipment',source:'shop',eventId:'ok.1',itemId:'cap',count:1}).status).toBe('rejected');
     expect(applyAuthorizedInventoryGrant({raw,revision:0,receipts:[]},0,
-      {kind:'equipment',eventId:'ok.2',itemId:'cap',count:1}).status).toBe('rejected');
+      {kind:'equipment',source:'shop',eventId:'ok.2',itemId:'cap',count:1}).status).toBe('rejected');
+  });
+  it('rejeita drops, criação e fontes falsas para equipamentos e expansão',()=>{
+    const before=ready();
+    for(const source of ['drop','craft','quest',undefined]){
+      for(const grant of [
+        {kind:'equipment',source,eventId:'wrong.equip',itemId:'cap',count:1},
+        {kind:'bag-capacity',source,eventId:'wrong.capacity',slots:5}
+      ]){
+        const result=applyAuthorizedInventoryGrant(before,0,grant as never);
+        expect(result.status).toBe('rejected');
+        expect(result.journal).toBe(before);
+      }
+    }
   });
   it('impede stack acima do máximo e grants em journals adulterados',()=>{
     const before=ready();
     const full=JSON.parse(before.raw);
     full.inventory.ownedEquipment.cap=99;
     const journal={...before,raw:JSON.stringify(full)};
-    expect(applyAuthorizedInventoryGrant(journal,0,{kind:'equipment',eventId:'too.many',itemId:'cap',count:1}).status).toBe('rejected');
+    expect(applyAuthorizedInventoryGrant(journal,0,{kind:'equipment',source:'shop',eventId:'too.many',itemId:'cap',count:1}).status).toBe('rejected');
     expect(applyAuthorizedInventoryGrant({...journal,receipts:[{eventId:'fake',payload:'x'}]},0,
-      {kind:'equipment',eventId:'real',itemId:'cap',count:1}).status).toBe('rejected');
+      {kind:'equipment',source:'shop',eventId:'real',itemId:'cap',count:1}).status).toBe('rejected');
   });
 });
