@@ -51,7 +51,6 @@ export function InventoryGrid({title,items,capacity,onSelect,actionLabel,emptyLa
           aria-label={actionLabel? actionLabel(item):item.name+', quantidade '+item.quantity+', '+item.description}
           title={item.name}>
             <span className={styles.itemIcon}><i className={'fa-solid '+item.icon} aria-hidden="true"/></span>
-            {item.status&&<span className={styles.statusDot} aria-hidden="true"/>}
             <span className={styles.tooltip} aria-hidden="true">
               <strong>{item.name}</strong><small>Quantidade: {item.quantity}</small>
               <small>{item.description}</small>
