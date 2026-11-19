@@ -329,3 +329,13 @@
 .detailStats>p{margin:0 0 var(--space-3);color:var(--color-text);font-size:.87rem}
 .detailActions{display:flex;justify-content:flex-end;gap:var(--space-2);flex-wrap:wrap;padding-top:var(--space-3);border-top:1px solid var(--trainer-card-border)}
 @media(max-width:430px){.detailActions>button{flex:1}.detailIcon{width:60px;height:60px}}
+
+
+/* D-053 · Insígnias expõem os bônus apenas no mouse/foco, sem ocultar conquistas. */
+.badgeWon,.badgeLocked{position:relative;cursor:help}
+.badgeWon:hover,.badgeLocked:hover,.badgeWon:focus-visible,.badgeLocked:focus-visible{z-index:6;border-color:var(--color-primary);box-shadow:0 0 16px var(--trainer-glow-cyan-soft);opacity:1}
+.badgeTooltip{display:none;position:absolute;z-index:20;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);min-width:154px;max-width:230px;width:max-content;padding:var(--space-3);border:1px solid var(--color-primary);border-radius:var(--radius-control);background:var(--color-surface);box-shadow:0 9px 22px var(--trainer-shadow-depth),0 0 14px var(--trainer-glow-cyan);text-align:left;pointer-events:none;white-space:normal}
+.badgeTooltip strong,.badgeTooltip small{display:block;font-size:.77rem;line-height:1.45}
+.badgeTooltip strong{color:var(--color-text)}
+.badgeTooltip small{color:var(--color-primary);margin-top:var(--space-1)}
+.badgeWon:hover .badgeTooltip,.badgeLocked:hover .badgeTooltip,.badgeWon:focus .badgeTooltip,.badgeLocked:focus .badgeTooltip{display:block}

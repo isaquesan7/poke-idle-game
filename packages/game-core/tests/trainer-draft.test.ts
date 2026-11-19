@@ -124,3 +124,37 @@ describe('D-051 — seleção segura de títulos do treinador',()=>{
     expect(validLegacyTrainerDraft(before,JSON.stringify(candidate))).toBe(false);
   });
 });
+
+
+describe('D-053 — transição opcional para equipamentos de propriedade real',()=>{
+  const inventoryRaw=(ownedEquipment:Record<string,number>)=>JSON.stringify({
+    ...save,inventory:{version:1,ownedEquipment,extraBagSlots:0}
+  });
+  it('saves antigos mantêm o laboratório; ledger presente não concede itens de catálogo',()=>{
+    expect(editLegacyTrainerJson(raw,{type:'equip',slot:'gloves',itemId:'gloves-tech'}).status).toBe('ok');
+    const locked=inventoryRaw({cap:1});
+    expect(editLegacyTrainerJson(locked,{type:'equip',slot:'gloves',itemId:'gloves-tech'}).status).toBe('invalid');
+    const candidate=JSON.parse(locked);
+    candidate.trainer.equipped.gloves='gloves-tech';
+    expect(validLegacyTrainerDraft(locked,JSON.stringify(candidate))).toBe(false);
+  });
+  it('permite só equipamento possuído no slot e devolve item sem consumir propriedade',()=>{
+    const before=inventoryRaw({cap:1,'gloves-tech':1});
+    const changed=editLegacyTrainerJson(before,{type:'equip',slot:'gloves',itemId:'gloves-tech'});
+    expect(changed.status).toBe('ok');
+    if(changed.status!=='ok')return;
+    expect(validLegacyTrainerDraft(before,changed.json)).toBe(true);
+    const game=JSON.parse(changed.json);
+    expect(game.inventory.ownedEquipment['gloves-tech']).toBe(1);
+    expect(game.coins).toBe(save.coins);
+    expect(game.roster).toEqual(save.roster);
+    expect(editLegacyTrainerJson(changed.json,{type:'equip',slot:'gloves',itemId:''}).status).toBe('ok');
+    const forged=JSON.parse(changed.json);
+    forged.inventory.ownedEquipment.coat=99;
+    expect(validLegacyTrainerDraft(before,JSON.stringify(forged))).toBe(false);
+  });
+  it('bloqueia ledger corrompido sem alterar o save',()=>{
+    const corrupt=JSON.stringify({...save,inventory:{version:1,ownedEquipment:{cap:-2},extraBagSlots:0}});
+    expect(editLegacyTrainerJson(corrupt,{type:'equip',slot:'hat',itemId:'cap'}).status).toBe('invalid');
+  });
+});

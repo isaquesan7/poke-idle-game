@@ -8,6 +8,7 @@ import type { Stat, StatValues } from '../stats/types.js';
 import { canInvestTrainerPoint, MANUAL_TRAINER_CAP } from '../stats/trainer.js';
 import type { EquipmentSlot } from '../stats/trainer.js';
 import { LEGACY_ITEMS, LEGACY_TITLES, legacyTitleIsUnlocked } from './catalog.js';
+import {inspectInventoryOwnership,mayEquipOwnedItem} from '../inventory/ownership.js';
 
 export type TrainerDraftAction =
   | { readonly type: 'invest'; readonly stat: Stat }
@@ -89,6 +90,14 @@ export function editLegacyTrainerJson(
         item.slot === action.slot && item.id === action.itemId))) {
       return { status: 'invalid', reason: 'Equipamento incompatível com o slot.' };
     }
+    // D-053: saves antigos sem ledger mantêm laboratório. Quando o ledger
+    // versionado existir, não equipar itens ausentes/forjados, sem grants.
+    const inventory=inspectInventoryOwnership(source.inventory);
+    if(inventory.status==='invalid'||
+      action.itemId!==''&&inventory.status==='valid'&&
+      !mayEquipOwnedItem(action.itemId,action.slot,inventory.inventory)){
+      return {status:'invalid',reason:'Equipamento não pertence ao inventário do treinador.'};
+    }
     trainer.equipped[action.slot] = action.itemId;
   } else if (action.type === 'title') {
     if (typeof action.titleId !== 'string'
@@ -147,6 +156,18 @@ export function validLegacyTrainerDraft(sourceJson: string, editedJson: string):
         itemId !== '' && !LEGACY_ITEMS.some(item => item.slot === key && item.id === itemId)
       )) return false;
     } else if (JSON.stringify(equipBefore[key]) !== JSON.stringify(equipAfter[key])) return false;
+  }
+
+  // O validador do rascunho também checa propriedade, mesmo que
+  // o JSON candidato seja construído fora do reducer autorizado.
+  const inventory=inspectInventoryOwnership(source.inventory);
+  if(inventory.status==='invalid')return false;
+  if(inventory.status==='valid'){
+    for(const slot of LEGACY_EQUIPMENT_SLOTS){
+      const target=edited.trainer.equipped[slot];
+      if(target!==source.trainer.equipped[slot]&&target!==''&&
+        (typeof target!=='string'||!mayEquipOwnedItem(target,slot,inventory.inventory)))return false;
+    }
   }
 
   // A troca de título só pode selecionar um ID já desbloqueado
