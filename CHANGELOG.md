@@ -1,3 +1,11 @@
+# D-055 — visual da tela Pokémon (em revisão)
+
+## D-055 — tela Pokémon, primeira passagem UI (19/11/2026, branch ainda não publicada)
+- Nova tela do Pokémon em `apps/web/src/play/PlayApp.tsx`: hero com GIF original da espécie e efeitos de halo ciano/violeta, nível, UID, afinidade com medidor, papel líder/equipe/coleção; navegação interna entre Atributos, Evolução e Golpes. Painéis seguem todos os comandos e requisitos reais, sem alterar writer nem gameplay.
+- CSS responsivo no `PlayApp.module.css` com SOMENTE os tokens `styles/tokens.css` definidos anteriormente e Font Awesome. GIF local `poke_<id>.gif` preservado (jamais modificar `isaquesan7/pokedex`).
+- E2E captura `pokemon-profile-desktop.png` e `pokemon-profile-mobile.png`, confirma arte carregada, IDs de navegação e +1 DEF Pokémon gerando uma revisão como antes. Detalhes, limitações e gates: `docs/POKEMON_UI_D055.md`.
+- **Pendências econômicas mantidas**: itens, raridades, drops e crafting sem decisão numérica; D054 PR #78 independente. Nunca inferir que o design do Pokémon altera regras de combate, save schema2 ou TM09.
+
 # D-053 — interface e propriedade de inventário em preparação (2026-11-18)
 
 ## D-053 — bônus em hover, título estilizado, portal de modal e propriedade de itens (branch, ainda NÃO publicada)
