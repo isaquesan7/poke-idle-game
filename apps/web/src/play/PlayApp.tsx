@@ -554,7 +554,11 @@ export function PlayApp() {
                   revision={save.snapshot.revision} busy={busy}
                   stats={focusedStats} manual={pokemonManual} budget={pokemonBudget}
                   onConfirm={investPokemonBatch}
-                  onReset={()=>dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}})}/>
+                  onReset={()=>{
+                    if(window.confirm('Redistribuir todos os pontos de '+speciesName(focused.pokemonId)+' (UID '+focused.uid+')?')){
+                      dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}});
+                    }
+                  }}/>
 
                 </>}
                 {pokemonSection==='evolution'&&<>
