@@ -734,3 +734,9 @@
 @media(max-width:1000px){.pokemonGrid.pokemonProfileGrid{grid-template-columns:minmax(0,1fr)}.pokemonProfileGrid .pokemonHero{grid-column:auto}.pokemonProfileGrid .pokemonShowcase{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:700px){.pokemonEquippedGrid,.pokemonLearnedGrid{grid-template-columns:minmax(0,1fr)}.pokemonMoveCard{padding:var(--space-3)}}
 @media(prefers-reduced-motion:reduce){.pokemonMoveCard .moveActions button{transition:none}}
+
+/* D-056: sobrepor a regra genérica de duas colunas em telas pequenas. */
+@media(max-width:700px){
+ .pokemonMovesPanel .pokemonEquippedGrid,
+ .pokemonMovesPanel .pokemonLearnedGrid{grid-template-columns:minmax(0,1fr)}
+}
