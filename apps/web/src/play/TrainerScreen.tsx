@@ -5,7 +5,7 @@
  */
 import {useState} from 'react';
 import {
-  LEGACY_BADGES, LEGACY_EQUIPMENT_SLOTS, LEGACY_ITEMS, LEGACY_TITLES, legacyTitleIsUnlocked, STATS
+  LEGACY_BADGES, LEGACY_EQUIPMENT_SLOTS, LEGACY_ITEMS, STATS
 } from '@kanto/game-core';
 import type {EquipmentSlot, Stat, StatValues} from '@kanto/game-core';
 import type {TrainerViewModel} from '../features/trainer/legacyProjection';
@@ -13,6 +13,7 @@ import {STAT_LABELS} from '../features/trainer/legacyProjection';
 import type {LegacySave} from '../storage/legacySave';
 import styles from './TrainerScreen.module.css';
 import {InventoryGrid,InventoryDialog} from './InventoryGrid';
+import {TitlePicker} from './TitlePicker';
 import type {InventorySlotItem} from './InventoryGrid';
 
 type Section='profile'|'equipment'|'bag';
@@ -202,20 +203,8 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
             <span className={styles.titleGlyph}><Fa name="fa-award"/></span>
             <span><small>TÍTULO ATIVO</small><strong>{view.title.name}</strong></span>
           </div>
-          <label className={styles.titleLabel} htmlFor="trainer-active-title">Escolha seu título</label>
-          <select id="trainer-active-title" className={styles.titleSelect} aria-label="Título ativo do treinador"
-            disabled={busy||submitting} value={view.title.id}
-            onChange={event=>onTitle(event.target.value)}>
-            {LEGACY_TITLES.map(title=>{
-              const unlocked=legacyTitleIsUnlocked(title.id,totalWins,seenCount,badgeCount);
-              const requirement=title.id==='veterano'?'4 vitórias':title.id==='explorador'?'10 vistos':
-                title.id==='mestre'?'8 insígnias':'Inicial';
-              return <option key={title.id} value={title.id} disabled={!unlocked}>
-                {title.name}{unlocked?'':' · Bloqueado ('+requirement+')'}
-              </option>;
-            })}
-          </select>
-          <p className={styles.titleHint}>Somente títulos desbloqueados podem ser usados. O bônus do título ativo é aplicado automaticamente.</p>
+          <TitlePicker selectedId={view.title.id} disabled={busy||submitting}
+            wins={totalWins} seenCount={seenCount} badgeCount={badgeCount} onSelect={onTitle}/>
           <p className={styles.hint}>As insígnias conquistadas concedem bônus permanentes ao treinador.</p>
           <div className={styles.badgeHeading}>Insígnias ({view.badges.length}/8)</div>
           <div className={styles.badges}>
@@ -223,7 +212,8 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
               const won=view.badges.some(x=>x.id===badge.id);
               return <div key={badge.id} className={won?styles.badgeWon:styles.badgeLocked}
                 tabIndex={0} title={badge.name+' · '+badge.wins+' vitórias · '+bonusLabel(badge.stats)}
-                aria-label={badge.name+(won?' conquistada':' bloqueada')+'. '+badge.wins+' vitórias'}>
+                aria-label={badge.name+(won?' conquistada':' bloqueada')+'. '+badge.wins+' vitórias. Bônus: '+bonusLabel(badge.stats)}>
+                <span className={styles.badgeTooltip} aria-hidden="true"><strong>{badge.name}</strong><small>Bônus: {bonusLabel(badge.stats)}</small><small>{won?'Conquistada':'Desbloqueia com '+badge.wins+' vitórias'}</small></span>
                 <span><Fa name={BADGE_ICONS[badge.id]??'fa-medal'}/></span>
                 <strong>{badge.name}</strong><small>{badge.wins} vitória(s)</small>
               </div>;
