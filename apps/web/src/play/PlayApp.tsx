@@ -490,7 +490,7 @@ export function PlayApp() {
                 <header className={styles.pokemonHeading}>
                   <div>
                     <span className={styles.pokemonEyebrow}><i className="fa-solid fa-dragon" aria-hidden="true"/> SEU PARCEIRO POKÉMON</span>
-                    <h2>Perfil do Pokémon</h2>
+                    <h2>{pokemonSection==='profile'?'Perfil do Pokémon':pokemonSection==='evolution'?'Evolução do Pokémon':'Golpes do Pokémon'}</h2>
                     <p>{pokemonSection==='profile'?'Confira os atributos e a afinidade do seu parceiro.':
                       pokemonSection==='evolution'?'Veja as evoluções possíveis e seus requisitos.':
                       'Gerencie golpes, energia e aprimoramentos do seu Pokémon.'}</p>
