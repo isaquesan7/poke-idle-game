@@ -146,3 +146,8 @@ O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Ra
 - CSS responsivo no `PlayApp.module.css` com SOMENTE os tokens `styles/tokens.css` definidos anteriormente e Font Awesome. GIF local `poke_<id>.gif` preservado (jamais modificar `isaquesan7/pokedex`).
 - E2E captura `pokemon-profile-desktop.png` e `pokemon-profile-mobile.png`, confirma arte carregada, IDs de navegação e +1 DEF Pokémon gerando uma revisão como antes. Detalhes, limitações e gates: `docs/POKEMON_UI_D055.md`.
 - **Pendências econômicas mantidas**: itens, raridades, drops e crafting sem decisão numérica; D054 PR #78 independente. Nunca inferir que o design do Pokémon altera regras de combate, save schema2 ou TM09.
+
+## D-055B — separação visual da tela Pokémon (19/11/2026, PR #79 sem publicação)
+- Menu interno agora é exclusivamente `Perfil | Evolução | Golpes` com botões/abas acessíveis, não âncoras; renderiza **somente a seção selecionada**, jamais os três painéis de uma vez. Perfil mostra GIF original/identidade/afinidade/atributos; Evolução mostra apenas requisitos e controles de evolução; Golpes apenas slots/PP/SP/ranks e treino de golpes.
+- Navegação por essas telas não altera save/revisão. Menu principal Pokémon e abrir UID pela Coleção retornam à seção Perfil. Atualizados PlayApp.tsx e PlayApp.module.css com estilo de aba selecionada, painéis de largura total e regras mobile, sempre reutilizando tokens Kanto Dark.
+- E2E Playwright reforçado: ausência de seções ocultas, captura das três telas desktop/mobile e preservação dos cenários existentes de evolução, reabertura por UID e treino de golpes. Mais detalhes em docs/POKEMON_UI_D055.md. Loja/drop/crafting, catálogo de itens e D054 PR #78 continuam PENDENTES e independentes.
