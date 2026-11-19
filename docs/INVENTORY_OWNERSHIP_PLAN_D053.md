@@ -12,13 +12,15 @@
 
 Criado em `packages/game-core/src/inventory/ownership.ts` um modelo **read-only/fail-closed** com `BASE_BAG_SLOTS=10`, propriedade de equipamentos versionada `{version:1,ownedEquipment:{[id]:count},extraBagSlots:number}`, distinção entre **save sem ledger** (`legacy-untracked`) e ledger vazio (`valid`), validação de IDs/quantidades, checagem de equipamento por slot e cálculo de vagas com empilhamento de itens (1 tipo=1 espaço). Testes unitários cobrem corrupção, item forjado, incompatibilidade e sobrecapacidade.
 
-**O que NÃO foi feito:** não foi conectado ao writer de recompensa, à criação de saves, à loja ou aos equipamentos visíveis. O catálogo legado permanece disponível como laboratório, com aviso no UI. Não existem grants de equipamentos, receita/preço de item de expansão, nem contratos transacionais de consumo. Não permitir que um inventário vazio no save antigo bloqueie ou perca itens equipados; planejar uma migração explícita de compatibilidade e testes de regressão antes de ativar o gate de propriedade.
+**Integração opt-in protegida:** quando o save já contém um ledger `inventory` versionado válido, a UI mostra apenas equipamentos com quantidade positiva de propriedade e `trainer.equip`/`validLegacyTrainerDraft` exigem que o item pertença àquele inventário e slot. Com ledger corrompido, o writer bloqueia. **Saves antigos sem ledger** continuam no catálogo de laboratório, sem migração implícita nem perda do equipamento em uso. O campo `extraBagSlots` somente altera a apresentação das vagas; não concede espaços nem impede recebimentos.
+
+**O que NÃO foi feito:** não foi conectado ao writer de recompensa/grant, à criação automática de ledger, à loja ou ao fluxo de aquisição. O catálogo legado segue disponível apenas quando não existe ledger, com aviso no UI. Não existem grants de equipamentos, receita/preço de item de expansão, nem contratos transacionais de consumo. Não permitir que um inventário vazio no save antigo bloqueie ou perca itens equipados; planejar uma migração explícita de compatibilidade e testes de regressão antes de ativar o gate de propriedade.
 
 ## Fase seguinte (economia)
 
 1. Definir **origem de aquisição** e regras para equipamentos e o item de expansão (marco/loja/drop; preços, limites, quantidades e raridade) com aprovação em GDD.
 2. Implementar writer atômico de **grant** com origem de evento autorizada, recibo idempotente/revisão única e validação de capacidade; não tomar item via renderização.
 3. Migrar saves v0.2 legados garantindo o item que **já estava equipado**, sem converter todo catálogo de laboratório em propriedade; verificar readback/backups e persistência, ainda sem mudar a chave do save.
-4. Só então ligar grid/Equipar/Remover à lista de propriedade, validar que não aceita equipamento alheio e habilitar item de expansão da capacidade.
+4. A integração opt-in já restringe o grid e o comando de equipar quando o ledger existe; só após implementar grants/revisões de economia e migração será possível exigir propriedade nos saves antigos, validar que não aceita equipamento alheio e habilitar item de expansão da capacidade.
 
 Preservar save schema2 `kanto-idle-play-v02`, itens de evolução, 151 GIFs, avatar PNG original, combate, TM09 fail-closed e repositório `isaquesan7/pokedex`. Conferir CI geral, E2E PC/mobile e Docker no SHA final; nenhuma afirmação de merge/deploy antes de confirmação.
