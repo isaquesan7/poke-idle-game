@@ -98,12 +98,13 @@ export function applyAuthorizedInventoryGrant(
   if(!journalValid(journal)||!natural(expectedRevision)
     ||typeof grant?.eventId!=='string'||!validEventId(grant.eventId))
     return reject('Journal, revisão ou identificador inválido.');
-  // A fonte declarada NÃO autentica o evento: só é aceita após uma futura
-  // validação real de compra. Jamais converter drops/criação em grants da loja.
+  // A fonte declarada NÃO autentica a aquisição. Para equipamentos, a futura
+  // autoridade deverá validar compra, tabela de drop OU receita de crafting.
+  // Expansões continuam exclusivas da Loja. Este reducer não está no /play.
   const exclusiveKind=grant.kind==='equipment'?'equipment':
     grant.kind==='bag-capacity'?'bag-expansion':null;
   if(!exclusiveKind||!canAcquireItemFromSource(exclusiveKind,grant.source))
-    return reject('Estes itens só podem ser adquiridos por compra na Loja.');
+    return reject('Fonte incompatível com a categoria do item.');
   const fingerprint=payload(grant);
   const existing=journal.receipts.find(r=>r.eventId===grant.eventId);
   if(existing){
