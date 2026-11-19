@@ -725,6 +725,21 @@ async function exerciseInventoryActions(browser,label,viewport){
   assert.equal(newGame.coins,oldGame.coins);
   assert.deepEqual(newGame.roster,oldGame.roster);
   assert.equal(newGame.trainer.title,oldGame.trainer.title);
+  // D-053: apenas fixture de teste cria ledger; produção não concede itens.
+  await page.evaluate(key=>{
+    const save=JSON.parse(localStorage.getItem(key));
+    const game=JSON.parse(save.journal.raw);
+    game.inventory={version:1,ownedEquipment:{cap:1},extraBagSlots:5};
+    save.journal.raw=JSON.stringify(game);
+    localStorage.setItem(key,JSON.stringify(save));
+  },SAVE);
+  await page.reload();
+  await page.getByRole('button',{name:'Treinador',exact:true}).click();
+  await page.getByRole('button',{name:'Equipamentos',exact:true}).click();
+  await page.getByRole('button',{name:'Boné de Kanto, Não equipado. Abrir detalhes'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:/Jaqueta de Viagem.*Abrir detalhes/}).count(),0);
+  await page.getByRole('button',{name:'Mochila',exact:true}).click();
+  await page.getByRole('region',{name:'Mochila'}).getByText('0 / 15').waitFor();
   assert.deepEqual(errors,[]);
   await context.close();
   console.log(label+': modal Equipar/Remover, revisão e progresso intacto OK');
