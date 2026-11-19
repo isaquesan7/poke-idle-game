@@ -72,6 +72,14 @@ async function exercise(browser, label, viewport) {
     const portrait=document.querySelector('img[alt="Personagem original do treinador Kanto"]');
     return portrait?.complete&&portrait.naturalWidth>0;
   });
+  // D-051: ícones Font Awesome presentes, título bloqueado indisponível.
+  await page.locator('.fa-solid.fa-user').first().waitFor();
+  const titleSelect=page.getByRole('combobox',{name:'Título ativo do treinador'});
+  assert.equal(await titleSelect.inputValue(),'aprendiz');
+  assert.equal(await titleSelect.locator('option[value="veterano"]').isDisabled(),true);
+  assert.equal(await titleSelect.locator('option[value="explorador"]').isDisabled(),true);
+  assert.equal(await titleSelect.locator('option[value="mestre"]').isDisabled(),true);
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
   const hat=page.getByRole('button',{name:'Chapéu · Vazio'});
   await hat.focus();
   await page.getByText('Sem equipamento',{exact:true}).waitFor();
