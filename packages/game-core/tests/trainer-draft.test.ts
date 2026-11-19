@@ -80,3 +80,47 @@ describe('rascunho de treinamento: regras puras de domínio', () => {
     expect(validLegacyTrainerDraft(raw, inject(save.trainer.manual, { ...save.trainer.equipped, gloves: 'ring-c' }))).toBe(false);
   });
 });
+
+
+describe('D-051 — seleção segura de títulos do treinador',()=>{
+  const withProgress=(wins:number,seenCount:number,badges:string[])=>
+    JSON.stringify({...save,wins,seen:Array.from({length:seenCount},(_,i)=>i+1),badges});
+
+  it('mantém títulos bloqueados até cumprir vitória, Pokédex e insígnias',()=>{
+    const baseline=withProgress(0,1,[]);
+    for(const titleId of ['veterano','explorador','mestre','forged']){
+      expect(editLegacyTrainerJson(baseline,{type:'title',titleId}).status).toBe('invalid');
+    }
+    const veteran=editLegacyTrainerJson(withProgress(4,1,[]),{type:'title',titleId:'veterano'});
+    const explorer=editLegacyTrainerJson(withProgress(0,10,[]),{type:'title',titleId:'explorador'});
+    const master=editLegacyTrainerJson(withProgress(0,1,['boulder','cascade','thunder','rainbow','soul','marsh','volcano','earth']),{type:'title',titleId:'mestre'});
+    for(const result of [veteran,explorer,master])expect(result.status).toBe('ok');
+  });
+
+  it('altera só o título, preservando XP, moedas, badges e a equipe',()=>{
+    const before=withProgress(4,1,['boulder']);
+    const selected=editLegacyTrainerJson(before,{type:'title',titleId:'veterano'});
+    expect(selected.status).toBe('ok');
+    if(selected.status!=='ok')return;
+    expect(validLegacyTrainerDraft(before,selected.json)).toBe(true);
+    const after=JSON.parse(selected.json);
+    const original=JSON.parse(before);
+    expect(after.trainer.title).toBe('veterano');
+    expect(after.trainer.manual).toEqual(original.trainer.manual);
+    expect(after.trainer.equipped).toEqual(original.trainer.equipped);
+    expect(after.coins).toBe(original.coins);
+    expect(after.badges).toEqual(original.badges);
+    expect(after.roster).toEqual(original.roster);
+    expect(after.expedition).toEqual(original.expedition);
+  });
+
+  it('não permite título forjado em draft nem alterações de recompensa',()=>{
+    const before=withProgress(0,1,[]);
+    const candidate=JSON.parse(before);
+    candidate.trainer.title='mestre';
+    expect(validLegacyTrainerDraft(before,JSON.stringify(candidate))).toBe(false);
+    candidate.trainer.title='aprendiz';
+    candidate.coins=999;
+    expect(validLegacyTrainerDraft(before,JSON.stringify(candidate))).toBe(false);
+  });
+});

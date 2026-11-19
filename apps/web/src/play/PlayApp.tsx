@@ -24,6 +24,12 @@ import { TrainerScreen } from './TrainerScreen';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
+/** D-051: navegação consistente com o Font Awesome da tela do treinador. */
+const NAV_ICONS:Readonly<Record<Tab,string>>={
+  overview:'fa-house',trainer:'fa-user',pokemon:'fa-dragon',collection:'fa-layer-group',
+  pokedex:'fa-book-open',arena:'fa-khanda',expedition:'fa-compass'
+};
+
 /** D-042: animações completas na Arena independentemente do sistema operacional. */
 
 /** A prévia do core usa este catálogo como fonte LOCAL das espécies já jogáveis. */
@@ -394,7 +400,7 @@ export function PlayApp() {
           {(['overview','trainer','pokemon','collection','pokedex','arena','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
-              onClick={() => { setTab(item); setFeedback(''); if(item!=='arena')setBattlePlayback(null); }}>{sectionName(item)}</button>
+              onClick={() => { setTab(item); setFeedback(''); if(item!=='arena')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
@@ -472,7 +478,8 @@ export function PlayApp() {
             {tab === 'trainer' && <TrainerScreen view={view} data={data}
               revision={save.snapshot.revision} busy={busy}
               onInvest={investTrainerBatch}
-              onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}/> }
+              onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}
+              onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
             {tab === 'pokemon' && (
               <div className={styles.twoColumn}>
                 <section className={styles.panel}>

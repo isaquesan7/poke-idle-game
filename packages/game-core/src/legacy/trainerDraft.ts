@@ -7,11 +7,12 @@ import { STATS, zeroStats } from '../stats/types.js';
 import type { Stat, StatValues } from '../stats/types.js';
 import { canInvestTrainerPoint, MANUAL_TRAINER_CAP } from '../stats/trainer.js';
 import type { EquipmentSlot } from '../stats/trainer.js';
-import { LEGACY_ITEMS } from './catalog.js';
+import { LEGACY_ITEMS, LEGACY_TITLES, legacyTitleIsUnlocked } from './catalog.js';
 
 export type TrainerDraftAction =
   | { readonly type: 'invest'; readonly stat: Stat }
-  | { readonly type: 'equip'; readonly slot: EquipmentSlot; readonly itemId: string };
+  | { readonly type: 'equip'; readonly slot: EquipmentSlot; readonly itemId: string }
+  | { readonly type: 'title'; readonly titleId: string };
 
 export type TrainerDraftEditResult =
   | { readonly status: 'ok'; readonly json: string }
@@ -89,6 +90,17 @@ export function editLegacyTrainerJson(
       return { status: 'invalid', reason: 'Equipamento incompatível com o slot.' };
     }
     trainer.equipped[action.slot] = action.itemId;
+  } else if (action.type === 'title') {
+    if (typeof action.titleId !== 'string'
+      || !LEGACY_TITLES.some(title => title.id === action.titleId)
+      || !legacyTitleIsUnlocked(action.titleId,
+        natural(source.wins)?source.wins:0,
+        Array.isArray(source.seen)?source.seen.length:0,
+        Array.isArray(source.badges)?source.badges.length:0
+      )) {
+      return { status: 'invalid', reason: 'Título indisponível: cumpra os requisitos de desbloqueio.' };
+    }
+    trainer.title = action.titleId;
   } else {
     return { status: 'invalid', reason: 'Ação não suportada no protótipo.' };
   }
@@ -96,8 +108,8 @@ export function editLegacyTrainerJson(
 }
 
 /**
- * Verifica que um JSON de rascunho SÓ difere do legado em manual/equipped.
- * Não confia em campos de recompensa, nível, XP, UID ou título do rascunho.
+ * Verifica que um JSON de rascunho SÓ difere do legado em manual/equipped/title.
+ * Não confia em campos de recompensa, nível, XP, UID nem título bloqueado.
  */
 export function validLegacyTrainerDraft(sourceJson: string, editedJson: string): boolean {
   const source = parseRecord(sourceJson);
@@ -137,6 +149,19 @@ export function validLegacyTrainerDraft(sourceJson: string, editedJson: string):
     } else if (JSON.stringify(equipBefore[key]) !== JSON.stringify(equipAfter[key])) return false;
   }
 
+  // A troca de título só pode selecionar um ID já desbloqueado
+  // pela mesma regra da v0.1. Nunca permite trocar insígnias ou vitórias.
+  const selectedTitle = edited.trainer.title;
+  if (selectedTitle !== source.trainer.title && (
+    typeof selectedTitle !== 'string'
+    || !LEGACY_TITLES.some(title => title.id === selectedTitle)
+    || !legacyTitleIsUnlocked(selectedTitle,
+      natural(source.wins)?source.wins:0,
+      Array.isArray(source.seen)?source.seen.length:0,
+      Array.isArray(source.badges)?source.badges.length:0
+    )
+  )) return false;
+
   // Comparação integral de tudo que NÃO está dentro dos dois campos editáveis.
   const beforeRest = JSON.parse(sourceJson) as AnyRecord;
   const afterRest = JSON.parse(editedJson) as AnyRecord;
@@ -144,7 +169,9 @@ export function validLegacyTrainerDraft(sourceJson: string, editedJson: string):
   const afterTrainer = afterRest.trainer as AnyRecord;
   delete beforeTrainer.manual;
   delete beforeTrainer.equipped;
+  delete beforeTrainer.title;
   delete afterTrainer.manual;
   delete afterTrainer.equipped;
+  delete afterTrainer.title;
   return JSON.stringify(beforeRest) === JSON.stringify(afterRest);
 }

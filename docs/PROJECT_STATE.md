@@ -803,3 +803,24 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - D050 UI compatível da rota legada `/`: retirado somente o card informativo de protótipo (botão de reinício continua presente), o selo "Dados locais" e o rótulo "PokéAPI conectada"; a disponibilidade do servidor agora vem de `GET /health`, independente da PokéAPI. O loop, ações e saves da v0.1 não foram modificados.
 
 - Gate de release D-050: `tests/trainer-original-image.test.mjs` exige presença do PNG original em `apps/web/public/assets/trainer-original.png` e SHA-256 `661fec876c4305f55cd9b6a0321bdaec74cdc908166cd14e05dafe0cf18435f3`. O teste **DEVE FALHAR** enquanto o binário ainda não estiver versionado; não contornar, modificar checksum nem aprovar merge com fallback. A rota `/assets/trainer-original.png` é coberta pelo servidor Vite/Docker depois do arquivo copiado. Pacote ZIP local com PNG original preparado para transferência.
+
+## D-051 — primeira rodada de polimento do Treinador (branch, ainda não publicada)
+
+- Continuidade visual da D050: reduz sombra excessiva dos painéis, melhora hierarquia tipográfica, distribuição entre colunas, espaçamento e contraste usando **apenas tokens existentes** em `styles/tokens.css` (sem introduzir hex ou paleta paralela).
+- Arte `/assets/trainer-original.png` permanece **idêntica**: imagem maior/centralizada, halo e base sutis. Os nove equipamentos ficam simétricos nas laterais; tooltip não é mais cortado por `overflow:hidden` e pode ser revelado no hover/foco/toque. Usamos botão com nome acessível no lugar de `div tabIndex`.
+- Barras de atributos distinguem valor salvo (verde) e **aumento ainda não confirmado** (ciano); cada ponto de prévia pode ser desfeito individualmente com botão `−`, além de Cancelar global. Save só muda ao clicar em Confirmar; recibos, revisão e writer continuam os da D050.
+- Título ativo recebe cartão de destaque compacto dentro do perfil; contagem de equipamentos equipados visível na aba correspondente e aba Mochila com rótulo de estoque real. Insígnias mantêm seus IDs e bônus de catálogo.
+- Ajustes para 1200/700/430px, teclado e telas pequenas. E2E desktop/mobile amplia cobertura: PNG carregado, tooltip por foco, adicionar/remover ponto sem gravar, cancelar e confirmar em revisão única.
+- Não foram alterados GIFs, catálogo de TM, combate, economia, save schema/chave, dados de jogador, nem o repositório `isaquesan7/pokedex`.
+- **Gate:** abrir PR, validar CI completo (Node, Vitest/TypeScript, E2E, Docker), revisar a captura do navegador e só depois decidir merge/produção. D049B continua em PR separada.
+
+
+## D-051.1 — títulos selecionáveis, Font Awesome e acabamento luminoso (18/11/2026, PR #75 ainda aberta)
+- Títulos na seção Perfil agora podem ser **selecionados pelo jogador** através de um `select`, com opções indisponíveis marcadas e requisitos informados. Mesmas regras legadas: `aprendiz` livre, `veterano` após 4 vitórias, `explorador` após 10 vistos, `mestre` após 8 insígnias. A função `legacyTitleIsUnlocked` foi centralizada no catálogo e usada tanto pela UI quanto pelo writer `trainer`, sem confiar na seleção enviada pelo cliente.
+- Novo comando de domínio `TrainerDraftAction {type:'title', titleId}` usa `editLegacyTrainerJson`, `validLegacyTrainerDraft` e a gravação versionada atual. Apenas `trainer.title` pode mudar, com pré-condições atuais e revisão igual; não concede XP, moedas, capturas nem insígnias. Projeção existente passa a refletir o bônus correto do título selecionado.
+- Ícones do `TrainerScreen` adotaram **Font Awesome Free 6.7.2**: CSS com URL versionada em `apps/web/index.html`, classes `fa-solid` decorativas e nomes textuais acessíveis. Sem JavaScript remoto; **observação:** webfont precisa da CDN; futura melhoria pode empacotar asset local para offline.
+- Reforço da referência visual enviada: iluminação ciano/violeta, halo e grade ao redor da arte original do treinador, bordas e sombras dos cards, reflexo nos botões e paleta inteiramente centrada em tokens novos `--trainer-*` no `styles/tokens.css`. A imagem PNG original **não foi alterada**.
+- Testes Vitest do catálogo/draft/writer cobrem bloqueio, troca habilitada, segurança contra recompensa forjada e revisão obsoleta; E2E cobre seletor e classes Font Awesome.
+- Não modificar `isaquesan7/pokedex`, nem alterar TMs, combate, inventário, economia, save schema2, chave v0.2, rota `/` ou GIFs. Exigir CI completo e revisão visual PC/mobile antes de merge e Railway; esta nota não é prova de publicação.
+
+- **Polimento adicional de navegação (mesma PR #75):** sidebar e topo do React `/play` adotaram ícones Font Awesome por aba, bordas e brilho ciano seguindo a referência do usuário, sempre com tokens globais. Textos e nomes acessíveis das ações foram mantidos para não quebrar navegação/testes. O stylesheet é CDN versionado, não incluímos fontes no repositório.

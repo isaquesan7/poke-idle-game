@@ -9,7 +9,7 @@ export type { ProgressionKind, LevelProgress, XpResult } from './progression/xp.
 export { expeditionRewards, EXPEDITION_CYCLE_MS, MAX_EXPEDITION_CYCLES } from './rewards/expedition.js';
 export type { ExpeditionRewards } from './rewards/expedition.js';
 export {
-  LEGACY_ITEMS, LEGACY_BADGES, LEGACY_TITLES, LEGACY_STARTERS,
+  LEGACY_ITEMS, LEGACY_BADGES, LEGACY_TITLES, LEGACY_STARTERS, legacyTitleIsUnlocked,
   effectiveLegacyTitle
 } from './legacy/catalog.js';
 export type { LegacyItem, LegacyBadge, LegacyTitle, LegacySpecies } from './legacy/catalog.js';
