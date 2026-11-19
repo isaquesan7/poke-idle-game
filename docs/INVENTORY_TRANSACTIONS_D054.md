@@ -13,12 +13,18 @@ Esta fase é **preparatória**. Não cria preços, recompensas, expansores, nem 
 
 ## Regras de aquisição que ainda precisam ser definidas
 
-Recomendação de produto para discussão posterior: equipamentos obtidos por marcos verificáveis da Arena/expedições ou compras, sem grant por clique. Expansor da Mochila requer item catalogado, regras de preço/drop/uso, quantidade de slots por uso e limite máximo. Estas propostas NÃO foram ativadas nem fixadas no código.
+**DECISÃO APROVADA EM 19/11/2026: aquisição exclusiva na LOJA** para (1) equipamentos de todas as raridades, (2) itens de expansão da Mochila, (3) Pokébolas e (4) itens de cura. **Nunca conceder itens dessas quatro categorias por drop ou crafting**, ainda que sejam raros. Arena/expedições podem conceder recursos/moedas/materiais que depois são usados na compra, mas NÃO concedem diretamente equipamentos.
+
+**Drops** destinam-se a excitação, materiais e otimização, privilegiando raridades altas e possíveis rolagens variáveis em itens elegíveis; não podem condicionar o avanço da história principal à sorte. **Crafting** entrega progressão determinística e consumo planejado de recursos, com receitas e atributos alvos, sem criar equipamentos/expansões/Pokébolas/cura. **Loja** fornece aquisição confiável e controle econômico; raridades comuns/incomuns são a base, mas equipamentos raros, se oferecidos, continuam exclusivos de compra e devem exigir condições/custo apropriados, não apenas moedas comuns fáceis.
+
+A política explícita fica em `packages/game-core/src/inventory/acquisitionPolicy.ts`, testada por `inventory-acquisition-policy.test.ts`. O teste bloqueia origem `drop` ou `craft` para os quatro grupos. Categorias de materiais/refinados ainda não catalogadas permanecem fechadas até existir catálogo de drop/receitas. **Não há writer de compra, preço aprovado, disponibilidade, economia monetária ou alteração de gameplay nesta etapa.**
+
+O expansor precisa de item catalogado, preço, regra de compra e uso, quantidade de slots acrescentados e limite máximo. Pokébolas e itens de cura precisam de catálogo, estoques, consumos, efeitos e valores de compra. Equipamentos precisam de raridade, preço, requisitos, bônus e validação de posse. Essas definições são etapas de implementação posteriores, sem decisões numéricas presumidas.
 
 ## Próximas etapas
 
-1. Aprovar eventos/fonte de aquisição, tabela econômica, preços e raridades.
-2. Implementar autorização verdadeira derivada do estado de jogo e integração ao RewardJournal e à única revisão persistida; preservar concorrência e idempotência.
+1. Fonte de aquisição dos quatro grupos já aprovada: **Loja**. Definir catálogo de materiais/drops/receitas e detalhar tabela econômica, preços e raridades da Loja.
+2. Implementar transação de **compra** validando preço, saldo, requisitos e capacidade, com débito e concessão no mesmo commit, integrando recibos ao RewardJournal e à única revisão persistida; preservar concorrência, idempotência e origem autorizada. Bloquear criação/drop de produtos exclusivos.
 3. Validar migração explícita e auditável sem inventar itens, preservando o equipamento já em uso e os dados de evolução.
 4. Ligar propriedade real ao grid, grants ao inventário, consumo do expansor e rollback. Testar PC/mobile e sobrecapacidade.
 5. Manter TM09 indisponível até existir inventário transacional, writer de ensino e motor de combate correspondente.
