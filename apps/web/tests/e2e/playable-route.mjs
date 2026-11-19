@@ -140,12 +140,19 @@ async function exercise(browser, label, viewport) {
   const untouchedRevision=(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision;
   await pokemonTabs.getByRole('button',{name:'Evolução'}).click();
   await page.getByRole('region',{name:'Evolução do Pokémon'}).waitFor();
+  await page.getByText('Treine seu Pokémon para que ele possa evoluir.').waitFor();
+  assert.equal(await page.getByText('Receber kit de pedras (teste)').count(),0);
+  assert.equal(await page.getByText('Pedras:',{exact:false}).count(),0);
   assert.equal(await page.locator('#pokemon-attributes').count(),0);
   assert.equal(await page.locator('#pokemon-moves').count(),0);
   assert.equal(await page.locator('[class*="pokemonHero"]').count(),0);
   await page.screenshot({path:new URL('pokemon-evolution-'+label+'.png',shots).pathname,fullPage:true});
   await pokemonTabs.getByRole('button',{name:'Golpes'}).click();
   await page.getByRole('region',{name:'Treinar golpes do Pokémon'}).waitFor();
+  await page.getByRole('heading',{name:'Golpes equipados'}).waitFor();
+  await page.getByRole('heading',{name:'Golpes aprendidos'}).waitFor();
+  assert.equal(await page.getByText('SP de combate por encontro:',{exact:false}).count(),0);
+  assert.equal(await page.getByText('Recorte de movimentos por nível',{exact:false}).count(),0);
   assert.equal(await page.locator('#pokemon-attributes').count(),0);
   assert.equal(await page.locator('#pokemon-evolution').count(),0);
   await page.screenshot({path:new URL('pokemon-moves-'+label+'.png',shots).pathname,fullPage:true});
@@ -160,7 +167,23 @@ async function exercise(browser, label, viewport) {
     return hero?.complete && hero.naturalWidth>0;
   });
   await page.screenshot({path:new URL('pokemon-profile-'+label+'.png',shots).pathname,fullPage:true});
-  await page.getByRole('button',{name:'Adicionar ponto em DEF do Pokémon'}).click();
+  if(label==='desktop'){
+    const coords=await page.locator('[class*="pokemonHero"]').boundingBox();
+    const training=await page.getByRole('region',{name:'Treinamento Pokémon'}).boundingBox();
+    assert.ok(coords&&training&&Math.abs(coords.y-training.y)<70&&training.x>coords.x,
+      'Perfil e Treinamento precisam ficar lado a lado no desktop');
+  }
+  const pokemonTrain=page.getByRole('region',{name:'Treinamento Pokémon'});
+  const pointRevision=(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision;
+  await pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em DEF'}).click();
+  await pokemonTrain.getByRole('button',{name:'Retirar um ponto da prévia de DEF'}).click();
+  await pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em DEF'}).click();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,pointRevision);
+  await pokemonTrain.getByRole('button',{name:'Cancelar'}).click();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,pointRevision);
+  await pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em DEF'}).click();
+  await pokemonTrain.getByRole('button',{name:'Confirmar distribuição'}).click();
+  await page.waitForFunction((key,rev)=>JSON.parse(localStorage.getItem(key))?.revision===rev+1,SAVE,pointRevision);
   // O efeito do golpe só aparece na tela exclusiva de Golpes.
   await pokemonTabs.getByRole('button',{name:'Golpes'}).click();
   await page.getByText('10% de queimadura').waitFor();
