@@ -80,6 +80,8 @@ async function exercise(browser, label, viewport) {
   assert.equal(await titleSelect.locator('option[value="explorador"]').isDisabled(),true);
   assert.equal(await titleSelect.locator('option[value="mestre"]').isDisabled(),true);
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
+  // D-051: captura de referência REAL do Perfil para revisão desktop/mobile.
+  await page.screenshot({path:new URL('trainer-'+label+'.png',shots).pathname,fullPage:true});
   const hat=page.getByRole('button',{name:'Chapéu · Vazio'});
   await hat.focus();
   await hat.getByText('Sem equipamento',{exact:true}).waitFor();
