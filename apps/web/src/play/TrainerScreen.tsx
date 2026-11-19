@@ -51,7 +51,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
   const stoneStock=(data.evolutionStones??{}) as Record<string,number>;
   const badgeCount=Array.isArray(data.badges)?data.badges.length:0;
   const seenCount=Array.isArray(data.seen)?data.seen.length:0;
-  const totalWins=Number.isSafeInteger(data.wins)?data.wins:0;
+  const totalWins=typeof data.wins==='number'&&Number.isSafeInteger(data.wins)?data.wins:0;
 
   function stage(stat:Stat){
     if(busy||submitting||remaining<=0||view.manual[stat]+(pending[stat]??0)>=40)return;
