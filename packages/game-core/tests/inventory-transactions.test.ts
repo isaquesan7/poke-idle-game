@@ -86,17 +86,32 @@ describe('D-054 — motor de grant offline, idempotente e sem integração com U
     expect(applyAuthorizedInventoryGrant({raw,revision:0,receipts:[]},0,
       {kind:'equipment',source:'shop',eventId:'ok.2',itemId:'cap',count:1}).status).toBe('rejected');
   });
-  it('rejeita drops, criação e fontes falsas para equipamentos e expansão',()=>{
+  it('permite as três origens de equipamento no laboratório, sem atestar drops ou receitas reais',()=>{
+    for(const source of ['shop','drop','craft'] as const){
+      const before=ready();
+      const grant={kind:'equipment' as const,source,eventId:'example:'+source,itemId:'gloves',count:1};
+      const result=applyAuthorizedInventoryGrant(before,0,grant);
+      expect(result.status).toBe('applied');
+      // A fonte é registrada no recibo; autorizar o evento é obrigação do futuro writer.
+      if(result.status==='applied')
+        expect(result.journal.receipts[0]?.payload).toContain(source);
+    }
+  });
+  it('expansão é exclusiva da Loja; fonte falsa bloqueia todas as categorias',()=>{
     const before=ready();
     for(const source of ['drop','craft','quest',undefined]){
-      for(const grant of [
-        {kind:'equipment',source,eventId:'wrong.equip',itemId:'cap',count:1},
-        {kind:'bag-capacity',source,eventId:'wrong.capacity',slots:5}
-      ]){
-        const result=applyAuthorizedInventoryGrant(before,0,grant as never);
-        expect(result.status).toBe('rejected');
-        expect(result.journal).toBe(before);
-      }
+      const result=applyAuthorizedInventoryGrant(before,0,{
+        kind:'bag-capacity',source,eventId:'wrong.capacity',slots:5
+      } as never);
+      expect(result.status).toBe('rejected');
+      expect(result.journal).toBe(before);
+    }
+    for(const source of ['quest',undefined]){
+      const result=applyAuthorizedInventoryGrant(before,0,{
+        kind:'equipment',source,eventId:'wrong.equip',itemId:'cap',count:1
+      } as never);
+      expect(result.status).toBe('rejected');
+      expect(result.journal).toBe(before);
     }
   });
   it('impede stack acima do máximo e grants em journals adulterados',()=>{
