@@ -34,6 +34,9 @@
   --trainer-shadow-depth: rgba(4,8,23,.62);
   --trainer-shadow-cyan: 0 0 22px rgba(105,214,229,.15);
   --trainer-shadow-pink: 0 0 28px rgba(180,154,255,.18);
+  /* D-053: camadas globais. Modais são portais no body, acima do app. */
+  --z-modal-overlay: 2147483000;
+  --z-tooltip-inventory: 30;
   /* Escala de espaçamentos (4px), usada em grids, margens e paddings. */
   --space-1: 4px;
   --space-2: 8px;
