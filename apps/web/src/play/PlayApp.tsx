@@ -21,6 +21,7 @@ import { PokedexPanel } from './PokedexPanel';
 import { BattlePlayback } from './BattlePlayback';
 import { BattleStage } from './BattleStage';
 import { TrainerScreen } from './TrainerScreen';
+import { PokemonTraining } from './PokemonTraining';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -181,6 +182,15 @@ export function PlayApp() {
     if(save.status!=='ready'||save.snapshot.revision!==revision)return false;
     const outcome=await transact(()=>updatePlaySave(window.localStorage,revision,{
       type:'trainer-invest-batch',increments
+    }));
+    return outcome?.status==='ok';
+  }
+
+  /** D-056: prévia Pokémon confirmada em UMA revisão, sem recompensa nova. */
+  async function investPokemonBatch(uid:number,increments:Partial<Record<Stat,number>>,revision:number):Promise<boolean>{
+    if(save.status!=='ready'||save.snapshot.revision!==revision)return false;
+    const outcome=await transact(()=>updatePlaySave(window.localStorage,revision,{
+      type:'pokemon-invest-batch',uid,increments
     }));
     return outcome?.status==='ok';
   }
@@ -541,32 +551,17 @@ export function PlayApp() {
                     </div>
                   </div>
                 </section>
-                <section className={styles.panel+' '+styles.pokemonAttributesPanel} id="pokemon-attributes">
-                  <h2><i className="fa-solid fa-chart-simple" aria-hidden="true"/> Treinamento Pokémon</h2>
-                  <p>Pontos disponíveis: <strong>{pokemonBudget - pokemonSpent}</strong> de {pokemonBudget}</p>
-                  {!focusedStats && <p>Atributos de batalha desta espécie ainda não constam no catálogo piloto.</p>}
-                  <div className={styles.statList}>
-                    {STATS.map((stat: Stat) => (
-                      <div className={styles.stat} key={stat}>
-                        <span>{STAT_LABELS[stat]}</span>
-                        <strong>{focusedStats?.[stat] ?? '—'}</strong>
-                        <span className={styles.pokemonStatTrack} aria-hidden="true"><span style={{width:Math.min(100,((focusedStats?.[stat]??0)/400)*100)+'%'}}/></span>
-                        <small>{pokemonManual?.[stat] ?? 0} manual</small>
-                        <button type="button" disabled={busy || pokemonSpent >= pokemonBudget}
-                          onClick={() => dispatch({type:'pokemon',value:{type:'invest-pokemon',uid:focused.uid,stat}})}
-                          aria-label={`Adicionar ponto em ${STAT_LABELS[stat]} do Pokémon`}>+1</button>
-                      </div>
-                    ))}
-                  </div>
-                  <button type="button" className={styles.secondary} disabled={busy || pokemonSpent === 0}
-                    onClick={() => dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}})}>
-                    Redistribuir pontos</button>
-                </section>
+                <PokemonTraining key={focused.uid} uid={focused.uid}
+                  revision={save.snapshot.revision} busy={busy}
+                  stats={focusedStats} manual={pokemonManual} budget={pokemonBudget}
+                  onConfirm={investPokemonBatch}
+                  onReset={()=>dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}})}/>
+
                 </>}
                 {pokemonSection==='evolution'&&<>
                 <section className={styles.panel+' '+styles.pokemonEvolutionPanel} id="pokemon-evolution" aria-label="Evolução do Pokémon">
                   <h2><i className="fa-solid fa-dna" aria-hidden="true"/> Evolução</h2>
-                  <p>Seu Pokémon conserva UID, nível, XP, afinidade, pontos e golpes ao evoluir.</p>
+                  <p>Treine seu Pokémon para que ele possa evoluir.</p>
                   {focusedEvolutions.length===0
                     ? <p>Nenhuma evolução disponível para esta espécie dentro dos 151 de Kanto.</p>
                     : <div className={styles.evolutionList}>
@@ -586,7 +581,6 @@ export function PlayApp() {
                             <PokemonArt id={rule.to} name={target} />
                             <div><strong>{target}</strong><small>Requisito: {requirement}</small>
                               {rule.trigger==='trade'&&<small>Trocas indisponíveis na alfa.</small>}
-                              {rule.trigger==='stone'&&<small>Em estoque: {stoneStock[rule.stone]??0}</small>}
                             </div>
                             <button type="button" className={styles.primary}
                               aria-label={'Evoluir para '+target}
@@ -600,36 +594,17 @@ export function PlayApp() {
                           </div>;
                         })}
                       </div>}
-                  <div className={styles.evolutionTestTools}>
-                    <span>Pedras: {KANTO_EVOLUTION_STONES.map(item=>
-                      item.name+' '+(stoneStock[item.id]??0)).join(' · ')}</span>
-                    <button type="button" className={styles.secondary}
-                      disabled={busy||data.evolutionTestKitClaimed===true}
-                      onClick={()=>dispatch({type:'evolution-test-kit'})}>
-                      {data.evolutionTestKitClaimed===true
-                        ? 'Kit de teste já recebido':'Receber kit de pedras (teste)'}</button>
-                  </div>
-                  <p className={styles.disclaimer}>Kit único, apenas para validar a alfa. Não é uma loja
-                    nem uma regra definitiva de obtenção de itens. Trocas não estão implementadas.
-                    Durante expedições, evolução fica bloqueada.</p>
+
                 </section>
                 </>}
                 {pokemonSection==='moves'&&<>
                 <section className={styles.panel+' '+styles.pokemonMovesPanel} id="pokemon-moves" aria-label="Treinar golpes do Pokémon">
                   <h2><i className="fa-solid fa-bolt" aria-hidden="true"/> Golpes do Pokémon</h2>
-                  <p>Golpes equipados: <strong>{equippedNames.length}/4</strong> ·
-                    principal: <strong>{currentMoveName || 'Padrão'}</strong>.
-                    A Arena escolhe ataques e pode usar suportes na abertura;
-                    pelo menos um golpe de dano deve permanecer equipado.
-                    Cada habilidade gasta SP, e o ataque básico é gratuito.</p>
-                  <p>SP de combate por encontro: <strong>{focused?kantoMaxSp(focused.level,focused.pokemonId):0}</strong> ·
-                    ataque básico gratuito (Poder {KANTO_BASIC_ATTACK.power}).
-                    cada espécie possui energia própria conforme nível e atributos-base
-                    (mínimo de 50, máximo de 100 SP).
-                    Se faltar SP, a IA pode usar Concentrar (30% do máximo,
-                    no máximo {KANTO_SP_BALANCE.maxFocusUses} vezes por batalha, com
-                    intervalo de {KANTO_SP_BALANCE.focusCooldownTurns} turnos).
-                    SP é diferente dos pontos permanentes de aprimoramento.</p>
+                  <div className={styles.pokemonMovesHeader}>
+                    <div><h3><i className="fa-solid fa-shield-halved" aria-hidden="true"/> Golpes equipados</h3>
+                      <p>Escolha até quatro golpes. O primeiro é o principal.</p></div>
+                    <span className={styles.pokemonMovesCount}>{equippedNames.length} / 4 slots</span>
+                  </div>
                   <div className={styles.moveList} aria-label="Golpes equipados" data-testid="equipped-moves">
                     {equippedNames.map((name,i)=><div key={name} className={styles.moveEquipped}>
                       <div><strong>{i+1}. {name}</strong>
@@ -650,8 +625,11 @@ export function PlayApp() {
                       </div>
                     </div>)}
                   </div>
-                  <p>Pontos para aprimorar golpes: <strong>{moveLimits?moveLimits.skillPoints-moveSpent:0}</strong>
-                    {moveLimits ? ' · Rank máximo por golpe: '+moveLimits.maxRankPerMove : ''}</p>
+                  <div className={styles.pokemonMovesHeader}>
+                    <div><h3><i className="fa-solid fa-book-open" aria-hidden="true"/> Golpes aprendidos</h3>
+                      <p>Escolha e melhore os movimentos do seu Pokémon.</p></div>
+                    <span className={styles.pokemonMovesCount}>Pontos de aprimoramento: {moveLimits?moveLimits.skillPoints-moveSpent:0}</span>
+                  </div>
                   <div className={styles.moveList}>
                     {levelMoves.map(({move,learnedAt})=>{
                       const equipped=currentMoveName===move.name;
@@ -686,7 +664,7 @@ export function PlayApp() {
                       </div>;
                     })}
                   </div>
-                  <h3>Golpes de suporte e cura aprendidos</h3>
+                  <h3 className={styles.pokemonMoveSubheading}><i className="fa-solid fa-hand-holding-heart" aria-hidden="true"/> Suporte e cura</h3>
                   <div className={styles.moveList}>
                     {supportMoves.map(({move,learnedAt})=>{
                       const inSlots=equippedNames.includes(move.name);
@@ -714,10 +692,7 @@ export function PlayApp() {
                   {levelMoves.length===0&&<p>Nenhum golpe de dano direto foi catalogado até este nível nesta seleção da PokéAPI.</p>}
                   {currentMoveName&&!levelMoves.some(x=>x.move.name===currentMoveName)&&
                     <p className={styles.disclaimer}>O golpe equipado pode ter sido aprendido antes da evolução ou ser provisório da alfa. Ele é preservado nesta instância; ao equipar outro golpe, será substituído.</p>}
-                  <p className={styles.disclaimer}>Recorte de movimentos por nível
-                    FireRed/LeafGreen: dano e quatro suportes básicos. A IA escolhe
-                    suporte válido na abertura e depois prioriza dano. Sem PP ou
-                    escolha manual por turno na alfa; status são temporários.</p>
+
                 </section>
                 </>}
                 </div>
