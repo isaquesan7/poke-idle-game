@@ -82,7 +82,7 @@ async function exercise(browser, label, viewport) {
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
   const hat=page.getByRole('button',{name:'Chapéu · Vazio'});
   await hat.focus();
-  await page.getByText('Sem equipamento',{exact:true}).waitFor();
+  await hat.getByText('Sem equipamento',{exact:true}).waitFor();
   // D-050: clicar em +1 altera apenas a prévia; nenhum ponto é salvo sem confirmar.
   await page.getByRole('button',{name:'Pré-visualizar +1 em ATK'}).click();
   await page.getByRole('button',{name:'Retirar um ponto da prévia de ATK'}).click();
