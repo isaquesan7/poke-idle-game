@@ -822,3 +822,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Reforço da referência visual enviada: iluminação ciano/violeta, halo e grade ao redor da arte original do treinador, bordas e sombras dos cards, reflexo nos botões e paleta inteiramente centrada em tokens novos `--trainer-*` no `styles/tokens.css`. A imagem PNG original **não foi alterada**.
 - Testes Vitest do catálogo/draft/writer cobrem bloqueio, troca habilitada, segurança contra recompensa forjada e revisão obsoleta; E2E cobre seletor e classes Font Awesome.
 - Não modificar `isaquesan7/pokedex`, nem alterar TMs, combate, inventário, economia, save schema2, chave v0.2, rota `/` ou GIFs. Exigir CI completo e revisão visual PC/mobile antes de merge e Railway; esta nota não é prova de publicação.
+
+- **Polimento adicional de navegação (mesma PR #75):** sidebar e topo do React `/play` adotaram ícones Font Awesome por aba, bordas e brilho ciano seguindo a referência do usuário, sempre com tokens globais. Textos e nomes acessíveis das ações foram mantidos para não quebrar navegação/testes. O stylesheet é CDN versionado, não incluímos fontes no repositório.
