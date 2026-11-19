@@ -1,3 +1,12 @@
+
+## D-051.1 — títulos selecionáveis, Font Awesome e acabamento luminoso (18/11/2026, PR #75 ainda aberta)
+- Títulos na seção Perfil agora podem ser **selecionados pelo jogador** através de um `select`, com opções indisponíveis marcadas e requisitos informados. Mesmas regras legadas: `aprendiz` livre, `veterano` após 4 vitórias, `explorador` após 10 vistos, `mestre` após 8 insígnias. A função `legacyTitleIsUnlocked` foi centralizada no catálogo e usada tanto pela UI quanto pelo writer `trainer`, sem confiar na seleção enviada pelo cliente.
+- Novo comando de domínio `TrainerDraftAction {type:'title', titleId}` usa `editLegacyTrainerJson`, `validLegacyTrainerDraft` e a gravação versionada atual. Apenas `trainer.title` pode mudar, com pré-condições atuais e revisão igual; não concede XP, moedas, capturas nem insígnias. Projeção existente passa a refletir o bônus correto do título selecionado.
+- Ícones do `TrainerScreen` adotaram **Font Awesome Free 6.7.2**: CSS com URL versionada em `apps/web/index.html`, classes `fa-solid` decorativas e nomes textuais acessíveis. Sem JavaScript remoto; **observação:** webfont precisa da CDN; futura melhoria pode empacotar asset local para offline.
+- Reforço da referência visual enviada: iluminação ciano/violeta, halo e grade ao redor da arte original do treinador, bordas e sombras dos cards, reflexo nos botões e paleta inteiramente centrada em tokens novos `--trainer-*` no `styles/tokens.css`. A imagem PNG original **não foi alterada**.
+- Testes Vitest do catálogo/draft/writer cobrem bloqueio, troca habilitada, segurança contra recompensa forjada e revisão obsoleta; E2E cobre seletor e classes Font Awesome.
+- Não modificar `isaquesan7/pokedex`, nem alterar TMs, combate, inventário, economia, save schema2, chave v0.2, rota `/` ou GIFs. Exigir CI completo e revisão visual PC/mobile antes de merge e Railway; esta nota não é prova de publicação.
+
 # D-051 — polimento da tela do treinador (18/11/2026, em branch)
 
 ## D-051 — primeira rodada de polimento do Treinador (branch, ainda não publicada)
