@@ -5,7 +5,7 @@ import {
   KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats,
   kantoLevelMoves,kantoSupportMoves,KANTO_SUPPORT_MOVES,pokemonMoveSlots,
   legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
-  KANTO_BASIC_ATTACK,KANTO_SP_BALANCE,kantoMaxSp,kantoMoveSpCost,kantoMovePp,
+  kantoMoveSpCost,kantoMovePp,
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame } from '@kanto/game-core';
@@ -521,7 +521,7 @@ export function PlayApp() {
                       <i className={'fa-solid '+icon} aria-hidden="true"/> {label}
                     </button>)}
                 </nav>
-                <div className={styles.pokemonGrid}>
+                <div className={styles.pokemonGrid+(pokemonSection==='profile'?' '+styles.pokemonProfileGrid:'')}>
                 {pokemonSection==='profile'&&<>
                 <section className={styles.pokemonHero}>
                   <div className={styles.pokemonShowcase}>
@@ -605,9 +605,10 @@ export function PlayApp() {
                       <p>Escolha até quatro golpes. O primeiro é o principal.</p></div>
                     <span className={styles.pokemonMovesCount}>{equippedNames.length} / 4 slots</span>
                   </div>
-                  <div className={styles.moveList} aria-label="Golpes equipados" data-testid="equipped-moves">
-                    {equippedNames.map((name,i)=><div key={name} className={styles.moveEquipped}>
-                      <div><strong>{i+1}. {name}</strong>
+                  <div className={styles.moveList+' '+styles.pokemonEquippedGrid} aria-label="Golpes equipados" data-testid="equipped-moves">
+                    {equippedNames.map((name,i)=><div key={name} className={styles.moveEquipped+' '+styles.pokemonMoveCard}>
+                      <div><strong><i className={'fa-solid '+(KANTO_SUPPORT_MOVES[name]?'fa-hand-sparkles':'fa-bolt')} aria-hidden="true"/> {name}</strong>
+                        <span className={styles.pokemonMoveBadge}>{i===0?'★ Principal':'Equipado · slot '+(i+1)}</span>
                         <small>{i===0?'Principal':'Adicional'} ·
                           {KANTO_SUPPORT_MOVES[name]?(name==='recover'?' Cura':' Suporte'):' Ataque'} ·
                           {KANTO_SUPPORT_MOVES[name]||KANTO_BATTLE_MOVES[name]
@@ -617,26 +618,32 @@ export function PlayApp() {
                         {i>0&&<button type="button" className={styles.secondary}
                           aria-label={'Tornar principal '+name} disabled={busy}
                           onClick={()=>dispatch({type:'move-set',uid:focused.uid,
-                            moveName:name,operation:'primary'})}>Principal</button>}
+                            moveName:name,operation:'primary'})}><i className="fa-solid fa-star" aria-hidden="true"/> Principal</button>}
                         {equippedNames.length>1&&<button type="button" className={styles.textButton}
                           aria-label={'Retirar golpe '+name} disabled={busy}
                           onClick={()=>dispatch({type:'move-set',uid:focused.uid,
-                            moveName:name,operation:'remove'})}>Retirar</button>}
+                            moveName:name,operation:'remove'})}><i className="fa-solid fa-xmark" aria-hidden="true"/> Retirar</button>}
                       </div>
                     </div>)}
+                    {Array.from({length:Math.max(0,4-equippedNames.length)},(_,index)=>
+                      <div className={styles.pokemonEmptyMoveSlot} key={'empty-'+index}>
+                        <i className="fa-solid fa-plus" aria-hidden="true"/>
+                        <span>Espaço vazio {equippedNames.length+index+1}</span>
+                      </div>)}
                   </div>
                   <div className={styles.pokemonMovesHeader}>
                     <div><h3><i className="fa-solid fa-book-open" aria-hidden="true"/> Golpes aprendidos</h3>
                       <p>Escolha e melhore os movimentos do seu Pokémon.</p></div>
                     <span className={styles.pokemonMovesCount}>Pontos de aprimoramento: {moveLimits?moveLimits.skillPoints-moveSpent:0}</span>
                   </div>
-                  <div className={styles.moveList}>
+                  <div className={styles.moveList+' '+styles.pokemonLearnedGrid}>
                     {levelMoves.map(({move,learnedAt})=>{
                       const equipped=currentMoveName===move.name;
                       const inSlots=equippedNames.includes(move.name);
                       const rank=moveRanks[move.name]??0;
-                      return <div key={move.name} className={equipped?styles.moveEquipped:styles.moveOption}>
-                        <div><strong>{move.name}</strong><small>Nv. {learnedAt} · {move.type} ·
+                      return <div key={move.name} className={(equipped?styles.moveEquipped:styles.moveOption)+' '+styles.pokemonMoveCard}>
+                        <div><strong><i className="fa-solid fa-bolt" aria-hidden="true"/> {move.name}</strong>
+                          {inSlots&&<span className={styles.pokemonMoveBadge}><i className="fa-solid fa-circle-check" aria-hidden="true"/> Equipado</span>}<small>Nv. {learnedAt} · {move.type} ·
                           Poder {move.power}{move.name==='double-kick'?' × 2 impactos':''} · Precisão {move.accuracy}%</small>
                           <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'} ·
                             PP {kantoMovePp(move.name)??'não catalogado'} ·
@@ -648,28 +655,29 @@ export function PlayApp() {
                             disabled={busy||equippedNames.length>=4}
                             aria-label={'Adicionar golpe '+move.name}
                             onClick={()=>dispatch({type:'move-set',uid:focused.uid,
-                              moveName:move.name,operation:'add'})}>Adicionar</button>}
+                              moveName:move.name,operation:'add'})}><i className="fa-solid fa-plus" aria-hidden="true"/> Adicionar</button>}
                           <button type="button" className={styles.secondary}
                             disabled={busy||equipped}
                             aria-label={'Equipar golpe '+move.name}
                             onClick={()=>dispatch({type:'move',uid:focused.uid,moveName:move.name,operation:'select'})}>
-                            {equipped?'Equipado':'Equipar'}</button>
+                            <i className={'fa-solid '+(equipped?'fa-circle-check':'fa-check')} aria-hidden="true"/> {equipped?'Equipado':'Equipar'}</button>
                           <button type="button" className={styles.primary}
                             aria-label={'Aprimorar golpe '+move.name}
                             disabled={busy||!equipped||moveSpent>=(moveLimits?.skillPoints??0)
                               ||rank>=(moveLimits?.maxRankPerMove??0)}
                             onClick={()=>dispatch({type:'move',uid:focused.uid,moveName:move.name,operation:'upgrade'})}>
-                            + Rank</button>
+                            <i className="fa-solid fa-arrow-up" aria-hidden="true"/> Aprimorar</button>
                         </div>
                       </div>;
                     })}
                   </div>
                   <h3 className={styles.pokemonMoveSubheading}><i className="fa-solid fa-hand-holding-heart" aria-hidden="true"/> Suporte e cura</h3>
-                  <div className={styles.moveList}>
+                  <div className={styles.moveList+' '+styles.pokemonLearnedGrid}>
                     {supportMoves.map(({move,learnedAt})=>{
                       const inSlots=equippedNames.includes(move.name);
-                      return <div key={move.name} className={inSlots?styles.moveEquipped:styles.moveOption}>
-                        <div><strong>{move.name}</strong>
+                      return <div key={move.name} className={(inSlots?styles.moveEquipped:styles.moveOption)+' '+styles.pokemonMoveCard}>
+                        <div><strong><i className="fa-solid fa-hand-holding-heart" aria-hidden="true"/> {move.name}</strong>
+                          {inSlots&&<span className={styles.pokemonMoveBadge}><i className="fa-solid fa-circle-check" aria-hidden="true"/> Equipado</span>}
                           <small>Nv. {learnedAt} · {move.type} · Precisão {move.accuracy}% ·
                             PP {kantoMovePp(move.name)??'não catalogado'} ·
                             Custo {kantoMoveSpCost(move)} SP</small>
