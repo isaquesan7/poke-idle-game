@@ -80,6 +80,7 @@ async function exercise(browser, label, viewport) {
   const choices=page.getByRole('group',{name:'Escolher título do treinador'});
   await choices.getByRole('button',{name:/Aprendiz de Kanto, bônus HP \+1/}).hover();
   await choices.getByText('Bônus: HP +1').waitFor();
+  await page.screenshot({path:new URL('trainer-title-list-'+label+'.png',shots).pathname,fullPage:true});
   for(const title of ['Veterano da Arena','Explorador de Kanto','Mestre de Ginásios']){
     assert.equal(await choices.getByRole('button',{name:new RegExp('^'+title)}).getAttribute('aria-disabled'),'true');
   }
@@ -88,6 +89,8 @@ async function exercise(browser, label, viewport) {
   const boulder=page.getByLabel('Rocha bloqueada. 1 vitórias. Bônus: DEF +1');
   await boulder.focus();
   await boulder.getByText('Bônus: DEF +1').waitFor();
+  await page.screenshot({path:new URL('trainer-badge-tooltip-'+label+'.png',shots).pathname,fullPage:true});
+  await page.evaluate(()=>{const current=document.activeElement;if(current instanceof HTMLElement)current.blur();});
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
   // D-051: captura de referência REAL do Perfil para revisão desktop/mobile.
   await page.screenshot({path:new URL('trainer-'+label+'.png',shots).pathname,fullPage:true});
