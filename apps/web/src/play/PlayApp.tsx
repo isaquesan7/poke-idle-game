@@ -24,6 +24,7 @@ import { TrainerScreen } from './TrainerScreen';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
+type PokemonSection = 'profile' | 'evolution' | 'moves';
 /** D-051: navegação consistente com o Font Awesome da tela do treinador. */
 const NAV_ICONS:Readonly<Record<Tab,string>>={
   overview:'fa-house',trainer:'fa-user',pokemon:'fa-dragon',collection:'fa-layer-group',
@@ -114,6 +115,8 @@ export function PlayApp() {
   const [demo, setDemo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selectedUid, setSelectedUid] = useState<number | null>(null);
+  /** Apenas navegação local: não grava no save nem altera o Pokémon ativo. */
+  const [pokemonSection,setPokemonSection]=useState<PokemonSection>('profile');
   const [collectionQuery, setCollectionQuery] = useState('');
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all');
   const [feedback, setFeedback] = useState('');
@@ -202,6 +205,7 @@ export function PlayApp() {
   }
 
   function openPokemon(uid:number):void {
+    setPokemonSection('profile');
     setSelectedUid(uid);
     setFeedback('');
     setTab('pokemon');
@@ -217,6 +221,7 @@ export function PlayApp() {
     setBattlePlayback(null);
     setTab('overview');
     setSelectedUid(null);
+    setPokemonSection('profile');
     setCollectionQuery('');
     setCollectionFilter('all');
     setFeedback('Teste v0.2 reiniciado. O protótipo v0.1 não foi alterado.');
@@ -400,7 +405,7 @@ export function PlayApp() {
           {(['overview','trainer','pokemon','collection','pokedex','arena','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
-              onClick={() => { setTab(item); setFeedback(''); if(item!=='arena')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
+              onClick={() => { if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='arena')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
@@ -486,17 +491,28 @@ export function PlayApp() {
                   <div>
                     <span className={styles.pokemonEyebrow}><i className="fa-solid fa-dragon" aria-hidden="true"/> SEU PARCEIRO POKÉMON</span>
                     <h2>Perfil do Pokémon</h2>
-                    <p>Seu parceiro em destaque: atributos, evolução e golpes organizados em um só lugar.</p>
+                    <p>{pokemonSection==='profile'?'Confira os atributos e a afinidade do seu parceiro.':
+                      pokemonSection==='evolution'?'Veja as evoluções possíveis e seus requisitos.':
+                      'Gerencie golpes, energia e aprimoramentos do seu Pokémon.'}</p>
                   </div>
                   <button type="button" className={styles.secondary} onClick={()=>setTab('collection')}>
                     <i className="fa-solid fa-layer-group" aria-hidden="true"/> Ver coleção</button>
                 </header>
                 <nav className={styles.pokemonQuickNav} aria-label="Seções do Pokémon">
-                  <a href="#pokemon-attributes"><i className="fa-solid fa-chart-simple" aria-hidden="true"/> Atributos</a>
-                  <a href="#pokemon-evolution"><i className="fa-solid fa-dna" aria-hidden="true"/> Evolução</a>
-                  <a href="#pokemon-moves"><i className="fa-solid fa-bolt" aria-hidden="true"/> Golpes</a>
+                  {([
+                    ['profile','Perfil','fa-chart-simple'],
+                    ['evolution','Evolução','fa-dna'],
+                    ['moves','Golpes','fa-bolt']
+                  ] as const).map(([section,label,icon])=>
+                    <button key={section} type="button"
+                      className={pokemonSection===section?styles.pokemonQuickActive:styles.pokemonQuickButton}
+                      aria-current={pokemonSection===section?'page':undefined}
+                      onClick={()=>setPokemonSection(section)}>
+                      <i className={'fa-solid '+icon} aria-hidden="true"/> {label}
+                    </button>)}
                 </nav>
                 <div className={styles.pokemonGrid}>
+                {pokemonSection==='profile'&&<>
                 <section className={styles.pokemonHero}>
                   <div className={styles.pokemonShowcase}>
                     <div className={styles.pokemonArtStage}>
@@ -546,6 +562,8 @@ export function PlayApp() {
                     onClick={() => dispatch({type:'pokemon',value:{type:'reset-pokemon',uid:focused.uid}})}>
                     Redistribuir pontos</button>
                 </section>
+                </>}
+                {pokemonSection==='evolution'&&<>
                 <section className={styles.panel} id="pokemon-evolution" aria-label="Evolução do Pokémon">
                   <h2><i className="fa-solid fa-dna" aria-hidden="true"/> Evolução</h2>
                   <p>Seu Pokémon conserva UID, nível, XP, afinidade, pontos e golpes ao evoluir.</p>
@@ -595,6 +613,8 @@ export function PlayApp() {
                     nem uma regra definitiva de obtenção de itens. Trocas não estão implementadas.
                     Durante expedições, evolução fica bloqueada.</p>
                 </section>
+                </>}
+                {pokemonSection==='moves'&&<>
                 <section className={styles.panel+' '+styles.pokemonMovesPanel} id="pokemon-moves" aria-label="Treinar golpes do Pokémon">
                   <h2><i className="fa-solid fa-bolt" aria-hidden="true"/> Golpes do Pokémon</h2>
                   <p>Golpes equipados: <strong>{equippedNames.length}/4</strong> ·
@@ -699,6 +719,7 @@ export function PlayApp() {
                     suporte válido na abertura e depois prioriza dano. Sem PP ou
                     escolha manual por turno na alfa; status são temporários.</p>
                 </section>
+                </>}
                 </div>
               </div>
             )}
