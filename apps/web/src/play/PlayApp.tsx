@@ -553,6 +553,12 @@ export function PlayApp() {
                 <PokemonTraining key={focused.uid} uid={focused.uid}
                   revision={save.snapshot.revision} busy={busy}
                   stats={focusedStats} manual={pokemonManual} budget={pokemonBudget}
+                  previewStats={increments=>{
+                    if(!focusedSpecies||!view)return null;
+                    const previewManual={...pokemonManual};
+                    for(const stat of STATS)previewManual[stat]+=(increments[stat]??0);
+                    return pokemonFinalStats(focusedSpecies.base,focused.level,previewManual,view.totals,focused.affinity);
+                  }}
                   onConfirm={investPokemonBatch}
                   onReset={()=>{
                     if(window.confirm('Redistribuir todos os pontos de '+speciesName(focused.pokemonId)+' (UID '+focused.uid+')?')){
