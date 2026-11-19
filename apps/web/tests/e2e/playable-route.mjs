@@ -74,11 +74,20 @@ async function exercise(browser, label, viewport) {
   });
   // D-051: ícones Font Awesome presentes, título bloqueado indisponível.
   await page.locator('.fa-solid.fa-user').first().waitFor();
-  const titleSelect=page.getByRole('combobox',{name:'Título ativo do treinador'});
-  assert.equal(await titleSelect.inputValue(),'aprendiz');
-  assert.equal(await titleSelect.locator('option[value="veterano"]').isDisabled(),true);
-  assert.equal(await titleSelect.locator('option[value="explorador"]').isDisabled(),true);
-  assert.equal(await titleSelect.locator('option[value="mestre"]').isDisabled(),true);
+  const titleSelect=page.getByRole('button',{name:'Título ativo do treinador'});
+  assert.equal(await titleSelect.getAttribute('aria-expanded'),'false');
+  await titleSelect.click();
+  const choices=page.getByRole('group',{name:'Escolher título do treinador'});
+  await choices.getByRole('button',{name:/Aprendiz de Kanto, bônus HP \+1/}).hover();
+  await choices.getByText('Bônus: HP +1').waitFor();
+  for(const title of ['Veterano da Arena','Explorador de Kanto','Mestre de Ginásios']){
+    assert.equal(await choices.getByRole('button',{name:new RegExp('^'+title)}).getAttribute('aria-disabled'),'true');
+  }
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
+  await titleSelect.click();
+  const boulder=page.getByLabel('Rocha bloqueada. 1 vitórias. Bônus: DEF +1');
+  await boulder.focus();
+  await boulder.getByText('Bônus: DEF +1').waitFor();
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
   // D-051: captura de referência REAL do Perfil para revisão desktop/mobile.
   await page.screenshot({path:new URL('trainer-'+label+'.png',shots).pathname,fullPage:true});
@@ -94,6 +103,9 @@ async function exercise(browser, label, viewport) {
   await page.screenshot({path:new URL('inventory-equipment-'+label+'.png',shots).pathname,fullPage:true});
   await page.getByRole('button',{name:'Boné de Kanto, Não equipado. Abrir detalhes'}).click();
   await page.getByRole('dialog',{name:'Boné de Kanto'}).waitFor();
+  assert.equal(await page.getByRole('dialog',{name:'Boné de Kanto'}).evaluate(dialog=>dialog.parentElement===document.body),true);
+  assert.ok(await page.getByRole('dialog',{name:'Boné de Kanto'}).evaluate(dialog=>
+    Number(getComputedStyle(dialog.parentElement).zIndex)>9999),'Modal deve cobrir botões do jogo');
   await page.getByRole('dialog',{name:'Boné de Kanto'}).getByText('HP +2').waitFor();
   await page.getByRole('dialog',{name:'Boné de Kanto'}).getByRole('button',{name:'Cancelar'}).click();
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
@@ -702,7 +714,9 @@ async function exerciseInventoryActions(browser,label,viewport){
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===1,SAVE);
   const equipped=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.equal(JSON.parse(equipped.journal.raw).trainer.equipped.hat,'cap');
-  await page.getByRole('button',{name:'Boné de Kanto, Equipado. Abrir detalhes'}).click();
+  const equippedCube=page.getByRole('button',{name:'Boné de Kanto, Equipado. Abrir detalhes'});
+  assert.equal(await equippedCube.locator('.fa-circle-check').count(),1);
+  await equippedCube.click();
   await page.getByRole('dialog',{name:'Boné de Kanto'}).getByRole('button',{name:'Remover'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===2,SAVE);
   const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
