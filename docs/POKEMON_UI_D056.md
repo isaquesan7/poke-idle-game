@@ -18,3 +18,5 @@
 - A interface do kit foi removida, sem editar a regra de domínio das pedras ou inventar fonte de obtenção; o comando de kit experimental permanece isolado sem botão de UI nesta etapa.
 - Não publicar antes de testes e autorização.
 - Ajuste de precisão D056: a prévia de status Pokémon usa obrigatoriamente pokemonFinalStats do game-core sobre os pontos manuais projetados, inclusive HP (+2 finais por ponto manual) e contribuições do Treinador/afinidade; evita prévia numérica linear incorreta. E2E confirma HP preview +2, desfaz e garante zero escrita antes do commit.
+
+- E2E D056: jornada de dois Pidgey independentes por UID atualizada para usar prévia + confirmação de SPD (não mais incremento imediato). Confirma revisão intacta antes do commit, depois incremento somente no UID selecionado, preservando o primeiro exemplar.
