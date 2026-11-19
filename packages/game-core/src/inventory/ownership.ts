@@ -19,7 +19,7 @@ export type InventoryOwnershipRead=
   | {readonly status:'invalid';readonly reason:string};
 
 const knownItems=new Set(LEGACY_ITEMS.map(item=>item.id));
-const isCount=(n:unknown)=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
+const isCount=(n:unknown):n is number=>typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
 
 /** Ausência não é "zero itens" nem prova de posse. Saves antigos não têm ledger. */
 export function inspectInventoryOwnership(value:unknown):InventoryOwnershipRead{
