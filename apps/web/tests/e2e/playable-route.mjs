@@ -126,6 +126,19 @@ async function exercise(browser, label, viewport) {
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===1,SAVE);
   assert.equal(await page.getByText('Progresso salvo neste navegador.').count(),0);
   await page.getByRole('button',{name:'Pokémon',exact:true}).click();
+  // D-055: perfil novo usa GIF original e mantém comandos de progresso inalterados.
+  await page.getByRole('heading',{name:'Perfil do Pokémon'}).waitFor();
+  const pokemonProfile=page.locator('[class*="pokemonWorkspace"]');
+  await pokemonProfile.getByRole('img',{name:'charmander'}).waitFor();
+  await page.getByRole('progressbar',{name:'Afinidade do Pokémon'}).waitFor();
+  assert.equal(await pokemonProfile.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('link').count(),3);
+  for(const section of ['pokemon-attributes','pokemon-evolution','pokemon-moves'])
+    assert.equal(await page.locator('#'+section).count(),1);
+  await page.waitForFunction(()=>{
+    const hero=document.querySelector('[class*="pokemonHero"] img');
+    return hero?.complete && hero.naturalWidth>0;
+  });
+  await page.screenshot({path:new URL('pokemon-profile-'+label+'.png',shots).pathname,fullPage:true});
   await page.getByRole('button',{name:'Adicionar ponto em DEF do Pokémon'}).click();
   await page.getByText('10% de queimadura').waitFor();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===2,SAVE);
