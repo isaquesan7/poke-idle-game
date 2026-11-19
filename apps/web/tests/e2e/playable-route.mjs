@@ -85,6 +85,19 @@ async function exercise(browser, label, viewport) {
   const hat=page.getByRole('button',{name:'Chapéu · Vazio'});
   await hat.focus();
   await hat.getByText('Sem equipamento',{exact:true}).waitFor();
+  // D-052: mochila começa com dez cubos; sem criar itens artificiais.
+  await page.getByRole('button',{name:'Mochila',exact:true}).click();
+  await page.getByRole('region',{name:'Mochila'}).getByText('0 / 10').waitFor();
+  assert.equal(await page.getByRole('img',{name:/Espaço vazio/}).count(),10);
+  await page.screenshot({path:new URL('inventory-bag-'+label+'.png',shots).pathname,fullPage:true});
+  await page.getByRole('button',{name:'Equipamentos',exact:true}).click();
+  await page.screenshot({path:new URL('inventory-equipment-'+label+'.png',shots).pathname,fullPage:true});
+  await page.getByRole('button',{name:'Boné de Kanto, Não equipado. Abrir detalhes'}).click();
+  await page.getByRole('dialog',{name:'Boné de Kanto'}).waitFor();
+  await page.getByRole('dialog',{name:'Boné de Kanto'}).getByText('HP +2').waitFor();
+  await page.getByRole('dialog',{name:'Boné de Kanto'}).getByRole('button',{name:'Cancelar'}).click();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
+  await page.getByRole('button',{name:'Perfil',exact:true}).click();
   // D-050: clicar em +1 altera apenas a prévia; nenhum ponto é salvo sem confirmar.
   await page.getByRole('button',{name:'Pré-visualizar +1 em ATK'}).click();
   await page.getByRole('button',{name:'Retirar um ponto da prévia de ATK'}).click();
@@ -669,6 +682,40 @@ async function exerciseNewMoves(browser,label,viewport){
   console.log(label+': Recover/Double Kick por UID, hits e replay sem recompensas extras OK');
 }
 
+
+/** D-052: equipar/remover pela modal real, sem mexer nas outras jornadas. */
+async function exerciseInventoryActions(browser,label,viewport){
+  const context=await browser.newContext({viewport});
+  const page=await context.newPage();
+  const errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  await page.goto(BASE+'/play',{waitUntil:'domcontentloaded'});
+  await page.getByLabel('Nome do treinador').fill('Treinador Inventário');
+  await page.getByRole('radio',{name:/Charmander/}).check();
+  await page.getByRole('checkbox',{name:/modo demonstração/}).check();
+  await page.getByRole('button',{name:'Começar aventura'}).click();
+  await page.getByRole('button',{name:'Treinador',exact:true}).click();
+  await page.getByRole('button',{name:'Equipamentos',exact:true}).click();
+  const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  await page.getByRole('button',{name:'Boné de Kanto, Não equipado. Abrir detalhes'}).click();
+  await page.getByRole('dialog',{name:'Boné de Kanto'}).getByRole('button',{name:'Equipar'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===1,SAVE);
+  const equipped=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  assert.equal(JSON.parse(equipped.journal.raw).trainer.equipped.hat,'cap');
+  await page.getByRole('button',{name:'Boné de Kanto, Equipado. Abrir detalhes'}).click();
+  await page.getByRole('dialog',{name:'Boné de Kanto'}).getByRole('button',{name:'Remover'}).click();
+  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===2,SAVE);
+  const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  const oldGame=JSON.parse(before.journal.raw),newGame=JSON.parse(after.journal.raw);
+  assert.equal(newGame.trainer.equipped.hat,'');
+  assert.equal(newGame.coins,oldGame.coins);
+  assert.deepEqual(newGame.roster,oldGame.roster);
+  assert.equal(newGame.trainer.title,oldGame.trainer.title);
+  assert.deepEqual(errors,[]);
+  await context.close();
+  console.log(label+': modal Equipar/Remover, revisão e progresso intacto OK');
+}
+
 let browser;
 try {
   await ready();
@@ -679,6 +726,8 @@ try {
   await exercise(browser,'mobile',{width:390,height:844});
   await exerciseNewMoves(browser,'desktop',{width:1365,height:768});
   await exerciseNewMoves(browser,'mobile',{width:390,height:844});
+  await exerciseInventoryActions(browser,'desktop',{width:1365,height:768});
+  await exerciseInventoryActions(browser,'mobile',{width:390,height:844});
   console.log('PASS: experiência React jogável no servidor de produção');
 } catch(error) {
   console.error(error);

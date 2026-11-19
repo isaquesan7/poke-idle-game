@@ -113,3 +113,18 @@ O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Ra
 - Não modificar `isaquesan7/pokedex`, nem alterar TMs, combate, inventário, economia, save schema2, chave v0.2, rota `/` ou GIFs. Exigir CI completo e revisão visual PC/mobile antes de merge e Railway; esta nota não é prova de publicação.
 
 - **Polimento adicional de navegação (mesma PR #75):** sidebar e topo do React `/play` adotaram ícones Font Awesome por aba, bordas e brilho ciano seguindo a referência do usuário, sempre com tokens globais. Textos e nomes acessíveis das ações foram mantidos para não quebrar navegação/testes. O stylesheet é CDN versionado, não incluímos fontes no repositório.
+
+
+## D-052 — Mochila e Equipamentos em cubos (18/11/2026, branch, NÃO PUBLICADA)
+
+- Nova grade **reutilizável** em `InventoryGrid.tsx` e CSS Module: cubos com estados cheio/vazio, destaque ciano, tooltip com **nome, quantidade, descrição** somente em hover/foco/toque, painel de ocupação e navegação por teclado; todos os efeitos usam tokens existentes de `styles/tokens.css`. `InventoryDialog` abre detalhes compactos com fechar/cancelar, Escape, clique no fundo e foco retido/devolvido.
+- Mochila com **10 espaços iniciais de exibição**, contador `ocupados / 10` e espaços vazios visíveis, 1 pilha de item=1 espaço. Apenas `evolutionStones` já persistidos são projetados como itens; nenhum item de cura/Pokébola/TM foi concedido. Caso haja mais de 10 tipos persistidos, exibir TODOS e aviso sem descartar itens.
+- Capacidade 10 **ainda é apresentação**, não limitação de recebimento, pois o inventário/economia real não têm writer e schema de capacidade. O item de expansão será criado em etapa independente, com regra versionada e validação do lado do domínio.
+- Equipamentos em cubos compartilham o mesmo estilo; filtro `Todos/Equipados`, tooltip com atributos e estado, clique abre modal **Equipar/Remover/Cancelar**. Ação reutiliza o escritor já existente `trainer.equip` (revisão, slot e validação existentes). Nenhum outro efeito de jogo introduzido.
+- **Importante limitação da fase atual:** o jogo ainda não armazena equipamentos adquiridos. Portanto o grid de equipamentos é explicitamente identificado como **catálogo do laboratório**, preservando as seleções disponíveis antes; ele **não afirma que os 14 equipamentos foram conquistados**. Uma etapa futura deve criar inventário real de propriedade, grants e validação de equipe possuída antes de liberá-lo como inventário autêntico.
+- Teste E2E verifica 10 espaços vazios iniciais na Mochila, modal de Boné de Kanto e Cancelar sem alterar revisão, além da jornada anterior. O tooltip não expõe quantidade ou descrição no cubo; apenas na interação.
+- Não alterar save schema/key, economia, TMs, combate, 151 GIFs, avatar, repositório `isaquesan7/pokedex` ou rota legada `/`. Gates: CI completo no HEAD final, revisão de telas desktop/mobile; PR independente, sem merge/deploy até validação.
+
+- QA visual das capturas reais da D052: grade de equipamentos desktop estava com células excessivamente grandes (expandindo 5 colunas pela largura toda). Ajustada para cubos compactos de largura máx. ~78px com auto-fill, mantendo 4 colunas mobile e 3 em telas muito estreitas. Preserva slots quadrados, hover/toque e contador. Testes de screenshots desktop/mobile continuam gates da PR.
+
+- Cobertura E2E D052 ampliada: em contextos independentes desktop/mobile, usar o modal para **Equipar** o Boné de Kanto (revisão +1) e **Remover** (revisão +1), conferir `trainer.equipped.hat`, moedas, equipe e título preservados; além de confirmar Cancela sem gravação no fluxo principal. Não altera a fonte de estoque/ownership existente.
