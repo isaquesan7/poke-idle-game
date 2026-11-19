@@ -75,7 +75,7 @@ export function PokemonTraining({uid,revision,busy,stats,manual,budget,onConfirm
       })}
     </div>
     {stale&&<p role="alert" className={styles.warning}>O progresso mudou. Cancele a prévia e distribua os pontos novamente.</p>}
-    {staged>0&&<div className={styles.footer}>
+    {(staged>0||stale)&&<div className={styles.footer}>
       <p role="status"><strong>{stale?'Prévia desatualizada':staged+' ponto(s) aguardando confirmação'}</strong></p>
       <div><button type="button" className={styles.cancel} onClick={clear} disabled={busy||submitting}>Cancelar</button>
         <button type="button" className={styles.confirm} disabled={busy||submitting||stale}
