@@ -129,7 +129,7 @@ async function exercise(browser, label, viewport) {
   // D-055: perfil novo usa GIF original e mantém comandos de progresso inalterados.
   await page.getByRole('heading',{name:'Perfil do Pokémon'}).waitFor();
   const pokemonProfile=page.locator('[class*="pokemonWorkspace"]');
-  await pokemonProfile.getByRole('img',{name:'charmander'}).waitFor();
+  await pokemonProfile.getByRole('img',{name:/charmander/i}).waitFor();
   await page.getByRole('progressbar',{name:'Afinidade do Pokémon'}).waitFor();
   assert.equal(await pokemonProfile.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('link').count(),3);
   for(const section of ['pokemon-attributes','pokemon-evolution','pokemon-moves'])
