@@ -245,7 +245,6 @@ export function PlayApp() {
   // Treinar uma captura NÃO altera o líder da Arena. Cada instância mantém seu UID.
   const focused = data?.roster.find(p => p.uid === selectedUid) ?? active;
   const pokemonManual = manualValues(focused?.manual);
-  const pokemonSpent = STATS.reduce((total, stat) => total + pokemonManual[stat], 0);
   const pokemonBudget = focused ? legacyPokemonManualBudget(focused.level) : 0;
   const levelMoves=focused?kantoLevelMoves(focused.pokemonId,focused.level):[];
   const supportMoves=focused?kantoSupportMoves(focused.pokemonId,focused.level):[];
@@ -696,10 +695,8 @@ export function PlayApp() {
                       </div>;
                     })}
                   </div>
-                  {supportMoves.length===0&&<p>Nenhum suporte foi liberado neste recorte.</p>}
-                  {levelMoves.length===0&&<p>Nenhum golpe de dano direto foi catalogado até este nível nesta seleção da PokéAPI.</p>}
-                  {currentMoveName&&!levelMoves.some(x=>x.move.name===currentMoveName)&&
-                    <p className={styles.disclaimer}>O golpe equipado pode ter sido aprendido antes da evolução ou ser provisório da alfa. Ele é preservado nesta instância; ao equipar outro golpe, será substituído.</p>}
+                  {supportMoves.length===0&&<p>Nenhum golpe de suporte aprendido até este nível.</p>}
+                  {levelMoves.length===0&&<p>Nenhum golpe de ataque aprendido até este nível.</p>}
 
                 </section>
                 </>}
