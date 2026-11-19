@@ -85,6 +85,17 @@ async function exercise(browser, label, viewport) {
   const hat=page.getByRole('button',{name:'Chapéu · Vazio'});
   await hat.focus();
   await hat.getByText('Sem equipamento',{exact:true}).waitFor();
+  // D-052: mochila começa com dez cubos; sem criar itens artificiais.
+  await page.getByRole('button',{name:'Mochila',exact:true}).click();
+  await page.getByRole('region',{name:'Mochila'}).getByText('0 / 10').waitFor();
+  assert.equal(await page.getByRole('img',{name:/Espaço vazio/}).count(),10);
+  await page.getByRole('button',{name:'Equipamentos',exact:true}).click();
+  await page.getByRole('button',{name:'Boné de Kanto, Não equipado. Abrir detalhes'}).click();
+  await page.getByRole('dialog',{name:'Boné de Kanto'}).waitFor();
+  await page.getByRole('dialog',{name:'Boné de Kanto'}).getByText('HP +2').waitFor();
+  await page.getByRole('dialog',{name:'Boné de Kanto'}).getByRole('button',{name:'Cancelar'}).click();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
+  await page.getByRole('button',{name:'Perfil',exact:true}).click();
   // D-050: clicar em +1 altera apenas a prévia; nenhum ponto é salvo sem confirmar.
   await page.getByRole('button',{name:'Pré-visualizar +1 em ATK'}).click();
   await page.getByRole('button',{name:'Retirar um ponto da prévia de ATK'}).click();
