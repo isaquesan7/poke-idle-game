@@ -13,18 +13,23 @@ Esta fase é **preparatória**. Não cria preços, recompensas, expansores, nem 
 
 ## Regras de aquisição que ainda precisam ser definidas
 
-**DECISÃO APROVADA EM 19/11/2026: aquisição exclusiva na LOJA** para (1) equipamentos de todas as raridades, (2) itens de expansão da Mochila, (3) Pokébolas e (4) itens de cura. **Nunca conceder itens dessas quatro categorias por drop ou crafting**, ainda que sejam raros. Arena/expedições podem conceder recursos/moedas/materiais que depois são usados na compra, mas NÃO concedem diretamente equipamentos.
+**CORREÇÃO EXPRESSA DA DECISÃO (19/11/2026) — EQUIPAMENTOS TÊM TRÊS FONTES:**
+- **Equipamentos:** podem ser comprados na **Loja**, obtidos como **drop** ou produzidos por **crafting**. Raridade, atributos/rolagens, requisitos/receitas e probabilidades de cada item ainda serão definidos; não presumir valores nem ativar chances/crafts genéricos.
+- **Expansões da Mochila, Pokébolas e itens de cura:** **somente comprados na Loja**; estas três categorias permanecem proibidas em drops e crafting.
+- **Drop:** variedade, raridades altas e rolagens de atributos quando definidas no catálogo; RNG não pode bloquear o progresso da história.
+- **Crafting:** progressão determinística e consumo de materiais, incluindo equipamentos de raridade/atributos alvos quando receitas forem aprovadas; receitas não devem custar desproporcionalmente mais que recompensas de drops.
+- **Loja:** acesso confiável a equipamentos apropriados e compra exclusiva dos três grupos definidos; não comercializar automaticamente o melhor equipamento apenas por moeda comum sem esforço.
 
-**Drops** destinam-se a excitação, materiais e otimização, privilegiando raridades altas e possíveis rolagens variáveis em itens elegíveis; não podem condicionar o avanço da história principal à sorte. **Crafting** entrega progressão determinística e consumo planejado de recursos, com receitas e atributos alvos, sem criar equipamentos/expansões/Pokébolas/cura. **Loja** fornece aquisição confiável e controle econômico; raridades comuns/incomuns são a base, mas equipamentos raros, se oferecidos, continuam exclusivos de compra e devem exigir condições/custo apropriados, não apenas moedas comuns fáceis.
+A elegibilidade das três fontes de equipamento é definida em `inventory/acquisitionPolicy.ts` e validada em testes. **Elegibilidade de categoria não é concessão autorizada**: só poderão ser efetivamente concedidos equipamentos via drop/crafting quando existirem tabelas verificadas de drop, receitas, regras de raridade e uma transação de recompensa com origem comprovada. O reducer de laboratório usa `source` no fingerprint, mas uma string enviada pelo jogador não comprova a origem. Os demais grupos seguem bloqueados sem catálogo.
 
-A política explícita fica em `packages/game-core/src/inventory/acquisitionPolicy.ts`, testada por `inventory-acquisition-policy.test.ts`. O teste bloqueia origem `drop` ou `craft` para os quatro grupos. Categorias de materiais/refinados ainda não catalogadas permanecem fechadas até existir catálogo de drop/receitas. **Não há writer de compra, preço aprovado, disponibilidade, economia monetária ou alteração de gameplay nesta etapa.**
+**A orientação anterior de que equipamento era exclusivo da Loja foi revogada.** Não reutilizar texto antigo de comentários/planos como regra.
 
 O expansor precisa de item catalogado, preço, regra de compra e uso, quantidade de slots acrescentados e limite máximo. Pokébolas e itens de cura precisam de catálogo, estoques, consumos, efeitos e valores de compra. Equipamentos precisam de raridade, preço, requisitos, bônus e validação de posse. Essas definições são etapas de implementação posteriores, sem decisões numéricas presumidas.
 
 ## Próximas etapas
 
-1. Fonte de aquisição dos quatro grupos já aprovada: **Loja**. Definir catálogo de materiais/drops/receitas e detalhar tabela econômica, preços e raridades da Loja.
-2. Implementar transação de **compra** validando preço, saldo, requisitos e capacidade, com débito e concessão no mesmo commit, integrando recibos ao RewardJournal e à única revisão persistida; preservar concorrência, idempotência e origem autorizada. Bloquear criação/drop de produtos exclusivos.
+1. Fontes aprovadas: equipamentos **Loja/drop/crafting**, os outros três grupos **só Loja**. Definir depois catálogo de equipamentos, raridades, faixas de atributos, receitas/requisitos, % de drop e preços da Loja.
+2. Implementar autorização transacional distinta para **compra**, **drop** e **crafting** de equipamentos (cada uma com validação apropriada), com revisão/recibos duráveis e sem duplicações. A compra deverá debitar moedas e conceder o produto no mesmo commit. Drops e receitas só poderão operar com tabelas aprovadas. Bloquear drops e crafting de expansões/Pokébolas/cura.
 3. Validar migração explícita e auditável sem inventar itens, preservando o equipamento já em uso e os dados de evolução.
 4. Ligar propriedade real ao grid, grants ao inventário, consumo do expansor e rollback. Testar PC/mobile e sobrecapacidade.
 5. Manter TM09 indisponível até existir inventário transacional, writer de ensino e motor de combate correspondente.
