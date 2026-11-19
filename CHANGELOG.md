@@ -1,3 +1,13 @@
+# D-053 — interface e propriedade de inventário em preparação (2026-11-18)
+
+## D-053 — bônus em hover, título estilizado, portal de modal e propriedade de itens (branch, ainda NÃO publicada)
+
+- UI: `TitlePicker.tsx` substitui select nativo por lista acessível, estilizada com paleta root, opções bloqueadas com requisitos e bônus originais de `LEGACY_TITLES` visíveis em hover/foco, seleção ainda validada pelo writer existente. `LEGACY_BADGES` agora exibem bônus reais em hover/foco no perfil.
+- Modal Equipamentos agora é portal React para `document.body`, acima da aplicação via token `--z-modal-overlay` no root; corrige controles cobrindo modal. Item `status==='Equipado'` ganha ícone `fa-circle-check` no canto superior direito do cubo, sem deixar nome/quantidade sempre visíveis.
+- Teste E2E validando estilos e estados da lista, bônus de badge, overlay portal/z-index, equipar/remover real e marcador; segue abrangendo desktop/mobile, saves/revisões, GIFs e v0.1.
+- Primeira fundação de **inventário real** em `packages/game-core/src/inventory/ownership.ts`, apenas lógica pura/de leitura: versões, IDs e quantidades válidos, capacidade inicial de 10, pilhas e proibição de equipar sem posse em ledger versionado. **Nenhuma migração, grant, expansão, mudança de save ou restrição ao catálogo legado aplicada**: sistema continua em modo laboratório até serem definidas as regras de aquisição. Design/regras pendentes: `docs/INVENTORY_OWNERSHIP_PLAN_D053.md`.
+- Não alterar `isaquesan7/pokedex`, sistema de TM09, combate, chave/schema v0.2, avatar ou 151 GIFs. Exigir CI completo e screenshots desktop/mobile no HEAD da PR antes de merge/deploy.
+
 # D-052 — Inventário visual em cubos (em branch)
 
 ## D-052 — Mochila e Equipamentos em cubos (18/11/2026, branch, NÃO PUBLICADA)
