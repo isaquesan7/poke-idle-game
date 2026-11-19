@@ -528,7 +528,10 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Todos',exact:true}).click();
   await second.getByRole('button',{name:'Treinar UID '+secondUid}).click();
   await page.getByText('UID '+secondUid,{exact:false}).waitFor();
-  await page.getByRole('button',{name:'Adicionar ponto em SPD do Pokémon'}).click();
+  const secondTraining=page.getByRole('region',{name:'Treinamento Pokémon'});
+  await secondTraining.getByRole('button',{name:'Pré-visualizar +1 em SPD'}).click();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,9);
+  await secondTraining.getByRole('button',{name:'Confirmar distribuição'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===10,SAVE);
   teamSnapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   teamGame=JSON.parse(teamSnapshot.journal.raw);
