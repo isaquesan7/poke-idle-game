@@ -263,3 +263,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - **Polimento adicional de navegação (mesma PR #75):** sidebar e topo do React `/play` adotaram ícones Font Awesome por aba, bordas e brilho ciano seguindo a referência do usuário, sempre com tokens globais. Textos e nomes acessíveis das ações foram mantidos para não quebrar navegação/testes. O stylesheet é CDN versionado, não incluímos fontes no repositório.
 
 - QA visual das capturas reais da D052: grade de equipamentos desktop estava com células excessivamente grandes (expandindo 5 colunas pela largura toda). Ajustada para cubos compactos de largura máx. ~78px com auto-fill, mantendo 4 colunas mobile e 3 em telas muito estreitas. Preserva slots quadrados, hover/toque e contador. Testes de screenshots desktop/mobile continuam gates da PR.
+
+- Cobertura E2E D052 ampliada: em contextos independentes desktop/mobile, usar o modal para **Equipar** o Boné de Kanto (revisão +1) e **Remover** (revisão +1), conferir `trainer.equipped.hat`, moedas, equipe e título preservados; além de confirmar Cancela sem gravação no fluxo principal. Não altera a fonte de estoque/ownership existente.
