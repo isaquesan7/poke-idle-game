@@ -98,3 +98,7 @@ export { reduceKantoEvolutionJson } from './legacy/pokemonEvolutionReducer.js';
 export type {
   KantoEvolutionAction, KantoEvolutionEditResult
 } from './legacy/pokemonEvolutionReducer.js';
+
+// D-053: leitura de propriedade/slots ainda não conectada ao writer de recompensas.
+export {BASE_BAG_SLOTS,inspectInventoryOwnership,inventorySlotsUsed,inventorySlotsAvailable,mayEquipOwnedItem} from './inventory/ownership.js';
+export type {InventoryOwnershipV1,InventoryOwnershipRead} from './inventory/ownership.js';
