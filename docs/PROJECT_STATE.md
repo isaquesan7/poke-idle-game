@@ -870,3 +870,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Golpes: removidas explicações técnicas internas, reorganizados em Golpes equipados (até quatro slots, vazios visíveis) e Golpes aprendidos (ataque/suporte), com ícones, cards, indicador de principal/equipado e botões de ação aprimorados. Writers e lógica de golpes preservados.
 - Novo teste de domínio apps/web/src/play/pokemonBatch.test.ts e regressão Playwright com previews/undo/cancel sem save + confirmação em uma revisão, layout PC/mobile e alterações de texto. Escopo detalhado em docs/POKEMON_UI_D056.md.
 - Itemização, raridades, crafting, drop, loja e D054 PR #78 seguem pendentes e separados; não alterar TM09, v0.1, save key/schema, GIFs, avatar nem isaquesan7/pokedex. Publicar somente após testes e autorização.
+
+- Ajuste de precisão D056: a prévia de status Pokémon usa obrigatoriamente pokemonFinalStats do game-core sobre os pontos manuais projetados, inclusive HP (+2 finais por ponto manual) e contribuições do Treinador/afinidade; evita prévia numérica linear incorreta. E2E confirma HP preview +2, desfaz e garante zero escrita antes do commit.
