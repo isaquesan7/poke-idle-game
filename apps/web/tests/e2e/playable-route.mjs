@@ -183,7 +183,7 @@ async function exercise(browser, label, viewport) {
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,pointRevision);
   await pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em DEF'}).click();
   await pokemonTrain.getByRole('button',{name:'Confirmar distribuição'}).click();
-  await page.waitForFunction((key,rev)=>JSON.parse(localStorage.getItem(key))?.revision===rev+1,SAVE,pointRevision);
+  await page.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key))?.revision===revision+1,{key:SAVE,revision:pointRevision});
   // O efeito do golpe só aparece na tela exclusiva de Golpes.
   await pokemonTabs.getByRole('button',{name:'Golpes'}).click();
   await page.getByText('10% de queimadura').waitFor();
