@@ -89,7 +89,9 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Mochila',exact:true}).click();
   await page.getByRole('region',{name:'Mochila'}).getByText('0 / 10').waitFor();
   assert.equal(await page.getByRole('img',{name:/Espaço vazio/}).count(),10);
+  await page.screenshot({path:new URL('inventory-bag-'+label+'.png',shots).pathname,fullPage:true});
   await page.getByRole('button',{name:'Equipamentos',exact:true}).click();
+  await page.screenshot({path:new URL('inventory-equipment-'+label+'.png',shots).pathname,fullPage:true});
   await page.getByRole('button',{name:'Boné de Kanto, Não equipado. Abrir detalhes'}).click();
   await page.getByRole('dialog',{name:'Boné de Kanto'}).waitFor();
   await page.getByRole('dialog',{name:'Boné de Kanto'}).getByText('HP +2').waitFor();
