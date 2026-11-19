@@ -874,3 +874,11 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Ajuste de precisão D056: a prévia de status Pokémon usa obrigatoriamente pokemonFinalStats do game-core sobre os pontos manuais projetados, inclusive HP (+2 finais por ponto manual) e contribuições do Treinador/afinidade; evita prévia numérica linear incorreta. E2E confirma HP preview +2, desfaz e garante zero escrita antes do commit.
 
 - E2E D056: jornada de dois Pidgey independentes por UID atualizada para usar prévia + confirmação de SPD (não mais incremento imediato). Confirma revisão intacta antes do commit, depois incremento somente no UID selecionado, preservando o primeiro exemplar.
+
+
+## D-057 — ajustes finos Pokémon (19/11/2026; PR em preparação)
+- Perfil: GIF principal reduzido para largura/altura proporcionais (max 210px, 190px em telas estreitas); sem alterações no arquivo GIF.
+- Evolução: frase “Treine seu Pokémon para que ele possa evoluir.” somente quando kantoEvolutionOptions retorna ao menos uma evolução; sem opções apresenta apenas “Nenhuma evolução disponível para este Pokémon.”. Domínio, limites Kanto, pedras e writer intactos.
+- Golpes: botão “Equipar” não aparece em golpe que já está nos quatro slots; mudança de principal continua disponível no cartão de golpe equipado. Exibe custo real do próximo aprimoramento (1 ponto) e saldo disponível; rank, orçamento e writer intactos.
+- E2E desktop/mobile atualizado para custo e ação redundante; CI final, PR, merge e Railway DEVEM ser verificados antes de alegar publicação. Save schema2/chave, combate, TM09, 151 GIFs, rota legada, treinador e isaquesan7/pokedex intocados.
+- Próxima ação: CI e publicação autorizada da D057; depois retomar inventário/economia D054 separadamente.
