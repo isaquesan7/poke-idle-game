@@ -88,3 +88,8 @@
 }
 @media(max-width:380px){.species{grid-template-columns:repeat(2,minmax(0,1fr))}.markerName{font-size:.52rem}}
 @media(prefers-reduced-motion:reduce){.markerIcon{transition:none}}
+
+/* D-064B · Silhueta de espécies não descobertas: mesma privacidade da Pokédex. */
+.hiddenArt{height:55px;width:55px;display:grid;place-items:center;border-radius:50%;
+  background:var(--color-surface);color:var(--color-text-muted);font-weight:900;font-size:1.5rem;
+  border:1px solid var(--trainer-card-border)}
