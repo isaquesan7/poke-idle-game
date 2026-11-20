@@ -80,8 +80,9 @@ describe('D-064 — Expedição por região e nível do Pokémon',()=>{
     expect(canStartRegionalExpedition(11,5,1)).toBe(true);
     expect(canStartRegionalExpedition(11,5,2)).toBe(false);
     expect(canStartRegionalExpedition(11,10,2)).toBe(true);
-    expect(canStartRegionalExpedition(9,10,2)).toBe(false);
+    expect(canStartRegionalExpedition(5,10,2)).toBe(false);
     expect(canStartRegionalExpedition(11,10,3)).toBe(false);
+    expect(canStartRegionalExpedition(11,20,3)).toBe(false);
   });
   it('corta XP do Pokémon exatamente ao alcançar Nv. 10 sem apagar XP prévio',()=>{
     const before={level:9,xp:xpThreshold('pokemon',9)-7};
