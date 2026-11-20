@@ -67,20 +67,20 @@ export function KantoMapScreen({trainerLevel,revealedSpeciesIds,onClose}:Props){
         <svg className={styles.landscape} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           <defs>
             <linearGradient id="d064-land" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#193c35"/>
-              <stop offset="65%" stopColor="#245540"/>
-              <stop offset="100%" stopColor="#16364b"/>
+              <stop offset="0%" stopColor="var(--map-forest)"/>
+              <stop offset="65%" stopColor="var(--map-grass)"/>
+              <stop offset="100%" stopColor="var(--map-ridge)"/>
             </linearGradient>
           </defs>
-          <rect width="100" height="100" fill="#133e5d"/>
+          <rect width="100" height="100" fill="var(--map-water)"/>
           <path d="M0 10 Q20 -1 32 9 T62 10 Q91 2 100 23 L91 48 100 67 81 95 45 97 32 83 0 89 Z" fill="url(#d064-land)"/>
-          <path d="M0 65 Q20 55 36 66 T65 62 Q82 61 100 77 L100 100 0 100Z" fill="#214d3e" opacity=".85"/>
-          <path d="M44 10 Q57 23 49 37 T65 61 Q83 66 90 84" fill="none" stroke="#5ab7d8" strokeWidth="1.6" opacity=".5"/>
-          <path d="M10 36 22 8 38 37 49 14 70 45 82 28 97 52" fill="none" stroke="#83ad8c" strokeWidth="8" strokeLinejoin="round" opacity=".26"/>
-          <path d="M7 53 20 28 36 48 53 31 67 48 86 28" fill="none" stroke="#a8ce9e" strokeWidth="5" strokeLinejoin="round" opacity=".23"/>
-          <path d="M19 81 Q25 70 34 73 T54 81 Q64 90 82 76" fill="none" stroke="#8bcdd5" strokeWidth="1.3" opacity=".5"/>
-          <path d={route} fill="none" stroke="#091721" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity=".55"/>
-          <path d={route} fill="none" stroke="#e1d6ac" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1.6 1"/>
+          <path d="M0 65 Q20 55 36 66 T65 62 Q82 61 100 77 L100 100 0 100Z" fill="var(--map-land-deep)" opacity=".85"/>
+          <path d="M44 10 Q57 23 49 37 T65 61 Q83 66 90 84" fill="none" stroke="var(--map-stream)" strokeWidth="1.6" opacity=".5"/>
+          <path d="M10 36 22 8 38 37 49 14 70 45 82 28 97 52" fill="none" stroke="var(--map-hills-soft)" strokeWidth="8" strokeLinejoin="round" opacity=".26"/>
+          <path d="M7 53 20 28 36 48 53 31 67 48 86 28" fill="none" stroke="var(--map-hills-light)" strokeWidth="5" strokeLinejoin="round" opacity=".23"/>
+          <path d="M19 81 Q25 70 34 73 T54 81 Q64 90 82 76" fill="none" stroke="var(--map-lake)" strokeWidth="1.3" opacity=".5"/>
+          <path d={route} fill="none" stroke="var(--map-path-edge)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" opacity=".55"/>
+          <path d={route} fill="none" stroke="var(--map-path)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1.6 1"/>
         </svg>
         <div className={styles.compass} aria-hidden="true"><i className="fa-solid fa-compass"/> KANTO</div>
         {KANTO_REGIONS.map((region,i)=>{
