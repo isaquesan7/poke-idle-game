@@ -60,6 +60,21 @@ async function exercise(browser, label, viewport) {
   await dexTile.click();
   const encyclopedia=page.getByTestId('pokedex-detail');
   await encyclopedia.getByRole('heading',{name:'Charmander'}).waitFor();
+  // D-062: o scroll do documento e do portal usam a mesma paleta Kanto Dark.
+  const scrollStyle=await page.evaluate(()=>{
+    const root=getComputedStyle(document.documentElement);
+    const modal=getComputedStyle(document.querySelector('[data-testid="pokedex-detail"]'));
+    return {
+      rootWidth:root.scrollbarWidth,modalWidth:modal.scrollbarWidth,
+      rootColor:root.scrollbarColor,modalColor:modal.scrollbarColor,
+      track:root.getPropertyValue('--scrollbar-track').trim(),
+      thumb:root.getPropertyValue('--scrollbar-thumb').trim()
+    };
+  });
+  assert.equal(scrollStyle.rootWidth,'thin');
+  assert.equal(scrollStyle.modalWidth,'thin');
+  assert.equal(scrollStyle.rootColor,scrollStyle.modalColor);
+  assert.ok(scrollStyle.track&&scrollStyle.thumb,'Scrollbar precisa herdar os tokens globais');
   assert.equal(await encyclopedia.getAttribute('aria-modal'),'true');
   assert.equal(await encyclopedia.evaluate(node=>node.parentElement?.parentElement===document.body),true,
     'Modal enciclopédico deve ficar em portal independente da grade');
