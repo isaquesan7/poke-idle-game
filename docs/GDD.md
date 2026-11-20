@@ -205,3 +205,7 @@ PR #38 integrada em main `8748d315`, CI `44120721898` SUCCESS, Railway deploy `d
 - TM09 Bullet Seed de FRLG: Grass/Especial, 10 poder/impacto, PP30, precisão100, 2–5 impactos com pesos 3/8,3/8,1/8,1/8. **Esperança é 3,0**; anotações anteriores de 2,75 eram erro aritmético, corrigidas na D-048. Prévia D039 (moderno Físico25, 2,5 impactos para SP) não é gameplay.
 - D048 traz SOMENTE preview read-only de versionamento e probabilidades, gate de ensino fechado para todas as 151 espécies até CSV `pokemon_moves.csv` verificado. Não há inventário TM, ensino, drop ou combate Bullet Seed. Antes da D049 será necessário definir economia/custo, writer atômico com recibos, save compatível, IA e replay 1:1, com acessibilidade. Core/React/legado e saves antigos preservados.
 
+
+
+## D-058 — política de aprimoramento dos golpes (2026-11-19)
+**Acordado:** qualquer golpe ofensivo aprendido e presente em um dos quatro slots do Pokémon pode receber rank, mesmo sem ser o principal. Custo fixo atual: 1 ponto por rank. Orçamento e teto existentes: floor(nível/5) de pontos totais e até min(10,floor(nível/10)+1) ranks por golpe. Golpes de suporte/sem poder de dano ainda não recebem rank; não conceder upgrades a golpes não equipados. A troca do golpe principal não é efeito colateral de aprimorar um secundário. Rank vinculado ao UID e nome do golpe, persistindo quando o jogador reorganiza slots.

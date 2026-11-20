@@ -6,6 +6,8 @@
  * NÃO são prova de elegibilidade, nem autorização para salvar recompensas.
  * Esta função não lê storage, rede, relógio ou DOM e não grava saves.
  */
+import { pokemonMoveSlots } from './pokemonMoveSlotsReducer.js';
+
 export type LegacyMoveAction =
   | {
     readonly type: 'select-move';
@@ -17,7 +19,7 @@ export type LegacyMoveAction =
   | {
     readonly type: 'upgrade-move';
     readonly uid: number;
-    /** Detecta comando obsoleto se outro golpe foi equipado. */
+    /** Golpe aprendido e presente em um dos slots do UID, principal ou adicional. */
     readonly moveName: string;
     /** Poder de dano base conhecido externamente, nunca calculado aqui. */
     readonly movePower: number;
@@ -132,9 +134,10 @@ export function reduceLegacyPokemonMoveJson(
     }
     pokemon.moveName = action.moveName;
   } else if (action.type === 'upgrade-move') {
-    if (!moveName(action.moveName) || pokemon.moveName !== action.moveName
+    if (!moveName(action.moveName)
+      || !pokemonMoveSlots(pokemon, pokemon.moveName ?? '').includes(action.moveName)
       || !positive(action.movePower)) {
-      return invalid('Golpe alterado, desconhecido ou sem dano direto.');
+      return invalid('Golpe não equipado, desconhecido ou sem dano direto.');
     }
     const upgrades: Entry = isRecord(pokemon.upgrades) ? pokemon.upgrades : {};
     const ranks = Object.values(upgrades) as number[];

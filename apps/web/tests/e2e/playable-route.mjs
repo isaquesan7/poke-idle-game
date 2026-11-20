@@ -689,6 +689,27 @@ async function exercise(browser, label, viewport) {
   assert.equal(await page.getByTestId('battle-sp-player').count(),0);
   assert.equal(await page.getByTestId('battle-sp-wild').count(),0);
   assert.equal(await page.getByTestId('battle-log').locator('li').count(),multi.log.length);
+  // D-058: aprimorar Scratch no slot secundário, mantendo Growl principal e save íntegro.
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Treinar UID 1'}).click();
+  await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Golpes'}).click();
+  const beforeSecondary=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  const beforeGame=JSON.parse(beforeSecondary.journal.raw);
+  const scratchUpgrade=page.getByRole('button',{name:'Aprimorar golpe scratch'});
+  assert.equal(await scratchUpgrade.isEnabled(),true,'Slot secundário equipado deve poder aprimorar');
+  await scratchUpgrade.click();
+  await page.waitForFunction(({key,rev})=>JSON.parse(localStorage.getItem(key))?.revision===rev+1,
+    {key:SAVE,rev:beforeSecondary.revision});
+  const afterSecondary=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  const afterGame=JSON.parse(afterSecondary.journal.raw);
+  const beforeCharmander=beforeGame.roster.find(p=>p.uid===1);
+  const afterCharmander=afterGame.roster.find(p=>p.uid===1);
+  assert.equal(afterCharmander.moveName,'growl','Aprimorar secundário não pode trocar o principal');
+  assert.deepEqual(afterCharmander.moveNames,['growl','scratch']);
+  assert.equal(afterCharmander.upgrades.scratch,(beforeCharmander.upgrades?.scratch??0)+1);
+  assert.equal(afterGame.coins,beforeGame.coins);
+  assert.deepEqual(afterGame.team,beforeGame.team);
+  assert.equal(afterSecondary.revision,beforeSecondary.revision+1);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);

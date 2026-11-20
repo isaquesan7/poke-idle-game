@@ -882,3 +882,12 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Golpes: botão “Equipar” não aparece em golpe que já está nos quatro slots; mudança de principal continua disponível no cartão de golpe equipado. Exibe custo real do próximo aprimoramento (1 ponto) e saldo disponível; rank, orçamento e writer intactos.
 - E2E desktop/mobile atualizado para custo e ação redundante; CI final, PR, merge e Railway DEVEM ser verificados antes de alegar publicação. Save schema2/chave, combate, TM09, 151 GIFs, rota legada, treinador e isaquesan7/pokedex intocados.
 - Próxima ação: CI e publicação autorizada da D057; depois retomar inventário/economia D054 separadamente.
+
+
+## D-058 — aprimorar qualquer golpe ofensivo equipado (19/11/2026; PR em validação)
+- Falha D057 identificada no domínio e na UI: o botão exigia que o golpe fosse o principal, mesmo em slot secundário. O reducer antigo também recusava aprimorar golpes adicionais, causando bloqueio com pontos disponíveis.
+- Reducer pokemonMoveReducer agora exige presença do golpe nos slots do UID (pokemonMoveSlots), não igualdade com moveName principal. Mantém golpes ofensivos com poder positivo, orçamento floor(level/5), teto min(10,floor(level/10)+1), UID, rejeição de saves inválidos e escrita atômica. Golpes não equipados seguem bloqueados; suporte/sem dano não foi liberado para ranks.
+- UI Golpes aprendidos permite aprimorar qualquer ataque equipado, mesmo secundário; explica distintamente “Equipe este golpe para aprimorar.”, “Rank máximo atingido.” e “Pontos de aprimoramento insuficientes.”; evita prometer custo aplicável quando rank está no teto.
+- Testes core cobrem slot secundário, preservação do principal, UID, moedas e bloqueio de golpe fora dos slots; E2E desktop/mobile faz aprimoramento real do Scratch secundário após tornar Growl principal e confere revisão única, equipe e moedas.
+- Sem mudança de custo 1 ponto/rank, dano, SP, save schema2/chave, Arena, TM09, GIFs, rota legada ou isaquesan7/pokedex. Publicação só após CI e Railway SUCCESS no merge exato.
+- Próxima ação: validar CI completa D058, integrar PR e verificar deploy; depois retomar D054 inventário/economia e testes humanos de acessibilidade.
