@@ -364,3 +364,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Adicionada em branch isolada uma prévia explorável em SVG/CSS das dez regiões, com caminhos, níveis de acesso, detalhes e pools regionais completos compartilhados com o catálogo de domínio.
 - Informações de espécies não vistas permanecem ocultas; raros e míticos exclusivos de áreas 9/10. O botão de batalha da prévia fica bloqueado até conectar o writer regional. Arena existente e saves permanecem intactos.
 - E2E PC/celular avalia mapa, privacidade e read-only. Publicação somente após integração do combate e economia de Poké Bolas.
+
+
+## D-064E — projeções puras de balanceamento (2026-11-20; sem publicação)
+- Simulador read-only de limiares propostos de XP, recompensas de vitória, trajetória por regiões e checkpoints até Nv.100, mais testes Vitest.
+- Não muda curvas atuais nem moedas ou Expedições publicadas. Requer validação com combate real e aprovação antes de ativação.
