@@ -15,6 +15,12 @@
   --color-text: #f2f5fa;
   --color-text-muted: #9baec6;
   --color-primary: #69d6e5;
+  /* D-062: scrollbar compartilhada por /play e pelo protótipo legado /. */
+  --scrollbar-track: var(--color-bg);
+  --scrollbar-thumb: var(--color-border);
+  --scrollbar-thumb-hover: var(--color-primary);
+  --scrollbar-thumb-active: var(--color-success);
+  --scrollbar-width: 10px;
   --color-success: #55d5a8;
   --color-gold: #f2c36e;
   --color-danger: #fc7c86;
@@ -178,4 +184,35 @@
   --shadow-fighter: drop-shadow(0 18px 10px #0005);
   --shadow-toast: 0 18px 80px #000a;
   --shadow-modal: 0 20px 100px #0008;
+}
+
+
+/* D-062 · Barras de rolagem globais. Firefox: scrollbar-color/width;
+   Chromium/Edge/Safari: pseudoelementos WebKit. Mantém scroll nativo,
+   inclusive em touch, sem JS, mudanças de layout nem ocultar indicadores. */
+:root, * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+*::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: var(--radius-pill);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border: 2px solid var(--scrollbar-track);
+  border-radius: var(--radius-pill);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+*::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
 }
