@@ -403,14 +403,23 @@ async function exercise(browser, label, viewport) {
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
   // Reexecuta visualmente um frame Concentrar isolado sem recalcular batalha
-  // nem escrever outro receipt. A fixture deriva de um ataque REAL já gasto.
+  // nem escrever outro receipt. A fixture usa custo SP REAL de um ataque pago.
+  // Em encontros curtos pode ocorrer apenas ataque pago do selvagem:
+  // nesse caso projetamos o mesmo custo num frame sintético do parceiro
+  // SOMENTE para testar o playback, nunca o combate ou o save do jogador.
   const focusFixture=structuredClone(fought);
   const focusGame=JSON.parse(focusFixture.journal.raw);
   const recorded=focusGame.lastBattle;
-  const skillIndex=recorded.frames.findIndex(frame=>
+  const playerSkillIndex=recorded.frames.findIndex(frame=>
     frame.actor==='player'&&frame.spCost>0&&frame.playerSp<recorded.playerMaxSp);
-  assert.ok(skillIndex>0,'fixture precisa ter golpe com custo SP do parceiro');
-  const spent=recorded.frames[skillIndex];
+  const skillIndex=playerSkillIndex>0?playerSkillIndex:
+    recorded.frames.findIndex(frame=>frame.spCost>0);
+  assert.ok(skillIndex>0,'fixture precisa ter ataque real com custo SP');
+  const sourceSpent=recorded.frames[skillIndex];
+  const spent=playerSkillIndex>0?sourceSpent:{
+    ...sourceSpent,actor:'player',target:'wild',
+    playerSp:Math.max(0,recorded.playerMaxSp-sourceSpent.spCost)
+  };
   const gained=Math.min(6,recorded.playerMaxSp-spent.playerSp);
   assert.ok(gained>0);
   const focusLine='T2 · '+recorded.playerName+
