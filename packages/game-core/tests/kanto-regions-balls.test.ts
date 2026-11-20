@@ -3,7 +3,8 @@ import {
   KANTO_REGIONS,KANTO_POKEDEX,KANTO_BALLS,
   kantoRegion,kantoRegionForSpecies,kantoRegionCatalogInvariant,
   kantoRegionalEncounter,canUseKantoBall,
-  canStartRegionalExpedition,cappedRegionalPokemonXp,xpThreshold
+  canStartRegionalExpedition,cappedRegionalPokemonXp,xpThreshold,
+  inspectKantoBallPocket,spendKantoBallForAttempt
 } from '../src/index.js';
 
 describe('D-064 — mapa regional de Kanto, catálogo de 151',()=>{
@@ -96,5 +97,33 @@ describe('D-064 — Expedição por região e nível do Pokémon',()=>{
     expect(cappedRegionalPokemonXp({level:25,xp:100},300,1))
       .toMatchObject({level:25,xp:100,xpAccepted:0,xpDiscarded:300,capped:true});
     expect(cappedRegionalPokemonXp({level:10,xp:0},10,11)).toBeNull();
+  });
+});
+
+
+describe('D-064 — mochila de Poké Bolas e consumo por tentativa',()=>{
+  it('não inventa estoque para saves antigos ou registros inválidos',()=>{
+    expect(inspectKantoBallPocket(undefined).status).toBe('legacy-untracked');
+    expect(inspectKantoBallPocket({version:1,quantities:{'fake-ball':1}}).status).toBe('invalid');
+    expect(inspectKantoBallPocket({version:1,quantities:{'poke-ball':-5}}).status).toBe('invalid');
+    expect(inspectKantoBallPocket({version:1,quantities:{'great-ball':3}}).status).toBe('valid');
+  });
+  it('debita somente uma unidade e bloqueia inventário insuficiente',()=>{
+    const starting={version:1 as const,quantities:{'poke-ball':2,'ultra-ball':1}};
+    const first=spendKantoBallForAttempt(starting,'poke-ball',16);
+    expect(first.status).toBe('ok');
+    if(first.status==='ok'){
+      expect(first.pocket.quantities['poke-ball']).toBe(1);
+      expect(starting.quantities['poke-ball']).toBe(2);
+      const second=spendKantoBallForAttempt(first.pocket,'poke-ball',16);
+      expect(second.status).toBe('ok');
+      if(second.status==='ok'){
+        expect(second.pocket.quantities['poke-ball']).toBe(0);
+        expect(spendKantoBallForAttempt(second.pocket,'poke-ball',16).status).toBe('blocked');
+      }
+    }
+    expect(spendKantoBallForAttempt(starting,'poke-ball',150).status).toBe('blocked');
+    expect(spendKantoBallForAttempt(starting,'ultra-ball',150).status).toBe('ok');
+    expect(spendKantoBallForAttempt({version:1,quantities:{'master-ball':1}},'master-ball',151).status).toBe('blocked');
   });
 });
