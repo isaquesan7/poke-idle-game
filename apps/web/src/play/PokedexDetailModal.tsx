@@ -35,6 +35,7 @@ const formatId=(id:number)=>'#'+String(id).padStart(3,'0');
 interface Props {
   readonly species:KantoCatalogSpecies;
   readonly status:Exclude<KantoDexStatus,'unknown'>;
+  readonly revealedSpeciesIds:ReadonlySet<number>;
   readonly onClose:()=>void;
 }
 
@@ -53,7 +54,7 @@ function matchup(types:readonly string[]) {
   };
 }
 
-export function PokedexDetailModal({species,status,onClose}:Props) {
+export function PokedexDetailModal({species,status,revealedSpeciesIds,onClose}:Props) {
   const dialogRef=useRef<HTMLElement>(null);
   const closeRef=useRef<HTMLButtonElement>(null);
   const meta=matchup(species.types);
@@ -122,8 +123,9 @@ export function PokedexDetailModal({species,status,onClose}:Props) {
               <p>Espécie #{String(species.id).padStart(3,'0')} da região de Kanto.</p>
               <div className={styles.evolution}>
                 <strong>Linha evolutiva</strong>
-                <span>{from?'Evolui de '+from.name:'Forma inicial ou sem pré-evolução em Kanto'}</span>
-                <span>{evolutions.length?'Pode evoluir para '+evolutions.map(p=>p.name).join(' ou '):
+                <span>{from?'Evolui de '+(revealedSpeciesIds.has(from.id)?from.name:'uma espécie ainda não descoberta'):'Forma inicial ou sem pré-evolução em Kanto'}</span>
+                <span>{evolutions.length?'Pode evoluir para '+evolutions.map(p=>
+                  revealedSpeciesIds.has(p.id)?p.name:'uma espécie ainda não descoberta').join(' ou '):
                   'Nenhuma evolução seguinte entre os 151 de Kanto'}</span>
               </div>
             </div>
