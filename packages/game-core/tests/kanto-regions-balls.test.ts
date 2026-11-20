@@ -4,7 +4,8 @@ import {
   kantoRegion,kantoRegionForSpecies,kantoRegionCatalogInvariant,
   kantoRegionalEncounter,canUseKantoBall,
   canStartRegionalExpedition,cappedRegionalPokemonXp,xpThreshold,
-  inspectKantoBallPocket,spendKantoBallForAttempt
+  inspectKantoBallPocket,spendKantoBallForAttempt,
+  d064DraftXpThreshold,d064DraftBattleReward,d064DraftSimulateWins
 } from '../src/index.js';
 
 describe('D-064 — mapa regional de Kanto, catálogo de 151',()=>{
@@ -126,5 +127,33 @@ describe('D-064 — mochila de Poké Bolas e consumo por tentativa',()=>{
     expect(spendKantoBallForAttempt(starting,'poke-ball',150).status).toBe('blocked');
     expect(spendKantoBallForAttempt(starting,'ultra-ball',150).status).toBe('ok');
     expect(spendKantoBallForAttempt({version:1,quantities:{'master-ball':1}},'master-ball',151).status).toBe('blocked');
+  });
+});
+
+
+describe('D-064E — curva de XP/moedas experimental, sem rewards ativos',()=>{
+  it('torna o treino do treinador mais lento que o Pokémon no cenário otimista',()=>{
+    const stats=d064DraftSimulateWins(1200);
+    expect(stats).not.toBeNull();
+    expect(stats!.pokemon.level).toBeGreaterThan(stats!.trainer.level+20);
+    expect(stats!.milestoneWins['pokemon-40']).toBeLessThan(stats!.milestoneWins['trainer-40']);
+    expect(stats!.milestoneWins['trainer-40']).toBeGreaterThan(300);
+    expect(stats!.milestoneWins['trainer-40']).toBeLessThan(800);
+  });
+  it('exige milhares de vitórias para treinador Nv.100 (sem Expedição)',()=>{
+    const stats=d064DraftSimulateWins(5000)!;
+    expect(stats.trainer.level).toBe(100);
+    expect(stats.milestoneWins['trainer-100']).toBeGreaterThan(2500);
+    expect(stats.milestoneWins['trainer-100']).toBeLessThan(5000);
+    expect(stats.milestoneWins['pokemon-100']).toBeLessThan(stats.milestoneWins['trainer-100']);
+    expect(stats.totalCoins).toBeGreaterThan(0);
+  });
+  it('rejeita níveis inválidos, não promove recompensas reais',()=>{
+    expect(d064DraftXpThreshold('trainer',1)).toBe(132);
+    expect(d064DraftXpThreshold('trainer',100)).toBeNull();
+    expect(d064DraftXpThreshold('pokemon',-1)).toBeNull();
+    expect(d064DraftBattleReward(10)).toEqual({coins:15,trainerXp:25,pokemonXp:57});
+    expect(d064DraftBattleReward(0)).toBeNull();
+    expect(d064DraftSimulateWins(-1)).toBeNull();
   });
 });
