@@ -72,3 +72,10 @@ Este documento explicita decisões aprovadas, hipóteses para simulação e ques
 - `map/regionalExpeditionXp.ts` inclui `canStartRegionalExpedition(trainerLv,pokemonLv,regionId)`: respeita o nível do treinador para liberar a região e exige que o Pokémon tenha alcançado o **teto da região anterior** para entrar na próxima. Áreas já acessíveis continuam selecionáveis, mas não concedem XP de Pokémon acima do teto.
 - `cappedRegionalPokemonXp` calcula quanto XP do lote é aceito até o nível máximo da região sem carregar excedentes para tiers seguintes, preservando XP preexistente se o Pokémon já estava no teto ou acima dele. Exemplo: Pokémon Nv. 9 com 7 XP restantes para subir, expedição credita 600 XP => somente 7 aceitos e nível para em 10; moedas permanecem calculadas por outro canal, no futuro writer.
 - Esses são **contratos puros/testados**, sem gravação de save, sem afetar expedições existentes, coins, treinador ou banco. A integração de recebimentos pendentes, mudanças de região apenas depois do stop/restart e status de membros múltiplos ainda está por fazer.
+
+
+## D-064D — modelo isolado da mochila de Poké Bolas
+
+- `capture/kantoBallPocket.ts` estabelece bolso `{version:1,quantities:{'poke-ball'?:n,'great-ball'?:n,'ultra-ball'?:n,'master-ball'?:n}}`, leitura conservadora de saves legados (`legacy-untracked`), limite para quantidades inteiras e imutabilidade de entradas.
+- `spendKantoBallForAttempt` devolve **nova cópia** da mochila menos uma bola, valida a espécie/tipo, bloqueia quantidade zero e nunca aceita Master Ball automática. Está preparado para ser invocado futuramente **dentro da mesma transação de resultado de captura**; isoladamente não salva dados nem gera Pokémon.
+- Não decidir por ora estoque inicial, preços ou concessões. Um save sem registro de Poké Bolas NÃO pode ser interpretado como estoque zero com captura ativada antes de migração + fonte de reposição, para evitar bloqueio de progressão.
