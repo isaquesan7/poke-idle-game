@@ -753,19 +753,29 @@ export function PlayApp() {
                       const uid=data.team[position];
                       const pokemon=data.roster.find(p=>p.uid===uid);
                       return (
-                        <article key={position} className={pokemon?styles.teamSlot:styles.teamSlotEmpty}>
+                        <article key={position} data-testid={'team-slot-'+position} className={pokemon?styles.teamSlot:styles.teamSlotEmpty}>
                           <span className={styles.slotCaption}><i className={'fa-solid '+(position===0?'fa-crown':'fa-shield')} aria-hidden="true"/> {position===0?'Líder · Arena':'Slot '+(position+1)}</span>
                           {pokemon ? <>
                             <PokemonArt id={pokemon.pokemonId} name={speciesName(pokemon.pokemonId)} />
                             <strong>{speciesName(pokemon.pokemonId)}</strong>
                             <small>UID #{pokemon.uid} · Nv. {pokemon.level}</small>
-                            <div className={styles.collectionAffinityMini} aria-label={'Afinidade '+pokemon.affinity+'%'}>
-                              <span style={{width:pokemon.affinity+'%'}}/></div>
-                            {position>0&&<button type="button" className={styles.textButton}
-                              disabled={busy || Boolean(expedition)}
-                              aria-label={'Tornar líder UID '+pokemon.uid}
-                              onClick={()=>dispatch({type:'pokemon',value:{type:'set-active',uid:pokemon.uid}})}>
-                              Tornar líder</button>}
+                            <small><i className="fa-solid fa-heart" aria-hidden="true"/> {pokemon.affinity}% afinidade</small>
+                            <div className={styles.teamSlotActions}>
+                              <button type="button" className={styles.secondary}
+                                aria-label={'Treinar UID '+pokemon.uid+' pelo slot da equipe'}
+                                onClick={()=>openPokemon(pokemon.uid)}>
+                                <i className="fa-solid fa-chart-simple" aria-hidden="true"/> Treinar</button>
+                              <button type="button" className={styles.secondary}
+                                disabled={busy || Boolean(expedition) || data.team.length<=1}
+                                aria-label={'Remover UID '+pokemon.uid+' pelo slot da equipe'}
+                                onClick={()=>dispatch({type:'pokemon',value:{type:'remove-team',uid:pokemon.uid}})}>
+                                <i className="fa-solid fa-user-minus" aria-hidden="true"/> Retirar</button>
+                              {position>0&&<button type="button" className={styles.textButton}
+                                disabled={busy || Boolean(expedition)}
+                                aria-label={'Tornar líder UID '+pokemon.uid}
+                                onClick={()=>dispatch({type:'pokemon',value:{type:'set-active',uid:pokemon.uid}})}>
+                                <i className="fa-solid fa-crown" aria-hidden="true"/> Tornar líder</button>}
+                            </div>
                           </> : <span className={styles.slotPlaceholder}><i className="fa-solid fa-plus" aria-hidden="true"/> Vazio</span>}
                         </article>
                       );
@@ -825,8 +835,6 @@ export function PlayApp() {
                             <span><i className="fa-solid fa-star" aria-hidden="true"/> Nv. {pokemon.level}</span>
                             <span><i className="fa-solid fa-heart" aria-hidden="true"/> {pokemon.affinity}% afinidade</span>
                           </div>
-                          <div className={styles.collectionAffinityMini} aria-label={'Afinidade '+pokemon.affinity+'%'}>
-                            <span style={{width:pokemon.affinity+'%'}}/></div>
                           <div className={styles.collectionCardActions}>
                             <button type="button" className={styles.secondary}
                               aria-label={'Treinar UID '+pokemon.uid}
