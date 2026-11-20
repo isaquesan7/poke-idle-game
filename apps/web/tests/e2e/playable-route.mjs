@@ -521,14 +521,25 @@ async function exercise(browser, label, viewport) {
   assert.ok(injectedPidgeys.every(p=>p.pokemonId===16));
 
   // A seleção da espécie não deve misturar UIDs de treinamentos independentes.
+  const collectionRevisionBefore=(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision;
   await page.getByLabel('Buscar Pokémon na coleção').fill('pidgey');
   assert.equal(await first.count(),1);
   assert.equal(await second.count(),1);
-  await page.getByRole('button',{name:'Na equipe',exact:true}).click();
+  await page.getByRole('combobox',{name:'Ordenar coleção'}).selectOption('level');
+  const filteredCards=page.locator('[class*="collectionGrid"] [data-testid^="pokemon-uid-"]');
+  assert.equal(await filteredCards.first().getAttribute('data-testid'),'pokemon-uid-'+secondUid,
+    'Ordenação por nível deve usar os dados de cada UID');
+  await page.getByRole('combobox',{name:'Ordenar coleção'}).selectOption('affinity');
+  assert.equal(await filteredCards.first().getAttribute('data-testid'),'pokemon-uid-'+secondUid,
+    'Ordenação por afinidade deve usar os dados de cada UID');
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,collectionRevisionBefore,
+    'Buscar e ordenar não podem gravar progresso');
+  await page.screenshot({path:new URL('collection-'+label+'.png',shots).pathname,fullPage:true});
+  await page.getByRole('button',{name:/^Na equipe(?:\s|$)/}).click();
   assert.equal(await first.count(),1);
-  await page.getByRole('button',{name:'Reserva',exact:true}).click();
+  await page.getByRole('button',{name:/^Reserva(?:\s|$)/}).click();
   assert.equal(await first.count(),0);
-  await page.getByRole('button',{name:'Todos',exact:true}).click();
+  await page.getByRole('button',{name:/^Todos(?:\s|$)/}).click();
   await second.getByRole('button',{name:'Treinar UID '+secondUid}).click();
   await page.getByText('UID '+secondUid,{exact:false}).waitFor();
   const secondTraining=page.getByRole('region',{name:'Treinamento Pokémon'});

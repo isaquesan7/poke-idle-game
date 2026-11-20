@@ -751,3 +751,89 @@
   .pokemonProfileGrid .pokemonArtStage{min-height:215px}
   .pokemonProfileGrid .pokemonArtStage .pokemonLarge{max-width:min(100%,190px);max-height:190px}
 }
+
+
+/* D-059 · Coleção: mesma linguagem luminosa Kanto Dark do Treinador/Pokémon.
+   Cada cartão permanece vinculado ao UID; layout e ordenação não gravam save. */
+.collectionHeader{
+  border-color:var(--trainer-card-border);
+  background:radial-gradient(ellipse at 85% 0%,var(--trainer-glow-cyan-soft),transparent 55%),
+    linear-gradient(135deg,var(--color-panel-gradient-1),var(--color-panel-gradient-2));
+  box-shadow:inset 0 1px 0 var(--trainer-card-highlight),var(--trainer-shadow-cyan);
+}
+.collectionHeader .kicker{color:var(--color-primary)}
+.collectionSummaryGroup{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
+.collectionSummary{min-width:95px;padding:var(--space-3);border-color:var(--trainer-card-border);
+  background:var(--trainer-stage-surface);box-shadow:inset 0 1px 0 var(--trainer-card-highlight)}
+.collectionSummary strong{font-size:clamp(1.4rem,2vw,2.15rem)}
+.collectionSummary small{display:block;font-size:.72rem;white-space:nowrap}
+.collectionControls{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);flex-wrap:wrap}
+.collectionControls .collectionFilters{margin:var(--space-3) 0}
+.collectionFilter,.collectionFilterActive{display:inline-flex;align-items:center;gap:var(--space-2);
+  font-weight:750;border-color:var(--trainer-card-border);transition:border-color var(--duration-fast),box-shadow var(--duration-fast)}
+.collectionFilter span,.collectionFilterActive span{font-size:.72rem;opacity:.85}
+.collectionFilter:hover,.collectionFilter:focus-visible,.collectionFilterActive:focus-visible{
+  border-color:var(--color-primary);box-shadow:0 0 13px var(--trainer-glow-cyan-soft)}
+.collectionSortLabel{display:flex;align-items:center;gap:var(--space-2);font-weight:700;font-size:.8rem;
+  color:var(--color-text-muted)}
+.collectionSortLabel select{min-width:170px;max-width:220px;cursor:pointer}
+.collectionGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-4)}
+.collectionCard,.collectionCardLeader{
+  position:relative;overflow:hidden;align-items:stretch;gap:var(--space-2);padding:var(--space-4);
+  background:radial-gradient(ellipse at 50% 0%,var(--trainer-glow-cyan-soft),transparent 65%),
+    linear-gradient(145deg,var(--color-panel-gradient-1),var(--color-panel-gradient-2));
+  border-color:var(--trainer-card-border);
+  box-shadow:inset 0 1px 0 var(--trainer-card-highlight),0 8px 20px var(--trainer-shadow-depth);
+  transition:border-color var(--duration-fast),box-shadow var(--duration-fast);
+}
+.collectionCard:hover,.collectionCardLeader:hover{border-color:var(--color-primary);box-shadow:0 0 20px var(--trainer-glow-cyan-soft)}
+.collectionCardLeader{border-color:var(--color-primary)}
+.collectionCardTop{align-items:center;flex-wrap:wrap;letter-spacing:0;font-size:.7rem}
+.collectionCardStatus{display:inline-flex;gap:var(--space-1);align-items:center;color:var(--color-primary)}
+.collectionCardArt{height:124px;display:grid;place-items:center;
+  background:radial-gradient(ellipse,var(--trainer-glow-deep-blue),transparent 70%)}
+.collectionCardArt .pokemonArt{width:auto;height:auto;max-height:110px;max-width:100%;object-fit:contain;aspect-ratio:auto;
+  filter:drop-shadow(0 0 12px var(--trainer-glow-violet))}
+.collectionCard>strong,.collectionCardLeader>strong{text-align:left;font-size:1.1rem;text-transform:capitalize}
+.collectionAttributes{justify-content:space-between;text-align:left;font-size:.76rem}
+.collectionAttributes i{color:var(--color-primary)}
+.collectionAffinityMini{height:6px;width:100%;overflow:hidden;border-radius:var(--radius-pill);
+  background:var(--color-surface);border:1px solid var(--trainer-card-border)}
+.collectionAffinityMini span{display:block;height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,var(--color-affinity),var(--color-primary))}
+.collectionCardActions{justify-content:flex-start;gap:var(--space-2);border-top:1px solid var(--trainer-card-border);padding-top:var(--space-3)}
+.collectionCardActions button{flex:1 1 auto}
+.teamSlot,.teamSlotEmpty{
+  border-color:var(--trainer-card-border);
+  background:radial-gradient(ellipse at top,var(--trainer-glow-cyan-soft),transparent 75%),var(--color-surface-raised);
+  min-height:190px;
+}
+.teamSlot:first-child{border-color:var(--color-primary);box-shadow:0 0 18px var(--trainer-glow-cyan-soft)}
+.teamSlot .pokemonArt{width:auto;height:auto;max-height:78px;max-width:100%;object-fit:contain;aspect-ratio:auto}
+.slotCaption{display:flex;align-items:center;justify-content:center;gap:var(--space-2)}
+.slotPlaceholder{display:flex;align-items:center;flex-direction:column;gap:var(--space-2)}
+.slotPlaceholder i{font-size:1.25rem;opacity:.55}
+.emptyCollection{display:flex;flex-direction:column;align-items:center;gap:var(--space-4)}
+.emptyCollection i{font-size:1.45rem;color:var(--color-primary)}
+@media(max-width:1250px){.collectionGrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:940px){.collectionGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:690px){
+ .collectionHeader{flex-direction:column;align-items:stretch}
+ .collectionSummaryGroup{width:100%}
+ .collectionSummary{min-width:0}
+ .collectionControls{align-items:stretch}
+ .collectionSortLabel{justify-content:space-between;width:100%}
+ .collectionSortLabel select{max-width:70%}
+ .collectionGrid{gap:var(--space-2)}
+ .collectionCard,.collectionCardLeader{padding:var(--space-3)}
+ .collectionCardArt{height:105px}
+ .collectionCardArt .pokemonArt{max-height:95px}
+ .collectionCardActions button{min-width:0}
+ .collectionAttributes{flex-wrap:wrap}
+}
+@media(max-width:380px){
+ .collectionGrid{grid-template-columns:minmax(0,1fr)}
+ .collectionSummary small{font-size:.65rem}
+ .collectionSummary{padding:var(--space-2)}
+}
+@media(prefers-reduced-motion:reduce){.collectionCard,.collectionCardLeader,.collectionFilter,.collectionFilterActive{transition:none}}
