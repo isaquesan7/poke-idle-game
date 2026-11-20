@@ -692,7 +692,8 @@ async function exercise(browser, label, viewport) {
   assert.equal(await page.getByTestId('pokedex-17').count(),1);
   await page.reload();
   await page.getByRole('button',{name:'Arena',exact:true}).click();
-  await page.getByText('Pidgeotto · UID #'+firstUid).first().waitFor();
+  await page.getByLabel('Líder da Arena').getByText('Pidgeotto').waitFor();
+  await page.getByLabel('Líder da Arena').getByText('UID #'+firstUid,{exact:false}).waitFor();
 
   // Montagem de 2 golpes no Charmander original, preservando o UID já testado.
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
