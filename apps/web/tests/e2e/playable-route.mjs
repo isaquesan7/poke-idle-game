@@ -535,11 +535,11 @@ async function exercise(browser, label, viewport) {
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,collectionRevisionBefore,
     'Buscar e ordenar não podem gravar progresso');
   await page.screenshot({path:new URL('collection-'+label+'.png',shots).pathname,fullPage:true});
-  await page.getByRole('button',{name:/^Na equipe(?:\\s|$)/}).click();
+  await page.getByRole('button',{name:/^Na equipe(?:\s|$)/}).click();
   assert.equal(await first.count(),1);
-  await page.getByRole('button',{name:/^Reserva(?:\\s|$)/}).click();
+  await page.getByRole('button',{name:/^Reserva(?:\s|$)/}).click();
   assert.equal(await first.count(),0);
-  await page.getByRole('button',{name:/^Todos(?:\\s|$)/}).click();
+  await page.getByRole('button',{name:/^Todos(?:\s|$)/}).click();
   await second.getByRole('button',{name:'Treinar UID '+secondUid}).click();
   await page.getByText('UID '+secondUid,{exact:false}).waitFor();
   const secondTraining=page.getByRole('region',{name:'Treinamento Pokémon'});
