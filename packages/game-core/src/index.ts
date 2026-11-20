@@ -102,3 +102,12 @@ export type {
 // D-053: leitura de propriedade/slots ainda não conectada ao writer de recompensas.
 export {BASE_BAG_SLOTS,inspectInventoryOwnership,inventorySlotsUsed,inventorySlotsAvailable,mayEquipOwnedItem} from './inventory/ownership.js';
 export type {InventoryOwnershipV1,InventoryOwnershipRead} from './inventory/ownership.js';
+
+// D-064: contratos puros de mapa e Poké Bolas; ainda sem writer de captura.
+export {
+  KANTO_REGIONS,kantoRegion,kantoRegionForSpecies,kantoRegionalEncounter,
+  kantoRegionCatalogInvariant
+} from './map/kantoRegions.js';
+export type {KantoRegionDefinition} from './map/kantoRegions.js';
+export {KANTO_BALLS,canUseKantoBall} from './capture/kantoBalls.js';
+export type {KantoBallDefinition,KantoBallId,KantoBallUseResult} from './capture/kantoBalls.js';
