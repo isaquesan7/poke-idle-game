@@ -54,7 +54,6 @@ export function PokemonTraining({uid,revision,busy,stats,manual,budget,previewSt
     <div className={styles.heading}><h2><i className="fa-solid fa-chart-simple" aria-hidden="true"/> Treinamento Pokémon</h2>
       <span>Prévia antes de confirmar</span>
     </div>
-    <div className={styles.points}><span>Pontos disponíveis: <strong>{remaining}</strong></span><small>de {budget} totais · {spent} utilizados</small></div>
     {!stats&&<p>Os atributos de batalha desta espécie não estão disponíveis.</p>}
     <div className={styles.stats}>
       {STATS.map(stat=>{
@@ -78,6 +77,7 @@ export function PokemonTraining({uid,revision,busy,stats,manual,budget,previewSt
         </div>;
       })}
     </div>
+    <div className={styles.points}><span>Pontos disponíveis: <strong>{remaining}</strong></span><small>de {budget} totais · {spent} utilizados</small></div>
     {stale&&<p role="alert" className={styles.warning}>O progresso mudou. Cancele a prévia e distribua os pontos novamente.</p>}
     {(staged>0||stale)&&<div className={styles.footer}>
       <p role="status"><strong>{stale?'Prévia desatualizada':staged+' ponto(s) aguardando confirmação'}</strong></p>
