@@ -4,17 +4,11 @@ import {
 } from '@kanto/game-core';
 import type { KantoDexStatus } from '@kanto/game-core';
 import styles from './PokedexPanel.module.css';
+import { PokedexDetailModal } from './PokedexDetailModal';
 
 type DexFilter = 'all' | 'unknown' | 'seen' | 'caught';
 const STATUS: Record<KantoDexStatus,string> = {
   unknown:'Não encontrado', seen:'Visto', caught:'Capturado'
-};
-const TYPES_PT: Readonly<Record<string,string>> = {
-  normal:'Normal',fire:'Fogo',water:'Água',electric:'Elétrico',
-  grass:'Planta',ice:'Gelo',fighting:'Lutador',poison:'Venenoso',
-  ground:'Terra',flying:'Voador',psychic:'Psíquico',bug:'Inseto',
-  rock:'Pedra',ghost:'Fantasma',dragon:'Dragão',dark:'Sombrio',
-  steel:'Aço',fairy:'Fada'
 };
 
 interface Props {
@@ -60,7 +54,7 @@ export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena}:P
         <div>
           <div className={styles.kicker}>REGISTRO DA REGIÃO DE KANTO · 001–151</div>
           <h2>Pokédex de Kanto</h2>
-          <p>Explore os 151 registros. Espécies vistas são reveladas, e capturas ficam identificadas. O mesmo Pokémon pode aparecer várias vezes na sua coleção, mas conta apenas uma espécie aqui.</p>
+          <p>Explore os 151 registros de Kanto. Toque em um Pokémon descoberto para abrir sua ficha com tipos, atributos-base, vantagens e golpes. Cada espécie capturada conta uma única vez.</p>
           <div className={styles.actions}>
             <button type="button" className={styles.primary} onClick={onArena}>Explorar Arena</button>
             <button type="button" className={styles.secondary} onClick={onCollection}>Minha coleção</button>
@@ -116,6 +110,7 @@ export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena}:P
                   : <span className={styles.silhouette} aria-hidden="true">?</span>}
                 <strong>{revealed?species.name:'???'}</strong>
                 <span className={styles.tileStatus}>{STATUS[status]}</span>
+                {revealed&&<span className={styles.tileHint}>Ver ficha <i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"/></span>}
               </button>
             );
           })}
@@ -124,33 +119,8 @@ export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena}:P
           <p role="status" className={styles.empty}>Nenhum registro corresponde a esta busca.</p>}
       </section>
       {selected&&selectionStatus!=='unknown'&&(
-        <section className={styles.detail} aria-label={'Detalhes de '+selected.name} data-testid="pokedex-detail">
-          <div className={styles.detailImage}>
-            <img src={'/assets/pokemon-gifs/poke_'+selected.id+'.gif'}
-              alt={selected.name} loading="lazy" />
-          </div>
-          <div className={styles.detailContent}>
-            <div className={styles.kicker}>REGISTRO #{String(selected.id).padStart(3,'0')} · {STATUS[selectionStatus]}</div>
-            <h3>{selected.name}</h3>
-            <p>{selected.types.map(type=>TYPES_PT[type]??type).join(' · ')}</p>
-            {selected.legendary&&<p>Pokémon lendário</p>}
-            {selected.mythical&&<p>Pokémon mítico</p>}
-            {selected.evolvesFrom!==null&&
-              <p>Evolui de {kantoSpecies(selected.evolvesFrom)?.name??'uma espécie de outra geração'}.</p>}
-            <div className={styles.statsGrid}>
-              {([
-                ['HP',selected.base.hp],['Ataque',selected.base.attack],
-                ['Defesa',selected.base.defense],['Ataque especial',selected.base.specialAttack],
-                ['Defesa especial',selected.base.specialDefense],['Velocidade',selected.base.speed]
-              ] as [string,number][]).map(([name,value])=>(
-                <div key={name}><small>{name}</small><strong>{value}</strong></div>
-              ))}
-            </div>
-            <p className={styles.notice}>Atributos-base da espécie; bônus individuais e treinamento ficam na coleção. Captura na Arena alfa ainda usa chance fixa de 35% após vitória.</p>
-            <button type="button" className={styles.secondary}
-              onClick={()=>setSelectedId(null)}>Fechar detalhes</button>
-          </div>
-        </section>
+        <PokedexDetailModal key={selected.id} species={selected}
+          status={selectionStatus} onClose={()=>setSelectedId(null)}/>
       )}
     </section>
   );
