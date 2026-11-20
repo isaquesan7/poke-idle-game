@@ -278,6 +278,28 @@ async function exercise(browser, label, viewport) {
   // Arena real: resultado deve vir do motor, nunca de um botão "ganhar".
   await page.getByRole('button',{name:'Arena',exact:true}).click();
   await page.getByRole('heading',{name:'Arena de batalha'}).waitFor();
+  // D-064B: mapa apenas em prévia, sem rodar a batalha legada e sem gravar.
+  const beforeMap=await page.evaluate(key=>localStorage.getItem(key),SAVE);
+  await page.getByTestId('open-kanto-map-preview').click();
+  const map=page.getByTestId('kanto-map-preview');
+  await map.getByRole('heading',{name:'Regiões do Mapa'}).waitFor();
+  assert.equal(await map.locator('button[aria-label^="Região "]').count(),10);
+  await map.getByRole('button',{name:/Região 9: Pico Dracônico/}).click();
+  await map.getByRole('heading',{name:'Pico Dracônico'}).waitFor();
+  await map.getByRole('heading',{name:'Encontros extremamente raros'}).waitFor();
+  assert.equal(await map.getByText('Batalha regional em preparação').count(),1);
+  assert.equal(await map.getByRole('button',{name:/Batalha regional em preparação/}).isDisabled(),true);
+  await map.getByRole('button',{name:/Região 10: Santuário Lendário/}).click();
+  await map.getByRole('heading',{name:'Santuário Lendário'}).waitFor();
+  assert.equal(await map.getByText('Encontro muito raro').count(),2,
+    'Mew e Mewtwo precisam estar no pool raro da última região');
+  assert.equal(await map.getByText('???').count()>0,true,
+    'Espécies ainda não descobertas devem manter a privacidade da Pokédex');
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeMap,
+    'Abrir e navegar no mapa não podem gravar no save');
+  await page.screenshot({path:new URL('map-preview-'+label+'.png',shots).pathname,fullPage:true});
+  await map.getByRole('button',{name:/Voltar à Arena atual/}).click();
+  await page.getByRole('heading',{name:'Arena de batalha'}).waitFor();
   // D-063: a visão inicial da Arena apresenta líder, indicadores e ação
   // principal; as informações do motor não devem poluir a tela do jogador.
   const arenaLeader=page.getByLabel('Líder da Arena');
