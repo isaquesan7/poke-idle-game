@@ -122,3 +122,10 @@ Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em 
 - Tokens em `styles/tokens.css`: `--scrollbar-track`, `--scrollbar-thumb`, `--scrollbar-thumb-hover`, `--scrollbar-thumb-active` e `--scrollbar-width`; evitar cores ou larguras locais fixas.
 - Barra global da página e scrollbars dos componentes (inclusive modal enciclopédico): trilho escuro, thumb arredondado discreto, destaque ciano em hover e verde quando pressionado, nos navegadores que permitirem estilização.
 - Firefox utiliza `scrollbar-color`/`scrollbar-width`; WebKit/Blink utiliza `::-webkit-scrollbar` com fallback nativo. Não esconder barra, bloquear scroll, adicionar biblioteca ou afetar comportamento do toque.
+
+
+## D-063 — linguagem visual da Arena
+- A interface da Arena usa cartões Kanto Dark em `PlayApp.module.css` com tokens `:root`: resumo da equipe, métricas de combate e CTA separados da cena; não mostrar especificações internas de SP e tabelas no hero.
+- Cena de batalha possui duas colunas equivalentes de lutadores, VS central, GIFs contidos com proporção original, medidores HP/SP sincronizados por frames e animações já existentes. Não remonta GIF em replay.
+- Diário mantém progressão de uma linha por evento, controles por teclado, tempo de apresentação (não tempo do motor), acessibilidade e barra global D062. Resultado/recompensas continuam escondidos até fim da apresentação.
+- Catálogo de encontros usa grade responsiva e 12 exemplos do pool real; nenhuma ilustração ou dado simulado adicional.
