@@ -319,3 +319,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Corrigido bloqueio de aprimoramento de golpes ofensivos equipados fora do slot principal. Reducer puro valida agora o conjunto equipado do UID sem modificar o principal.
 - Interface apresenta motivos específicos quando não é possível aprimorar (não equipado, rank máximo, pontos insuficientes); custo 1 ponto permanece inalterado.
 - Testes core de rank secundário e E2E de treino real sem troca do principal. Publicação/CI/Railway a confirmar no SHA final da PR.
+
+
+## D-059 — refinamento visual da Coleção (2026-11-19)
+- Novo destaque visual da equipe e do líder, cartões individuais por UID com status, nível/afinidade e GIF proporcional, painel de contadores de captura e espécies.
+- Busca/filtros existentes preservados, com ordenação local por captura recente, nível, afinidade ou número da Pokédex; filtros mostram contagens e estado vazio permite limpar.
+- Novos testes e screenshots desktop/mobile; nenhuma mecânica de equipe, save ou economia alterada. Branch em revisão, sem publicação automática.
