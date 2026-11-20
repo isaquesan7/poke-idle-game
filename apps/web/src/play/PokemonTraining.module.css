@@ -36,9 +36,9 @@
 .trackPreview{background:var(--color-primary);box-shadow:0 0 12px var(--trainer-glow-cyan);z-index:1}
 .statActions{display:flex;justify-content:flex-end;gap:var(--space-1)}
 .statActions button{
-  min-height:36px;min-width:36px;padding:0 var(--space-1);font-weight:800;
+  min-height:36px;min-width:36px;padding:0 var(--space-1);
   border:1px solid var(--color-navbtn-active-border-1);border-radius:var(--radius-tight);
-  color:var(--color-text);cursor:pointer;font:inherit;
+  color:var(--color-text);cursor:pointer;font:inherit;font-weight:800;
   background:linear-gradient(130deg,var(--color-surface-raised),var(--trainer-stage-surface));
   box-shadow:inset 0 1px 0 var(--trainer-card-highlight);
   transition:border-color var(--duration-fast),box-shadow var(--duration-fast)
@@ -59,7 +59,7 @@
 .footer{margin-top:var(--space-3);border-top:1px solid var(--trainer-card-border);padding-top:var(--space-3);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--space-3)}
 .footer p{margin:0;color:var(--color-primary);font-size:.82rem}
 .footer>div{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:var(--space-2)}
-.footer button,.reset button{min-height:41px;padding:var(--space-2) var(--space-4);border-radius:var(--radius-control);cursor:pointer;font-weight:700;font:inherit;font-size:.8rem}
+.footer button,.reset button{min-height:41px;padding:var(--space-2) var(--space-4);border-radius:var(--radius-control);cursor:pointer;font:inherit;font-weight:700;font-size:.8rem}
 .footer .cancel{background:transparent;border:1px solid var(--color-border);color:var(--color-text)}
 .footer .confirm{background:var(--color-primary);color:var(--color-bg);border:1px solid var(--color-primary)}
 .footer .confirm:hover:not(:disabled){filter:brightness(1.08)}
