@@ -55,9 +55,32 @@ async function exercise(browser, label, viewport) {
   await page.getByLabel('Buscar na Pokédex').fill('');
   await page.getByRole('button',{name:'Capturados',exact:true}).click();
   assert.equal(await page.getByTestId('pokedex-grid').locator('button').count(),1);
-  await page.getByTestId('pokedex-4').click();
-  await page.getByTestId('pokedex-detail').getByRole('heading',{name:'Charmander'}).waitFor();
-  await page.getByRole('button',{name:'Fechar detalhes'}).click();
+  const dexSaveBefore=await page.evaluate(key=>localStorage.getItem(key),SAVE);
+  const dexTile=page.getByTestId('pokedex-4');
+  await dexTile.click();
+  const encyclopedia=page.getByTestId('pokedex-detail');
+  await encyclopedia.getByRole('heading',{name:'Charmander'}).waitFor();
+  assert.equal(await encyclopedia.getAttribute('aria-modal'),'true');
+  assert.equal(await encyclopedia.evaluate(node=>node.parentElement?.parentElement===document.body),true,
+    'Modal enciclopédico deve ficar em portal independente da grade');
+  await encyclopedia.getByRole('region',{name:'Atributos base'}).getByText('Ataque especial').waitFor();
+  await encyclopedia.getByRole('region',{name:'Vantagens de tipo'}).getByText('Água · 2×').waitFor();
+  await encyclopedia.getByRole('region',{name:'Golpes e técnicas'}).getByText('Ember').waitFor();
+  await encyclopedia.getByText('uma espécie ainda não descoberta',{exact:false}).waitFor();
+  assert.equal(await page.getByTestId('pokedex-150').count(),0,
+    'Filtro de capturados não deve revelar registros desconhecidos');
+  assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden',
+    'Modal deve travar rolagem do fundo');
+  await page.screenshot({path:new URL('pokedex-modal-'+label+'.png',shots).pathname,fullPage:true});
+  await page.keyboard.press('Escape');
+  assert.equal(await page.getByTestId('pokedex-detail').count(),0,'Escape fecha modal');
+  assert.equal(await dexTile.evaluate(node=>document.activeElement===node),true,
+    'Fechar o modal restaura foco no cartão da Pokédex');
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),dexSaveBefore,
+    'Consultar enciclopédia nunca grava progresso');
+  await dexTile.click();
+  await encyclopedia.getByRole('button',{name:'Fechar detalhes'}).click();
+  assert.equal(await encyclopedia.count(),0);
   await page.getByRole('button',{name:'Treinador',exact:true}).click();
 
   let snapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
@@ -585,6 +608,7 @@ async function exercise(browser, label, viewport) {
     'Dois Pidgey por UID devem contar como uma espécie capturada');
   await page.getByTestId('pokedex-16').click();
   await page.getByTestId('pokedex-detail').getByRole('heading',{name:'Pidgey'}).waitFor();
+  await page.getByTestId('pokedex-detail').getByRole('button',{name:'Fechar detalhes'}).click();
   assert.equal((await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).team,SAVE))[0],firstUid);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 

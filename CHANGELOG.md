@@ -332,3 +332,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Slots da Equipe atual permitem Treinar, Retirar e Tornar líder (quando não líder), com as regras já vigentes de expedição e equipe mínima.
 - Treinamento Pokémon adota layout e estados visuais dos Atributos do Treinador: +1 brilhante ao hover, controles com mesmas dimensões/cores, − contextual, barras e resumo de pontos harmonizados. Nenhum cálculo ou writer alterado.
 - Cobertura E2E desktop/mobile para ações do topo, brilho e ausência de barra. CI e deploy a verificar.
+
+
+## D-061 — Pokédex Kanto como mini enciclopédia (2026-11-20)
+- Cartões da Pokédex visualmente refinados, com tipos visíveis após descoberta, selo de status e indicação de ficha.
+- Clique em Pokémon visto/capturado abre modal acessível por teclado/toque, inspirado na referência `isaquesan7/pokedex`, porém implementado de forma independente com os tokens Kanto Dark.
+- Ficha: seis stats-base, tipo/ID/arte GIF, linha evolutiva respeitando espécies ocultas, vantagens e fraquezas de tipos, resistências/imunidades e golpes por nível do recorte local FireRed/LeafGreen; sem solicitação de API em tempo real e sem alterar saves.
+- Testes E2E para privacidade da Pokédex, modal, foco, Escape, dados e responsividade. CI/merge/deploy a validar.

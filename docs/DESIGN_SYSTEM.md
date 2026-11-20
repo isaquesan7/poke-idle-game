@@ -109,3 +109,10 @@ Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em 
 - Mesma gramática visual em Treinamento Pokémon e atributos do Treinador: cinco colunas de estatísticas, barra com current/preview, ícones, botão +1 sempre visível quando aplicável, − contextual apenas com ponto em rascunho, gradiente nos botões, brilho ciano no hover, foco visível e disabled sem brilho.
 - Reutilizar tokens CSS do :root, não criar cores hardcoded. O cálculo é propositalmente distinto por Pokémon; a equivalência é visual e de interação, não de regras.
 - Na Coleção, a afinidade fica somente como texto percentual; as ações diretas nos 3 slots do topo espelham Treinar/Retirar/Tornar líder da lista inferior. Nunca alterar o save ao apenas navegar.
+
+
+## D-061 — modal enciclopédico da Pokédex
+- Inspiração visual e de interação: modal de `isaquesan7/pokedex` (GIF, ID, tipos, stats), reimplementado em React/portal usando tokens CSS globais Kanto Dark.
+- Grid: 151 posições fixas; cards de espécies vistas/capturadas com GIF proporcional, nome/tipo/status, hover e teclado. Entradas desconhecidas não expõem nome/imagem/ficha.
+- Modal: backdrop, painel rolável em telas pequenas, fechar (X), Escape, clique fora, foco inicial e devolução ao card, trava do scroll de fundo e tabulação contida. Blocos de perfil, seis atributos-base, matchups separados ofensivo/defensivo e recorte local de golpes por nível.
+- Cores/efeitos por variáveis `:root`, sem paleta hardcoded; não confundir tabela moderna da Arena com regras clássicas GenIII, nem golpes mostrados com o learnset completo ou slots de um exemplar.
