@@ -2,7 +2,8 @@ import {describe,it,expect} from 'vitest';
 import {
   KANTO_REGIONS,KANTO_POKEDEX,KANTO_BALLS,
   kantoRegion,kantoRegionForSpecies,kantoRegionCatalogInvariant,
-  kantoRegionalEncounter,canUseKantoBall
+  kantoRegionalEncounter,canUseKantoBall,
+  canStartRegionalExpedition,cappedRegionalPokemonXp,xpThreshold
 } from '../src/index.js';
 
 describe('D-064 — mapa regional de Kanto, catálogo de 151',()=>{
@@ -69,5 +70,31 @@ describe('D-064 — política das Poké Bolas',()=>{
     expect(canUseKantoBall('master-ball',150,1).ok).toBe(false);
     expect(canUseKantoBall('ultra-ball',150,0).ok).toBe(false);
     expect(canUseKantoBall('fake-ball',10,1).ok).toBe(false);
+  });
+});
+
+
+describe('D-064 — Expedição por região e nível do Pokémon',()=>{
+  it('Treinador Nv. 11 / Pokémon Nv. 5 só realiza região inicial',()=>{
+    expect(canStartRegionalExpedition(11,5,1)).toBe(true);
+    expect(canStartRegionalExpedition(11,5,2)).toBe(false);
+    expect(canStartRegionalExpedition(11,10,2)).toBe(true);
+    expect(canStartRegionalExpedition(9,10,2)).toBe(false);
+    expect(canStartRegionalExpedition(11,10,3)).toBe(false);
+  });
+  it('corta XP do Pokémon exatamente ao alcançar Nv. 10 sem apagar XP prévio',()=>{
+    const before={level:9,xp:xpThreshold('pokemon',9)-7};
+    const reward=cappedRegionalPokemonXp(before,600,1);
+    expect(reward).toEqual({level:10,xp:0,xpAccepted:7,xpDiscarded:593,capped:true});
+    expect(cappedRegionalPokemonXp({level:10,xp:12},700,1))
+      .toEqual({level:10,xp:12,xpAccepted:0,xpDiscarded:700,capped:true});
+    const normal=cappedRegionalPokemonXp({level:5,xp:20},10,1);
+    expect(normal).toMatchObject({level:5,xp:30,xpAccepted:10,xpDiscarded:0,capped:false});
+  });
+  it('nível acima do teto pode explorar área anterior só por moedas, sem XP',()=>{
+    expect(canStartRegionalExpedition(90,25,1)).toBe(true);
+    expect(cappedRegionalPokemonXp({level:25,xp:100},300,1))
+      .toMatchObject({level:25,xp:100,xpAccepted:0,xpDiscarded:300,capped:true});
+    expect(cappedRegionalPokemonXp({level:10,xp:0},10,11)).toBeNull();
   });
 });
