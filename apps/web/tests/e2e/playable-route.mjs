@@ -278,6 +278,17 @@ async function exercise(browser, label, viewport) {
   // Arena real: resultado deve vir do motor, nunca de um botão "ganhar".
   await page.getByRole('button',{name:'Arena',exact:true}).click();
   await page.getByRole('heading',{name:'Arena de batalha'}).waitFor();
+  // D-063: a visão inicial da Arena apresenta líder, indicadores e ação
+  // principal; as informações do motor não devem poluir a tela do jogador.
+  const arenaLeader=page.getByLabel('Líder da Arena');
+  await arenaLeader.getByText('Charmander').waitFor();
+  assert.equal(await arenaLeader.getByText('UID #1',{exact:false}).count(),1);
+  const arenaStats=page.getByLabel('Desempenho na Arena');
+  await arenaStats.getByText('Vitórias').waitFor();
+  await arenaStats.getByText('Derrotas e empates').waitFor();
+  await arenaStats.getByText('Insígnias').waitFor();
+  assert.equal(await page.getByText('SP individual (50–100)',{exact:false}).count(),0,
+    'A Arena não deve mostrar fórmulas internas ao jogador');
   await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===5,SAVE);
   const fought=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
@@ -427,6 +438,10 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),battleSaved,
     'replay/pular não podem conceder recompensas novamente');
+  await page.getByRole('heading',{name:'Pokémon encontrados nesta arena'}).waitFor();
+  assert.equal(await page.locator('[class*="encounterGrid"] [class*="encounterCard"]').count(),12,
+    'Amostra de encontros deve manter os 12 Pokémon anteriores');
+  await page.screenshot({path:new URL('arena-'+label+'.png',shots).pathname,fullPage:true});
   await page.getByRole('button',{name:'Pokédex',exact:true}).click();
   await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).waitFor();
   assert.equal(await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).isDisabled(),false);
