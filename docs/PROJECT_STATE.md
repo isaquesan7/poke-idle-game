@@ -891,3 +891,13 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Testes core cobrem slot secundário, preservação do principal, UID, moedas e bloqueio de golpe fora dos slots; E2E desktop/mobile faz aprimoramento real do Scratch secundário após tornar Growl principal e confere revisão única, equipe e moedas.
 - Sem mudança de custo 1 ponto/rank, dano, SP, save schema2/chave, Arena, TM09, GIFs, rota legada ou isaquesan7/pokedex. Publicação só após CI e Railway SUCCESS no merge exato.
 - Próxima ação: validar CI completa D058, integrar PR e verificar deploy; depois retomar D054 inventário/economia e testes humanos de acessibilidade.
+
+
+## D-059 — Coleção Pokémon, UI/UX (19/11/2026; branch em revisão)
+- A pedido do usuário, Inventário e Economia D054 ficam em espera; próxima prioridade é polimento visual das telas, começando pela Coleção. Nenhuma regra econômica foi alterada.
+- A tela Coleção mostra resumo real de capturas, espécies e equipe (até 3), destaque do líder da Arena, cards com número da Pokédex, UID individual, nível, afinidade e barra visual; equipa/retira/troca líder usando os writers já existentes, com bloqueio durante expedições. GIFs originais mantidos sem deformar.
+- Busca e filtros existentes permanecem; adicionado ordenação 100% local por capturas recentes (UID descendente), nível, afinidade e número da Pokédex (desempate por UID), contagem por filtro e estado vazio com botão para limpar busca/filtros. Nenhuma gravação de save ao filtrar/ordenar.
+- Layout Kanto Dark baseado em tokens :root; grid responsivo, foco/legendas acessíveis, Font Awesome Free já existente. Capturas E2E desktop/mobile adicionadas.
+- Não altera combate, rank/SP, captura/economia, schema2 e chave kanto-idle-play-v02, rota legada /, catálogo Kanto, 151 GIFs, treino do Pokémon ou repo isaquesan7/pokedex.
+- Gate: aguardar testes TypeScript/Vitest, Playwright desktop/mobile, Docker e revisão visual, depois solicitar aprovação do refinamento antes de integrar/publicar.
+- Próxima etapa: validar e refinar visualmente Coleção com feedback do usuário; Inventário e Economia continuam expressamente adiados.
