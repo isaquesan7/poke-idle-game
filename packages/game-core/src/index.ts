@@ -119,3 +119,6 @@ export type {RegionExpeditionXpResult} from './map/regionalExpeditionXp.js';
 
 export {inspectKantoBallPocket,spendKantoBallForAttempt} from './capture/kantoBallPocket.js';
 export type {KantoBallPocketV1,KantoBallPocketRead,KantoBallSpendResult} from './capture/kantoBallPocket.js';
+
+export {d064DraftXpThreshold,d064DraftBattleReward,d064DraftSimulateWins} from './map/regionalEconomyDraft.js';
+export type {RegionalDraftReward} from './map/regionalEconomyDraft.js';
