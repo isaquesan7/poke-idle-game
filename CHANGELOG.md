@@ -351,3 +351,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Arena redesenhada com líder da equipe, resumo de vitórias/derrotas/insígnias, botão de batalha destacado e descrições concisas sem fórmulas internas de energia.
 - Palco e GIFs proporcionais, cartões HP/SP, resultados, recompensas, diário turno a turno e amostra de encontros harmonizados ao Kanto Dark, inclusive layout mobile.
 - Nenhuma mudança no core de combate, ritmo do replay, chance de captura, saves ou economia. Teste E2E para indicadores e cards, screenshots desktop/mobile; CI e deploy pendentes.
+
+
+## D-064 (fundamentos isolados, ainda não publicado) — 2026-11-20
+- Catálogo declarativo de 10 regiões e cobertura dos 151 Pokémon de Kanto, com Articuno, Zapdos, Moltres exclusivamente na 9ª, Mewtwo e Mew exclusivamente na 10ª e sorteio ponderado determinístico para simulações futuras.
+- Catálogo oficial de Poké Ball/Great Ball/Ultra Ball/Master Ball e política de elegibilidade: Ultra Ball exclusiva entre bolas ativas para lendários/míticos, Master Ball futura/manual; sem captura ou estoque ativado.
+- Testes de integridade das 151 espécies, raridades, limite de nível e política de uso; documento completo de requisitos e migração antes de alterar economia ou expedições.
+- Nenhuma mudança no jogo publicado até terminar o sistema de inventário consumível, balanceamento e aquisição renovável de bolas.
