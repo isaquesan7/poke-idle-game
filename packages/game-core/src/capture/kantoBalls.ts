@@ -18,6 +18,8 @@ export interface KantoBallDefinition {
   readonly id:KantoBallId;
   readonly name:string;
   readonly catchModifier:number|null;
+  /** Master Ball garante captura; seu lançamento manual ainda não foi habilitado. */
+  readonly guaranteedCapture:boolean;
   readonly normalCapture:boolean;
   readonly legendaryCapture:boolean;
   readonly automaticUse:boolean;
@@ -26,19 +28,19 @@ export interface KantoBallDefinition {
 
 export const KANTO_BALLS:Readonly<Record<KantoBallId,KantoBallDefinition>>={
   'poke-ball':{
-    id:'poke-ball',name:'Poké Ball',catchModifier:1,
+    id:'poke-ball',name:'Poké Ball',catchModifier:1,guaranteedCapture:false,
     normalCapture:true,legendaryCapture:false,automaticUse:true,conventionalShop:true
   },
   'great-ball':{
-    id:'great-ball',name:'Great Ball',catchModifier:1.5,
+    id:'great-ball',name:'Great Ball',catchModifier:1.5,guaranteedCapture:false,
     normalCapture:true,legendaryCapture:false,automaticUse:true,conventionalShop:true
   },
   'ultra-ball':{
-    id:'ultra-ball',name:'Ultra Ball',catchModifier:2,
+    id:'ultra-ball',name:'Ultra Ball',catchModifier:2,guaranteedCapture:false,
     normalCapture:true,legendaryCapture:true,automaticUse:true,conventionalShop:true
   },
   'master-ball':{
-    id:'master-ball',name:'Master Ball',catchModifier:null,
+    id:'master-ball',name:'Master Ball',catchModifier:null,guaranteedCapture:true,
     normalCapture:false,legendaryCapture:false,automaticUse:false,conventionalShop:false
   }
 };
