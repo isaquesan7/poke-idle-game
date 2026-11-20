@@ -650,14 +650,20 @@ export function PlayApp() {
                       const equipped=currentMoveName===move.name;
                       const inSlots=equippedNames.includes(move.name);
                       const rank=moveRanks[move.name]??0;
-                      return <div key={move.name} className={(equipped?styles.moveEquipped:styles.moveOption)+' '+styles.pokemonMoveCard}>
+                      const availablePoints=Math.max(0,(moveLimits?.skillPoints??0)-moveSpent);
+                      const maxRank=moveLimits?.maxRankPerMove??0;
+                      const upgradeReason=!inSlots?'Equipe este golpe para aprimorar.'
+                        :rank>=maxRank?'Rank máximo atingido.'
+                        :availablePoints<1?'Pontos de aprimoramento insuficientes.':null;
+                      return <div key={move.name} className={(inSlots?styles.moveEquipped:styles.moveOption)+' '+styles.pokemonMoveCard}>
                         <div><strong><i className="fa-solid fa-bolt" aria-hidden="true"/> {move.name}</strong>
                           {inSlots&&<span className={styles.pokemonMoveBadge}><i className="fa-solid fa-circle-check" aria-hidden="true"/> Equipado</span>}<small>Nv. {learnedAt} · {move.type} ·
                           Poder {move.power}{move.name==='double-kick'?' × 2 impactos':''} · Precisão {move.accuracy}%</small>
                           <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'} ·
                             PP {kantoMovePp(move.name)??'não catalogado'} ·
                             Custo {kantoMoveSpCost(move)} SP na Arena</small>
-                          <small>Custo do próximo aprimoramento: 1 ponto · Disponíveis: {Math.max(0,(moveLimits?.skillPoints??0)-moveSpent)}</small>
+                          <small>{rank>=maxRank?'Rank máximo atingido': 'Custo do próximo aprimoramento: 1 ponto'} · Disponíveis: {availablePoints}</small>
+                          {upgradeReason&&<small className={styles.pokemonUpgradeReason} role="status">{upgradeReason}</small>}
                            {effectLabel(move.name)&&<small>{effectLabel(move.name)}</small>}
                         </div>
                         <div className={styles.moveActions}>
@@ -673,10 +679,9 @@ export function PlayApp() {
                             <i className="fa-solid fa-check" aria-hidden="true"/> Equipar</button>}
                           <button type="button" className={styles.primary}
                             aria-label={'Aprimorar golpe '+move.name}
-                            disabled={busy||!equipped||moveSpent>=(moveLimits?.skillPoints??0)
-                              ||rank>=(moveLimits?.maxRankPerMove??0)}
+                            disabled={busy||upgradeReason!==null}
                             onClick={()=>dispatch({type:'move',uid:focused.uid,moveName:move.name,operation:'upgrade'})}>
-                            <i className="fa-solid fa-arrow-up" aria-hidden="true"/> Aprimorar · 1 ponto</button>
+                            <i className="fa-solid fa-arrow-up" aria-hidden="true"/> {rank>=maxRank?'Rank máximo':'Aprimorar · 1 ponto'}</button>
                         </div>
                       </div>;
                     })}
