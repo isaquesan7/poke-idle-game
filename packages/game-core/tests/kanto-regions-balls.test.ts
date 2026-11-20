@@ -51,6 +51,7 @@ describe('D-064 — política das Poké Bolas',()=>{
     expect(KANTO_BALLS['poke-ball'].catchModifier).toBe(1);
     expect(KANTO_BALLS['great-ball'].catchModifier).toBe(1.5);
     expect(KANTO_BALLS['ultra-ball'].catchModifier).toBe(2);
+    expect(KANTO_BALLS['master-ball'].guaranteedCapture).toBe(true);
     expect(KANTO_BALLS['master-ball'].automaticUse).toBe(false);
     expect(KANTO_BALLS['master-ball'].conventionalShop).toBe(false);
   });
