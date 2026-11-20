@@ -136,16 +136,16 @@ describe('D-064E — curva de XP/moedas experimental, sem rewards ativos',()=>{
     const stats=d064DraftSimulateWins(1200);
     expect(stats).not.toBeNull();
     expect(stats!.pokemon.level).toBeGreaterThan(stats!.trainer.level+20);
-    expect(stats!.milestoneWins['pokemon-40']).toBeLessThan(stats!.milestoneWins['trainer-40']);
-    expect(stats!.milestoneWins['trainer-40']).toBeGreaterThan(300);
-    expect(stats!.milestoneWins['trainer-40']).toBeLessThan(800);
+    expect(stats!.milestoneWins['pokemon-40']!).toBeLessThan(stats!.milestoneWins['trainer-40']!);
+    expect(stats!.milestoneWins['trainer-40']!).toBeGreaterThan(300);
+    expect(stats!.milestoneWins['trainer-40']!).toBeLessThan(800);
   });
   it('exige milhares de vitórias para treinador Nv.100 (sem Expedição)',()=>{
     const stats=d064DraftSimulateWins(5000)!;
     expect(stats.trainer.level).toBe(100);
-    expect(stats.milestoneWins['trainer-100']).toBeGreaterThan(2500);
-    expect(stats.milestoneWins['trainer-100']).toBeLessThan(5000);
-    expect(stats.milestoneWins['pokemon-100']).toBeLessThan(stats.milestoneWins['trainer-100']);
+    expect(stats.milestoneWins['trainer-100']!).toBeGreaterThan(2500);
+    expect(stats.milestoneWins['trainer-100']!).toBeLessThan(5000);
+    expect(stats.milestoneWins['pokemon-100']!).toBeLessThan(stats.milestoneWins['trainer-100']!);
     expect(stats.totalCoins).toBeGreaterThan(0);
   });
   it('rejeita níveis inválidos, não promove recompensas reais',()=>{
