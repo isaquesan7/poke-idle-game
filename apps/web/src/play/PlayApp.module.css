@@ -797,10 +797,6 @@
 .collectionCard>strong,.collectionCardLeader>strong{text-align:left;font-size:1.1rem;text-transform:capitalize}
 .collectionAttributes{justify-content:space-between;text-align:left;font-size:.76rem}
 .collectionAttributes i{color:var(--color-primary)}
-.collectionAffinityMini{height:6px;width:100%;overflow:hidden;border-radius:var(--radius-pill);
-  background:var(--color-surface);border:1px solid var(--trainer-card-border)}
-.collectionAffinityMini span{display:block;height:100%;border-radius:inherit;
-  background:linear-gradient(90deg,var(--color-affinity),var(--color-primary))}
 .collectionCardActions{justify-content:flex-start;gap:var(--space-2);border-top:1px solid var(--trainer-card-border);padding-top:var(--space-3)}
 .collectionCardActions button{flex:1 1 auto}
 .teamSlot,.teamSlotEmpty{
@@ -837,3 +833,25 @@
  .collectionSummary{padding:var(--space-2)}
 }
 @media(prefers-reduced-motion:reduce){.collectionCard,.collectionCardLeader,.collectionFilter,.collectionFilterActive{transition:none}}
+
+/* D-060 · Ações completas da Equipe atual: disponíveis no próprio slot.
+   Mantém as mesmas restrições de expedição e último membro dos cards abaixo. */
+.teamSlotActions{
+  display:flex;flex-wrap:wrap;justify-content:center;align-items:center;
+  gap:var(--space-2);width:100%;margin-top:auto;padding-top:var(--space-3);
+  border-top:1px solid var(--trainer-card-border)
+}
+.teamSlotActions button{
+  flex:1 1 85px;min-height:40px;min-width:0;
+  padding:var(--space-2);border-radius:var(--radius-control);
+  font-size:.75rem;font-weight:750;cursor:pointer
+}
+.teamSlotActions button i{margin-right:var(--space-1)}
+.teamSlotActions button:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.teamSlotActions button:hover:not(:disabled){border-color:var(--color-primary);box-shadow:0 0 12px var(--trainer-glow-cyan-soft)}
+.teamSlotActions button:disabled{opacity:.4;cursor:not-allowed}
+.teamSlot>small i{color:var(--color-primary)}
+@media(max-width:690px){
+  .teamSlotActions{gap:var(--space-1);padding-top:var(--space-2)}
+  .teamSlotActions button{flex:1 1 100%;font-size:.69rem;min-height:39px}
+}

@@ -325,3 +325,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Novo destaque visual da equipe e do líder, cartões individuais por UID com status, nível/afinidade e GIF proporcional, painel de contadores de captura e espécies.
 - Busca/filtros existentes preservados, com ordenação local por captura recente, nível, afinidade ou número da Pokédex; filtros mostram contagens e estado vazio permite limpar.
 - Novos testes e screenshots desktop/mobile; nenhuma mecânica de equipe, save ou economia alterada. Branch em revisão, sem publicação automática.
+
+
+## D-060 — refinamento de Coleção e Treinamento Pokémon (2026-11-19)
+- Coleção: afinidade agora exibida apenas em porcentagem nos cartões e slots; removidas barras redundantes.
+- Slots da Equipe atual permitem Treinar, Retirar e Tornar líder (quando não líder), com as regras já vigentes de expedição e equipe mínima.
+- Treinamento Pokémon adota layout e estados visuais dos Atributos do Treinador: +1 brilhante ao hover, controles com mesmas dimensões/cores, − contextual, barras e resumo de pontos harmonizados. Nenhum cálculo ou writer alterado.
+- Cobertura E2E desktop/mobile para ações do topo, brilho e ausência de barra. CI e deploy a verificar.

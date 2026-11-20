@@ -177,13 +177,20 @@ async function exercise(browser, label, viewport) {
       'Perfil e Treinamento precisam ficar lado a lado no desktop');
   }
   const pokemonTrain=page.getByRole('region',{name:'Treinamento Pokémon'});
+  // D-060: o +1 Pokémon deve brilhar no hover como o botão dos atributos do Treinador.
+  const pokemonPlus=pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em ATK'});
+  const glowBefore=await pokemonPlus.evaluate(button=>getComputedStyle(button).boxShadow);
+  await pokemonPlus.hover();
+  await page.waitForFunction(()=>document.querySelector('#pokemon-attributes button[aria-label="Pré-visualizar +1 em ATK"]')?.matches(':hover'));
+  const glowAfter=await pokemonPlus.evaluate(button=>getComputedStyle(button).boxShadow);
+  assert.notEqual(glowBefore,glowAfter,'Atributos Pokémon devem ter brilho ao passar o mouse');
   const pointRevision=(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision;
   // HP usa o cálculo real do core (+2 HP final por ponto manual).
   const hpButton=pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em HP'});
   const hpRow=hpButton.locator('xpath=../..');
   const hpBefore=Number(await hpRow.locator('strong').innerText());
   await hpButton.click();
-  await hpRow.getByText('+ 1 → '+(hpBefore+2)).waitFor();
+  await hpRow.getByText('→ '+(hpBefore+2)).waitFor();
   await pokemonTrain.getByRole('button',{name:'Retirar um ponto da prévia de HP'}).click();
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,pointRevision);
   await pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em DEF'}).click();
@@ -396,14 +403,23 @@ async function exercise(browser, label, viewport) {
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
   // Reexecuta visualmente um frame Concentrar isolado sem recalcular batalha
-  // nem escrever outro receipt. A fixture deriva de um ataque REAL já gasto.
+  // nem escrever outro receipt. A fixture usa custo SP REAL de um ataque pago.
+  // Em encontros curtos pode ocorrer apenas ataque pago do selvagem:
+  // nesse caso projetamos o mesmo custo num frame sintético do parceiro
+  // SOMENTE para testar o playback, nunca o combate ou o save do jogador.
   const focusFixture=structuredClone(fought);
   const focusGame=JSON.parse(focusFixture.journal.raw);
   const recorded=focusGame.lastBattle;
-  const skillIndex=recorded.frames.findIndex(frame=>
+  const playerSkillIndex=recorded.frames.findIndex(frame=>
     frame.actor==='player'&&frame.spCost>0&&frame.playerSp<recorded.playerMaxSp);
-  assert.ok(skillIndex>0,'fixture precisa ter golpe com custo SP do parceiro');
-  const spent=recorded.frames[skillIndex];
+  const skillIndex=playerSkillIndex>0?playerSkillIndex:
+    recorded.frames.findIndex(frame=>frame.spCost>0);
+  assert.ok(skillIndex>0,'fixture precisa ter ataque real com custo SP');
+  const sourceSpent=recorded.frames[skillIndex];
+  const spent=playerSkillIndex>0?sourceSpent:{
+    ...sourceSpent,actor:'player',target:'wild',
+    playerSp:Math.max(0,recorded.playerMaxSp-sourceSpent.spCost)
+  };
   const gained=Math.min(6,recorded.playerMaxSp-spent.playerSp);
   assert.ok(gained>0);
   const focusLine='T2 · '+recorded.playerName+
@@ -722,6 +738,41 @@ async function exercise(browser, label, viewport) {
   assert.deepEqual(afterGame.team,beforeGame.team);
   assert.equal(afterSecondary.revision,beforeSecondary.revision+1);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
+  // D-060: gerir os slots pelo topo sem perder o exemplar, mantendo 1–3 membros.
+  await page.getByRole('button',{name:'Coleção',exact:true}).click();
+  assert.equal(await page.locator('[class*="collectionAffinityMini"]').count(),0,
+    'Coleção não deve exibir barras de afinidade');
+  const currentSlots=page.locator('[data-testid^="team-slot-"]');
+  assert.equal(await currentSlots.count(),3);
+  const leaderSlot=page.getByTestId('team-slot-0');
+  const otherSlot=page.getByTestId('team-slot-1');
+  assert.equal(await leaderSlot.getByRole('button',{name:/Treinar UID .* pelo slot da equipe/}).count(),1);
+  assert.equal(await leaderSlot.getByRole('button',{name:/Remover UID .* pelo slot da equipe/}).count(),1);
+  assert.equal(await leaderSlot.getByRole('button',{name:/Tornar líder UID/}).count(),0);
+  assert.equal(await otherSlot.getByRole('button',{name:/Tornar líder UID/}).count(),1);
+  const beforeRemove=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  const memberUid=JSON.parse(beforeRemove.journal.raw).team[1];
+  await otherSlot.getByRole('button',{name:'Remover UID '+memberUid+' pelo slot da equipe'}).click();
+  await page.waitForFunction(({key,rev})=>JSON.parse(localStorage.getItem(key))?.revision===rev+1,
+    {key:SAVE,rev:beforeRemove.revision});
+  const afterRemove=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  const afterRemoveGame=JSON.parse(afterRemove.journal.raw);
+  assert.equal(afterRemoveGame.team.includes(memberUid),false);
+  assert.ok(afterRemoveGame.roster.some(p=>p.uid===memberUid),'Retirar do slot não remove da coleção');
+  await page.getByTestId('pokemon-uid-'+memberUid)
+    .getByRole('button',{name:'Adicionar UID '+memberUid+' à equipe'}).click();
+  await page.waitForFunction(({key,rev})=>JSON.parse(localStorage.getItem(key))?.revision===rev+2,
+    {key:SAVE,rev:beforeRemove.revision});
+  const restored=JSON.parse((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).journal.raw);
+  assert.equal(restored.team.length,3);
+  assert.ok(restored.team.includes(memberUid));
+  const revisionBeforeTopTraining=(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision;
+  const currentLeaderUid=restored.team[0];
+  await page.getByTestId('team-slot-0')
+    .getByRole('button',{name:'Treinar UID '+currentLeaderUid+' pelo slot da equipe'}).click();
+  await page.getByText('UID '+currentLeaderUid,{exact:false}).waitFor();
+  assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,revisionBeforeTopTraining,
+    'Abrir Treinar pelo slot não pode gerar gravação');
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
   assert.ok(overflow<=1,'Overflow horizontal em '+label+': '+overflow);
   assert.deepEqual(errors,[]);
