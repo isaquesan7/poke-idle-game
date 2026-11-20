@@ -608,6 +608,7 @@ async function exercise(browser, label, viewport) {
     'Dois Pidgey por UID devem contar como uma espécie capturada');
   await page.getByTestId('pokedex-16').click();
   await page.getByTestId('pokedex-detail').getByRole('heading',{name:'Pidgey'}).waitFor();
+  await page.getByTestId('pokedex-detail').getByRole('button',{name:'Fechar detalhes'}).click();
   assert.equal((await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).team,SAVE))[0],firstUid);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
