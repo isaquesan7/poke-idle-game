@@ -54,7 +54,7 @@ export function PokemonTraining({uid,revision,busy,stats,manual,budget,previewSt
     <div className={styles.heading}><h2><i className="fa-solid fa-chart-simple" aria-hidden="true"/> Treinamento Pokémon</h2>
       <span>Prévia antes de confirmar</span>
     </div>
-    <div className={styles.points}><strong>{remaining}</strong> pontos disponíveis <small>de {budget} totais · {spent} utilizados</small></div>
+    <div className={styles.points}><span>Pontos disponíveis: <strong>{remaining}</strong></span><small>de {budget} totais · {spent} utilizados</small></div>
     {!stats&&<p>Os atributos de batalha desta espécie não estão disponíveis.</p>}
     <div className={styles.stats}>
       {STATS.map(stat=>{
@@ -62,17 +62,17 @@ export function PokemonTraining({uid,revision,busy,stats,manual,budget,previewSt
         const value=stats?.[stat]??0;
         const after=computedPreview?.[stat]??value;
         return <div className={styles.stat} key={stat}>
-          <span className={styles.statName}><i className={'fa-solid '+ICONS[stat]} aria-hidden="true"/>{STAT_LABELS[stat]}</span>
+          <span className={styles.statLabel}><i className={'fa-solid '+ICONS[stat]} aria-hidden="true"/>{STAT_LABELS[stat]}</span>
           <div className={styles.track} aria-hidden="true">
             <span className={styles.trackPreview} style={{width:Math.min(100,after/400*100)+'%'}}/>
             <span className={styles.trackCurrent} style={{width:Math.min(100,value/400*100)+'%'}}/>
           </div>
           <strong>{stats?value:'—'}</strong>
-          <small className={increment?styles.preview:styles.manual}>{increment?'+ '+increment+' → '+after:manual[stat]+' manual'}</small>
-          <div className={styles.actions}>
-            <button type="button" className={styles.remove} aria-label={'Retirar um ponto da prévia de '+STAT_LABELS[stat]}
-              disabled={busy||submitting||stale||increment===0} onClick={()=>undo(stat)}>−</button>
-            <button type="button" className={styles.add} aria-label={'Pré-visualizar +1 em '+STAT_LABELS[stat]}
+          {increment?<small className={styles.plus}>→ {after}</small>:<small className={styles.noPlus}> </small>}
+          <div className={styles.statActions}>
+            {increment>0&&<button type="button" className={styles.undoPoint} aria-label={'Retirar um ponto da prévia de '+STAT_LABELS[stat]}
+              disabled={busy||submitting||stale} onClick={()=>undo(stat)}>−</button>}
+            <button type="button" aria-label={'Pré-visualizar +1 em '+STAT_LABELS[stat]}
               disabled={busy||submitting||stale||remaining<1||!stats} onClick={()=>stage(stat)}>+1</button>
           </div>
         </div>;
