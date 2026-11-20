@@ -889,32 +889,34 @@ export function PlayApp() {
                   <div>
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
                     <h2>Arena de batalha</h2>
-                    <p>Seu Pokémon enfrenta automaticamente um encontro de Kanto em até 30 turnos. O motor calcula precisão, dano, críticos, tipos e condições temporárias (queimadura, envenenamento e paralisia). Vitória concede XP, moedas, afinidade e chance de captura de 35%.</p>
-                    <p>SP individual (50–100) é calculado por nível e stats-base
-                      de HP, Sp. Atk e Sp. Def; o custo de habilidades combina
-                      PP oficial da PokéAPI, poder, prioridade e efeitos.
-                      O custo máximo é 40 SP, garantindo ao menos uma habilidade
-                      cara com a barra cheia em qualquer nível.
-                      O ataque básico é gratuito, neutro contra todos os tipos (Poder 30).
-                      Quando faltar SP para habilidades, a IA pode usar
-                      Concentrar, abrindo mão de atacar para recuperar 30%,
-                      até duas vezes por combate com quatro turnos de intervalo.
-                      Não há regeneração passiva.</p>
-                    <p>Golpes avançados deste recorte: <strong>Recover</strong> recupera até
-                      50% do HP máximo, custa 36 SP e é usado no máximo uma vez
-                      por combate quando o Pokémon está ferido.
-                      <strong> Double Kick</strong> acerta duas vezes, com
-                      cobrança única de 18 SP; cada impacto aparece como
-                      uma linha separada no diário. O golpe Bullet Seed
-                      ainda não está disponível.</p>
-                    <p>Líder: <strong>{speciesName(active.pokemonId)} · UID #{active.uid}</strong></p>
-                    <p>Equipe: <strong>{data.team.length}/3</strong> ·
-                      <button type="button" className={styles.textButton}
-                        onClick={()=>setTab('collection')}>Gerenciar equipe</button></p>
-                    <p>Vitórias: <strong>{typeof data.wins === 'number' ? data.wins : 0}</strong> · Derrotas/empates: <strong>{typeof data.losses === 'number' ? data.losses : 0}</strong> · Insígnias: <strong>{view.badges.length}/8</strong></p>
-                    <button className={styles.primary} type="button" disabled={busy||battlePlaying} onClick={fight}>
-                      Batalhar contra Pokémon selvagem
+                    <p className={styles.arenaLead}>Seu parceiro enfrenta Pokémon selvagens de Kanto em batalhas automáticas. Acompanhe os ataques, o HP e a energia de cada combatente em tempo real.</p>
+                    <div className={styles.arenaLeader} aria-label="Líder da Arena">
+                      <div className={styles.arenaLeaderPortrait}>
+                        <PokemonArt id={active.pokemonId} name={speciesName(active.pokemonId)} />
+                      </div>
+                      <div>
+                        <small><i className="fa-solid fa-crown" aria-hidden="true"/> SEU LÍDER</small>
+                        <strong>{speciesName(active.pokemonId)}</strong>
+                        <span>UID #{active.uid} · Nível {active.level}</span>
+                      </div>
+                      <button type="button" className={styles.secondary} onClick={()=>setTab('collection')}>
+                        <i className="fa-solid fa-users" aria-hidden="true"/> Equipe {data.team.length}/3
+                      </button>
+                    </div>
+                    <div className={styles.arenaOverview} aria-label="Desempenho na Arena">
+                      <div><i className="fa-solid fa-trophy" aria-hidden="true"/><strong>{typeof data.wins==='number'?data.wins:0}</strong><span>Vitórias</span></div>
+                      <div><i className="fa-solid fa-shield-halved" aria-hidden="true"/><strong>{typeof data.losses==='number'?data.losses:0}</strong><span>Derrotas e empates</span></div>
+                      <div><i className="fa-solid fa-medal" aria-hidden="true"/><strong>{view.badges.length}<small>/8</small></strong><span>Insígnias</span></div>
+                    </div>
+                    <button className={styles.primary+' '+styles.arenaFightButton} type="button"
+                      disabled={busy||battlePlaying} onClick={fight}>
+                      <i className="fa-solid fa-khanda" aria-hidden="true"/> Batalhar contra Pokémon selvagem
                     </button>
+                    <p className={styles.arenaMicrocopy}>
+                      <i className="fa-solid fa-circle-info" aria-hidden="true"/>
+                      {battlePlaying?' Assista ao confronto antes de iniciar outra batalha.':
+                        ' Vitórias concedem experiência, moedas e afinidade; capturas podem acontecer após vencer.'}
+                    </p>
                   </div>
                   <BattleStage
                     player={{
@@ -940,20 +942,20 @@ export function PlayApp() {
                 </section>
                 {lastBattle && (
                   <div className={styles.twoColumn}>
-                    <section className={styles.panel} aria-label="Resultado da última batalha">
-                      <div className={styles.kicker}>ÚLTIMO COMBATE</div>
+                    <section className={styles.panel+' '+styles.arenaResultPanel} aria-label="Resultado da última batalha">
+                      <div className={styles.kicker}><i className="fa-solid fa-flag-checkered" aria-hidden="true"/> ÚLTIMO COMBATE</div>
                       {battlePlaying ? <>
                         <h2>Batalha em andamento…</h2>
                         <p>As ações aparecem ataque por ataque, acompanhadas por um cronômetro.</p>
                         <p>Os resultados e prêmios serão revelados após a apresentação.</p>
                       </> : <>
-                      <h2>{lastBattle.outcome === 'win' ? 'Vitória!' : lastBattle.outcome === 'draw' ? 'Empate' : 'Derrota'}</h2>
+                      <h2 className={lastBattle.outcome==='win'?styles.arenaWin:styles.arenaOutcome}>{lastBattle.outcome === 'win' ? 'Vitória!' : lastBattle.outcome === 'draw' ? 'Empate' : 'Derrota'}</h2>
                       <p>{lastBattle.wildName} · {lastBattle.turns} turno(s) · HP restante {lastBattle.playerRemainingHp}</p>
                       {(lastBattle.playerStatus||lastBattle.wildStatus)&&
                         <p>Condições ao fim do encontro: parceiro {lastBattle.playerStatus??'normal'} ·
                           selvagem {lastBattle.wildStatus??'normal'}. Reiniciadas na próxima batalha.</p>}
                       {lastBattle.outcome === 'win' && (
-                        <div className={styles.battleRewards}>
+                        <div className={styles.battleRewards} aria-label="Recompensas recebidas">
                           <div><small>Moedas</small><strong>+{lastBattle.rewardCoins}</strong></div>
                           <div><small>XP treinador</small><strong>+{lastBattle.trainerXp}</strong></div>
                           <div><small>XP Pokémon</small><strong>+{lastBattle.pokemonXp}</strong></div>
@@ -973,20 +975,18 @@ export function PlayApp() {
                       playing={battlePlaying} onProgress={onBattleProgress} onFinished={()=>setBattlePlayback(previous=>previous&&previous.id===displayedBattleId?{...previous,done:true}:previous)} />
                   </div>
                 )}
-                <section className={styles.panel}>
-                  <h2>Pokémon encontrados nesta arena</h2>
+                <section className={styles.panel+' '+styles.arenaEncounters}>
+                  <div className={styles.arenaEncountersHeading}>
+                    <div><div className={styles.kicker}>EXPLORAÇÃO DE KANTO</div><h2>Pokémon encontrados nesta arena</h2></div>
+                    <span>{KANTO_WILD_POOL.length} espécies selvagens</span>
+                  </div>
                   <div className={styles.encounterGrid}>
                     {KANTO_WILD_POOL.slice(0,12).map(id=><div key={id} className={styles.encounterCard}>
                       <PokemonArt id={id} name={KANTO_BATTLE_SPECIES[id]!.name} />
                       <span>{KANTO_BATTLE_SPECIES[id]!.name}</span>
                     </div>)}
                   </div>
-                  <p className={styles.disclaimer}>
-                    A Arena agora sorteia entre {KANTO_WILD_POOL.length} espécies selvagens comuns; aqui aparecem 12 exemplos.
-                    O catálogo local tem os 151 Pokémon de Kanto com nomes, tipos e atributos-base oficiais.
-                    Os golpes automáticos de espécies adicionadas nesta etapa ainda são provisórios, não listas oficiais de aprendizado.
-                    Esta alfa usa seed gerada no navegador, sem servidor antifraude.
-                  </p>
+                  <p className={styles.disclaimer}>Uma amostra de 12 Pokémon selvagens que você pode encontrar. Conheça os outros registros da região na Pokédex.</p>
                   <button type="button" className={styles.secondary}
                     onClick={()=>setTab('pokedex')}>Explorar Pokédex 151</button>
                 </section>
