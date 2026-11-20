@@ -29,12 +29,14 @@ function unlock(region:KantoRegionDefinition,trainerLevel:number){
 
 interface Props {
   readonly trainerLevel:number;
+  readonly revealedSpeciesIds:readonly number[];
   readonly onClose:()=>void;
 }
-export function KantoMapScreen({trainerLevel,onClose}:Props){
+export function KantoMapScreen({trainerLevel,revealedSpeciesIds,onClose}:Props){
   const [selectedId,setSelectedId]=useState(1);
   const selected=KANTO_REGIONS.find(r=>r.id===selectedId)??KANTO_REGIONS[0]!;
   const allowed=unlock(selected,trainerLevel);
+  const revealed=new Set(revealedSpeciesIds);
   const species=selected.speciesIds.map(id=>KANTO_POKEDEX[id-1]).filter(
     (entry):entry is (typeof KANTO_POKEDEX)[number]=>Boolean(entry)
   );
@@ -107,16 +109,21 @@ export function KantoMapScreen({trainerLevel,onClose}:Props){
         <div className={styles.poolHeading}><h4>Pokémon desta região</h4><span>{species.length} espécies</span></div>
         <div className={styles.species} aria-label="Espécies desta região">
           {common.map(p=><div key={p.id} className={styles.speciesCard}>
-            <img src={'/assets/pokemon-gifs/poke_'+p.id+'.gif'} alt="" loading="lazy"/>
-            <strong>{p.name}</strong><small>{p.types.map(t=>TYPES[t]??t).join(' · ')}</small>
+            {revealed.has(p.id)
+              ?<img src={'/assets/pokemon-gifs/poke_'+p.id+'.gif'} alt="" loading="lazy"/>
+              :<span className={styles.hiddenArt} aria-hidden="true">?</span>}
+            <strong>{revealed.has(p.id)?p.name:'???'}</strong>
+            <small>{revealed.has(p.id)?p.types.map(t=>TYPES[t]??t).join(' · '):'Não descoberto'}</small>
           </div>)}
         </div>
         {rare.length>0&&<div className={styles.rareSection}>
           <h4><i className="fa-solid fa-star" aria-hidden="true"/> Encontros extremamente raros</h4>
           <div className={styles.species}>
             {rare.map(p=><div key={p.id} className={styles.speciesCard}>
-              <img src={'/assets/pokemon-gifs/poke_'+p.id+'.gif'} alt="" loading="lazy"/>
-              <strong>{p.name}</strong><small>{p.legendary?'Lendário':'Mítico'}</small>
+              {revealed.has(p.id)
+                ?<img src={'/assets/pokemon-gifs/poke_'+p.id+'.gif'} alt="" loading="lazy"/>
+                :<span className={styles.hiddenArt} aria-hidden="true">?</span>}
+              <strong>{revealed.has(p.id)?p.name:'???'}</strong><small>Encontro muito raro</small>
             </div>)}
           </div>
           <p>Capturas futuras exigirão Ultra Ball. A Master Ball permanece reservada para uso manual.</p>
