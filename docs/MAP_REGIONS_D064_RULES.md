@@ -79,3 +79,9 @@ Este documento explicita decisões aprovadas, hipóteses para simulação e ques
 - `capture/kantoBallPocket.ts` estabelece bolso `{version:1,quantities:{'poke-ball'?:n,'great-ball'?:n,'ultra-ball'?:n,'master-ball'?:n}}`, leitura conservadora de saves legados (`legacy-untracked`), limite para quantidades inteiras e imutabilidade de entradas.
 - `spendKantoBallForAttempt` devolve **nova cópia** da mochila menos uma bola, valida a espécie/tipo, bloqueia quantidade zero e nunca aceita Master Ball automática. Está preparado para ser invocado futuramente **dentro da mesma transação de resultado de captura**; isoladamente não salva dados nem gera Pokémon.
 - Não decidir por ora estoque inicial, preços ou concessões. Um save sem registro de Poké Bolas NÃO pode ser interpretado como estoque zero com captura ativada antes de migração + fonte de reposição, para evitar bloqueio de progressão.
+
+
+## D-064E — simulador executável de curva longa (não ativo)
+- `map/regionalEconomyDraft.ts`: funções puras `d064DraftXpThreshold`, `d064DraftBattleReward` e `d064DraftSimulateWins` reproduzem a hipótese documentada em `MAP_REGIONS_D064_BALANCE_DRAFT.md` sem alterar save, writer, XP real, moedas nem expedições.
+- O simulador percorre regiões liberadas pelo nível do treinador e usa nível do Pokémon limitado à faixa regional; assume 100% vitórias e zero expedições, servindo como **estimativa otimista**, não duração real. Testes checam que Pokémon sobe consideravelmente antes do Treinador, que Treinador Nv.100 exige milhares de vitórias e que valores inválidos são recusados.
+- Próximo gate: simular casos reais com derrotas, golpes, HP/SP, expedições e inventário de bolas; não ativar a hipótese na produção apenas com esta projeção.
