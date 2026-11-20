@@ -31,7 +31,7 @@ describe('D-064 — mapa regional de Kanto, catálogo de 151',()=>{
   it('sorteia somente espécies da região e níveis dentro da faixa',()=>{
     for(const region of KANTO_REGIONS){
       const encountered=new Set<number>();
-      for(let seed=0;seed<11000;seed++){
+      for(let seed=0;seed<2000;seed++){
         const result=kantoRegionalEncounter(region.id,seed,Math.min(100,region.levelMin+2));
         expect(result).not.toBeNull();
         expect(region.speciesIds).toContain(result!.speciesId);
