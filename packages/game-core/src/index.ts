@@ -111,3 +111,8 @@ export {
 export type {KantoRegionDefinition} from './map/kantoRegions.js';
 export {KANTO_BALLS,canUseKantoBall} from './capture/kantoBalls.js';
 export type {KantoBallDefinition,KantoBallId,KantoBallUseResult} from './capture/kantoBalls.js';
+
+export {
+  canStartRegionalExpedition,cappedRegionalPokemonXp
+} from './map/regionalExpeditionXp.js';
+export type {RegionExpeditionXpResult} from './map/regionalExpeditionXp.js';
