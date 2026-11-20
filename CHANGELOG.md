@@ -339,3 +339,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Clique em Pokémon visto/capturado abre modal acessível por teclado/toque, inspirado na referência `isaquesan7/pokedex`, porém implementado de forma independente com os tokens Kanto Dark.
 - Ficha: seis stats-base, tipo/ID/arte GIF, linha evolutiva respeitando espécies ocultas, vantagens e fraquezas de tipos, resistências/imunidades e golpes por nível do recorte local FireRed/LeafGreen; sem solicitação de API em tempo real e sem alterar saves.
 - Testes E2E para privacidade da Pokédex, modal, foco, Escape, dados e responsividade. CI/merge/deploy a validar.
+
+
+## D-062 — barras de rolagem Kanto Dark (2026-11-20)
+- Unificadas barras de scroll da página, painéis internos e modal da Pokédex: trilho escuro, indicador arredondado e destaque ciano no hover (quando suportado pelo navegador).
+- Tokens de design compartilhados entre `/play` e `/`, com suporte CSS para Firefox e Chromium/Edge/Safari, preservando scroll nativo e mobile.
+- Teste E2E verifica estilos do documento e da modal; nenhuma mudança funcional ou de save. Publicação sujeita ao CI.

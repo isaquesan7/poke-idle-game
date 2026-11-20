@@ -919,3 +919,11 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Sem fetch em runtime da ficha, sem novo estado persistente ou escrita de save. Preservadas as 151 espécies, regras de descoberta, combate, GIFs, UID, schema2 e chave kanto-idle-play-v02, TM09, legado / e `isaquesan7/pokedex`.
 - E2E desktop/mobile valida portal, atributos-base, vantagens/fragilidades, golpes, privacidade evolutiva, Escape, foco, rolagem e save inalterado. Gates: CI regressão geral, Playwright e Docker; publicação Railway somente após aprovação.
 - Próximo: revisar acessibilidade/UX da ficha com feedback do usuário; Inventário/Economia seguem adiados.
+
+
+## D-062 — scrollbar Kanto Dark na página e modal da Pokédex (20/11/2026; PR em validação)
+- Pedido: refinar visualmente a rolagem da modal enciclopédica e de toda a página; Inventário/Economia continuam em espera.
+- Novos tokens `--scrollbar-track/thumb/thumb-hover/thumb-active/width` no `styles/tokens.css`, compartilhado por `/play` e rota legada `/`; regras globais de scrollbar para Firefox (scrollbar-color/width) e motores WebKit/Blink (pseudoelementos), mantendo a rolagem nativa, barra visível e acessibilidade por teclado/toque.
+- Modal de Pokédex estilizado com os mesmos tokens; não altera comportamento do portal, atributos, efetividades, sprites, save ou descoberta. Browser pode renderizar barras nativas diferentes conforme SO; os tokens fornecem o melhor suporte disponível.
+- E2E desktop/mobile confere correspondência dos estilos calculados de rolagem no documento e no modal, sem alterações no save. Validar CI inteira, Playwright, Docker e Railway no SHA exato depois do merge.
+- Nenhuma mudança de regras, combate, TM, UID, schema2, catálogo, GIFs, inventário ou economia.

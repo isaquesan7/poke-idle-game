@@ -116,3 +116,9 @@ Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em 
 - Grid: 151 posições fixas; cards de espécies vistas/capturadas com GIF proporcional, nome/tipo/status, hover e teclado. Entradas desconhecidas não expõem nome/imagem/ficha.
 - Modal: backdrop, painel rolável em telas pequenas, fechar (X), Escape, clique fora, foco inicial e devolução ao card, trava do scroll de fundo e tabulação contida. Blocos de perfil, seis atributos-base, matchups separados ofensivo/defensivo e recorte local de golpes por nível.
 - Cores/efeitos por variáveis `:root`, sem paleta hardcoded; não confundir tabela moderna da Arena com regras clássicas GenIII, nem golpes mostrados com o learnset completo ou slots de um exemplar.
+
+
+## D-062 — scrollbar unificada de Kanto Dark
+- Tokens em `styles/tokens.css`: `--scrollbar-track`, `--scrollbar-thumb`, `--scrollbar-thumb-hover`, `--scrollbar-thumb-active` e `--scrollbar-width`; evitar cores ou larguras locais fixas.
+- Barra global da página e scrollbars dos componentes (inclusive modal enciclopédico): trilho escuro, thumb arredondado discreto, destaque ciano em hover e verde quando pressionado, nos navegadores que permitirem estilização.
+- Firefox utiliza `scrollbar-color`/`scrollbar-width`; WebKit/Blink utiliza `::-webkit-scrollbar` com fallback nativo. Não esconder barra, bloquear scroll, adicionar biblioteca ou afetar comportamento do toque.
