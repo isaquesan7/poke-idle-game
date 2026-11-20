@@ -953,3 +953,8 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Espécies não descobertas aparecem como `???` sem imagem/tipos, inclusive lendários, respeitando proteção da Pokédex. A lista exibida é a futura pool real declarativa, mas a batalha atual ainda não a utiliza.
 - E2E valida dez marcadores, regiões 9/10, raridades, bloqueio de combate regional, privacidade e save inalterado em desktop/mobile. Inventário/economia gerais continuam em espera além das Poké Bolas específicas solicitadas.
 - Próxima etapa: prototipar curva econômica de XP/coins e emissão sustentável de Poké Bolas, integrar por escritor de batalha idempotente e expedição regional com migração segura; só depois promover a navegação principal Arena→Mapa e publicar.
+
+
+## D-064E — simulador econômico experimental (20/11/2026; branch)
+- Adicionado `regionalEconomyDraft.ts` com limiares propostos para XP de Treinador/Pokémon e recompensa de batalha, mais simulação determinística de trajetória com abertura de região por nível. Testes de progressão longa protegem a relação Treinador mais lento que Pokémon. Nenhum uso no writer, combate ou UI.
+- O último commit da PR #88 ainda NÃO é funcional em produção. Conferir CI após alterações no simulador; integrar com engine/região/bolsa e testes econômicos pareados somente com valores aprovados.
