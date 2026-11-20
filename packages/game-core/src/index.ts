@@ -116,3 +116,6 @@ export {
   canStartRegionalExpedition,cappedRegionalPokemonXp
 } from './map/regionalExpeditionXp.js';
 export type {RegionExpeditionXpResult} from './map/regionalExpeditionXp.js';
+
+export {inspectKantoBallPocket,spendKantoBallForAttempt} from './capture/kantoBallPocket.js';
+export type {KantoBallPocketV1,KantoBallPocketRead,KantoBallSpendResult} from './capture/kantoBallPocket.js';
