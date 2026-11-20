@@ -109,6 +109,13 @@ export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena}:P
                       alt="" loading="lazy" />
                   : <span className={styles.silhouette} aria-hidden="true">?</span>}
                 <strong>{revealed?species.name:'???'}</strong>
+                {revealed&&<span className={styles.tileTypes}>{species.types.map(type=>
+                  <span key={type}>{({
+                    normal:'Normal',fire:'Fogo',water:'Água',electric:'Elétrico',grass:'Planta',
+                    ice:'Gelo',fighting:'Lutador',poison:'Venenoso',ground:'Terra',
+                    flying:'Voador',psychic:'Psíquico',bug:'Inseto',rock:'Pedra',
+                    ghost:'Fantasma',dragon:'Dragão',dark:'Sombrio',steel:'Aço',fairy:'Fada'
+                  } as Record<string,string>)[type]??type}</span>)}</span>}
                 <span className={styles.tileStatus}>{STATUS[status]}</span>
                 {revealed&&<span className={styles.tileHint}>Ver ficha <i className="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"/></span>}
               </button>
@@ -120,7 +127,7 @@ export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena}:P
       </section>
       {selected&&selectionStatus!=='unknown'&&(
         <PokedexDetailModal key={selected.id} species={selected}
-          status={selectionStatus} onClose={()=>setSelectedId(null)}/>
+          status={selectionStatus} revealedSpeciesIds={seen} onClose={()=>setSelectedId(null)}/>
       )}
     </section>
   );
