@@ -345,3 +345,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Unificadas barras de scroll da página, painéis internos e modal da Pokédex: trilho escuro, indicador arredondado e destaque ciano no hover (quando suportado pelo navegador).
 - Tokens de design compartilhados entre `/play` e `/`, com suporte CSS para Firefox e Chromium/Edge/Safari, preservando scroll nativo e mobile.
 - Teste E2E verifica estilos do documento e da modal; nenhuma mudança funcional ou de save. Publicação sujeita ao CI.
+
+
+## D-063 — UX/UI da Arena de batalha (2026-11-20)
+- Arena redesenhada com líder da equipe, resumo de vitórias/derrotas/insígnias, botão de batalha destacado e descrições concisas sem fórmulas internas de energia.
+- Palco e GIFs proporcionais, cartões HP/SP, resultados, recompensas, diário turno a turno e amostra de encontros harmonizados ao Kanto Dark, inclusive layout mobile.
+- Nenhuma mudança no core de combate, ritmo do replay, chance de captura, saves ou economia. Teste E2E para indicadores e cards, screenshots desktop/mobile; CI e deploy pendentes.

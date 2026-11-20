@@ -927,3 +927,12 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Modal de Pokédex estilizado com os mesmos tokens; não altera comportamento do portal, atributos, efetividades, sprites, save ou descoberta. Browser pode renderizar barras nativas diferentes conforme SO; os tokens fornecem o melhor suporte disponível.
 - E2E desktop/mobile confere correspondência dos estilos calculados de rolagem no documento e no modal, sem alterações no save. Validar CI inteira, Playwright, Docker e Railway no SHA exato depois do merge.
 - Nenhuma mudança de regras, combate, TM, UID, schema2, catálogo, GIFs, inventário ou economia.
+
+
+## D-063 — refinamento da tela Arena (20/11/2026; PR em validação)
+- A pedido do usuário, próximo foco de UI é a Arena. Inventário/Economia D054 permanecem EXPRESSAMENTE em espera.
+- A abertura do combate troca textos extensos de mecânicas internas de SP, golpes e fórmulas por orientação curta ao jogador, cartão com Pokémon líder/UID/nível e atalho para a Coleção, placar de vitórias/derrotas/insígnias e CTA de batalhar em destaque.
+- Estilo visual Kanto Dark padronizado com Coleção e Pokédex: palco em superfície com brilho discreto e GIF proporcional, HP/SP e VS com melhor separação, resultado/recompensas e diário com hierarquia, foco acessível e espaçamento, cartas de espécies selvagens responsivas. Os 12 exemplos e pool de {KANTO_WILD_POOL.length} espécies são preservados.
+- NÃO mudam: simulador de combate, lógica de encontro, save, recompensas, probabilidades de captura, movimentos, times, efeitos, velocidade/ritmo ou comportamento de replay. As informações técnicas continuam documentadas no core e GDD, somente removidas da interface inicial.
+- E2E PC/mobile verifica presença de líder/placar, ausência das fórmulas na UI, 12 exemplos de encontros e save intacto após reassistir/pular. Screenshots acrescentados.
+- Validar CI completa (TypeScript/Vitest, Playwright e Docker) antes do merge; verificar Railway pelo SHA exato e /health. Após D063, refinar Arena com feedback do usuário, mantendo Inventário/Economia em espera.
