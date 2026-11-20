@@ -72,6 +72,23 @@ describe('golpes do Pokémon por UID: reducer puro v0.1', () => {
     expect(changed.customRoot).toBe('intocável');
   });
 
+  it('aprimora golpe adicional equipado sem alterar o principal, UID ou economia', () => {
+    const state=source();
+    const first=state.roster[0]! as typeof state.roster[number] & {moveNames:string[]};
+    first.moveNames=['tackle','vine-whip'];
+    const changed=apply(JSON.stringify(state),upgrade(1,'vine-whip',45));
+    expect(changed.roster[0]?.moveName).toBe('tackle');
+    expect((changed.roster[0] as typeof first).moveNames).toEqual(['tackle','vine-whip']);
+    expect(changed.roster[0]?.upgrades).toEqual({tackle:1,'vine-whip':1});
+    expect(changed.roster[1]).toEqual(state.roster[1]);
+    expect(changed.coins).toBe(state.coins);
+    expect(changed.trainer).toEqual(state.trainer);
+    const removed=JSON.parse(JSON.stringify(state)) as typeof state;
+    (removed.roster[0] as typeof first).moveNames=['tackle'];
+    deny(JSON.stringify(removed),upgrade(1,'vine-whip',45));
+    deny(JSON.stringify(state),upgrade(999,'vine-whip',45));
+  });
+
   it('usa floor(level/5) para orçamento e min(10, floor(level/10)+1) para teto por golpe', () => {
     expect(legacyMoveRankLimits(1)).toEqual({ skillPoints: 0, maxRankPerMove: 1 });
     expect(legacyMoveRankLimits(5)).toEqual({ skillPoints: 1, maxRankPerMove: 1 });
