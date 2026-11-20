@@ -96,3 +96,10 @@ Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em 
 
 ## D-042 — animações sem seletor (18/11/2026; branch)
 - O modo completo de CSS da Arena é estático e vale para todos os dispositivos, inclusive quando o SO indica reduced motion. Não há controle ou preferência visual editável; a UI do seletor D-041 foi revogada por decisão de produto. Manter GIFs estáveis, overlays legíveis, números de HP/SP, feedbacks textuais e leitura assistiva. Isso remove a opção de reduzir movimento e é ponto de revisão futura de acessibilidade antes da beta.
+
+
+## D-059 — experiência visual da Coleção
+- Reutilizar tokens Kanto Dark no :root e Font Awesome existente. Cabeçalho com contadores de capturados, espécies e vagas de equipe; slots do time com líder em evidência.
+- Cartões por UID único têm GIF contido sem esticar, status de equipe, Pokédex, UID, nível, afinidade com barra de progresso cosmética e ações nomeadas.
+- Ordenação/busca/filtros são estado React local de apresentação, nunca migram dados do save. Grid responsivo 4/3/2/1 colunas conforme largura; ações legíveis em mobile.
+- Condições de bloqueio (expedição, equipe completa, último membro) seguem o domínio existente. Não simular posse de itens ou recompensas.
