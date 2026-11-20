@@ -622,7 +622,7 @@ async function exercise(browser, label, viewport) {
   assert.equal(teamGame.roster.find(p=>p.uid===firstUid).manual.speed,0);
 
   await page.getByRole('button',{name:'Arena',exact:true}).click();
-  await page.getByText('Líder:').waitFor();
+  await page.getByLabel('Líder da Arena').getByText('UID #'+firstUid,{exact:false}).waitFor();
   await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===11,SAVE);
   const last=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
