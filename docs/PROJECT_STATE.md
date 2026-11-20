@@ -936,3 +936,12 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - NÃO mudam: simulador de combate, lógica de encontro, save, recompensas, probabilidades de captura, movimentos, times, efeitos, velocidade/ritmo ou comportamento de replay. As informações técnicas continuam documentadas no core e GDD, somente removidas da interface inicial.
 - E2E PC/mobile verifica presença de líder/placar, ausência das fórmulas na UI, 12 exemplos de encontros e save intacto após reassistir/pular. Screenshots acrescentados.
 - Validar CI completa (TypeScript/Vitest, Playwright e Docker) antes do merge; verificar Railway pelo SHA exato e /health. Após D063, refinar Arena com feedback do usuário, mantendo Inventário/Economia em espera.
+
+
+## D-064 — mapa regional, raridades e Poké Bolas: fundamentos isolados (2026-11-20)
+- Usuário aprovou a ideia do Mapa com regras complementares: 151 espécies acessíveis, 10 áreas inicialmente, Articuno/Zapdos/Moltres raros só na penúltima região, Mewtwo/Mew ainda mais raros só na última, desbloqueio pelo nível do Treinador, retorno livre a áreas abertas.
+- Expedição por Pokémon/região: por exemplo Treinador Nv11 e Pokémon Nv5 só ganha XP de Bosque Inicial até Pokémon Nv10; moedas continuam, e próximo tier exige encerrar/reiniciar expedição. XP treinador deve ser muito mais lento que Pokémon; economia, moedas, expedições e captura precisam simulação integrada.
+- Poké Ball, Great Ball e Ultra Ball com modificadores clássicos 1x/1.5x/2x; Ultra exigida para lendários e míticos; Master Ball garantida, mas reservada para uso manual futuro e fora da loja convencional. Tentativa consome 1 bola; captura proibida sem estoque. Ainda não existe writer de consumíveis ou loja, então NÃO ativar regra sem fonte renovável de bolas.
+- Branch **feat/d064-region-ball-foundation**: contratos puros `map/kantoRegions.ts` cobrindo 151 espécies exatamente uma vez, cinco raros somente 9/10, pesos raros preliminares e seleção determinística; `capture/kantoBalls.ts` com quatro tipos e validação de elegibilidade; testes core e `docs/MAP_REGIONS_D064_RULES.md`.
+- Estas funções **NÃO estão conectadas** a `playBattle`, captura de 35%, Expedição, UI Mapa, save ou loja. Publicação de gameplay suspensa até simulação, migração, aquisição de bolas e testes completos. D054 Inventário/Economia gerais continuam em espera, exceto consumo de Poké Bolas solicitado especificamente.
+- Próxima etapa: curva e simulação de XP/moedas, caps regionais, bolsa transacional/estoque inicial e protótipo navegável do Mapa; somente após validação integrar e publicar.
