@@ -25,6 +25,7 @@ import { PokemonTraining } from './PokemonTraining';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
+type CollectionSort = 'recent' | 'level' | 'affinity' | 'species';
 type PokemonSection = 'profile' | 'evolution' | 'moves';
 /** D-051: navegação consistente com o Font Awesome da tela do treinador. */
 const NAV_ICONS:Readonly<Record<Tab,string>>={
@@ -120,6 +121,7 @@ export function PlayApp() {
   const [pokemonSection,setPokemonSection]=useState<PokemonSection>('profile');
   const [collectionQuery, setCollectionQuery] = useState('');
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all');
+  const [collectionSort, setCollectionSort] = useState<CollectionSort>('recent');
   const [feedback, setFeedback] = useState('');
   const [serverOnline,setServerOnline]=useState<boolean|null>(null);
   const [battlePlayback, setBattlePlayback] = useState<{id:string;seq:number;done:boolean}|null>(null);
@@ -234,6 +236,7 @@ export function PlayApp() {
     setPokemonSection('profile');
     setCollectionQuery('');
     setCollectionFilter('all');
+    setCollectionSort('recent');
     setFeedback('Teste v0.2 reiniciado. O protótipo v0.1 não foi alterado.');
   }
 
@@ -287,6 +290,11 @@ export function PlayApp() {
     return speciesName(p.pokemonId).toLocaleLowerCase('pt-BR').includes(query)
       || String(p.uid)===query
       || String(p.pokemonId)===query.replace('#','');
+  }).sort((a,b)=>{
+    if(collectionSort==='level')return b.level-a.level||a.uid-b.uid;
+    if(collectionSort==='affinity')return b.affinity-a.affinity||a.uid-b.uid;
+    if(collectionSort==='species')return a.pokemonId-b.pokemonId||a.uid-b.uid;
+    return b.uid-a.uid;
   }) ?? [];
   const expedition = data?.expedition as { lastClaimAt: number; startedAt: number } | null | undefined;
   const pending = expedition
@@ -727,17 +735,17 @@ export function PlayApp() {
                   <div>
                     <div className={styles.kicker}>SEUS PARCEIROS · CADA UID É ÚNICO</div>
                     <h2>Coleção Pokémon</h2>
-                    <p>Você capturou {data.roster.length} indivíduo(s) de {caughtSpeciesCount} espécie(s).
-                      O líder, primeiro na equipe, é quem participa das batalhas.</p>
+                    <p>Organize seus parceiros, escolha seu líder e acompanhe a evolução de cada Pokémon capturado.</p>
                   </div>
-                  <div className={styles.collectionSummary}>
-                    <strong>{data.team.length}<span>/3</span></strong>
-                    <small>Na equipe</small>
+                  <div className={styles.collectionSummaryGroup}>
+                    <div className={styles.collectionSummary}><strong>{data.roster.length}</strong><small>Capturados</small></div>
+                    <div className={styles.collectionSummary}><strong>{caughtSpeciesCount}</strong><small>Espécies</small></div>
+                    <div className={styles.collectionSummary}><strong>{data.team.length}<span>/3</span></strong><small>Na equipe</small></div>
                   </div>
                 </section>
                 <section className={styles.panel}>
                   <div className={styles.panelHeading}>
-                    <h2>Equipe atual</h2>
+                    <h2><i className="fa-solid fa-users" aria-hidden="true"/> Equipe atual</h2>
                     {expedition && <span className={styles.teamLocked}>Equipe bloqueada: expedição ativa</span>}
                   </div>
                   <div className={styles.teamSlots} aria-label="Equipe atual, até 3 Pokémon">
@@ -746,17 +754,19 @@ export function PlayApp() {
                       const pokemon=data.roster.find(p=>p.uid===uid);
                       return (
                         <article key={position} className={pokemon?styles.teamSlot:styles.teamSlotEmpty}>
-                          <span className={styles.slotCaption}>{position===0?'Líder · Arena':'Slot '+(position+1)}</span>
+                          <span className={styles.slotCaption}><i className={'fa-solid '+(position===0?'fa-crown':'fa-shield')} aria-hidden="true"/> {position===0?'Líder · Arena':'Slot '+(position+1)}</span>
                           {pokemon ? <>
                             <PokemonArt id={pokemon.pokemonId} name={speciesName(pokemon.pokemonId)} />
                             <strong>{speciesName(pokemon.pokemonId)}</strong>
                             <small>UID #{pokemon.uid} · Nv. {pokemon.level}</small>
+                            <div className={styles.collectionAffinityMini} aria-label={'Afinidade '+pokemon.affinity+'%'}>
+                              <span style={{width:pokemon.affinity+'%'}}/></div>
                             {position>0&&<button type="button" className={styles.textButton}
                               disabled={busy || Boolean(expedition)}
                               aria-label={'Tornar líder UID '+pokemon.uid}
                               onClick={()=>dispatch({type:'pokemon',value:{type:'set-active',uid:pokemon.uid}})}>
                               Tornar líder</button>}
-                          </> : <span className={styles.slotPlaceholder}>Vazio</span>}
+                          </> : <span className={styles.slotPlaceholder}><i className="fa-solid fa-plus" aria-hidden="true"/> Vazio</span>}
                         </article>
                       );
                     })}
@@ -766,22 +776,34 @@ export function PlayApp() {
                 <section className={styles.panel}>
                   <div className={styles.collectionToolbar}>
                     <div>
-                      <h2>Todos os Pokémon</h2>
-                      <p>Pesquise por nome, número da Pokédex ou UID.</p>
+                      <h2><i className="fa-solid fa-layer-group" aria-hidden="true"/> Todos os Pokémon</h2>
+                      <p>{rosterFiltered.length} de {data.roster.length} Pokémon · Pesquise por nome, número da Pokédex ou UID.</p>
                     </div>
                     <input className={styles.input} aria-label="Buscar Pokémon na coleção"
                       type="search" value={collectionQuery} onChange={e=>setCollectionQuery(e.target.value)}
                       placeholder="Buscar Pokémon ou UID..." />
                   </div>
-                  <div className={styles.collectionFilters} aria-label="Filtrar coleção">
-                    {(['all','team','reserve'] as CollectionFilter[]).map(filter=>(
-                      <button type="button" key={filter}
-                        aria-pressed={collectionFilter===filter}
-                        className={collectionFilter===filter?styles.collectionFilterActive:styles.collectionFilter}
-                        onClick={()=>setCollectionFilter(filter)}>
-                        {filter==='all'?'Todos':filter==='team'?'Na equipe':'Reserva'}
-                      </button>
-                    ))}
+                  <div className={styles.collectionControls}>
+                    <div className={styles.collectionFilters} aria-label="Filtrar coleção">
+                      {(['all','team','reserve'] as CollectionFilter[]).map(filter=>(
+                        <button type="button" key={filter}
+                          aria-pressed={collectionFilter===filter}
+                          className={collectionFilter===filter?styles.collectionFilterActive:styles.collectionFilter}
+                          onClick={()=>setCollectionFilter(filter)}>
+                          {filter==='all'?'Todos':filter==='team'?'Na equipe':'Reserva'}
+                          <span>{filter==='all'?data.roster.length:filter==='team'?data.team.length:data.roster.length-data.team.length}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <label className={styles.collectionSortLabel}>Ordenar
+                      <select value={collectionSort} onChange={event=>setCollectionSort(event.target.value as CollectionSort)}
+                        aria-label="Ordenar coleção" className={styles.input}>
+                        <option value="recent">Mais recentes</option>
+                        <option value="level">Maior nível</option>
+                        <option value="affinity">Maior afinidade</option>
+                        <option value="species">Número da Pokédex</option>
+                      </select>
+                    </label>
                   </div>
                   <div className={styles.collectionGrid}>
                     {rosterFiltered.map(pokemon=>{
@@ -792,38 +814,42 @@ export function PlayApp() {
                         <article key={pokemon.uid} data-testid={'pokemon-uid-'+pokemon.uid}
                           className={leader?styles.collectionCardLeader:styles.collectionCard}>
                           <div className={styles.collectionCardTop}>
-                            <span>#{String(pokemon.pokemonId).padStart(3,'0')}</span>
-                            <span>{leader?'LÍDER':inTeam?'EQUIPE':'RESERVA'}</span>
+                            <span>#{String(pokemon.pokemonId).padStart(3,'0')} · UID {pokemon.uid}</span>
+                            <span className={styles.collectionCardStatus}>
+                              <i className={'fa-solid '+(leader?'fa-crown':inTeam?'fa-shield':'fa-box-archive')} aria-hidden="true"/>
+                              {leader?'LÍDER':inTeam?'EQUIPE':'RESERVA'}</span>
                           </div>
-                          <PokemonArt id={pokemon.pokemonId} name={dex} />
+                          <div className={styles.collectionCardArt}><PokemonArt id={pokemon.pokemonId} name={dex} /></div>
                           <strong>{dex}</strong>
                           <div className={styles.collectionAttributes}>
-                            <span>UID #{pokemon.uid}</span><span>Lv. {pokemon.level}</span>
-                            <span>♥ {pokemon.affinity}%</span>
+                            <span><i className="fa-solid fa-star" aria-hidden="true"/> Nv. {pokemon.level}</span>
+                            <span><i className="fa-solid fa-heart" aria-hidden="true"/> {pokemon.affinity}% afinidade</span>
                           </div>
+                          <div className={styles.collectionAffinityMini} aria-label={'Afinidade '+pokemon.affinity+'%'}>
+                            <span style={{width:pokemon.affinity+'%'}}/></div>
                           <div className={styles.collectionCardActions}>
                             <button type="button" className={styles.secondary}
                               aria-label={'Treinar UID '+pokemon.uid}
-                              onClick={()=>openPokemon(pokemon.uid)}>Treinar</button>
+                              onClick={()=>openPokemon(pokemon.uid)}><i className="fa-solid fa-chart-simple" aria-hidden="true"/> Treinar</button>
                             {inTeam ? (
                               <button type="button" className={styles.secondary}
                                 aria-label={'Remover UID '+pokemon.uid+' da equipe'}
                                 disabled={busy || Boolean(expedition) || data.team.length<=1}
                                 onClick={()=>dispatch({type:'pokemon',value:{type:'remove-team',uid:pokemon.uid}})}>
-                                Retirar</button>
+                                <i className="fa-solid fa-user-minus" aria-hidden="true"/> Retirar</button>
                             ) : (
                               <button type="button" className={styles.primary}
                                 aria-label={'Adicionar UID '+pokemon.uid+' à equipe'}
                                 disabled={busy || Boolean(expedition) || data.team.length>=3}
                                 onClick={()=>dispatch({type:'pokemon',value:{type:'add-team',uid:pokemon.uid}})}>
-                                Escalar</button>
+                                <i className="fa-solid fa-user-plus" aria-hidden="true"/> Escalar</button>
                             )}
                             {inTeam&&!leader&&(
                               <button type="button" className={styles.textButton}
                                 aria-label={'Tornar líder UID '+pokemon.uid+' pela coleção'}
                                 disabled={busy || Boolean(expedition)}
                                 onClick={()=>dispatch({type:'pokemon',value:{type:'set-active',uid:pokemon.uid}})}>
-                                Definir líder</button>
+                                <i className="fa-solid fa-crown" aria-hidden="true"/> Definir líder</button>
                             )}
                           </div>
                         </article>
@@ -831,7 +857,10 @@ export function PlayApp() {
                     })}
                   </div>
                   {rosterFiltered.length===0&&<p className={styles.emptyCollection} role="status">
-                    Nenhum Pokémon encontrado com este filtro.
+                    <i className="fa-solid fa-magnifying-glass" aria-hidden="true"/> Nenhum Pokémon encontrado com este filtro.
+                    <button type="button" className={styles.secondary} onClick={()=>{
+                      setCollectionQuery('');setCollectionFilter('all');
+                    }}>Limpar busca e filtros</button>
                   </p>}
                 </section>
               </>
