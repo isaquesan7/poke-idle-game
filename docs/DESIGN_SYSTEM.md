@@ -103,3 +103,9 @@ Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em 
 - Cartões por UID único têm GIF contido sem esticar, status de equipe, Pokédex, UID, nível, afinidade com barra de progresso cosmética e ações nomeadas.
 - Ordenação/busca/filtros são estado React local de apresentação, nunca migram dados do save. Grid responsivo 4/3/2/1 colunas conforme largura; ações legíveis em mobile.
 - Condições de bloqueio (expedição, equipe completa, último membro) seguem o domínio existente. Não simular posse de itens ou recompensas.
+
+
+## D-060 — paridade Treinador/Pokémon e Coleção
+- Mesma gramática visual em Treinamento Pokémon e atributos do Treinador: cinco colunas de estatísticas, barra com current/preview, ícones, botão +1 sempre visível quando aplicável, − contextual apenas com ponto em rascunho, gradiente nos botões, brilho ciano no hover, foco visível e disabled sem brilho.
+- Reutilizar tokens CSS do :root, não criar cores hardcoded. O cálculo é propositalmente distinto por Pokémon; a equivalência é visual e de interação, não de regras.
+- Na Coleção, a afinidade fica somente como texto percentual; as ações diretas nos 3 slots do topo espelham Treinar/Retirar/Tornar líder da lista inferior. Nunca alterar o save ao apenas navegar.
