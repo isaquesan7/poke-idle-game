@@ -358,3 +358,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Catálogo oficial de Poké Ball/Great Ball/Ultra Ball/Master Ball e política de elegibilidade: Ultra Ball exclusiva entre bolas ativas para lendários/míticos, Master Ball futura/manual; sem captura ou estoque ativado.
 - Testes de integridade das 151 espécies, raridades, limite de nível e política de uso; documento completo de requisitos e migração antes de alterar economia ou expedições.
 - Nenhuma mudança no jogo publicado até terminar o sistema de inventário consumível, balanceamento e aquisição renovável de bolas.
+
+
+## D-064B — prévia original do Mapa de Kanto (2026-11-20; sem deploy)
+- Adicionada em branch isolada uma prévia explorável em SVG/CSS das dez regiões, com caminhos, níveis de acesso, detalhes e pools regionais completos compartilhados com o catálogo de domínio.
+- Informações de espécies não vistas permanecem ocultas; raros e míticos exclusivos de áreas 9/10. O botão de batalha da prévia fica bloqueado até conectar o writer regional. Arena existente e saves permanecem intactos.
+- E2E PC/celular avalia mapa, privacidade e read-only. Publicação somente após integração do combate e economia de Poké Bolas.
