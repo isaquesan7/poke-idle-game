@@ -945,3 +945,11 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Branch **feat/d064-region-ball-foundation**: contratos puros `map/kantoRegions.ts` cobrindo 151 espécies exatamente uma vez, cinco raros somente 9/10, pesos raros preliminares e seleção determinística; `capture/kantoBalls.ts` com quatro tipos e validação de elegibilidade; testes core e `docs/MAP_REGIONS_D064_RULES.md`.
 - Estas funções **NÃO estão conectadas** a `playBattle`, captura de 35%, Expedição, UI Mapa, save ou loja. Publicação de gameplay suspensa até simulação, migração, aquisição de bolas e testes completos. D054 Inventário/Economia gerais continuam em espera, exceto consumo de Poké Bolas solicitado especificamente.
 - Próxima etapa: curva e simulação de XP/moedas, caps regionais, bolsa transacional/estoque inicial e protótipo navegável do Mapa; somente após validação integrar e publicar.
+
+
+## D-064B — mapa vetorial navegável em prévia isolada (20/11/2026)
+- Branch `feat/d064-region-ball-foundation`, PR #88 continua **sem merge e sem publicação**. Criado `KantoMapScreen.tsx`/CSS: mapa vetorial original inspirado na composição enviada pelo usuário, caminho entre dez regiões, níveis de desbloqueio provisórios, marcadores acessíveis via teclado/click, detalhes, contagem e espécies regionais geradas do catálogo `KANTO_REGIONS`.
+- A prévia é acessada pela Arena de testes por botão `Prévia do Mapa de Kanto` e pode voltar sem gravar. Batalhas **regionais estão desativadas** na prévia para não falsear sorteios/encontros: Arena antiga continua funcional até integrar motor, UX e economy.
+- Espécies não descobertas aparecem como `???` sem imagem/tipos, inclusive lendários, respeitando proteção da Pokédex. A lista exibida é a futura pool real declarativa, mas a batalha atual ainda não a utiliza.
+- E2E valida dez marcadores, regiões 9/10, raridades, bloqueio de combate regional, privacidade e save inalterado em desktop/mobile. Inventário/economia gerais continuam em espera além das Poké Bolas específicas solicitadas.
+- Próxima etapa: prototipar curva econômica de XP/coins e emissão sustentável de Poké Bolas, integrar por escritor de batalha idempotente e expedição regional com migração segura; só depois promover a navegação principal Arena→Mapa e publicar.
