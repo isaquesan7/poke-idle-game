@@ -901,3 +901,11 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Não altera combate, rank/SP, captura/economia, schema2 e chave kanto-idle-play-v02, rota legada /, catálogo Kanto, 151 GIFs, treino do Pokémon ou repo isaquesan7/pokedex.
 - Gate: aguardar testes TypeScript/Vitest, Playwright desktop/mobile, Docker e revisão visual, depois solicitar aprovação do refinamento antes de integrar/publicar.
 - Próxima etapa: validar e refinar visualmente Coleção com feedback do usuário; Inventário e Economia continuam expressamente adiados.
+
+
+## D-060 — ajustes de Coleção e paridade dos atributos Pokémon/Treinador (19/11/2026; PR em validação)
+- A pedido do usuário, removidas SOMENTE da tela Coleção as barras de afinidade nos cartões e slots; porcentagem de afinidade preservada. Barra de afinidade do Perfil Pokémon permanece intocada.
+- Equipe atual: todos os slots ocupados oferecem Treinar e Retirar; slots secundários também Tornar líder. Reutiliza openPokemon e ações pokemon/remove-team/set-active já existentes, com bloqueio durante expedição e quando há só um membro. Nenhuma nova permissão de negócio nem remoção da coleção.
+- Treinamento Pokémon: comparação direta com TrainerScreen; colunas de atributo, fonte/ícones, barra current/preview, chip de pontos, botões +1/− e brilho hover/focus alinhados ao CSS dos Atributos do Treinador. O botão − só aparece quando há prévia, como no Treinador; pontos listados depois dos atributos. Prévia continua derivada de pokemonFinalStats, com cálculo de HP +2 por ponto e writer batch versionado por UID.
+- E2E desktop/mobile: checagem da ausência de barras na Coleção, ações nos slots, retirada/retorno de integrante sem apagar UID, botão Treinar no topo sem gravar, brilho do +1 e demais jornadas anteriores. Sem alterações em inventário/economia, combate, TM09, saves, GIFs, rota legada ou repo pokedex.
+- Integrar/publicar somente após testes gerais, Playwright e Docker SUCCESS e autorização já fornecida para continuar ajustes de telas. Inventário/Economia continuam adiados.
