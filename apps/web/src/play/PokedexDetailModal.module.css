@@ -83,3 +83,12 @@
 }
 @media(max-width:410px){.stats{gap:var(--space-2)}.stat{font-size:.7rem}.kicker{font-size:.65rem}}
 @media(prefers-reduced-motion:reduce){.statTrack span{transition:none}}
+
+
+/* D-062 · A ficha longa conserva a rolagem nativa, mas usa o mesmo trilho e
+   thumb globais de Kanto Dark (tokens definidos em styles/tokens.css).
+   O espaço lateral impede que a barra encoste no conteúdo do card. */
+.dialog{
+  scrollbar-width:thin;
+  scrollbar-color:var(--scrollbar-thumb) var(--scrollbar-track);
+}
