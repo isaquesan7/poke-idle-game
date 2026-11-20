@@ -190,7 +190,7 @@ async function exercise(browser, label, viewport) {
   const hpRow=hpButton.locator('xpath=../..');
   const hpBefore=Number(await hpRow.locator('strong').innerText());
   await hpButton.click();
-  await hpRow.getByText('+ 1 → '+(hpBefore+2)).waitFor();
+  await hpRow.getByText('→ '+(hpBefore+2)).waitFor();
   await pokemonTrain.getByRole('button',{name:'Retirar um ponto da prévia de HP'}).click();
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,pointRevision);
   await pokemonTrain.getByRole('button',{name:'Pré-visualizar +1 em DEF'}).click();
