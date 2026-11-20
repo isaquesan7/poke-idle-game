@@ -65,3 +65,10 @@ Política desejada:
 6. **D-064F:** testes Vitest, E2E desktop/mobile, migração do save, Docker, revisão de UX e publicação em Railway **somente após o balanceamento revisado e autorizado**.
 
 Este documento explicita decisões aprovadas, hipóteses para simulação e questões ainda não definidas. Não interpretar uma política planejada como função já publicada.
+
+
+## D-064C — protótipo puro de teto da Expedição (sem writer ativo)
+
+- `map/regionalExpeditionXp.ts` inclui `canStartRegionalExpedition(trainerLv,pokemonLv,regionId)`: respeita o nível do treinador para liberar a região e exige que o Pokémon tenha alcançado o **teto da região anterior** para entrar na próxima. Áreas já acessíveis continuam selecionáveis, mas não concedem XP de Pokémon acima do teto.
+- `cappedRegionalPokemonXp` calcula quanto XP do lote é aceito até o nível máximo da região sem carregar excedentes para tiers seguintes, preservando XP preexistente se o Pokémon já estava no teto ou acima dele. Exemplo: Pokémon Nv. 9 com 7 XP restantes para subir, expedição credita 600 XP => somente 7 aceitos e nível para em 10; moedas permanecem calculadas por outro canal, no futuro writer.
+- Esses são **contratos puros/testados**, sem gravação de save, sem afetar expedições existentes, coins, treinador ou banco. A integração de recebimentos pendentes, mudanças de região apenas depois do stop/restart e status de membros múltiplos ainda está por fazer.
