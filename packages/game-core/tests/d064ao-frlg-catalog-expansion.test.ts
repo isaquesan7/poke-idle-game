@@ -61,7 +61,7 @@ describe('D064AO — PokéAPI FRLG completa e catálogo executável controlado',
     expect(add.status).toBe('ok');
     if(add.status!=='ok')return;
     expect(JSON.parse(add.json).roster[0].moveNames).toEqual(['tackle','shadow-punch']);
-    expect(reducePokemonMoveSlotsJson(add.json,{uid:1,moveName:'hypnosis',operation:'add'}).status).toBe('invalid');
+    expect(reducePokemonMoveSlotsJson(add.json,{uid:1,moveName:'hypnosis',operation:'add'}).status).toBe('ok');
     expect(reducePokemonMoveSlotsJson(add.json,{uid:1,moveName:'shadow-ball',operation:'add'}).status).toBe('invalid');
     const earlier=JSON.stringify({version:1,badges:[],team:[1],
       roster:[{uid:1,pokemonId:94,level:24,moveName:'tackle',moveNames:['tackle']}]});
