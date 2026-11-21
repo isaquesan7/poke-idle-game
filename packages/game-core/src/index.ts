@@ -157,3 +157,7 @@ export type {RegionalScenarioInput,RegionalScenarioResult,DraftCaptureStrategy} 
 // D-064AB: amostras de batalha real sem progresso persistente.
 export {d064SampleRealRegionalBattles} from './map/regionalRealCombatSampleLab.js';
 export type {RegionalBattleSampleRequest,RegionalBattleSampleSummary} from './map/regionalRealCombatSampleLab.js';
+
+// D-064AC: trajetória hipotética com outcome real, sem IO nem save.
+export {d064SimulateRealRegionalJourney} from './map/regionalRealJourneyLab.js';
+export type {RealRegionalJourneyInput,RealRegionalJourneySummary,RealCapturePolicy,RealTrainingPolicy} from './map/regionalRealJourneyLab.js';
