@@ -5,6 +5,10 @@ on:
     branches:
       - 'feat/d064**'
       - 'test/d064**'
+  pull_request:
+    branches:
+      - 'feat/d064**'
+      - 'test/d064**'
   workflow_dispatch:
 
 permissions:
