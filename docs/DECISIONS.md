@@ -118,3 +118,9 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 - Uma expedição nova exige simultaneamente `trainer.level >= region.trainerUnlockLevel` e `pokemonLider.level >= region.levelMin`. A regra usa o catálogo `KANTO_REGIONS`, sem tabela paralela.
 - O líder do momento da partida é o único UID expedicionário elegível e é congelado na expedição. A equipe continua bloqueada durante a expedição. Saves antigos que iniciaram expedição sem região conservam seus UIDs e podem ser resgatados normalmente.
 - Decisão conservadora: não multiplicar moedas/XP por região até medição de progressão de longo prazo; manter writer local, revision/receipts, rewards e custo atuais. A UI não é fonte de autoridade.
+
+
+## D-064AO — catálogo de golpes FRLG via PokéAPI (21/11/2026; implementação em PR)
+- **Dados:** snapshot imutável commit `ac2f1acb055026e3dff1e0aca743bb46256a810a`, grupo FireRed/LeafGreen (7), método level-up (1), IDs #1–151. Expor todos 273 golpes e 1.536 aprendizados de nível para consulta, sem acesso à rede em combate.
+- **Segurança/qualidade:** golpes ofensivos só se equipam se o efeito existente é reproduzível pelo motor, 52 técnicas de oito grupos de efeito. Status complexos, auto-KO, OHKO, multi-hit variáveis e dano fixo continuam somente consulta até suporte explícito. Preservar legado e PP/SP do Idle; TMs devem seguir estatística histórica D048, não inferir compatibilidade de TM a partir de level-up.
+- **Observação histórica:** metadata do movimento usa poderes/physical/special atuais da PokéAPI para continuidade do recorte publicado; não afirmar equivalência exata à GenIII. Necessário teste completo e integração após CI antes de apontar D064AO como publicada.
