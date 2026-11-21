@@ -451,3 +451,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ### D-064X — correção da fixture de regressão (não publicado)
 - Teste do gate de persistência agora constrói snapshot e journal novos em vez de modificar propriedades TypeScript readonly. Nenhuma alteração no jogo, economia, storage ou no motor. Validação CI completa ainda pendente.
+
+- Correção adicional após logs reais GitHub Actions: `regional-rollout-audit.test.ts` tinha a factory `request()` não fechada antes de três testes D064S. Restaurado `});` e bloco `describe`, eliminando erro de parsing `Expected "}" but found "it"` na linha 19. Docker regional/D044 passaram; demais suites serão reexecutadas no SHA corrigido.
