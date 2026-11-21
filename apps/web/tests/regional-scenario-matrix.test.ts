@@ -17,6 +17,22 @@ describe('D-064AA — comparação quantitativa sem save',()=>{
       )
     )
   ]);
+  it('separa sorteios do combate e da captura para comparações pareadas',()=>{
+    const basis={battles:10000,winRate:0.75,teamSize:3 as const,seed:20261120};
+    const all=d064SimulateRegionalScenario({...basis,captureStrategy:'every-win'});
+    const rare=d064SimulateRegionalScenario({...basis,captureStrategy:'rare-only'});
+    expect(all).not.toBeNull();
+    expect(rare).not.toBeNull();
+    if(!all||!rare)return;
+    expect(all.wins).toBe(rare.wins);
+    expect(all.losses).toBe(rare.losses);
+    expect(all.regionBattles).toEqual(rare.regionBattles);
+    expect(all.regionWins).toEqual(rare.regionWins);
+    expect(all.unlockBattles).toEqual(rare.unlockBattles);
+    expect(all.rareEncounters).toBe(rare.rareEncounters);
+    expect(all.trainer).toEqual(rare.trainer);
+    expect(all.team).toEqual(rare.team);
+  });
   it.each(cases)('matriz $winRate $teamSize $captureStrategy',input=>{
     const result=d064SimulateRegionalScenario(input);
     expect(result).not.toBeNull();
