@@ -58,7 +58,7 @@ try{
     assert.deepEqual(consulted,before);
     await page.getByRole('combobox',{name:'Pokébola para captura regional'}).selectOption('poke-ball');
     await page.getByRole('button',{name:/Batalhar em Lagos Serenos/}).click();
-    await page.getByRole('heading',{name:'Batalha na Lagos Serenos'}).waitFor();
+    await page.getByRole('heading',{name:'Batalha nos Lagos Serenos'}).waitFor();
     await page.waitForFunction(()=>scrollY===0);
     assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
     await page.getByRole('heading',{name:'Pokémon encontrados nesta área'}).waitFor();
