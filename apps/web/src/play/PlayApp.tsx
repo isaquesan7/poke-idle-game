@@ -6,9 +6,10 @@ import {
   kantoLevelMoves,kantoSupportMoves,KANTO_SUPPORT_MOVES,pokemonMoveSlots,
   legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
   kantoMoveSpCost,kantoMovePp,
-  KANTO_EVOLUTION_STONES, kantoEvolutionOptions
+  KANTO_EVOLUTION_STONES, kantoEvolutionOptions,
+  KANTO_REGIONS,inspectKantoBallPocket
 } from '@kanto/game-core';
-import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame } from '@kanto/game-core';
+import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame,KantoBallId } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
 import { parseLegacySave } from '../storage/legacySave';
 import {
@@ -22,7 +23,6 @@ import { BattlePlayback } from './BattlePlayback';
 import { BattleStage } from './BattleStage';
 import { TrainerScreen } from './TrainerScreen';
 import { PokemonTraining } from './PokemonTraining';
-import {PREVIEW_REGIONS} from '../regions/previewCatalog';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -114,6 +114,7 @@ export function PlayApp() {
   const [save, setSave] = useState<PlayRead>(readSafe);
   const [tab, setTab] = useState<Tab>('overview');
   const [regionalArea, setRegionalArea] = useState(1);
+  const [captureBall,setCaptureBall] = useState<KantoBallId|null>('poke-ball');
   const [name, setName] = useState('');
   const [starter, setStarter] = useState(1);
   const [demo, setDemo] = useState(false);
@@ -210,7 +211,8 @@ export function PlayApp() {
     }
     // Uma única transação de gameplay; animação não toca o save nem recompensas.
     void transact(()=>updatePlaySave(window.localStorage,expected,
-      regionId===undefined?{type:'battle',seed}:{type:'regional-battle',regionId,seed}))
+      regionId===undefined?{type:'battle',seed}:{type:'regional-battle',regionId,seed,
+        ballId:captureBall}))
       .then(result=>{
         if(result?.status==='ok'){
           setTab('arena');
@@ -243,6 +245,13 @@ export function PlayApp() {
     setFeedback('Teste v0.2 reiniciado. O protótipo v0.1 não foi alterado.');
   }
 
+  // D-064AH: leitura do bolso no snapshot atual, sem duplicar estado.
+  const ballGame=save.status==='ready'
+    ?(()=>{try{return JSON.parse(save.snapshot.journal.raw) as Record<string,unknown>}
+      catch{return null;}})():null;
+  const ballPocket=inspectKantoBallPocket(ballGame?.ballPocket);
+  const ballQuantities=ballPocket.status==='valid'
+    ?ballPocket.pocket.quantities:{'poke-ball':12,'great-ball':0,'ultra-ball':0};
   const parsed = save.status === 'ready' ? parseLegacySave(save.snapshot.journal.raw) : null;
   const data = parsed?.status === 'valid' ? parsed.save : null;
   const projected = data ? projectLegacyTrainer(data, BATTLE_SPECIES_CACHE, now) : null;
@@ -919,16 +928,29 @@ export function PlayApp() {
                       <select id="region-arena-select" aria-label="Região para batalha"
                         value={regionalArea} onChange={event=>setRegionalArea(Number(event.target.value))}
                         style={{minHeight:44,padding:'var(--space-3)',color:'var(--color-text)',background:'var(--color-surface)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-control)'}}>
-                        {PREVIEW_REGIONS.map(region=><option key={region.id} value={region.id}
-                          disabled={view.level<region.unlockTrainerLevel}>
-                          {region.id}. {region.name} · Treinador Lv. {region.unlockTrainerLevel}
+                        {KANTO_REGIONS.map(region=><option key={region.id} value={region.id}
+                          disabled={view.level<region.trainerUnlockLevel}>
+                          {region.id}. {region.name} · Treinador Lv. {region.trainerUnlockLevel}
                         </option>)}
                       </select>
-                      <button className={styles.primary} type="button" disabled={busy||battlePlaying}
+                      <label htmlFor="regional-ball-select"><strong>Pokébola para tentar capturar após vitória</strong></label>
+                      <select id="regional-ball-select" aria-label="Pokébola para captura"
+                        value={captureBall??'none'}
+                        onChange={event=>setCaptureBall(event.target.value==='none'?null:event.target.value as KantoBallId)}
+                        style={{minHeight:44,padding:'var(--space-3)',color:'var(--color-text)',background:'var(--color-surface)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-control)'}}>
+                        <option value="none">Não tentar captura</option>
+                        <option value="poke-ball" disabled={(ballQuantities['poke-ball']??0)<1}>Poké Ball · {ballQuantities['poke-ball']??0}</option>
+                        <option value="great-ball" disabled={(ballQuantities['great-ball']??0)<1}>Great Ball · {ballQuantities['great-ball']??0}</option>
+                        <option value="ultra-ball" disabled={(ballQuantities['ultra-ball']??0)<1}>Ultra Ball · {ballQuantities['ultra-ball']??0}</option>
+                      </select>
+                      <button className={styles.primary} type="button"
+                        disabled={busy||battlePlaying||(
+                          captureBall!==null&&(ballQuantities[captureBall]??0)<1
+                        )}
                         onClick={()=>fight(regionalArea)}>
                         <i className="fa-solid fa-map-location-dot" aria-hidden="true"/> Batalhar na região
                       </button>
-                      <small>Vitórias contam na mesma progressão da Arena. Captura de lendários exige o futuro sistema de Pokébolas.</small>
+                      <small>As bolas são gastas apenas ao tentar capturar após uma vitória, mesmo que a captura falhe. Vitória pode conceder novas bolas; lendários exigem Ultra Ball.</small>
                     </div>
                     <button className={styles.primary+' '+styles.arenaFightButton} type="button"
                       disabled={busy||battlePlaying} onClick={()=>fight()}>
