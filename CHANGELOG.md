@@ -372,3 +372,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064AH — Pokébolas e encontros regionais completos (não publicado)
 - Adiciona catálogo de 151 espécies regionais, pesos de encontro e bolas de captura com estoque versionado, 12 bolas iniciais, reposição por vitórias regionais e consumo apenas após vitória. Resultado de captura, XP/moedas e consumo no mesmo writer com recibo único. Lendários só com Ultra Ball. Sem Master Ball automática.
 - Arena mostra estoque e seleção de captura, E2E/regressão e testes de integridade de revisão. Semente ainda é local e regras econômicas continuam beta. Arena clássica preservada.
+
+
+### D-064AI — tela de Regiões funcional com a Arena (não publicada até CI)
+- Nova tela Regiões na navegação do jogo e na rota /regions com dez áreas desbloqueadas por nível, catálogo ponderado real de 151 Pokémon, descoberta e capturas por região, vitórias e estoque do bolso; UI responsiva com tokens e navegação por teclado.
+- Botão de combate usa a MESMA ação regional do writer da Arena; retorna à Arena para animação, diário gradual e recompensas do save já validado. Rota /regions substitui a demonstração sem save por gameplay de perfil real.
+- Vitest e Playwright desktop/mobile verificam locked/unlocked, bolso, leitura sem mutação, batalha com recibo único e persistência após reload.
