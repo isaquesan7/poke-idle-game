@@ -1093,3 +1093,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Testes `regional-scenario-lab.test.ts`: determinismo, conservação de estoque, nenhuma perda de XP na derrota, zero consumo em modo sem captura, comparação 1 vs 3 UIDs, validação de parâmetros e rare-only. Fica claro que `winRate` não é resultado de simulação de atributos/SP/dano; rodízio e estratégia são hipóteses de análise, **não uma mecânica aprovada**.
 - As fórmulas, a oferta de 12 Poké Balls iniciais, drops/raridade e curva econômica NÃO foram alterados. Nenhuma integração ao jogo, capture writer, novos comandos de save ou publicação. A cadeia #88–#95 segue em revisão; os três gates gerais SUCCESS do SHA CI-only da D064Y são históricos de outra revisão, exigindo CI próprio desta branch antes de aprovação.
 - **Próximo passo:** validar esta simulação no CI, gerar comparativo quantitativo de cenários e só então propor ajustes com aprovação do usuário. Confirmar proteção real entre abas/servidor antes da nova economia. Repo pokedex intocado.
+
+
+## D-064AA — matriz de cenários quantitativos (20/11/2026; PR em validação, SEM DEPLOY)
+- D064Z PR #96 e CI-only #97 tiveram SUCESSO no SHA `622cdc00d84c2d72de21eb5e8afd21437227b266`: workflows `44853653344` (geral), `44853653329` (Playwright) e `44853653347` (Docker). A cadeia regional permanece fora da main.
+- Novo teste `regional-scenario-matrix.test.ts` gera 12 cenários reproduzíveis no game-core: win rate 50/75/100%, equipe 1/3 UIDs, captura `every-win` vs `rare-only`, 10.000 encontros por cenário, seed 20261120. Imprime dados `D064AA_MATRIX` em logs CI e verifica conservação do estoque e determinismo. Não muda nenhuma fórmula econômica ou save.
+- **Próxima etapa:** executar CI, extrair os resultados efetivos e elaborar recomendação quantitativa com limitações documentadas. Sem merge ou publicação antes de aprovação do balanceamento e writer real seguro.
