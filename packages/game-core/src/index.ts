@@ -122,3 +122,6 @@ export type {KantoBallPocketV1,KantoBallPocketRead,KantoBallSpendResult} from '.
 
 export {d064DraftXpThreshold,d064DraftBattleReward,d064DraftSimulateWins} from './map/regionalEconomyDraft.js';
 export type {RegionalDraftReward} from './map/regionalEconomyDraft.js';
+
+export {previewKantoRegionalBattle} from './map/regionalBattlePreview.js';
+export type {KantoRegionalBattlePreview,KantoRegionalPreviewResult} from './map/regionalBattlePreview.js';
