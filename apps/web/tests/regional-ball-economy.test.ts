@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest';
-import {KANTO_REGIONS,kantoRegionCatalogInvariant,kantoRegionalEncounter} from '@kanto/game-core';
+import {KANTO_REGIONS,kantoRegionCatalogInvariant,kantoRegionalEncounter,resolveKantoCaptureAttempt} from '@kanto/game-core';
 import {createPlaySave,readPlaySave,updatePlaySave,PLAY_SAVE_KEY} from '../src/play/playSave';
 import type {PlayStorage} from '../src/play/playSave';
 
@@ -47,6 +47,27 @@ describe('D-064AH — economia regional transacional',()=>{
       expect(region.speciesIds).toContain(encounter?.speciesId);
       expect(encounter?.level).toBeLessThanOrEqual(region.levelMax);
       expect(encounter?.level).toBeGreaterThanOrEqual(region.levelMin);
+    }
+  });
+  it('raros só aceitam Ultra e a tentativa consome uma bola mesmo falhando',()=>{
+    const encounter=kantoRegionalEncounter(9,840,90);
+    expect(encounter?.speciesId).toBe(144);
+    const pocket={version:1 as const,quantities:{
+      'poke-ball':1,'great-ball':1,'ultra-ball':1
+    }};
+    const common=resolveKantoCaptureAttempt({
+      regionId:9,speciesId:144,ballId:'poke-ball',
+      pocket,maxHp:100,currentHp:0,seed:1
+    });
+    expect(common.status).toBe('blocked');
+    const ultra=resolveKantoCaptureAttempt({
+      regionId:9,speciesId:144,ballId:'ultra-ball',
+      pocket,maxHp:100,currentHp:0,seed:1
+    });
+    expect(ultra.status).toBe('resolved');
+    if(ultra.status==='resolved'){
+      expect(ultra.pocket.quantities['ultra-ball']).toBe(0);
+      expect(ultra.pocket.quantities['poke-ball']).toBe(1);
     }
   });
   it('inicia com 12 Poké Balls e sem drops ou estoque fictício',()=>{
