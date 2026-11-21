@@ -149,3 +149,7 @@ export type {DraftProgress} from './map/regionalEconomyDraft.js';
 
 export {D064_EXPERIMENTAL_ECONOMY_VERSION,d064DraftConvertLegacyXp,migrateD064EconomyDraft} from './map/regionalEconomyMigrationDraft.js';
 export type {D064EconomyMigrationCommand} from './map/regionalEconomyMigrationDraft.js';
+
+// D-064Z: cenários hipotéticos de progressão e abastecimento, sem writer.
+export {d064SimulateRegionalScenario} from './map/regionalScenarioLab.js';
+export type {RegionalScenarioInput,RegionalScenarioResult,DraftCaptureStrategy} from './map/regionalScenarioLab.js';

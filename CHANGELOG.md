@@ -458,3 +458,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064Y — CI completo aprovado e auditoria de economia, sem publicação
 - CI-only PR #95 (SHA `a8d5f90273ab5cd1be074ec413e95c1e09035001`): regressão geral `44852547201`, Playwright `44852547212` e Docker `44852547230` SUCCESS. Nenhum merge na main.
 - Relatório `docs/REGIONAL_BALANCE_AUDIT_D064.md` quantifica desbloqueios otimistas, raridade e suprimento de bolas; aponta Pokémon no nível 100 antes das últimas regiões e dependência de seed do cliente como riscos de design. Nenhuma regra ou valor do jogo alterado.
+
+
+### D-064Z — laboratório de cenários regionais (não publicado)
+- Simulador puro e determinístico de 1–3 Pokémon, taxa hipotética de derrotas, nível/XP individual, desbloqueio de regiões e balanço de Poké Bolas com tentativas de captura. Testes de conservação de estoque, limites e determinismo.
+- Nenhuma alteração no combate da Arena, saves, economia publicada ou regras experimentais D064; implementação isolada até validação CI e decisão de balanceamento.
