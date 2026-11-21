@@ -134,3 +134,6 @@ export type {KantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
 
 export {D064_DRAFT_STARTER_BALLS,d064DraftBallDrop,d064DraftBallSupply} from './capture/draftBallSupply.js';
 export type {D064DraftBallDrop} from './capture/draftBallSupply.js';
+
+export {applyRegionalBattleDraft} from './map/regionalRewardDraft.js';
+export type {RegionalBattleDraftCommand} from './map/regionalRewardDraft.js';
