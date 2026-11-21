@@ -50,7 +50,7 @@ describe('D-064V — gate estrutural SEM gravação',()=>{
   it('bloqueia recibo histórico modificado sem perder o save original',()=>{
     const f=fixture();
     const modified=JSON.parse(JSON.stringify(f.candidate)) as PlaySnapshot;
-    modified.journal.receipts[0]!.fingerprint='altered';
+    (modified.journal.receipts as unknown as Array<{fingerprint:string}>)[0]!.fingerprint='altered';
     expect(inspectRegionalPersistenceCandidate(f.original,modified,0).status).toBe('eligible-preview');
     // Origem sem recibos anteriores: alterações aos novos recibos precisam
     // de validação semântica do writer, ainda indisponível neste gate.
@@ -62,11 +62,11 @@ describe('D-064V — gate estrutural SEM gravação',()=>{
     const extra:PlaySnapshot=JSON.parse(JSON.stringify(previous));
     extra.revision++;
     extra.journal.revision++;
-    extra.journal.receipts.push({id:'regional-gate-extra',fingerprint:'test'});
+    (extra.journal.receipts as unknown as Array<{id:string;fingerprint:string}>).push({id:'regional-gate-extra',fingerprint:'test'});
     const eligible=inspectRegionalPersistenceCandidate(previous,extra,previous.revision);
     expect(eligible.status).toBe('eligible-preview');
     const tampered:PlaySnapshot=JSON.parse(JSON.stringify(extra));
-    tampered.journal.receipts[0]!.fingerprint='changed';
+    (tampered.journal.receipts as unknown as Array<{fingerprint:string}>)[0]!.fingerprint='changed';
     expect(inspectRegionalPersistenceCandidate(previous,tampered,previous.revision).status).toBe('blocked');
   });
   it('recusa candidato inválido e não possui efeitos colaterais',()=>{
