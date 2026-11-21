@@ -361,3 +361,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064AF — laboratório de batalhas regionais sem escrita (não publicado)
 - `/regions` passa a oferecer simulação de combate do motor Kanto entre um starter escolhido e espécie ilustrativa da região, com níveis selecionáveis, GIFs, HP e diário gradual. Mensagens do motor que sugerem recompensa/captura real são retiradas da demonstração. Nem save nem inventário recebem alterações.
 - Vitest prova determinismo e rejeição de seed inválida; Playwright desktop/mobile executa demonstração e comprova localStorage intacto.
+
+
+### D-064AG — batalha regional real no writer da Arena (não publicada)
+- Nova ação `regional-battle` selecionável pela Arena; desbloqueio por nível no save, espécies e faixas regionais canônicas da prévia, e recompensa pela transação já existente de Arena. Batalha clássica não foi alterada.
+- Lendários não são capturados gratuitamente; não existe bolso/custo de bolas neste corte. Registro visual log/frames preservado.
+- Testes Vitest e E2E desktop/mobile garantem região bloqueada, commit único, idempotência por revisão e persistência pós-reload. Economia D064 avançada segue separada e não publicada.
