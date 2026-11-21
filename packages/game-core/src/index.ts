@@ -128,3 +128,6 @@ export type {KantoRegionalBattlePreview,KantoRegionalPreviewResult} from './map/
 
 export {d064CaptureProjection} from './capture/regionalCaptureProjection.js';
 export type {CaptureProjection} from './capture/regionalCaptureProjection.js';
+
+export {resolveKantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
+export type {KantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
