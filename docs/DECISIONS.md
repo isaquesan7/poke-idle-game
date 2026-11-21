@@ -117,3 +117,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064Z | 2026-11-20 | LABORATÓRIO, SEM RELEASE | Usar cenários de vitória parametrizados (0–100%), rodízio hipotético entre 1–3 UIDs e as fórmulas experimentais existentes para medir gargalos de progressão e estoque de bolas antes de alterar números. A taxa de vitória não é simulada pelo motor de atributos; nenhum comportamento do laboratório autoriza writer, drop ou RNG de produção. |
+
+
+| D-064AB | 2026-11-20 | PROVA DE CONCEITO SEM RELEASE | Distinguir cenários multi-seed de vitória paramétrica (não simula desempenho) da amostragem de resultados gerados pelo motor real em encontros isolados com líder fixo. Somente com esses dois diagnósticos e futura simulação longitudinal com times/HP/SP será possível decidir XP, abundância de bolas e regiões; não conectar resultados ao writer. |
