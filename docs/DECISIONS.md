@@ -97,3 +97,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AE | 2026-11-20 | CANDIDATO DE RELEASE SEM MERGE | Criar PR estreita diretamente de main para o Corte A: catálogo informativo de dez regiões, sem economia ou mudanças de save. /regions, acessibilidade e E2E de zero escrita são gates. Release deste corte não autoriza writer/capturas D064. |
+
+
+| D-064AF | 2026-11-21 | PREVIEW DE COMBATE SEM ECONOMIA | Permitir ao jogador experimentar enfrentamentos regionais com simulateKantoBattle na rota /regions, como sandbox sem recompensas/capturas. Texto da Arena que concederia recursos é suprimido no preview. Seed vem do cliente apenas para demo sem valor econômico; nenhum save ou writer deve ser acessado. |
