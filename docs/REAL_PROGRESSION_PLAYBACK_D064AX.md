@@ -1,0 +1,21 @@
+# D-064AX — progressão via writers + tempo real de replay
+
+**21/11/2026 — testes de diagnóstico; nenhuma regra funcional alterada.**
+
+## Contexto
+D064AW PR #124 integrou 2.880 simulações comparando IA selvagem de golpe único à IA de movesets FRLG legais. O relatório identificou vitória agregada de 73,89% para a IA antiga versus 66,94% para a atual, com foco especial na região 9. São cenários hipotéticos: líderes evoluídos e treinados diretamente pela fixture sem comprovar posse nem XP adquiridos por ações de jogador.
+
+## Parte 1 — writers reais
+Arquivo `apps/web/src/play/d064ax-writer-progression.test.ts`:
+- Para os três iniciais no **modo demonstração autorizado** (nível20), cria save por `createPlaySave`, solicita evolução pelo writer `updatePlaySave`, respeita UID e espécie/nível, verifica que destino ilegítimo é rejeitado sem incremento de revisão.
+- Investe pontos de treinador/Pokémon somente pelo writer com revisão, faz 12 encontros por inicial no Bosque Inicial através do *writer regional real*, verifica frames/logs/receipts, progressão de níveis, UID, equipe e consistência da taxa de vitórias com `regionWins`. Não inventa capturas nem aquisição de Pokémon.
+- Para um perfil **normal nível5**, confirma evolução prematura e região 9 bloqueadas, depois registra encontro real da região1 sem alteração de dados de terceiros.
+- **Limitação:** demo começa no nível20 e não valida horas de grind do nível1 nem obtenção de pedras ou espécies de regiões tardias; o teste normal mede apenas primeiro encontro. Não chamar isso de comprovação de acesso às regiões 8–10. Não há telemetria real de jogadores.
+
+## Parte 2 — tempo de replay
+A integração Playwright já executada pela CI em `apps/web/tests/e2e/playable-route.mjs` passa a coletar relógio `performance.now()` no Chromium pelo `MutationObserver`, registrando intervalos visíveis de 1× e 2× em **desktop (1365×768) e celular (390×844)**. Permanece o teste de pausa, avanço manual, teclado e preservação de HP/SP/GIFs, com confirmação de que reassistir não muda localStorage, recibos ou recompensas. Marcador de log `D064AX_BROWSER_PLAYBACK` contém medições efetivas com dispositivo, velocidade e intervalos. Os limites de teste são deliberadamente tolerantes à variação de recursos em CI; números reais têm de ser lidos em logs, não estimados pela equação 900ms/linha.
+
+## Exclusões e próxima análise
+Nenhum parâmetro de força, seleção de IA, PP/SP, XP/nível, captura, equipe, catálogo TM, expedição, região ou sistema de save foi alterado. Os writers e browser tests operam em memória/perfis isolados de teste.
+
+Próxima **D064AY**: reproduzir trajetória de progressão sem demo incluindo expedições, aquisição com Pokébolas ganhas e evoluções legais, traçando os desbloqueios por nível do treinador. Só considerar rebalancear região9 após esse diagnóstico, sem alterar a raridade dos lendários por hipótese.
