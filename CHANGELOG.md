@@ -1,5 +1,11 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AQ — três novos suportes de level-up FRLG (21/11/2026; branch, NÃO PUBLICADA)
+- Leer, Stun Spore e Glare agora são equipáveis apenas pelas espécies e níveis do snapshot FRLG; efeitos existentes de redução de Defesa e paralisia, custos próprios de SP e PP do catálogo. Motor/IA/replay e writer de slots permanecem com as mesmas regras gerais.
+- Teste `d064aq-frlg-status.test.ts` cobre elegibilidade, rejeição prematura, UID, SP, log/frame determinístico. Métodos e limites em `docs/STATUS_MOVES_D064AQ.md`.
+- Hypnosis, Night Shade, Bullet Seed e outros efeitos não implementados seguem bloqueados; D064AP teste de equipe permanece em PR #117 independente. Nenhuma alteração no schema2, XP, economia, captura, expedição, GIFs ou repo `isaquesan7/pokedex`. CI/merge/deploy ainda não comprovados.
+
+
 ## D-056 — refinamento das telas Pokémon (19/11/2026, BRANCH, NÃO PUBLICADA)
 - Perfil: informações/arte do Pokémon e Treinamento lado a lado no desktop, com empilhamento no mobile e tokens do root. Identidade, GIF, UID e afinidade preservados.
 - Treino: novo PokemonTraining.tsx com prévia, desfazer, cancelar, confirmação e aviso por revisão stale, isolado por UID. Writer pokemon-invest-batch agrega múltiplos pontos em UM commit/revisão, revalidando todos pelo reducer core. Não modifica orçamento, limite, atributos, regras de combate ou save schema2.
