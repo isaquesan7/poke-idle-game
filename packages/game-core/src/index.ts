@@ -146,3 +146,6 @@ export type {D064PocketMigrationCommand,D064PocketMigrationPolicy} from './captu
 
 export {d064DraftGrantXp} from './map/regionalEconomyDraft.js';
 export type {DraftProgress} from './map/regionalEconomyDraft.js';
+
+export {D064_EXPERIMENTAL_ECONOMY_VERSION,d064DraftConvertLegacyXp,migrateD064EconomyDraft} from './map/regionalEconomyMigrationDraft.js';
+export type {D064EconomyMigrationCommand} from './map/regionalEconomyMigrationDraft.js';
