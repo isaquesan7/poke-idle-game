@@ -44,6 +44,7 @@ jobs:
           npm test
           npm run verify:gifs
           node --check apps/web/tests/e2e/playable-route.mjs
+          node --check apps/web/tests/e2e/regions-preview.mjs
       - name: Preparar Chromium compatível
         run: |
           # npm10 quebra Arborist (edgesOut:null) após Vitest4; npm11 corrige.
@@ -60,6 +61,8 @@ jobs:
         run: node apps/web/tests/e2e/browser-cutover-lab.mjs
       - name: E2E da jornada jogável React v0.2 na rota /play
         run: node apps/web/tests/e2e/playable-route.mjs
+      - name: E2E do catálogo de regiões somente leitura
+        run: node apps/web/tests/e2e/regions-preview.mjs
       - name: Guardar capturas para revisão visual
         if: always()
         uses: actions/upload-artifact@v4
@@ -70,4 +73,5 @@ jobs:
             artifacts/react-preview/*.png
             artifacts/draft-preview/*.png
             artifacts/playable/*.png
+            artifacts/regions/*.png
           if-no-files-found: ignore
