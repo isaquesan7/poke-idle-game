@@ -52,7 +52,8 @@ describe('D-064J — transação pura de recompensa, débito e captura regionais
       .toBe('rejected');
   });
   it('sem bola também permite vitória sem tentativa nem capture UID',()=>{
-    const result=applyRegionalBattleDraft(fixture(),command({ballId:undefined}));
+    const {ballId:_unusedBall,...withoutBall}=command();
+    const result=applyRegionalBattleDraft(fixture(),withoutBall);
     expect(result.status).toBe('applied');
     if(result.status==='applied'){
       const data=JSON.parse(result.journal.raw);
@@ -79,9 +80,10 @@ describe('D-064J — transação pura de recompensa, débito e captura regionais
     }
   });
   it('perda com bola pré-selecionada não gasta nada e não gera captura',()=>{
-    const result=applyRegionalBattleDraft(fixture(),command({
-      outcome:'loss',affinityGain:undefined,ballId:'ultra-ball'
-    }));
+    const {affinityGain:_unusedGain,...lossCommand}=command();
+    const result=applyRegionalBattleDraft(fixture(),{
+      ...lossCommand,outcome:'loss',ballId:'ultra-ball'
+    });
     expect(result.status).toBe('applied');
     if(result.status==='applied'){
       const data=JSON.parse(result.journal.raw);
