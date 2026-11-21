@@ -127,3 +127,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AR | 2026-11-21 | EM VALIDAÇÃO | Implementar sono como estado apenas da batalha (1–3 ações perdidas, sorteio determinístico, despertar registrado no log/frame), com Hypnosis/Sleep Powder/Spore exclusivamente dos aprendizados FRLG de nível. Reutilizar custos SP/IA/slots existentes; não persistir condição no save. Não confundir fidelidade Pokémon GenIII com regra própria do Kanto Idle. A PR #118 em conflito foi portada em branch pós-merge D064AP; aguardar CI e publicação. |
+
+
+| D-064AS | 2026-11-21 | EM VALIDAÇÃO | Night Shade level-up FRLG é exceção fechada à exigência de poder positivo: `power:0` marca dano fixo igual ao nível, sem STAB/defesa/variação/crítico, preservando imunidade de tipo. Custo SP com PP oficial snapshot e peso12; validação por UID/nível no writer, sem TM09 ou efeitos genéricos novos. Não alterar regras de salvamento nem economia. |
