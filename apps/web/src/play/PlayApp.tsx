@@ -931,7 +931,7 @@ export function PlayApp() {
                       <small>Vitórias contam na mesma progressão da Arena. Captura de lendários exige o futuro sistema de Pokébolas.</small>
                     </div>
                     <button className={styles.primary+' '+styles.arenaFightButton} type="button"
-                      disabled={busy||battlePlaying} onClick={fight}>
+                      disabled={busy||battlePlaying} onClick={()=>fight()}>
                       <i className="fa-solid fa-khanda" aria-hidden="true"/> Batalhar contra Pokémon selvagem
                     </button>
                     <p className={styles.arenaMicrocopy}>
