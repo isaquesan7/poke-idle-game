@@ -34,6 +34,51 @@ async function openSavedBattle(page){
   await page.getByRole('button',{name:'Rever último combate nesta região'}).click();
 }
 
+
+/**
+ * D064AX: medir intervalos de APRESENTAÇÃO no Chromium real.
+ * Coleta performance.now() no browser via MutationObserver, não Date do host.
+ * Um único replay por velocidade, não altera o save nem o motor de combate.
+ */
+async function measureReplayTiming(page,speed,label){
+  await page.getByRole('button',{name:'Reassistir à batalha'}).click();
+  if(speed===2)await page.getByRole('button',{name:'Alterar velocidade da apresentação'}).click();
+  await page.evaluate(()=>{
+    const text=()=>document.querySelector('[data-testid="battle-line-progress"]')?.textContent||'';
+    let count=Number(text().split('/')[0]);
+    const ticks=[performance.now()];
+    const observer=new MutationObserver(()=>{
+      const next=Number(text().split('/')[0]);
+      if(Number.isFinite(next)&&next>count){
+        count=next;ticks.push(performance.now());
+      }
+    });
+    observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+    window.__d064axReplay={ticks,observer};
+  });
+  await page.waitForFunction(()=>window.__d064axReplay?.ticks.length>=3,
+    null,{timeout:10000});
+  const data=await page.evaluate(()=>{
+    const metric=window.__d064axReplay;
+    metric.observer.disconnect();
+    const intervals=metric.ticks.slice(1).map((at,i)=>at-metric.ticks[i]);
+    delete window.__d064axReplay;
+    return intervals;
+  });
+  assert.equal(data.length>=2,true,'replay deve apresentar múltiplas linhas');
+  // Cronômetro de navegador real; limites generosos para carga de CI.
+  assert.ok(data.every(ms=>ms>80&&ms<3300),
+    'progressão temporal inválida: '+data.join(', '));
+  const mean=Math.round(data.reduce((a,b)=>a+b,0)/data.length);
+  console.log('D064AX_BROWSER_PLAYBACK '+JSON.stringify({
+    label,speed,viewport:await page.evaluate(()=>({width:innerWidth,height:innerHeight})),
+    intervalsMs:data.map(ms=>Math.round(ms)),meanIntervalMs:mean
+  }));
+  await page.getByRole('button',{name:'Pular apresentação'}).click();
+  await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
+  return mean;
+}
+
 async function exercise(browser, label, viewport) {
   const context=await browser.newContext({viewport});
   const page=await context.newPage();
@@ -443,6 +488,14 @@ async function exercise(browser, label, viewport) {
   assert.equal(await wildHp.textContent(),visual.wildRemainingHp+' / '+visual.wildMaxHp);
   assert.equal(await playerSp.textContent(),visual.playerRemainingSp+' / '+visual.playerMaxSp);
   assert.equal(await wildSp.textContent(),visual.wildRemainingSp+' / '+visual.wildMaxSp);
+  // D064AX: medir 1× e 2× em browser REAL após a batalha ter sido salva.
+  const beforeTiming=await page.evaluate(key=>localStorage.getItem(key),SAVE);
+  const timing1x=await measureReplayTiming(page,1,label);
+  const timing2x=await measureReplayTiming(page,2,label);
+  assert.ok(timing2x<timing1x*1.25,
+    'velocidade 2× deve manter cadência próxima ou superior a 1×');
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeTiming,
+    'medição do replay não pode alterar o save nem recompensas');
   const battleSaved=await page.evaluate(key=>localStorage.getItem(key),SAVE);
   await page.getByRole('button',{name:'Reassistir à batalha'}).click();
   await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
