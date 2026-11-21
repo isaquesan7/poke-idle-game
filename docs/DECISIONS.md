@@ -136,3 +136,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AU | 2026-11-21 | EM VALIDAÇÃO | Liberar Twineedle apenas por level-up de Beedrill #15 Nv20 FRLG; dois impactos e poison20% após cada hit efetivo com alvo vivo/suscetível, usando o RNG determinístico, um único custo SP e registros frame por evento. Permitir apenas este efeito per-hit em allowlist, não duplicar rolls globais, manter TM09 indisponível. Status não persistido. |
+
+
+| D-064AV | 2026-11-21 | EM VALIDAÇÃO | Selvagens deixaram de receber somente golpe padrão: equipar automaticamente até 3 ofensivos recentes e 1 suporte recente desbloqueados da espécie/nível FRLG, sem TMs e sem benefício de rank/treino/itens. Compartilhar IA/SP/turnos/precisão já existentes com o jogador. Onde não houver ataque elegível implementado, manter fallback alfa. Aumento de dificuldade será auditado antes de balanceamento. |
