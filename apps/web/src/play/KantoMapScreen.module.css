@@ -93,3 +93,25 @@
 .hiddenArt{height:55px;width:55px;display:grid;place-items:center;border-radius:50%;
   background:var(--color-surface);color:var(--color-text-muted);font-weight:900;font-size:1.5rem;
   border:1px solid var(--trainer-card-border)}
+
+/* D-064K · painel estritamente informativo da simulação regional. */
+.simulation{display:grid;gap:var(--space-2);min-width:0}
+.simulationButton{width:100%;min-height:46px;background:var(--color-surface-raised);
+  color:var(--color-primary);border:1px solid var(--color-primary);border-radius:var(--radius-control);
+  font-weight:800;cursor:pointer;transition:box-shadow var(--duration-fast)}
+.simulationButton:hover:not(:disabled){box-shadow:0 0 17px var(--trainer-glow-cyan-soft)}
+.simulationButton:focus-visible{outline:2px solid var(--color-primary);outline-offset:3px}
+.simulationButton:disabled{opacity:.48;cursor:not-allowed;border-color:var(--trainer-card-border)}
+.simulationResult{display:grid;gap:var(--space-2);padding:var(--space-3);
+  border:1px solid var(--trainer-card-border);border-radius:var(--radius-card);
+  background:var(--color-surface-raised)}
+.simulationResult strong{font-size:.92rem;overflow-wrap:anywhere}
+.simulationResult>span{font-size:.8rem;color:var(--color-primary)}
+.simulationResult>small{font-size:.72rem;color:var(--color-text-muted)}
+.simulationLog{max-height:200px;overflow:auto;list-style:none;padding:var(--space-2);margin:0;
+  border:1px solid var(--trainer-card-border);border-radius:var(--radius-control);
+  background:var(--color-bg);display:grid;gap:var(--space-2)}
+.simulationLog li{font-size:.73rem;line-height:1.5;border-bottom:1px solid var(--trainer-card-border);
+  padding-bottom:var(--space-1)}
+.simulationError{font-size:.78rem;color:var(--color-danger);margin:0}
+@media(prefers-reduced-motion:reduce){.simulationButton{transition:none}}
