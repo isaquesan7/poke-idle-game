@@ -142,3 +142,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AW | 2026-11-21 | DIAGNÓSTICO EM VALIDAÇÃO | Medir o impacto da equipagem selvagem D064AV por 1.440 pares de seeds das dez regiões versus baseline antigo de golpe único, sem alterar qualquer mecânica ou prometer win-rate fixo. Variação pós-primeira ação modifica consumo de RNG; relatório é heurístico e não telemetria. Rebalanceamento dependerá de testes com progressão válida via writer e aprovação. |
+
+
+| D-064AX | 2026-11-21 | EM VALIDAÇÃO | Antes de alterar a dificuldade observada na D064AW, testar evolução/treino/revisões/recibos pelo writer v0.2 e medir intervalos reais de BattlePlayback em Chrome desktop/mobile nas velocidades 1×/2×. Distinguir perfis demo nível20 de progresso natural nível5 e duração do replay de tempo de combate. Não habilitar novos recursos nem mudar chances. |
