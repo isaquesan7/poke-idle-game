@@ -11,10 +11,11 @@ import {
   STATS,zeroStats,KANTO_BATTLE_SPECIES,KANTO_BATTLE_MOVES,
   KANTO_SUPPORT_MOVES,LEGACY_BADGES,LEGACY_ITEMS,
   trainerTotals,pokemonFinalStats,effectiveLegacyTitle,
-  pokemonMoveSlots,previewKantoRegionalBattle
+  pokemonMoveSlots,previewKantoRegionalBattle,applyRegionalBattleDraft
 } from '@kanto/game-core';
 import type {
-  Combatant,StatValues,RewardJournal,KantoRegionalPreviewResult
+  Combatant,StatValues,RewardJournal,KantoRegionalPreviewResult,
+  KantoRegionalBattlePreview,KantoBallId
 } from '@kanto/game-core';
 
 type ObjectRecord=Record<string,unknown>;
@@ -94,4 +95,45 @@ export function previewRegionalBattleFromJournal(
   } catch {
     return fail('Não foi possível simular este encontro.');
   }
+}
+
+
+/**
+ * D-064L · Dry run da futura transação regional. Esta função NÃO grava no
+ * navegador; usa o resultado RECONSTRUÍDO do motor, nunca aceita outcome
+ * ou afinidade arbitrários da interface. O journal retornado é hipotético,
+ * ainda com a economia legada. Captura por bola só se existir bolso válido.
+ */
+export type RegionalTransactionDryRun=
+  | {readonly status:'ready';readonly preview:KantoRegionalBattlePreview;
+     readonly proposedJournal:RewardJournal}
+  | {readonly status:'blocked';readonly reason:string};
+
+export function dryRunRegionalBattleTransaction(
+  journal:RewardJournal,regionId:number,seed:number,ballId?:KantoBallId
+):RegionalTransactionDryRun {
+  const result=previewRegionalBattleFromJournal(journal,regionId,seed);
+  if(result.status!=='ready')return result;
+  let uid:unknown;
+  try{
+    const game:unknown=JSON.parse(journal.raw);
+    uid=object(game)&&Array.isArray(game.team)?game.team[0]:undefined;
+  }catch{return{status:'blocked',reason:'Save de simulação inválido.'};}
+  if(!intRange(uid,1,Number.MAX_SAFE_INTEGER))
+    return{status:'blocked',reason:'UID do líder inválido.'};
+  const battle=result.preview.battle;
+  const command={
+    id:'regional-dry-run-'+(journal.revision+1),
+    expectedRevision:journal.revision,
+    regionId,seed,activeUid:uid,
+    outcome:battle.outcome,
+    ...(battle.outcome==='win'&&battle.affinityGain!==null
+      ?{affinityGain:battle.affinityGain}:{}),
+    ...(ballId?{ballId}:{})
+  };
+  const proposed=applyRegionalBattleDraft(journal,command);
+  return proposed.status==='applied'
+    ?{status:'ready',preview:result.preview,proposedJournal:proposed.journal}
+    :{status:'blocked',reason:proposed.status==='rejected'
+      ?proposed.reason:'A transação experimental já foi processada.'};
 }
