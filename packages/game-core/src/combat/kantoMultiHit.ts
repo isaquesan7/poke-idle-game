@@ -2,8 +2,8 @@
  * D064AT — golpes multi-hit FRLG de nível.
  * Dados congelados PokéAPI/pokeapi@ac2f1acb055026e3dff1e0aca743bb46256a810a
  * effectId 30: 2–5 golpes, distribuição GenIII 3/8, 3/8, 1/8, 1/8.
- * effectId 45: exatamente dois hits. Twineedle (effect78) não é habilitado,
- * pois sua chance de poison por impacto requer resolução específica.
+ * effectId 45: exatamente dois hits. D064AU: Twineedle (effect78)
+ * tem dois impactos fixos e chance de poison por impacto válido.
  * Bullet Seed (TM09) permanece somente como prévia e sem ensino.
  */
 import {KANTO_FRLG_MOVE_META} from '../catalog/kantoFrlgLevelupSnapshot.js';
@@ -11,12 +11,14 @@ import {KANTO_FRLG_MOVE_META} from '../catalog/kantoFrlgLevelupSnapshot.js';
 export type KantoMultiHitRange=Readonly<{minHits:number;maxHits:number}>;
 const LEVELUP_MULTI_NAMES=new Set([
   'double-slap','comet-punch','fury-attack','pin-missile','spike-cannon',
-  'barrage','fury-swipes','bonemerang','bone-rush','icicle-spear','rock-blast'
+  'barrage','fury-swipes','bonemerang','bone-rush','icicle-spear','rock-blast',
+  'twineedle'
 ]);
 const FRLG_MULTI_HITS:Readonly<Record<string,KantoMultiHitRange>>=Object.fromEntries(
   Object.values(KANTO_FRLG_MOVE_META).filter(meta=>
     LEVELUP_MULTI_NAMES.has(meta.name)
-    &&(meta.effectId===30||meta.effectId===45)
+    &&(meta.effectId===30||meta.effectId===45
+      ||(meta.name==='twineedle'&&meta.effectId===78&&meta.effectChance===20))
     &&meta.minHits===2&&(meta.maxHits===2||meta.maxHits===5)
     &&meta.power!==null&&meta.power>0&&meta.category!=='status'
     &&meta.pp!==null&&meta.pp>0
