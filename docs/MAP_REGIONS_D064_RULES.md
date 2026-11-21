@@ -136,3 +136,9 @@ Este documento explicita decisões aprovadas, hipóteses para simulação e ques
 ## D-064O — curva econômica na transação regional simulada
 - O evento experimental regional usa `d064DraftBattleReward` para moedas e XP e `d064DraftGrantXp` para limites de XP Treinador/Pokémon. Após `applyRewardEvent` legado reconstruir estrutura de captura/insígnias, substitui no mesmo journal os ganhos legados pelo cálculo **exclusivamente D-064 do snapshot original**, sem somar duas vezes recompensas.
 - Curva D064 não toca os `xpThreshold` e `grantXp` globais: as batalhas e Expedições públicas permanecem com números originais. A chegada à curva definitiva exige migração de XP dos saves existentes ou política expressa de rollout e testes com progressão de níveis altos. Não afirmar que os valores experimentais foram aprovados.
+
+
+## D-064P — critério proposto de compatibilidade de XP
+- Ao ativar a curva mais lenta, `migrateD064EconomyDraft` poderá preservar o **nível exato** do Treinador e de cada Pokémon, convertendo apenas a fração de XP no nível: `floor(oldXP/oldThreshold × newThreshold)`, sempre limitado a menos do novo limiar. Não conceder retroativamente níveis nem apagar XP dos jogadores; Lv100 permanece Lv100/XP0.
+- A conversão guarda um marcador de versão econômica e um recibo idempotente; XP fora dos intervalos do sistema legado, já migrado ou versão preexistente é recusado. Moedas, mochila, Equipe, títulos, insígnias e Expedição ativa são preservados em memória, sem write.
+- **Ainda é hipótese de migração**, não decisão de rollout aprovada. Não integrar ao `playSave` nem adotar a curva experimental publicamente sem a simulação completa de tempo/economia e testes de jornada com saves anteriores.
