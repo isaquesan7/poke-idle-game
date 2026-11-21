@@ -442,3 +442,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ### D-064V — pré-validação conservadora de persistência (não publicado)
 - Novo gate estrutural read-only de snapshot regional e histórico de recibos, sempre retornando `canWrite:false`. Testes de conflitos, dados corrompidos e preservação integral da chave local. Nenhum writer regional ou mudança de economia em produção.
+
+
+### D-064W — validar candidato regional contra simulação canônica (não publicado)
+- Prévia de persistência regional agora pode comparar um candidato completo com o motor de batalha e o writer experimental reconstruídos em RAM, rejeitando recompensas, recibos ou UID forjados. Sempre `canWrite:false` e sem salvar.
+- Cobertura Vitest de manipulações e workflow D064 estendido para PRs com base em branches regionais. Nenhum deploy, economia nova ou captura regional liberada.
