@@ -218,6 +218,13 @@ function validMove(m:KantoMove|undefined):boolean{
     return !!canonical&&m.power===0&&m.type===canonical.type
       &&m.accuracy===canonical.accuracy&&m.priority===canonical.priority;
   }
+  // Night Shade é a única ofensiva com power:0; validar sempre a ficha fixa.
+  if(m.name==='night-shade'){
+    const fixed=KANTO_BATTLE_MOVES['night-shade'];
+    return !!fixed&&m.type===fixed.type&&m.category===fixed.category
+      &&m.power===0&&m.accuracy===fixed.accuracy
+      &&m.priority===fixed.priority;
+  }
   // D-045: o nome do golpe com 2 hits não pode aceitar potência/tipo adulterados.
   if(m.name==='double-kick'){
     const fixed=KANTO_BATTLE_MOVES['double-kick'];
@@ -266,6 +273,13 @@ export function kantoDamage(
   if (![criticalRoll,varianceRoll].every(v=>Number.isFinite(v)&&v>=0&&v<1)
     || (attackScale!==1&&attackScale!==0.5)) {
     throw new RangeError('Rolagens devem pertencer a [0,1).');
+  }
+  // D064AS: dano fixo igual ao nível, sem STAB/defesas/crítico/variação.
+  // O tipo Ghost ainda bloqueia alvos imunes (Normal); não aplicar resistência.
+  if(attacker.move.name==='night-shade'){
+    const effectiveness=kantoTypeMultiplier('ghost',defender.types);
+    return {damage:effectiveness===0?0:attacker.level,
+      critical:false,effectiveness};
   }
   const physical=attacker.move.category==='physical';
   const attack=Math.max(1,Math.floor(
@@ -393,7 +407,10 @@ export function simulateKantoBattle(
       &&kantoMoveSpCost(move)<=ownSp);
     if(attacks.length===0)return KANTO_BASIC_ATTACK;
     const score=(move:KantoMove):number=>
-      move.power*kantoMoveHitCount(move.name)*move.accuracy*kantoTypeMultiplier(move.type,target.types)
+      move.name==='night-shade'
+        ?actor.level*move.accuracy*(kantoTypeMultiplier(move.type,target.types)>0?1:0)
+        :move.power*kantoMoveHitCount(move.name)
+      *move.accuracy*kantoTypeMultiplier(move.type,target.types)
       *(actor.types.includes(move.type)?1.5:1)
       *(move.category==='physical'
         ?actor.stats.attack/Math.max(1,target.stats.defense)
@@ -551,6 +568,7 @@ export function simulateKantoBattle(
         if(isPlayer)wildHp=Math.max(0,wildHp-hit.damage);
         else playerHp=Math.max(0,playerHp-hit.damage);
         const effectText=hit.effectiveness===0?' · Imune'
+          :move.name==='night-shade'?' · Dano fixo'
           :hit.effectiveness>=2?' · Super efetivo'
             :hit.effectiveness<1?' · Resistido':'';
         const part=hitTotal>1?' (acerto '+index+'/'+hitTotal+')':'';

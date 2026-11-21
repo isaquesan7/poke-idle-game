@@ -47,7 +47,7 @@ describe('D064AO — PokéAPI FRLG completa e catálogo executável controlado',
     expect(lvl24).not.toContain('shadow-punch');
     expect(lvl25).toContain('shadow-punch');
     expect(kantoSupportMoves(94,25).map(x=>x.move.name)).toContain('hypnosis');
-    expect(lvl25).not.toContain('night-shade');
+    expect(lvl25).toContain('night-shade');
     // O snapshot de ATAQUES continua somente leitura; Hypnosis é suporte jogável.
     expect(kantoFrlgLevelMoveCatalog(94,100).find(x=>x.meta.name==='hypnosis')?.executable).toBe(false);
     expect(kantoFrlgLevelMoveCatalog(94,100).find(x=>x.meta.name==='night-shade')?.executable).toBe(false);

@@ -225,3 +225,7 @@ PR #38 integrada em main `8748d315`, CI `44120721898` SUCCESS, Railway deploy `d
 
 ### D-064AR — sono por golpes de nível (21/11/2026; em validação)
 Hipótese de balanceamento implementada no ramo D064AR: Hypnosis, Sleep Powder e Spore seguem learnsets FireRed/LeafGreen do snapshot fixo, aplicam sono após precisão e custam SP. A vítima perde de 1 a 3 oportunidades de agir (RNG seedado); no próximo momento de agir acorda e pode atacar. Sono não persiste após a batalha, não acumula com outro status e suporte é limitado ao uso único por encontro como os demais. Esta é uma convenção de Kanto Idle, **não reprodução fiel dos turnos de sono da geração III**. Sem alteração de XP/economia/captura/expedição.
+
+
+### D-064AS — Night Shade (21/11/2026; em validação)
+Ataque Ghost Night Shade aprendido somente por level-up FRLG: `power:null` da origem transformado em marcador `power:0` tipado, dano fixo de `nívelAtacante` se o tipo não for imune, sem crítico/STAB/variação, defesa ou amplificação de efetividade. SP = clamp(8,40,round(0.45*(45-PP15)+12)) = 26 SP por ação; precisão 100% conforme snapshot. IA pontua o dano pelo nível e bloqueia alvos imunes; replay somente lê os frames. Sem itens, TM ou mudança do XP.

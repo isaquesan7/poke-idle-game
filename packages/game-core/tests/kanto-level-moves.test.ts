@@ -13,7 +13,11 @@ describe('aprendizado validado de golpes — PokéAPI FireRed/LeafGreen',()=>{
     expect(Object.keys(KANTO_LEVELUP_DAMAGE_MOVES).length).toBeGreaterThanOrEqual(20);
     for(const [name,move] of Object.entries(KANTO_LEVELUP_DAMAGE_MOVES)){
       expect(move.name).toBe(name);
-      expect(move.power).toBeGreaterThan(0);
+      if(name==='night-shade'){
+        expect(move.power).toBe(0); // única exceção de dano fixo por nível
+        expect(move.category).toBe('special');
+        expect(move.type).toBe('ghost');
+      }else expect(move.power).toBeGreaterThan(0);
       expect(move.power).toBeLessThanOrEqual(250);
       expect(move.accuracy).toBeGreaterThan(0);
       expect(move.accuracy).toBeLessThanOrEqual(100);
