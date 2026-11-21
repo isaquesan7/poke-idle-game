@@ -888,7 +888,7 @@ export function PlayApp() {
             )}
 
             {tab === 'arena' && mapPreview && (
-              <KantoMapScreen trainerLevel={view.level}
+              <KantoMapScreen trainerLevel={view.level} journal={save.snapshot.journal}
                 revealedSpeciesIds={[...new Set([...seenDexIds,...caughtDexIds])]} onClose={()=>setMapPreview(false)}/>
             )}
             {tab === 'arena' && !mapPreview && (
