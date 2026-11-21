@@ -997,3 +997,10 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - XP do Treinador no dry-run está **provisoriamente 0**, não é a nova curva aprovada. Recompensas de moedas/afinidade usam valores legados somente para testar mecânica; o sistema atual publicado continua idêntico.
 - Saves com `expedition` legada ativa sem `regionId` são **rejeitados pela função regional**, não alterados ou migrados silenciosamente: recebimentos anteriores ainda exigem caminho de migração seguro. Testes protegem grupo misto, cap, stop/start, relógio retrocedendo, retries e saldo.
 - Próxima etapa: verificar CI, migração explícita de saves/expedição legado e integrar writer definitivo somente após revisão de XP/moedas e origem de Poké Bolas.
+
+
+## D-064N — migração explícita de bolso de Poké Bolas (2026-11-21; PR #88 isolada)
+- Novo `migrateD064PocketDraft` em `capture/kantoPocketMigrationDraft.ts`, com receipt/versão de journal/idempotência: preserva exatamente trainer, XP, moedas, UID, roster, equipe, atributos, dados adicionais e **expedição legada ativa**, mudando somente `ballPocket` quando o bolso ainda não existe.
+- Políticas de simulação explícitas: `legacy-empty` inicia bolso vazio, sem inventar itens; `starter-proposal` concede 12 Poké Balls **somente se a política de rollout for aprovada**. Se já existe bolso válido, bloqueia a repetição/concessão dupla. Se o bolso é inválido, bloqueia em vez de sobrescrever. Comando stale/ID repetido com payload distinto é negado.
+- O comando NÃO está conectado ao criador de saves, UI, localStorage ou writers. Em particular, bolso vazio não será ativado enquanto captura exigir itens e não houver suprimento renovável aprovado. Testes de migração preservam a expedição antiga sem encerrá-la ou consumir ciclos.
+- Fase D-064M segue como reducer regional PURO; economia/XP do treinador e aquisição de Poké Bolas ainda precisam validação para ativação. Publicação bloqueada.
