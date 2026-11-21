@@ -120,3 +120,9 @@ Este documento explicita decisões aprovadas, hipóteses para simulação e ques
 - `regionalBattleBridge.ts` reconstrói o líder com dados reais do journal, como o `playBattle` atual; valida UID/lvl/stats/slots e chama o motor regional read-only. **Não altera o próprio journal**; testes com save novo e demo evitam regressão e replays sem prêmios.
 - O Mapa de prévia apresenta botão Simular encontro para regiões habilitadas e log da mesma simulação. A batalha regional definitiva permanece desativada, pois ainda não dispomos de economia/migração/bolso ativos no writer.
 - Futuro refactor: compartilhar o construtor de `Combatant` com a Arena antiga para evitar divergência de stats entre as duas rotas, mantendo os replays D-063 intactos.
+
+
+## D-064M — expedição regional em journal isolado
+- `applyRegionalExpeditionDraft` demonstra como um futuro evento versionado pode salvar `regionId` junto a `startedAt/lastClaimAt/teamUids` e processar `start/claim/stop` na mesma revisão de journal. Em cada recebimento, moedas são somadas independentemente do limite; `pokemonXpByUid` registra XP efetivamente aceito, que é cortado ao teto do Pokémon na região escolhida. Somente STOP + novo START permitem selecionar nova região. Nenhum campo econômico real foi ativado.
+- Treinador XP=0 na hipótese do reducer, para impedir o exploit de subir apenas pela expedição enquanto a curva lenta de treinador não está aprovada. Moedas e afinidade usam provisoriamente os valores da Expedição anterior. Requer avaliação conjunta da curva e da economia.
+- **Migração:** se o save já possui expedição legada ativa sem `regionId`, o reducer regional **não** toca nesse registro. É preciso liquidar os ciclos existentes de forma segura pelo sistema atual ou desenhar procedimento próprio de migração antes de substituir o writer. A PR #88 permanece sem merge.
