@@ -469,13 +469,14 @@ export function updatePlaySave(
     if (result.status==='blocked') return result;
     next=result.journal;
   } else {
-    const command: RewardCommand = {
+    const eventBase = {
       id: 'idle-v02-' + (previous.snapshot.revision + 1),
       expectedRevision: journal.revision,
-      type: action.type,
-      nowMs: action.nowMs,
-      ...(action.type === 'start-expedition' ? {regionId:action.regionId} : {})
+      nowMs: action.nowMs
     };
+    const command: RewardCommand = action.type === 'start-expedition'
+      ? {...eventBase,type:'start-expedition',regionId:action.regionId}
+      : {...eventBase,type:action.type};
     const result = applyRewardEvent(journal, command);
     if (result.status !== 'applied') {
       return { status: 'blocked', reason: result.status === 'rejected'
