@@ -48,7 +48,8 @@ export type PlayAction =
       readonly operation:'select'|'upgrade' }
   | { readonly type:'move-set'; readonly uid:number; readonly moveName:string;
       readonly operation:'add'|'remove'|'primary' }
-  | { readonly type: 'start-expedition' | 'claim-expedition' | 'stop-expedition'; readonly nowMs: number };
+  | { readonly type: 'start-expedition'; readonly nowMs: number; readonly regionId: number }
+  | { readonly type: 'claim-expedition' | 'stop-expedition'; readonly nowMs: number };
 
 export type PlayWrite =
   | { readonly status: 'ok'; readonly snapshot: PlaySnapshot }
@@ -472,7 +473,8 @@ export function updatePlaySave(
       id: 'idle-v02-' + (previous.snapshot.revision + 1),
       expectedRevision: journal.revision,
       type: action.type,
-      nowMs: action.nowMs
+      nowMs: action.nowMs,
+      ...(action.type === 'start-expedition' ? {regionId:action.regionId} : {})
     };
     const result = applyRewardEvent(journal, command);
     if (result.status !== 'applied') {
