@@ -62,6 +62,7 @@ export {
   KANTO_LEVELUP_DAMAGE_MOVES, kantoLevelMoves
 } from './catalog/kantoLevelMoves.js';
 export type { KantoLearnableMove } from './catalog/kantoLevelMoves.js';
+export {kantoWildMoveLoadout} from './catalog/kantoWildMoves.js';
 export {
   KANTO_SUPPORT_SOURCE_COMMIT,KANTO_SUPPORT_MOVES,
   KANTO_SUPPORT_EFFECTS,kantoSupportEffect,kantoSupportMoves

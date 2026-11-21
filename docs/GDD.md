@@ -237,3 +237,7 @@ Nos golpes FRLG de level-up com effectId30, um acerto de precisão consome um cu
 
 ### D-064AU — Twineedle (21/11/2026; em validação)
 Beedrill aprende Twineedle Nv20 pelo level-up FRLG. Golpe Bug/physical power25 por impacto, exatamente 2 danos, precisão100%, PP20, único gasto de SP; cada impacto efetivo que não cause KO pode infligir envenenamento com 20% de chance se o alvo estiver sem outro status e não for Poison/Steel. Estado permanece apenas na batalha. Linha/frame por impacto e por novo status; sem alterar captura/XP/economia/TM09.
+
+
+### D-064AV — paridade de IA dos selvagens (21/11/2026; branch)
+Selvagens recebem até 3 golpes de dano desbloqueados mais recentes da espécie/nível FRLG, mais até um golpe de suporte também desbloqueado, total máximo 4. Mesmo motor de seleção de ataques, SP e efeitos do jogador; sem rank, equipamentos ou bônus ocultos. Onde não existir ofensiva FRLG implementada, usar o golpe padrão provisório da alfa. Não conceder TM sem writer; não forçar uma chance de vitória fixa. Validar win-rate antes de mexer na dificuldade.
