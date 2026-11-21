@@ -53,7 +53,7 @@ export function previewKantoRegionalBattle(
       stats:pokemonOwnStats(species.base,encounter.level,zeroStats()),
       move:species.move,rank:0
     };
-    const result=simulateKantoBattle(leader,wild,seed);
+    const result=simulateKantoBattle(leader,wild,seed,'regional-preview');
     // Remove a antiga captura 35% do contrato visível para que nenhuma
     // integração acidental possa conceder uma captura sem Poké Bola.
     const {captured:_unused,...battle}=result;
