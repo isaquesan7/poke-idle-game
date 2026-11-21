@@ -33,7 +33,9 @@ createServer((req, res) => {
   }
   // Novo loop jogável React: HTML compilado pela etapa npm prestart.
   // A raiz legada v0.1 continua ativa até termos paridade de combate e Pokedex.
-  if (url.pathname === '/play' || url.pathname === '/play/') {
+  // D-064AE: catálogo regional somente leitura usa o mesmo bundle React.
+  if (url.pathname === '/play' || url.pathname === '/play/'
+    || url.pathname === '/regions' || url.pathname === '/regions/') {
     const html = new URL('./apps/web/dist/index.html', import.meta.url);
     if (!existsSync(html)) {
       res.writeHead(503, { 'Content-Type': 'text/plain; charset=utf-8' });
