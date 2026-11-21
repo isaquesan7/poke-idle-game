@@ -29,7 +29,21 @@ export function d064DraftBattleReward(wildLevel:number):RegionalDraftReward|null
     pokemonXp:22+Math.ceil(3.5*wildLevel)
   };
 }
-type DraftProgress={readonly level:number;readonly xp:number};
+export type DraftProgress={readonly level:number;readonly xp:number};
+
+/** Applies experimental XP within the D-064 curve. Not for live saves:
+ * legacy XP values require a migration plan before switching thresholds. */
+export function d064DraftGrantXp(
+  kind:'trainer'|'pokemon',previous:DraftProgress,amount:number
+):DraftProgress|null{
+  if(!validLevel(previous.level)||!Number.isSafeInteger(previous.xp)||previous.xp<0
+    ||!Number.isSafeInteger(amount)||amount<0
+    ||!Number.isSafeInteger(previous.xp+amount))
+    return null;
+  const limit=d064DraftXpThreshold(kind,previous.level);
+  if(limit!==null&&previous.xp>=limit)return null;
+  return applyDraftXp(kind,previous,amount);
+}
 function applyDraftXp(kind:'trainer'|'pokemon',state:DraftProgress,grant:number):DraftProgress{
   let level=state.level,xp=state.xp+grant;
   while(level<100){
