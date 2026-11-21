@@ -26,7 +26,7 @@ export function kantoWildMoveLoadout(
     .sort((a,b)=>b.learnedAt-a.learnedAt||a.move.name.localeCompare(b.move.name))
     .slice(0,3)
     .map(item=>item.move);
-  const support=kantoSupportMoves(speciesId,level)
+  const support=[...kantoSupportMoves(speciesId,level)]
     .sort((a,b)=>b.learnedAt-a.learnedAt||a.move.name.localeCompare(b.move.name))
     .slice(0,1)
     .map(item=>item.move);
