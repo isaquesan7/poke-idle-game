@@ -406,3 +406,11 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 
 - Resultado D064AM medido em CI no motor: 4.608/4.608 combates, taxa de vitórias da matriz 7=68,06%, 8=63,54%, 9=43,06% e 10=57,73%; p95 teórico normal por região até 26,1 s. Identificado Pico Dracônico como foco da próxima auditoria; sem modificar dano, XP, raridade ou limite de nível.
+
+
+## D-064AN — auditoria avançada de golpes (21/11/2026; validação)
+- Adicionado teste determinístico de 9.216 batalhas no motor das regiões 8–10 com slots realmente equipáveis por nível, comparação default vs learned pareada por seed, XP com derrotas e previsão teórica de apresentação.
+- Relatório técnico `docs/BALANCE_D064AN.md`, sem mudanças em gameplay, recompensas, níveis, chances de captura, Pokébolas ou saves.
+
+
+- D064AN CI de 9.216 confrontos: no Pico, +8,27 pontos percentuais de taxa de vitória ao usar golpes aprendidos equipáveis na matriz pareada (47,26%→55,53%). Sem alteração de parâmetros; consultar documentação e limitações de amostra em `docs/BALANCE_D064AN.md`.

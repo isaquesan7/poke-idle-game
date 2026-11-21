@@ -1044,3 +1044,15 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Railway deploy `ca49c413-0c07-4220-9408-0b836096a6c3` marcou **SUCCESS** no SHA exato, serviço kanto-idle-web **Online** (1 réplica running, 0 crashed, sem alertas, sem pending). GET externo não foi medido diretamente nesta sessão; healthcheck e estado do Railway foram confirmados.
 - Resultado: vitórias na matriz de 1.152 batalhas por região: Costa 68,06%, Reserva 63,54%, Pico 43,06%, Santuário 57,73%. Metodologia/limites/tempos teóricos e XP médio em `docs/BALANCE_D064AM.md`. Nenhuma alteração de runtime, XP, dinheiro, raridade, captura, expedições, save ou GIFs.
 - **Próxima etapa D-064AN:** auditar Pico Dracônico com líderes/slots/moves realmente elegíveis, estados de treino plausíveis, variação de equipe e tempo de exibição em desktop/mobile. Testar experiências de progressão longa e capturas lendárias por raridade sem alterar números até resultados e decisão. `isaquesan7/pokedex` intocado.
+
+
+## D-064AN — auditoria de golpes equipáveis e progressão (21/11/2026; validação)
+- Partida da main release D064AM `b210c5e8e74b09d542076e15d7b2787b501e2047`; branch `test/d064an-learnset-pico-progression`. Teste `packages/game-core/tests/d064an-learnset-pico-progression.test.ts` simula 9.216 combates pareados das regiões 8/9/10 em 3 níveis, 8 espécies líderes, dois perfis e um loadout padrão vs até 4 golpes legais extraídos de kantoLevelMoves/kantoSupportMoves. Motor/IA, seed por par e stats naturais preservados.
+- Mede win/loss/draw, turns, p95 linhas de replay, XP por tentativa com derrota sem prêmio, cenários de 20 tentativas/h e XP Lv82–93. `docs/BALANCE_D064AN.md` registra hipóteses e limites: não é telemetria, nem save jogável reconstruído, nem comprovação de aquisição dos líderes, nem learnsets completos.
+- Sem mudanças no runtime, economia, XP, catálogo, captura, expedições, writer, interface, GIFs ou repository pokedex. **Não publicada enquanto CI e Railway não forem verificados.** Próximo D064AO: saves/trajetórias reais e navegador instrumentado.
+
+
+### D064AN — resultado do CI de confronto pareado (21/11/2026)
+- Execução `44917376014` (job `136885772009`) em HEAD `3fea23817da13f6c02d85d520ca1926e4aea2aed` concluiu **9.216 combates e 126 combinações com learned adicionais**, com relatório `D064AN_LEARNSET_PROGRESS_REPORT`. Docker `44917376055 SUCCESS`; regressão geral SUCCESS. Documento `docs/BALANCE_D064AN.md` contém tabela e ressalvas.
+- Win-rate dentro da mesma matriz: região 8 **71,55% → 74,09%**, região 9 **47,26% → 55,53%** (+8,27 pontos percentuais), região 10 **55,79% → 63,28%**, default vs learned. XP médio/tentativa região9: **147,34 → 173,33**; derrota não concede XP de vitória. Gengar #94 permanece com somente tackle neste recorte de catálogo: investigar completude antes de buff/nerf regional.
+- **Comparação D064AM×D064AN não é controlada** (8 vs 6 líderes e perfis diferentes); só pareamento default vs learned da D064AN tem condições iniciais controladas. Registro pós-CI requer novo gate HEAD e Railway exato para declaração de publicação.

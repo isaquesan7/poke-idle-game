@@ -7,7 +7,9 @@ import assert from 'node:assert/strict';
 
 const BASE=process.env.D044_SMOKE_BASE_URL ?? 'http://127.0.0.1:18080';
 async function request(path){
-  const res=await fetch(BASE+path,{redirect:'manual'});
+  // D064AN: timeout explícito evita await pendente se o contêiner ainda
+  // não tiver inicializado o socket ao entrar no primeiro healthcheck.
+  const res=await fetch(BASE+path,{redirect:'manual',signal:AbortSignal.timeout(3000)});
   const body=await res.arrayBuffer();
   return {status:res.status,headers:res.headers,body:Buffer.from(body)};
 }
