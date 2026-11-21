@@ -2,7 +2,7 @@ import {describe,expect,it} from 'vitest';
 import {
   KANTO_REGIONS,KANTO_BATTLE_SPECIES,KANTO_BATTLE_MOVES,KANTO_SUPPORT_MOVES,
   kantoRegionalEncounter,kantoLevelMoves,kantoSupportMoves,
-  kantoTypeMultiplier,pokemonOwnStats,pokemonFinalStats,zeroStats,
+  pokemonOwnStats,pokemonFinalStats,zeroStats,
   simulateKantoBattle,battleTrainerXp,xpThreshold,grantXp,
   legacyMoveRankLimits
 } from '../src/index.js';
@@ -144,14 +144,16 @@ describe('D064AN — slots legais e evolução de nível sob derrota no Pico Dra
     expect(enhanced).toBeGreaterThan(0);
     expect(legacyMoveRankLimits(81).skillPoints).toBeGreaterThan(0);
   });
-  it('mede 3072 confrontos pareados incluindo região 8 como base e 10 como contexto',()=>{
+  it('mede 9216 confrontos pareados incluindo região 8 como base e 10 como contexto',()=>{
     const report:Record<string,ReturnType<typeof summarize>>={};
     const examples:Record<string,readonly string[]>={};
     let total=0;
     let legalEnhanced=0;
     for(const regionId of REGIONS)for(const level of LEVELS){
       const region=KANTO_REGIONS[regionId-1]!;
-      expect(level).toBeGreaterThanOrEqual(region.levelMin===91?81:region.levelMin-10);
+      // Lv81 é propositalmente subnivelado no Santuário: batalha regional
+      // exige treinador Nv93, não Pokémon de nível mínimo; ao contrário da expedição.
+      expect(level).toBeGreaterThanOrEqual(81);
       const entries:Record<string,RecordBattle[]>={};
       for(const build of BUILDS)for(const which of LOADOUTS)
         entries[build+'-'+which]=[];
