@@ -1,0 +1,34 @@
+/* D-064AE: estilos da prévia regional. Toda a paleta vem de tokens.css. */
+.page{min-height:100vh;max-width:var(--layout-max-width);margin:0 auto;padding:var(--space-8) var(--space-6);display:grid;align-content:start;gap:var(--space-7);color:var(--color-text)}
+.header{display:grid;gap:var(--space-3);max-width:840px}
+.header h1{margin:0;font-size:clamp(1.9rem,4vw,3rem);line-height:1.13}
+.header p{color:var(--color-text-muted);margin:0;line-height:1.65}
+.back{color:var(--color-primary);text-decoration:none;width:max-content;font-weight:700}
+.back:hover{text-decoration:underline}
+.eyebrow{font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--color-primary);font-size:.79rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr));gap:var(--space-3)}
+.region,.selected{display:grid;text-align:left;gap:var(--space-2);border:1px solid var(--color-border);border-radius:var(--radius-panel);padding:var(--space-4);color:var(--color-text);background:var(--color-surface);cursor:pointer;min-height:115px;transition:border-color var(--duration-fast),background var(--duration-fast)}
+.region:hover,.selected{border-color:var(--color-primary);background:var(--color-surface-raised)}
+.selected{box-shadow:inset 0 0 0 1px var(--color-primary)}
+.number{color:var(--color-primary);font-size:.78rem;font-weight:700;letter-spacing:.06em}
+.small{font-size:.84rem;color:var(--color-text-muted)}
+.details{display:grid;grid-template-columns:minmax(240px,1fr) minmax(300px,2fr);gap:var(--space-5)}
+.summary,.species{min-width:0;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-panel);padding:var(--space-5)}
+.summary{display:grid;gap:var(--space-3);align-content:start}
+.summary h2{margin:0;font-size:1.6rem}
+.summary p,.note{color:var(--color-text-muted);font-size:.87rem;line-height:1.55}
+.facts{display:grid;gap:var(--space-3);margin:0}
+.facts div{display:grid;gap:var(--space-1);border-bottom:1px solid var(--color-border);padding-bottom:var(--space-3)}
+.facts dt{color:var(--color-text-muted);font-size:.85rem}
+.facts dd{font-weight:700;margin:0}
+.species h3{margin:0 0 var(--space-4)}
+.speciesGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:var(--space-3);margin:0;padding:0;list-style:none}
+.pokemon{display:grid;justify-items:center;text-align:center;align-content:start;gap:var(--space-1);border:1px solid var(--color-border);background:var(--color-surface-raised);border-radius:var(--radius-card);padding:var(--space-3);min-width:0}
+.pokemon img{object-fit:contain;image-rendering:auto}
+.pokemon span{color:var(--color-text-muted);font-size:.72rem}
+.pokemon strong{font-size:.85rem;overflow-wrap:anywhere}
+.note{margin:var(--space-4) 0 0}
+.footer{border-top:1px solid var(--color-border);color:var(--color-text-muted);padding-top:var(--space-4);font-size:.82rem}
+@media(max-width:760px){.page{padding:var(--space-5) var(--space-4);gap:var(--space-5)}.details{grid-template-columns:minmax(0,1fr)}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.region,.selected{padding:var(--space-3)}}
+@media(max-width:390px){.grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.region,.selected{transition:none}}

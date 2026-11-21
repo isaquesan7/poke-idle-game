@@ -936,3 +936,10 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - NÃO mudam: simulador de combate, lógica de encontro, save, recompensas, probabilidades de captura, movimentos, times, efeitos, velocidade/ritmo ou comportamento de replay. As informações técnicas continuam documentadas no core e GDD, somente removidas da interface inicial.
 - E2E PC/mobile verifica presença de líder/placar, ausência das fórmulas na UI, 12 exemplos de encontros e save intacto após reassistir/pular. Screenshots acrescentados.
 - Validar CI completa (TypeScript/Vitest, Playwright e Docker) antes do merge; verificar Railway pelo SHA exato e /health. Após D063, refinar Arena com feedback do usuário, mantendo Inventário/Economia em espera.
+
+
+## D-064AE — preview das dez regiões independente do stack D064 (20/11/2026; NÃO PUBLICADO)
+- Branch feat/d064ae-readonly-regions-preview criada diretamente de main D063 para PR estreita. Novo /regions apresenta dez regiões estáticas de Kanto, faixas de níveis e exemplos de espécies, sem encontro, captura ou recompensas. Link 'Regiões (prévia)' na navegação /play apenas direciona ao catálogo informativo. UI usa tokens Kanto Dark, seleção por teclado e responsividade.
+- Roteamento apps/web/src/main.tsx e server.mjs; não modifica /, /play existente, Battle, equipe, schema2, localStorage, PlayAction nem economia. Não inclui PRs D064 experimentais de writer e capturas.
+- Testes: Vitest SSR/catalogo, E2E pelo server real /regions em desktop/mobile com localStorage byte a byte antes/depois, keyboard, ausência de controles de captura/recompensa e screenshots. Workflow main-regression ampliado. Critérios em docs/REGIONS_PREVIEW_D064AE.md.
+- GATE: CI do HEAD, screenshots, aceite de release e confirmação de SHA Railway. Produção segue intacta. Corte C regional permanece bloqueado por autoridade/concorrência e política econômica.

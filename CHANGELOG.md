@@ -351,3 +351,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Arena redesenhada com líder da equipe, resumo de vitórias/derrotas/insígnias, botão de batalha destacado e descrições concisas sem fórmulas internas de energia.
 - Palco e GIFs proporcionais, cartões HP/SP, resultados, recompensas, diário turno a turno e amostra de encontros harmonizados ao Kanto Dark, inclusive layout mobile.
 - Nenhuma mudança no core de combate, ritmo do replay, chance de captura, saves ou economia. Teste E2E para indicadores e cards, screenshots desktop/mobile; CI e deploy pendentes.
+
+
+### D-064AE — catálogo regional em recorte de release independente (não publicado)
+- Nova rota /regions com dez áreas acessíveis, teclado e exemplos de GIFs, link navegável no /play. Sem batalhas/capturas/recompensas regionais nem escrita de save.
+- Servidor Node entrega /regions pelo HTML React; E2E desktop/mobile confere localStorage intacto. Release condicionado aos gates e aceite explícito; sem deploy.

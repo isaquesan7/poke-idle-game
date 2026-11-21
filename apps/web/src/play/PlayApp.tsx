@@ -424,6 +424,9 @@ export function PlayApp() {
               className={tab === item ? styles.menuActive : styles.menuItem}
               onClick={() => { if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='arena')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
+          <a href="/regions" className={styles.menuItem} style={{textDecoration:'none'}}>
+            <i className="fa-solid fa-map" aria-hidden="true"/>Regiões (prévia)
+          </a>
         </nav>
         <div className={styles.sidebarFooter}>
           <p>Pré-lançamento v0.2</p>
