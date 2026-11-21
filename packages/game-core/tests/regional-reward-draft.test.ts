@@ -78,6 +78,19 @@ describe('D-064J — transação pura de recompensa, débito e captura regionais
       expect(data.seen).toContain(150);
     }
   });
+  it('perda com bola pré-selecionada não gasta nada e não gera captura',()=>{
+    const result=applyRegionalBattleDraft(fixture(),command({
+      outcome:'loss',affinityGain:undefined,ballId:'ultra-ball'
+    }));
+    expect(result.status).toBe('applied');
+    if(result.status==='applied'){
+      const data=JSON.parse(result.journal.raw);
+      expect(data.ballPocket.quantities['ultra-ball']).toBe(2);
+      expect(data.wins).toBe(0);
+      expect(data.losses).toBe(1);
+      expect(data.roster).toHaveLength(1);
+    }
+  });
   it('recusa region lock, bolso ausente, revisão velha, UID e resultado impróprio',()=>{
     const old={...source(),trainer:{level:1,xp:0,manual:{}}};
     expect(applyRegionalBattleDraft(fixture(old),command({regionId:10})).status)
