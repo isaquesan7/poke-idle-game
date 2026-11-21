@@ -1,5 +1,10 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AW — auditoria de equilíbrio regional da IA selvagem (21/11/2026; branch)
+- Teste diagnóstico novo `d064aw-regional-wild-balance.test.ts`: 10 regiões, 2 níveis, 2 perfis de treinamento, 3 linhas de starters e 12 seeds = 1.440 pares de simulações da IA antiga (um golpe selvagem) versus IA D064AV (até quatro golpes legais), total 2.880 batalhas.
+- Relatório determinístico em log CI com win-rates, uso de novos golpes/SP, duração média e métricas por região; documentação `docs/REGIONAL_BALANCE_D064AW.md`. Nenhuma alteração funcional, recompensas, captura, save ou GIFs. CI, merge e Railway pendentes.
+
+
 ## D-064AV — justiça da IA e golpes dos selvagens (21/11/2026; branch)
 - Auditoria identificou selvagens com apenas um golpe padrão enquanto jogadores tinham até 4 slots. O novo `kantoWildMoveLoadout` equipa ofensivos e suportes que a mesma espécie pode aprender naquele nível FRLG (até 3 ofensivos recentes + 1 suporte). Fallback provisório somente quando não há ofensiva disponível.
 - Mesmos SP, IA, precisão, prioridade e efeitos por impacto dos jogadores, sem rank/bônus ocultos nem TMs; testes determinísticos cobrem 151 espécies e uso real de Twineedle selvagem. A dificuldade pode aumentar; sem mudança de captura, XP, economia ou salvamentos. Documentação `docs/WILD_AI_FAIRNESS_D064AV.md`, CI/merge/deploy pendentes.
