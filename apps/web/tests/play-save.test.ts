@@ -3,6 +3,7 @@ import {
   PLAY_SAVE_KEY, createPlaySave, readPlaySave, resetPlaySave, updatePlaySave
 } from '../src/play/playSave';
 import type { PlayStorage } from '../src/play/playSave';
+import {previewRegionalBattleFromJournal} from '../src/play/regionalBattleBridge';
 
 function memory() {
   const map = new Map<string, string>();
@@ -532,5 +533,39 @@ describe('persistência da trilha visual, sem writer no replay',()=>{
     expect(snapshot.revision).toBe(1);
     expect(readPlaySave(storage)).toEqual({status:'ready',snapshot});
     expect(map.get('kanto-idle-lab-save-v01')).toBe('LEGACY-CONSERVADO');
+  });
+});
+
+
+describe('D-064K — encontro regional simulado a partir do save verdadeiro',()=>{
+  it('reconstrói stats e golpes do líder sem gravar dados ou conceder recursos',()=>{
+    const {storage}=memory();
+    expect(createPlaySave(storage,'Kanto',4,1000,true).status).toBe('ok');
+    const before=storage.getItem(PLAY_SAVE_KEY);
+    const journal=current(storage).journal;
+    const first=previewRegionalBattleFromJournal(journal,1,17);
+    const repeated=previewRegionalBattleFromJournal(journal,1,17);
+    expect(first.status).toBe('ready');
+    expect(first).toEqual(repeated);
+    if(first.status==='ready'){
+      expect(first.preview.battle.playerSpeciesId).toBe(4);
+      expect(first.preview.battle.playerLevel).toBe(20);
+      expect(first.preview.battle.frames).toHaveLength(first.preview.battle.log.length);
+      expect(first.preview.captureDisabled).toBe(true);
+      expect(first.preview.battle.log.some(line=>line.includes('Recompensas de combate recebidas'))).toBe(false);
+      expect(first.preview.battle.log.some(line=>line.startsWith('Captura!'))).toBe(false);
+    }
+    expect(storage.getItem(PLAY_SAVE_KEY)).toBe(before);
+    expect(current(storage).revision).toBe(0);
+  });
+  it('bloqueia região alta e entradas inválidas sem mudar a Arena anterior',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Kanto',1,1000);
+    const journal=current(storage).journal;
+    expect(previewRegionalBattleFromJournal(journal,10,123).status).toBe('blocked');
+    expect(previewRegionalBattleFromJournal(journal,1,-1).status).toBe('blocked');
+    expect(previewRegionalBattleFromJournal(
+      {...journal,raw:'{broken'},1,123).status).toBe('blocked');
+    expect(current(storage).revision).toBe(0);
   });
 });
