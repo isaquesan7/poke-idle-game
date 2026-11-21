@@ -113,3 +113,11 @@ export {resolveKantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
 export {d064DraftBallDrop,D064_DRAFT_STARTER_BALLS} from './capture/draftBallSupply.js';
 export type {KantoBallId} from './capture/kantoBalls.js';
 export type {KantoBallPocketV1} from './capture/kantoBallPocket.js';
+
+// D064AO — catálogo FRLG completo para consulta, execução só de efeitos suportados.
+export {
+  KANTO_FRLG_LEVELUP_SOURCE_COMMIT,KANTO_FRLG_LEVELUP_ROWS,
+  KANTO_FRLG_MOVE_META,KANTO_FRLG_EXECUTABLE_EFFECT_IDS,
+  kantoFrlgLevelMoveCatalog
+} from './catalog/kantoFrlgLevelupSnapshot.js';
+export type {FrlgLevelMoveMeta} from './catalog/kantoFrlgLevelupSnapshot.js';

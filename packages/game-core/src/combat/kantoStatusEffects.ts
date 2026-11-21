@@ -6,6 +6,8 @@
  * É um recorte intencional, NÃO uma emulação de todos os efeitos FireRed/LeafGreen.
  * Condições temporárias de batalha não alteram o progresso individual.
  */
+import {KANTO_FRLG_MOVE_META} from '../catalog/kantoFrlgLevelupSnapshot.js';
+
 export const KANTO_STATUS_SOURCE_COMMIT =
   'ac2f1acb055026e3dff1e0aca743bb46256a810a';
 
@@ -15,7 +17,21 @@ export type KantoSecondaryEffect =
   | {readonly kind:'drain';readonly percent:number}
   | {readonly kind:'speed-drop';readonly chance:number;readonly stages:1};
 
+/** Efeitos do CSV PokéAPI que já possuem resolução fiel no motor atual. */
+const FRLG_SECONDARY_EFFECTS:Readonly<Record<string,KantoSecondaryEffect>>=
+  Object.fromEntries(Object.values(KANTO_FRLG_MOVE_META).flatMap(meta=>{
+    const chance=meta.effectChance??0;
+    if(meta.power===null||meta.power<=0)return [];
+    let effect:KantoSecondaryEffect|undefined;
+    if(meta.effectId===3&&chance>0)effect={kind:'status',status:'poison',chance};
+    else if(meta.effectId===5&&chance>0)effect={kind:'status',status:'burn',chance};
+    else if(meta.effectId===7&&chance>0)effect={kind:'status',status:'paralysis',chance};
+    else if(meta.effectId===4)effect={kind:'drain',percent:50};
+    else if(meta.effectId===71&&chance>0)effect={kind:'speed-drop',chance,stages:1};
+    return effect?[[meta.name,effect]]:[];
+  }));
 export const KANTO_SECONDARY_EFFECTS: Readonly<Record<string,KantoSecondaryEffect>> = {
+  ...FRLG_SECONDARY_EFFECTS,
   ember:{kind:'status',status:'burn',chance:10},
   'thunder-shock':{kind:'status',status:'paralysis',chance:10},
   'poison-sting':{kind:'status',status:'poison',chance:30},

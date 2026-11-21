@@ -1,3 +1,4 @@
+import { KANTO_FRLG_MOVE_META } from './kantoFrlgLevelupSnapshot.js';
 /**
  * PP por movimento em snapshot fixo de PokeAPI/pokeapi (moves.csv).
  * Origem: https://github.com/PokeAPI/pokeapi/blob/ac2f1acb055026e3dff1e0aca743bb46256a810a/data/v2/csv/moves.csv
@@ -11,6 +12,11 @@
 export const KANTO_PP_SOURCE_COMMIT='ac2f1acb055026e3dff1e0aca743bb46256a810a';
 export const KANTO_PP_SOURCE_BLOB='a55116329ca22f230fea953de94c2d1dffe2ad0e';
 export const KANTO_MOVE_PP:Readonly<Record<string,number>>={
+  // Novo snapshot publicado na D064AO: PP oficial atual dos golpes FRLG
+  // de level-up (os valores anteriores abaixo têm prioridade explícita).
+  ...Object.fromEntries(Object.values(KANTO_FRLG_MOVE_META)
+    .filter(meta=>meta.pp!==null&&meta.pp>0)
+    .map(meta=>[meta.name,meta.pp!])),
   'absorb':25,
   'bubble':30,
   'drill-peck':20,

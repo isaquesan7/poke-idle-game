@@ -20,6 +20,10 @@
  */
 import type { KantoMove } from '../combat/kantoBattle.js';
 import { kantoSpecies } from './kantoSpecies.js';
+import {
+  KANTO_FRLG_MOVE_META,KANTO_FRLG_EXECUTABLE_EFFECT_IDS,
+  kantoFrlgLevelMoveCatalog
+} from './kantoFrlgLevelupSnapshot.js';
 
 export const KANTO_LEVELUP_SOURCE_COMMIT = 'ac2f1acb055026e3dff1e0aca743bb46256a810a';
 export const KANTO_LEVELUP_VERSION_GROUP = 'firered-leafgreen';
@@ -191,6 +195,14 @@ export function kantoLevelMoves(speciesId:number,level:number):readonly KantoLea
       found.set(move.name,{move,learnedAt});
     }
   }
+  // D064AO: método level-up e grupo FRLG auditados; golpes sem efeitos
+  // executáveis continuam no catálogo completo, mas NÃO são equipáveis.
+  for(const entry of kantoFrlgLevelMoveCatalog(speciesId,level)){
+    if(!entry.executable)continue;
+    const move=KANTO_LEVELUP_DAMAGE_MOVES[entry.meta.name];
+    if(move&&(!found.has(move.name)||entry.learnedAt<found.get(move.name)!.learnedAt))
+      found.set(move.name,{move,learnedAt:entry.learnedAt});
+  }
   for(const [learnedAt,name] of EXTRA_LEARNS[speciesId]??[]){
     if(learnedAt>level)continue;
     const move=EXTRA_LEVEL_MOVES[name];
@@ -201,5 +213,17 @@ export function kantoLevelMoves(speciesId:number,level:number):readonly KantoLea
 }
 
 /** Nome único → dados de combate verificados no mesmo snapshot. */
-export const KANTO_LEVELUP_DAMAGE_MOVES: Readonly<Record<string,KantoMove>> =
-  Object.fromEntries([...MOVES,...Object.values(EXTRA_LEVEL_MOVES)].map(move=>[move.name,move]));
+const FRLG_EXPANDED_PLAYABLE_MOVES:Readonly<Record<string,KantoMove>>=
+  Object.fromEntries(Object.values(KANTO_FRLG_MOVE_META).filter(meta=>
+    meta.category!=='status'&&meta.power!==null&&meta.power>0
+    &&meta.pp!==null&&meta.pp>0&&KANTO_FRLG_EXECUTABLE_EFFECT_IDS.has(meta.effectId)
+  ).map(meta=>[meta.name,{
+    name:meta.name,type:meta.type,category:meta.category,power:meta.power!,
+    accuracy:meta.accuracy??100,priority:meta.priority
+  }]));
+/** Preservar golpes anteriores e suas fichas publicadas em saves existentes. */
+export const KANTO_LEVELUP_DAMAGE_MOVES: Readonly<Record<string,KantoMove>> = {
+  ...FRLG_EXPANDED_PLAYABLE_MOVES,
+  ...Object.fromEntries([...MOVES,...Object.values(EXTRA_LEVEL_MOVES)]
+    .map(move=>[move.name,move]))
+};
