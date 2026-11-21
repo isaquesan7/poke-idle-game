@@ -397,3 +397,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Testes determinísticos de avanço pelas dez regiões com nível do treinador e Pokémon, cenários de 20 vitórias/h apenas batalha e modelo hipotético batalha+expedição.
 - Novo relatório `docs/PROGRESSION_AUDIT_D064AL.md` com hipóteses, número de vitórias/horas e advertências metodológicas.
 - **Nenhuma alteração em runtime, recompensas, desbloqueios, saldo, save ou interface.** PR/CI/deploy pendentes; D064AK foi integrada na main pelo PR #112 com três gates SUCCESS.
+
+
+## D-064AM — auditoria regional avançada (21/11/2026; em validação)
+- Teste determinístico de 4.608 confrontos no motor Kanto nas regiões 7–10, por líder, nível, treino e seed, com métricas de vitórias, derrotas, turnos, duração teórica do replay e XP médio por encontro.
+- Documentação em `docs/BALANCE_D064AM.md`. Não modifica gameplay, níveis, chances, XP, save, Pokébolas, expedição, GIFs ou rota pública.
+- Publicação apenas após CI e Railway confirmados no commit de integração.
