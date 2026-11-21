@@ -22,3 +22,33 @@ O `BattlePlayback` revela a primeira linha imediatamente e cada uma das restante
 CI do HEAD: TypeScript strict, Vitest core/web, regressão /play e /regions desktop/mobile, Playwright isolado e imagem Docker. Recolher a linha `D064AM_REGION_BATTLE_REPORT` dos logs CI, sintetizar achados e só depois apresentar proposta de balanceamento separada, sem mudar números automaticamente. Próxima etapa D064AN: avaliação de progressão por sessão com distribuição observável de níveis/tempos e jornadas acessíveis, sem alegar telemetria de jogadores inexistentes.
 
 `isaquesan7/pokedex` permanece intocado.
+
+
+## Resultados observados no CI — matriz 4.608
+A execução de regressão GitHub Actions `44916147384` foi **SUCCESS** no HEAD de teste `2535dd9f0974ba2b16b92610a1a54c39ec01d04e`; relatório `D064AM_REGION_BATTLE_REPORT` foi recuperado dos logs do job `136882063732`. Cada região tem exatamente 1.152 confrontos; cada combinação de região/nível/perfil tem 192. A taxa regional apresentada é a média de seis grupos de mesmo tamanho, portanto equivale à taxa agregada.
+
+| Região | Vitória % (matriz completa) | p95 playback normal mais longo dos grupos |
+| --- | ---: | ---: |
+| 7 Costa Oceânica | 68,06% | 26,1 s |
+| 8 Reserva Selvagem | 63,54% | 18,0 s |
+| 9 Pico Dracônico | **43,06%** | **26,1 s** |
+| 10 Santuário Lendário | 57,73% | 16,2 s |
+
+### Detalhe do gargalo do Pico Dracônico
+| Pokémon líder | Perfil | Vitória % | Derrota % | XP treinador médio por encontro |
+| --- | --- | ---: | ---: | ---: |
+| Nv81 | sem treino | 33,33% | 66,15% | 98,29 |
+| Nv81 | treinado | 43,23% | 56,25% | 127,33 |
+| Nv90 | sem treino | 36,46% | 63,54% | 115,92 |
+| Nv90 | treinado | 42,71% | 57,29% | 135,78 |
+| Nv100 | sem treino | 48,44% | 51,56% | 155,00 |
+| Nv100 | treinado | 54,17% | 45,83% | 173,33 |
+
+A amostra do Pico observou **7–8 espécies distintas por segmento**, apesar de dez espécies na região. Isso é esperado com sementes limitadas e pesos baixos para lendários, e NÃO valida a probabilidade extrema de aparição deles. As 24 linhas completas, inclusive turnos e custo visual, estão nos logs estruturados da execução.
+
+O menor percentual em Pico Dracônico sugere investigar a relação entre tipos dos Pokémon selvagens, golpes-padrão provisórios e dano/HP antes de reduzir o requisito de treinador. A taxa no Santuário melhora em comparação ao Pico para estes seis líderes, mas isso não significa que a última região seja sempre mais fácil para qualquer Pokémon.
+
+O p95 de apresentação é calculado por `(p95 linhas - 1) × 900ms` e não mede processamento real nem execução do navegador. Leitura assistiva/pausas podem ser significativamente mais lentas. A estimativa de **XP por encontro** já incorpora derrotas com XP zero; o valor não é XP/hora e não inclui expedições.
+
+### Decisão D064AM
+**Nenhum nerf/buff automático**: conservar a curva de treinador D064AJ, os gates D064AK, a tabela de Pokébolas e as raridades atuais. Na D064AN, priorizar amostras com golpes equipáveis reais por espécie, equipamentos/afinidades típicos, vários líderes capturados, testes de replay desktop/mobile e análise de trajetória de XP com win-rate observável. Avaliar Pico Dracônico primeiro.
