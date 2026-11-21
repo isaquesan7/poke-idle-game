@@ -1025,3 +1025,15 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - D064AL é um recorte **apenas de testes/documentação** em branch `test/d064al-progression-simulation`. Relatório `docs/PROGRESSION_AUDIT_D064AL.md` modela 20 vitórias/h, encontro de nível máximo, 100% de vitória, novo XP de treinador e gates duplos de expedição/região. Teste `packages/game-core/tests/d064al-progression-audit.test.ts` gera dados determinísticos, sem alterar parâmetros de gameplay.
 - Resultado diagnóstico otimista: 4.110 vitórias / 205,5 horas só batalhas do treinador Nv1 até desbloquear região10 Nv93; batalha + 18 ciclos de expedição a cada 3 min **hipotéticos**: 3.205 vitórias / 160,25 horas. A segunda projeção não é medição de jogo. Até 1.440 XP de treinador por hora idle em ciclos completos (8h por resgate).
 - Próxima D064AM: simular win-rates reais e tempo de batalha de regiões 7–10, avaliar gargalos de progressão e só depois decidir ajustes de XP/unlock/recompensa. Sem alterações no repo isaquesan7/pokedex.
+
+
+## D-064AM — auditoria de combate avançado (21/11/2026; PR em validação)
+- Base main D064AL `8886dc90a4ef2b5b1dc1cf27e49ecb73a169d56f`; D064AK e D064AL publicadas Railway com CI SUCCESS. Branch `test/d064am-advanced-region-battle-audit` incorpora teste diagnóstico de **4.608 batalhas** regiões 7–10, 3 níveis, 6 espécies líderes, 2 perfis de atributos, 32 seeds.
+- Sem alterar runtime/save/combate/XP/economia. Mede win/loss/draw, turnos, linha do log, turn cap, ganhos médios de XP por encontro e tempos teóricos de apresentação segundo BattlePlayback (900 ms normal, 450 ms 2×, 3000 ms assistivo). As saídas precisam ser lidas do CI no mesmo SHA, não são telemetria humana. Metodologia/limites em `docs/BALANCE_D064AM.md`.
+- Gates: TypeScript strict, Vitest, E2E /play-/regions desktop/mobile, Playwright isolado, Docker e Railway no SHA após merge. **Não publicada até esses gates.** Próximo D064AN: transformar métricas em cenários de sessão, estratificar derrotas e possíveis bloqueios nas regiões 8–10 antes de propor qualquer mudança econômica. Repositório isaquesan7/pokedex intocado.
+
+
+### D064AM — relatório de CI (21/11/2026)
+- Após corrigir o estrato duplicado Lv100 da região 10 (substituído por Lv95 no estrato intermediário), regressão geral `44916147384` e Docker `44916146948` **SUCCESS** no commit `2535dd9f0974ba2b16b92610a1a54c39ec01d04e`. O teste de 4.608 confrontos passou e exportou `D064AM_REGION_BATTLE_REPORT` no job `136882063732`.
+- Win-rate por região na matriz: Costa Oceânica **68,06%**, Reserva Selvagem **63,54%**, Pico Dracônico **43,06%**, Santuário Lendário **57,73%**. Pico é o principal ponto de atenção: líder Nv81 sem treino 33,33% de vitória, com treino 43,23%; Nv100 com treino 54,17%. Ver `docs/BALANCE_D064AM.md` para metodologia, XP por encontro e p95 de apresentação.
+- Alteração adicional do relatório pós-CI exige gate do **novo HEAD** antes de merge; sem mudanças de gameplay. Próxima D064AN: medir com golpes reais equipados e trajetórias de sessões; não extrapolar win-rates de fixtures a usuários reais.
