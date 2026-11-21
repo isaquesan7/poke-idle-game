@@ -124,11 +124,6 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
     coins+=reward.coins;
     if(!Number.isSafeInteger(coins))return null;
 
-    // A reposição é conquistada depois da vitória, como no reducer D064J.
-    const drop=d064DraftBallDrop(region.id,regionWins[region.id-1]!);
-    if(!drop)return null;
-    for(const key of keys){stock[key]+=drop[key];earned[key]+=drop[key];}
-
     const shouldTry=input.captureStrategy==='every-win'
       ||input.captureStrategy==='rare-only'&&rare;
     if(shouldTry){
@@ -147,6 +142,13 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
         if(attempt.captured){if(rare)rareCaptures++;else normalCaptures++;}
       }
     }
+    // Igual ao reducer D064J: primeiro desconta a tentativa de captura,
+    // depois concede a reposição pela vitória. A bola ganha AGORA só pode
+    // ser usada no próximo encontro.
+    const drop=d064DraftBallDrop(region.id,regionWins[region.id-1]!);
+    if(!drop)return null;
+    for(const key of keys){stock[key]+=drop[key];earned[key]+=drop[key];}
+
     for(let i=1;i<KANTO_REGIONS.length;i++)
       if(unlockBattles[i]===null
         &&trainer.level>=KANTO_REGIONS[i]!.trainerUnlockLevel)
