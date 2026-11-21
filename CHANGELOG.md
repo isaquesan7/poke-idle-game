@@ -1,5 +1,10 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AP — auditoria hipotética de equipe (21/11/2026; branch, NÃO PUBLICADA)
+- Novo teste determinístico de 2.304 duelos nas regiões 8–10, com quatro possíveis líderes, golpes FRLG realmente liberados, 3 níveis e 2 treinos, para comparar líder fixo, rotação pré-definida e teto contrafactual (oracle). Reporta vitórias, XP/tentativa e duração de replay apenas teórica; não é telemetria nem prova de equipe adquirida.
+- Nenhum ajuste de combate, economia, XP, captura, expedições, save, interface, GIFs, runtime ou Pokédex externa. Metodologia: docs/TEAM_AUDIT_D064AP.md. PR/CI/merge/deploy ainda pendentes; D064AQ deve validar trajetória com writer e playback browser real.
+
+
 ## D-056 — refinamento das telas Pokémon (19/11/2026, BRANCH, NÃO PUBLICADA)
 - Perfil: informações/arte do Pokémon e Treinamento lado a lado no desktop, com empilhamento no mobile e tokens do root. Identidade, GIF, UID e afinidade preservados.
 - Treino: novo PokemonTraining.tsx com prévia, desfazer, cancelar, confirmação e aviso por revisão stale, isolado por UID. Writer pokemon-invest-batch agrega múltiplos pontos em UM commit/revisão, revalidando todos pelo reducer core. Não modifica orçamento, limite, atributos, regras de combate ou save schema2.
