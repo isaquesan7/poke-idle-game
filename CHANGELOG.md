@@ -463,3 +463,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064Z — laboratório de cenários regionais (não publicado)
 - Simulador puro e determinístico de 1–3 Pokémon, taxa hipotética de derrotas, nível/XP individual, desbloqueio de regiões e balanço de Poké Bolas com tentativas de captura. Testes de conservação de estoque, limites e determinismo.
 - Nenhuma alteração no combate da Arena, saves, economia publicada ou regras experimentais D064; implementação isolada até validação CI e decisão de balanceamento.
+
+
+### D-064AA — matriz de regressão de balanceamento (não publicado)
+- 12 cenários determinísticos (taxas de 50/75/100%, times de 1/3 UIDs, captura em toda vitória vs apenas raros) geram logs `D064AA_MATRIX` para comparação por CI, com conservação de estoque e reprodutibilidade. Sem ajustes de economia ou gameplay.
