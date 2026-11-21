@@ -403,3 +403,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## D-064N — migração versionada da mochila de Poké Bolas em RAM (2026-11-21; sem publicação)
 - Contrato puro e testes de upgrade único do bolso, protegendo saves com Expedição legada, saldos e capturas pré-existentes. Sem estoque fictício ou reinicialização de bolsa já existente. Política de 12 Poké Balls é apenas hipótese explícita.
+
+
+## D-064O — reconciliação econômica regional em RAM (2026-11-21; sem publicação)
+- `applyRegionalBattleDraft` agora calcula XP/coins experimentais de D064 a partir dos valores anteriores ao combate, sem conceder os antigos bônus excessivos do reducer legado. Captura/UID, medalhas, bolso e recibos continuam na mesma revisão de journal hipotética.
+- Testes para vitórias, derrotas, níveis-limite, replay de eventos, XP inválido e proteção dos saves existentes. Nenhum writer em produção alterado.
