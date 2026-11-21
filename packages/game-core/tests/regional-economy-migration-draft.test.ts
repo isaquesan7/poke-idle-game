@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {
   prepareRewardJournal,migrateD064EconomyDraft,
   d064DraftConvertLegacyXp,D064_EXPERIMENTAL_ECONOMY_VERSION,
-  xpThreshold,d064DraftXpThreshold,applyRegionalBattleDraft
+  xpThreshold,d064DraftXpThreshold
 } from '../src/index.js';
 
 const source=()=>({
