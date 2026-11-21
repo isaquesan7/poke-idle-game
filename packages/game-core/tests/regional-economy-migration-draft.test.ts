@@ -59,7 +59,8 @@ describe('D-064P — migração de XP sem perder níveis existentes',()=>{
           const converted=d064DraftConvertLegacyXp(kind,level,xp)!;
           expect(converted).toBeGreaterThanOrEqual(0);
           expect(converted).toBeLessThan(newer);
-          expect(Math.abs(converted/newer-xp/previous)).toBeLessThan(0.01);
+          // Arredondamento para baixo perde no máximo 1 XP do novo limiar.
+          expect(Math.abs(converted/newer-xp/previous)).toBeLessThanOrEqual(1/newer);
         }
       }
     }
