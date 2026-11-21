@@ -4,7 +4,7 @@ import {
   cachedSpecies, projectLegacyTrainer, STAT_LABELS
 } from './legacyProjection';
 import {
-  LEGACY_ITEMS, LEGACY_BADGES, LEGACY_TITLES, effectiveLegacyTitle
+  LEGACY_ITEMS, LEGACY_BADGES, LEGACY_TITLES, effectiveLegacyTitle, xpThreshold
 } from '@kanto/game-core';
 import fixture from '../../../../../tests/fixtures/legacy-save-v01.json';
 
@@ -33,7 +33,7 @@ describe('paridade da v0.1 e game-core (fixture de save realista)', () => {
     const value = ready(fixture);
     expect(value.name).toBe('Save legado v0.1');
     expect(value.level).toBe(21);
-    expect(value.xpNext).toBe(662); // 95 + 21*27 (v0.1)
+    expect(value.xpNext).toBe(xpThreshold('trainer',21)); // D-064AJ: curva longa compartilhada com o core
     expect(value.unspent).toBe(1); // (21-1)*2 - 39
     expect(value.totals).toEqual({
       hp: 3, attack: 44, defense: 6,

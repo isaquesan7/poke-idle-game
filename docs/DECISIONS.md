@@ -109,3 +109,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AI | 2026-11-21 | TELA REGIONAL JOGÁVEL — PENDENTE DE CI | /regions e a aba Regiões do PlayApp passam a usar o save v0.2 e o catálogo KANTO_REGIONS; escolher área desbloqueada e lutar invoca a mesma action regional-battle do writer Arena D064AH, abrindo o BattleStage/replay da Arena. Sem segunda economia, sem novo writer e sem mudanças nas regras de captura, drops ou raridade. Espécies não descobertas ficam ocultas. |
+
+
+| D-064AJ | 2026-11-21 | IMPLEMENTAÇÃO EM PR, CI PENDENTE | A Arena deixa de existir como menu e modalidade de batalha independente; Regiões é o ponto obrigatório de seleção e entrada. Combate retém animações/diário/placar, mostra título da região e lista real de espécies locais, volta ao mapa sem criar rewards. Rolagem sempre no topo ao entrar. Reduzir fortemente velocidade do treinador: threshold 140+35L+ceil(3.5L²) e XP por vitória 50+3W; curva e XP dos Pokémon não mudam. Lançamento após CI completo, sem apagar progresso prévio. |

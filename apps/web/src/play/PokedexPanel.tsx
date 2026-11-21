@@ -56,7 +56,7 @@ export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena}:P
           <h2>Pokédex de Kanto</h2>
           <p>Explore os 151 registros de Kanto. Toque em um Pokémon descoberto para abrir sua ficha com tipos, atributos-base, vantagens e golpes. Cada espécie capturada conta uma única vez.</p>
           <div className={styles.actions}>
-            <button type="button" className={styles.primary} onClick={onArena}>Explorar Arena</button>
+            <button type="button" className={styles.primary} onClick={onArena}>Explorar Regiões</button>
             <button type="button" className={styles.secondary} onClick={onCollection}>Minha coleção</button>
           </div>
         </div>

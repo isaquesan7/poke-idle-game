@@ -58,7 +58,11 @@ try{
     assert.deepEqual(consulted,before);
     await page.getByRole('combobox',{name:'Pokébola para captura regional'}).selectOption('poke-ball');
     await page.getByRole('button',{name:/Batalhar em Lagos Serenos/}).click();
-    await page.getByRole('heading',{name:'Arena de batalha'}).waitFor();
+    await page.getByRole('heading',{name:'Batalha nos Lagos Serenos'}).waitFor();
+    await page.waitForFunction(()=>scrollY===0);
+    assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
+    await page.getByRole('heading',{name:'Pokémon encontrados nesta área'}).waitFor();
+    assert.equal(await page.locator('[class*="encounterGrid"] [class*="encounterCard"]').count(),18);
     await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===1,key);
     const after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     const game=JSON.parse(after.journal.raw);
@@ -78,6 +82,30 @@ try{
     await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
     const persisted=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     assert.deepEqual(persisted,after,'Voltar a Regiões não duplica recompensas ou gasto de bola');
+    // O teste avança o nível SOMENTE no save de teste para validar Costa Oceânica;
+    // o jogo real continuará desbloqueando pela curva do treinador.
+    await page.evaluate(k=>{
+      const snapshot=JSON.parse(localStorage.getItem(k));
+      const game=JSON.parse(snapshot.journal.raw);
+      game.trainer.level=55;
+      snapshot.journal.raw=JSON.stringify(game);
+      localStorage.setItem(k,JSON.stringify(snapshot));
+    },key);
+    await page.reload();
+    await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
+    const coastal=page.getByRole('region',{name:'Escolha de região'});
+    await coastal.getByRole('button',{name:/ÁREA 07/}).click();
+    await page.getByRole('button',{name:/Batalhar em Costa Oceânica/}).click();
+    await page.getByRole('heading',{name:'Batalha na Costa Oceânica'}).waitFor();
+    await page.waitForFunction(()=>window.scrollY===0);
+    await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===2,key);
+    const coast=JSON.parse((await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key)).journal.raw);
+    assert.equal(coast.lastBattle.regionId,7);
+    assert.ok([77,78,83,84,85,134,135,136,138,3,6,9].includes(coast.lastBattle.wildSpeciesId));
+    assert.equal(await page.locator('[class*="encounterGrid"] [class*="encounterCard"]').count(),12);
+    assert.equal(await page.getByText('Pokémon encontrados nesta área').count(),1);
+    await page.getByRole('button',{name:'Voltar às regiões'}).click();
+    await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
     assert.deepEqual(errors,[],'Sem erros JavaScript na rota /regions');
     await context.close();
   }

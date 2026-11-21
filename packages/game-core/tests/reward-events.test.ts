@@ -78,7 +78,7 @@ describe('journal de eventos idempotentes v0.2 (somente RAM)',()=>{
     expect(save.wins).toBe(1);
     expect(save.losses).toBe(0);
     expect(save.coins).toBe(321+25+30);
-    expect(save.trainer.xp).toBe(16+30+70);
+    expect(save.trainer.xp).toBe(16+50+3*10);
     expect(save.roster[0]?.xp).toBe(12+20+60);
     expect(save.roster[0]?.affinity).toBe(76);
     expect(save.roster).toHaveLength(3);

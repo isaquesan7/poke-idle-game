@@ -31,15 +31,19 @@ try{
     await page.getByRole('checkbox',{name:/modo demonstração/}).check();
     await page.getByRole('button',{name:'Começar aventura'}).click();
     await page.getByRole('heading',{name:'Bem-vindo de volta, Treinador Regional!'}).waitFor();
-    await page.getByRole('button',{name:'Arena',exact:true}).click();
-    const region=page.getByRole('combobox',{name:'Região para batalha'});
+    await page.getByRole('button',{name:'Regiões',exact:true}).click();
+    assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
+    const region=page.getByRole('region',{name:'Escolha de região'});
     await region.waitFor();
-    assert.equal(await region.locator('option[value="5"]').isDisabled(),true,
+    await region.getByRole('button',{name:/ÁREA 05/}).click();
+    assert.equal(await page.getByRole('button',{name:/Batalhar em Planícies Elétricas/}).isDisabled(),true,
       'Região 5 deve estar bloqueada para treinador nível 21');
-    await region.selectOption('4');
+    await region.getByRole('button',{name:/ÁREA 04/}).click();
     const before=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
-    await page.getByRole('combobox',{name:'Pokébola para captura'}).selectOption('poke-ball');
-    await page.getByRole('button',{name:'Batalhar na região'}).click();
+    await page.getByRole('combobox',{name:'Pokébola para captura regional'}).selectOption('poke-ball');
+    await page.getByRole('button',{name:/Batalhar em Lagos Serenos/}).click();
+    await page.getByRole('heading',{name:'Batalha nos Lagos Serenos'}).waitFor();
+    await page.waitForFunction(()=>scrollY===0);
     await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===1,key);
     const after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     const game=JSON.parse(after.journal.raw);

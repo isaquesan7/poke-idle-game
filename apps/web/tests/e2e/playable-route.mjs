@@ -27,6 +27,13 @@ async function ready() {
   throw Error('Servidor não iniciou: '+stderr);
 }
 
+
+/** D-064AJ: a batalha não existe na navegação; replay somente após entrar na região. */
+async function openSavedBattle(page){
+  await page.getByRole('button',{name:'Regiões',exact:true}).click();
+  await page.getByRole('button',{name:'Rever último combate nesta região'}).click();
+}
+
 async function exercise(browser, label, viewport) {
   const context=await browser.newContext({viewport});
   const page=await context.newPage();
@@ -275,21 +282,24 @@ async function exercise(browser, label, viewport) {
   assert.equal(after.journal.receipts.length,2);
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
-  // Arena real: resultado deve vir do motor, nunca de um botão "ganhar".
-  await page.getByRole('button',{name:'Arena',exact:true}).click();
-  await page.getByRole('heading',{name:'Arena de batalha'}).waitFor();
+  // Combate apenas após escolher a região; o resultado vem do motor.
+  await page.getByRole('button',{name:'Regiões',exact:true}).click();
+  await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
+  assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
+  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+  await page.getByRole('heading',{name:'Batalha no Bosque Inicial'}).waitFor();
   // D-063: a visão inicial da Arena apresenta líder, indicadores e ação
   // principal; as informações do motor não devem poluir a tela do jogador.
-  const arenaLeader=page.getByLabel('Líder da Arena');
+  const arenaLeader=page.getByLabel('Líder do combate');
   await arenaLeader.getByText('Charmander').waitFor();
   assert.equal(await arenaLeader.getByText('UID #1',{exact:false}).count(),1);
-  const arenaStats=page.getByLabel('Desempenho na Arena');
+  const arenaStats=page.getByLabel('Desempenho na região');
   await arenaStats.getByText('Vitórias').waitFor();
   await arenaStats.getByText('Derrotas e empates').waitFor();
   await arenaStats.getByText('Insígnias').waitFor();
   assert.equal(await page.getByText('SP individual (50–100)',{exact:false}).count(),0,
     'A Arena não deve mostrar fórmulas internas ao jogador');
-  await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
+
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===5,SAVE);
   const fought=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   const battleSave=JSON.parse(fought.journal.raw);
@@ -299,7 +309,7 @@ async function exercise(browser, label, viewport) {
   assert.ok(battleSave.seen.includes(battleSave.lastBattle.wildSpeciesId));
   assert.ok(battleSave.lastBattle.log.length>=2);
   assert.ok(battleSave.lastBattle.turns<=30);
-  assert.equal(battleSave.lastBattle.battleId,'battle-v02-5');
+  assert.equal(battleSave.lastBattle.battleId,'regional-v02-5');
   // A trilha visual é persistida na mesma transação da batalha.
   const visual=battleSave.lastBattle;
   assert.equal(visual.frames.length,visual.log.length);
@@ -446,9 +456,9 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),battleSaved,
     'replay/pular não podem conceder recompensas novamente');
-  await page.getByRole('heading',{name:'Pokémon encontrados nesta arena'}).waitFor();
-  assert.equal(await page.locator('[class*="encounterGrid"] [class*="encounterCard"]').count(),12,
-    'Amostra de encontros deve manter os 12 Pokémon anteriores');
+  await page.getByRole('heading',{name:'Pokémon encontrados nesta área'}).waitFor();
+  assert.equal(await page.locator('[class*="encounterGrid"] [class*="encounterCard"]').count(),15,
+    'A região inicial deve listar apenas as 15 espécies de seu catálogo');
   await page.screenshot({path:new URL('arena-'+label+'.png',shots).pathname,fullPage:true});
   await page.getByRole('button',{name:'Pokédex',exact:true}).click();
   await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).waitFor();
@@ -456,10 +466,10 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Vistos',exact:true}).click();
   assert.equal(await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).count(),
     battleSave.lastBattle.captured ? 0 : 1);
-  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await openSavedBattle(page);
   await page.getByRole('heading',{name:'Diário de combate'}).waitFor();
   await page.reload();
-  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await openSavedBattle(page);
   await page.getByRole('heading',{name:'Diário de combate'}).waitFor();
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
@@ -505,7 +515,7 @@ async function exercise(browser, label, viewport) {
   await focusPage.evaluate(({key,seed})=>localStorage.setItem(key,JSON.stringify(seed)),
     {key:SAVE,seed:focusFixture});
   await focusPage.reload();
-  await focusPage.getByRole('button',{name:'Arena',exact:true}).click();
+  await openSavedBattle(focusPage);
   await focusPage.getByRole('button',{name:'Reassistir à batalha'}).click();
   // Modo acessível desacelera para 3s/linha, deixando o frame Concentrar
   // observável antes do próximo; não modifica o estado salvo.
@@ -539,7 +549,7 @@ async function exercise(browser, label, viewport) {
     localStorage.setItem('kanto-idle-ui-motion-v01','reduce');
   });
   await focusPage.reload();
-  await focusPage.getByRole('button',{name:'Arena',exact:true}).click();
+  await openSavedBattle(focusPage);
   assert.equal(await focusPage.getByLabel('Efeitos visuais da Arena').count(),0,
     'não existe menu de animações no desktop ou celular');
   assert.equal(await focusPage.getByTestId('battle-stage').evaluate(el=>
@@ -629,9 +639,9 @@ async function exercise(browser, label, viewport) {
   assert.equal(teamGame.roster.find(p=>p.uid===secondUid).manual.speed,1);
   assert.equal(teamGame.roster.find(p=>p.uid===firstUid).manual.speed,0);
 
-  await page.getByRole('button',{name:'Arena',exact:true}).click();
-  await page.getByLabel('Líder da Arena').getByText('UID #'+firstUid,{exact:false}).waitFor();
-  await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
+  await page.getByRole('button',{name:'Regiões',exact:true}).click();
+  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+  await page.getByLabel('Líder do combate').getByText('UID #'+firstUid,{exact:false}).waitFor();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===11,SAVE);
   const last=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.ok(last.journal.receipts.at(-1).fingerprint.includes('"activeUid":'+firstUid),
@@ -699,9 +709,9 @@ async function exercise(browser, label, viewport) {
   assert.equal(await page.getByTestId('pokedex-16').count(),1);
   assert.equal(await page.getByTestId('pokedex-17').count(),1);
   await page.reload();
-  await page.getByRole('button',{name:'Arena',exact:true}).click();
-  await page.getByLabel('Líder da Arena').getByText('Pidgeotto').waitFor();
-  await page.getByLabel('Líder da Arena').getByText('UID #'+firstUid,{exact:false}).waitFor();
+  await openSavedBattle(page);
+  await page.getByLabel('Líder do combate').getByText('Pidgeotto').waitFor();
+  await page.getByLabel('Líder do combate').getByText('UID #'+firstUid,{exact:false}).waitFor();
 
   // Montagem de 2 golpes no Charmander original, preservando o UID já testado.
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
@@ -724,7 +734,7 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1 pela coleção',exact:true}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===17,SAVE);
-  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.getByRole('button',{name:'Regiões',exact:true}).click();
   // Seed FIXA só para esta batalha E2E: contra Caterpie deve usar Growl e
   // em seguida Scratch; sem depender da sorte do encontro no navegador.
   await page.evaluate(()=>{
@@ -737,7 +747,7 @@ async function exercise(browser, label, viewport) {
       }
     });
   });
-  await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
+  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===18,SAVE);
   const multi=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).lastBattle,SAVE);
   assert.ok(multi.log.some(line=>line.includes('usou growl')),'IA deve usar suporte');
@@ -757,7 +767,7 @@ async function exercise(browser, label, viewport) {
     localStorage.setItem(key,JSON.stringify(snapshot));
   },SAVE);
   await page.reload();
-  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await openSavedBattle(page);
   assert.equal(await page.getByTestId('battle-hp-player').count(),1);
   assert.equal(await page.getByTestId('battle-sp-player').count(),0);
   assert.equal(await page.getByTestId('battle-sp-wild').count(),0);
@@ -772,7 +782,7 @@ async function exercise(browser, label, viewport) {
     localStorage.setItem(key,JSON.stringify(snapshot));
   },SAVE);
   await page.reload();
-  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await openSavedBattle(page);
   await page.getByText('Este combate anterior não possui trilha de HP por evento').waitFor();
   assert.equal(await page.getByTestId('battle-hp-player').count(),0);
   assert.equal(await page.getByTestId('battle-hp-wild').count(),0);
@@ -896,7 +906,7 @@ async function exerciseNewMoves(browser,label,viewport){
   const kick=page.getByTestId('pokemon-uid-'+uids.kickUid);
   await kick.getByRole('button',{name:'Adicionar UID '+uids.kickUid+' à equipe'}).click();
   await kick.getByRole('button',{name:'Tornar líder UID '+uids.kickUid+' pela coleção'}).click();
-  await page.getByRole('button',{name:'Arena',exact:true}).click();
+  await page.getByRole('button',{name:'Regiões',exact:true}).click();
   await page.evaluate(()=>{
     const original=window.crypto.getRandomValues.bind(window.crypto);
     Object.defineProperty(window.crypto,'getRandomValues',{
@@ -908,7 +918,7 @@ async function exerciseNewMoves(browser,label,viewport){
     });
   });
   const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
-  await page.getByRole('button',{name:'Batalhar contra Pokémon selvagem'}).click();
+  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
   await page.waitForFunction(({key,before})=>
     JSON.parse(localStorage.getItem(key))?.revision>before,
     {key:SAVE,before:before.revision});
