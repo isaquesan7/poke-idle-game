@@ -10,7 +10,7 @@
  * diferente é conflito; revisão obsoleta é recusada; recompensas, captura
  * e recibo são calculados na MESMA transição imutável. Ainda não é writer.
  */
-import { grantXp } from '../progression/xp.js';
+import { grantXp, battleTrainerXp } from '../progression/xp.js';
 import { expeditionRewards } from '../rewards/expedition.js';
 import { LEGACY_BADGES } from './catalog.js';
 
@@ -224,7 +224,7 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
   if (!Number.isSafeInteger(state.wins + 1)) throw new RangeError('Vitórias fora do limite.');
   state.wins++;
   creditCoins(state, 25 + cmd.wildLevel * 3);
-  creditTrainerXp(state, 30 + cmd.wildLevel * 7);
+  creditTrainerXp(state, battleTrainerXp(cmd.wildLevel));
   creditPokemonXp(active, 20 + cmd.wildLevel * 6);
   active.affinity = Math.min(100, active.affinity + cmd.affinityGain);
   for (const badge of LEGACY_BADGES) {
