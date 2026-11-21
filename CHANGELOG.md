@@ -394,3 +394,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## D-064L — dry-run da transação regional com resultado real (2026-11-20; PR isolada)
 - Combate reconstruído do save gera resultado do motor e o encaminha a um journal hipotético de recompensas/captura, sem IO nem gravação. Testes asseguram journal original intacto e bloqueio de Poké Bola ausente.
+
+
+## D-064M — expedição regional experimental com recibos (21/11/2026; sem deploy)
+- Novo reducer puro `applyRegionalExpeditionDraft` para iniciar/resgatar/parar Expedição em regiões acessíveis, limitando XP de cada Pokémon individualmente e preservando moedas mesmo no teto.
+- Testes de três fases, UID, grupos com níveis diferentes, duplicações, relógio, recibos e saves legados, ainda sem writer nem UI de produção.
