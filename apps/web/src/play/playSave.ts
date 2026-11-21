@@ -330,6 +330,14 @@ function playBattle(
     const keepLine=(line:string)=>!selectedRegion||!line.startsWith('Captura! ');
     const battleLog=result.log.filter(keepLine);
     const battleFrames=result.frames.filter((_,index)=>keepLine(result.log[index]??''));
+    if(selectedRegion&&result.outcome==='win'&&ballId){
+      const label=ballId==='poke-ball'?'Poké Ball':ballId==='great-ball'?'Great Ball':'Ultra Ball';
+      battleLog.push(captured
+        ?label+' lançada! '+enemy.name+' foi capturado.'
+        :label+' lançada! '+enemy.name+' escapou da captura.');
+      const lastFrame=battleFrames.at(-1);
+      if(lastFrame)battleFrames.push({...lastFrame,kind:'info',target:null,amount:0});
+    }
     updated.lastBattle={
       ...result,captured,log:battleLog,frames:battleFrames,
       ...(selectedRegion?{
