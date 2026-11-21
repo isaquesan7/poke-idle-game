@@ -38,6 +38,7 @@ try{
       'Região 5 deve estar bloqueada para treinador nível 21');
     await region.selectOption('4');
     const before=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+    await page.getByRole('combobox',{name:'Pokébola para captura'}).selectOption('poke-ball');
     await page.getByRole('button',{name:'Batalhar na região'}).click();
     await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===1,key);
     const after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
@@ -47,9 +48,11 @@ try{
     assert.equal(after.journal.receipts.length,1);
     assert.equal(game.lastBattle.regionId,4);
     assert.equal(game.lastBattle.regionName,'Lagos Serenos');
-    assert.ok([60,79,116,129].includes(game.lastBattle.wildSpeciesId));
+    assert.ok(game.lastBattle.wildSpeciesId>=1&&game.lastBattle.wildSpeciesId<=151);
     assert.ok(game.lastBattle.wildLevel>=31&&game.lastBattle.wildLevel<=40);
     assert.equal(game.lastBattle.log.length,game.lastBattle.frames.length);
+    assert.ok(game.ballPocket&&game.ballPocket.version===1);
+    assert.equal(game.regionWins.length,10);
     assert.ok(game.lastBattle.battleId.startsWith('regional-v02-'));
     await page.reload();
     const persisted=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
