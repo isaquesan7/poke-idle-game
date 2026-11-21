@@ -975,3 +975,10 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 ## D-064J — recebimento regional e captura no mesmo journal, ainda isolado (2026-11-20)
 - PR #88 inclui `applyRegionalBattleDraft` como prova de transação funcional em memória: espécie/nível derivados da região e seed, validação de level/UID, consumo de uma bola por tentativa vencida, captura condicional e crédito de XP/coins/afinidade numa única revisão de journal, fingerprint idempotente completo; derrota não gasta bola. Testes exclusivos `regional-reward-draft.test.ts`.
 - **Não integrado ao `playSave.updatePlaySave` ou UI**, porque usa valores legados e ainda não reconstrói resultado via motor nesta camada. Sem publicação. Aguardar CI de TypeScript/Vitest/Playwright/Docker e finalizar fórmula de economia, saves antigos e estoque antes de ativar.
+
+
+## D-064K — Mapa simula encontro real por snapshot sem gravação (2026-11-20; PR #88)
+- `apps/web/src/play/regionalBattleBridge.ts` reconstrói o Pokémon líder diretamente do journal: espécies, nível, afinidade, atributos do treinador e Pokémon, equipamentos, insígnias, título, até quatro golpes equipados e ranks. Chama `previewKantoRegionalBattle` que resolve espécie/nível só da região e seed em modo sem captura/prêmios; não é writer.
+- `KantoMapScreen.tsx` agora oferece botão **Simular encontro (sem recompensas)** somente em regiões desbloqueadas, com log e resultado real sem leitura/escrita de localStorage, além do botão definitivo de batalha ainda bloqueado. Ao trocar de região limpa o replay em memória; todas as regiões continuam no catálogo, mas nenhuma recompensa regional pode ser gerada pela prévia.
+- Unitário em `apps/web/tests/play-save.test.ts` valida determinismo, líder e save intacto; E2E desktop/mobile valida resultado/log, troca de região, região bloqueada e save inalterado.
+- Publicação continua BLOQUEADA: falta ativar o writer regional com outcome derivado do simulador, economia balanceada, migração, bolso persistente e expedição. CI da PR #88 deve aprovar antes de novas integrações.
