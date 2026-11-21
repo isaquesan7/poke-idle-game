@@ -38,7 +38,10 @@ describe('D-064Q — Poké Bolas renováveis por vitória regional em journal pu
     }
     const last=JSON.parse(state.raw);
     const before=state.raw;
-    expect(run(state,1,6).status).toBe('duplicate');
+    expect(applyRegionalBattleDraft(state,{
+      id:'supply-1-6',expectedRevision:5,regionId:1,seed:2,
+      activeUid:1,outcome:'win',affinityGain:2
+    }).status).toBe('duplicate');
     expect(state.raw).toBe(before);
     expect(last.ballPocket.quantities['poke-ball']).toBe(4);
   });
@@ -54,7 +57,10 @@ describe('D-064Q — Poké Bolas renováveis por vitória regional em journal pu
     expect(data.roster[1].pokemonId).toBe(16);
     expect(data.nextUid).toBe(3);
     expect(result.journal.receipts).toHaveLength(1);
-    expect(run(result.journal,1,3,'poke-ball').status).toBe('duplicate');
+    expect(applyRegionalBattleDraft(result.journal,{
+      id:'supply-1-3',expectedRevision:0,regionId:1,seed:2,
+      activeUid:1,outcome:'win',affinityGain:2,ballId:'poke-ball'
+    }).status).toBe('duplicate');
     expect(state.revision).toBe(0);
   });
   it('Ultra Ball é renovável somente em regiões avançadas, a cada 15 vitórias',()=>{
