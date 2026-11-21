@@ -476,7 +476,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                       <button type="button" className={styles.primary} onClick={() => setTab('expedition')}>
                         {expedition ? 'Ver expedição ativa' : 'Iniciar expedição'}</button>
                       <button type="button" className={styles.secondary} onClick={() => setTab('trainer')}>Meu treinador</button>
-                      <button type="button" className={styles.secondary} onClick={() => setTab('arena')}>Explorar Arena</button>
+                      <button type="button" className={styles.secondary} onClick={() => setTab('regions')}>Explorar regiões</button>
                       <button type="button" className={styles.secondary} onClick={() => setTab('pokedex')}>Abrir Pokédex</button>
                     </div>
                   </div>
