@@ -7,7 +7,7 @@ import {
   inspectKantoBallPocket,spendKantoBallForAttempt,
   d064DraftXpThreshold,d064DraftBattleReward,d064DraftSimulateWins,
   previewKantoRegionalBattle,KANTO_BATTLE_SPECIES,pokemonOwnStats,zeroStats,
-  d064CaptureProjection
+  d064CaptureProjection,resolveKantoCaptureAttempt
 } from '../src/index.js';
 
 describe('D-064 — mapa regional de Kanto, catálogo de 151',()=>{
@@ -228,5 +228,40 @@ describe('D-064G — probabilidade teórica de completar Kanto',()=>{
     expect(d064CaptureProjection(16,1,'poke-ball',100,100)).not.toBeNull();
     expect(d064CaptureProjection(16,1,'great-ball',100,100)!.captureChance)
       .toBeGreaterThan(d064CaptureProjection(16,1,'poke-ball',100,100)!.captureChance);
+  });
+});
+
+
+describe('D-064H — uma bola consumida por tentativa de captura',()=>{
+  const pocket={version:1 as const,quantities:{'poke-ball':3,'ultra-ball':2}};
+  it('é determinístico, imutável e sempre consome 1, mesmo quando não captura',()=>{
+    const input={regionId:1,speciesId:16,ballId:'poke-ball' as const,
+      pocket,maxHp:100,currentHp:100,seed:123456};
+    const first=resolveKantoCaptureAttempt(input);
+    const repeated=resolveKantoCaptureAttempt(input);
+    expect(first).toEqual(repeated);
+    expect(first.status).toBe('resolved');
+    if(first.status==='resolved'){
+      expect(first.pocket.quantities['poke-ball']).toBe(2);
+      expect(pocket.quantities['poke-ball']).toBe(3);
+      expect(first.chance).toBeGreaterThan(0);
+    }
+  });
+  it('apenas Ultra Ball resolve lendários nas regiões corretas',()=>{
+    expect(resolveKantoCaptureAttempt({regionId:9,speciesId:144,ballId:'poke-ball',
+      pocket,maxHp:100,currentHp:0,seed:12}).status).toBe('blocked');
+    expect(resolveKantoCaptureAttempt({regionId:10,speciesId:150,ballId:'ultra-ball',
+      pocket,maxHp:100,currentHp:0,seed:12}).status).toBe('resolved');
+    expect(resolveKantoCaptureAttempt({regionId:9,speciesId:150,ballId:'ultra-ball',
+      pocket,maxHp:100,currentHp:0,seed:12}).status).toBe('blocked');
+    expect(resolveKantoCaptureAttempt({regionId:10,speciesId:151,ballId:'master-ball',
+      pocket:{version:1,quantities:{'master-ball':1}},maxHp:100,currentHp:0,seed:12}).status)
+      .toBe('blocked');
+  });
+  it('sem estoque ou seed válida não há tentativa e nem débito',()=>{
+    expect(resolveKantoCaptureAttempt({regionId:1,speciesId:16,ballId:'poke-ball',
+      pocket:{version:1,quantities:{}},maxHp:100,currentHp:0,seed:12}).status).toBe('blocked');
+    expect(resolveKantoCaptureAttempt({regionId:1,speciesId:16,ballId:'poke-ball',
+      pocket,maxHp:100,currentHp:0,seed:-1}).status).toBe('blocked');
   });
 });
