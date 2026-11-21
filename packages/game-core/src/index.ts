@@ -125,3 +125,6 @@ export type {RegionalDraftReward} from './map/regionalEconomyDraft.js';
 
 export {previewKantoRegionalBattle} from './map/regionalBattlePreview.js';
 export type {KantoRegionalBattlePreview,KantoRegionalPreviewResult} from './map/regionalBattlePreview.js';
+
+export {d064CaptureProjection} from './capture/regionalCaptureProjection.js';
+export type {CaptureProjection} from './capture/regionalCaptureProjection.js';
