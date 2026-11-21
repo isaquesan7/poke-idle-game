@@ -467,3 +467,6 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ### D-064AA — matriz de regressão de balanceamento (não publicado)
 - 12 cenários determinísticos (taxas de 50/75/100%, times de 1/3 UIDs, captura em toda vitória vs apenas raros) geram logs `D064AA_MATRIX` para comparação por CI, com conservação de estoque e reprodutibilidade. Sem ajustes de economia ou gameplay.
+
+
+- D064AA (revisão): corrigida emissão de logs movendo teste de matriz para workspace web; separadas sequências de sorteio de encontros e captura, com sorteio de captura pareado para cada batalha; gasto de Pokébola passa a preceder o drop, conforme contrato experimental do reducer. Sem alteração de gameplay real ou persistência.
