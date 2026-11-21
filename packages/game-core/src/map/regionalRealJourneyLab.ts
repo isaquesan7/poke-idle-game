@@ -36,6 +36,12 @@ export interface RealRegionalJourneySummary{
   readonly ballsEarned:Readonly<Record<'poke-ball'|'great-ball'|'ultra-ball',number>>;
   readonly ballsSpent:Readonly<Record<'poke-ball'|'great-ball'|'ultra-ball',number>>;
   readonly ballsRemaining:Readonly<Record<'poke-ball'|'great-ball'|'ultra-ball',number>>;
+  /** Maior sequência sem vitória, inclui empates e derrotas. */
+  readonly longestNoWinStreak:number;
+  /** Número da última batalha vencida, 0 quando nunca houve vitória. */
+  readonly lastWinBattle:number;
+  /** Quantas vitórias por região realmente ocorreram. */
+  readonly winsByRegion:readonly number[];
 }
 const keys=['poke-ball','great-ball','ultra-ball'] as const;
 type Stock=Record<(typeof keys)[number],number>;
@@ -90,6 +96,7 @@ export function d064SimulateRealRegionalJourney(
   const caught=new Set<number>(input.speciesIds);
   let wins=0,losses=0,draws=0,coins=0,rareEncounters=0,
     captures=0,rareCaptures=0,missedCaptureOpportunities=0;
+  let noWinStreak=0,longestNoWinStreak=0,lastWinBattle=0;
   for(let b=1;b<=input.battles;b++){
     let region=KANTO_REGIONS[0]!;
     for(const r of KANTO_REGIONS)
@@ -122,8 +129,14 @@ export function d064SimulateRealRegionalJourney(
     },battleSeed);
     if(simulated.status!=='ready')return null;
     const outcome=simulated.preview.battle.outcome;
-    if(outcome==='loss'){losses++;continue;}
-    if(outcome==='draw'){draws++;continue;}
+    if(outcome!=='win'){
+      if(outcome==='loss')losses++;else draws++;
+      noWinStreak++;
+      longestNoWinStreak=Math.max(longestNoWinStreak,noWinStreak);
+      continue;
+    }
+    noWinStreak=0;
+    lastWinBattle=b;
     wins++;
     regionWins[region.id-1]!++;
     const reward=d064DraftBattleReward(encounter.level);
@@ -174,6 +187,7 @@ export function d064SimulateRealRegionalJourney(
     battles:input.battles,wins,losses,draws,trainer,pokemon,
     highestRegion,unlockBattles,coins,rareEncounters,captures,
     rareCaptures,caughtSpeciesCount:caught.size,missedCaptureOpportunities,
-    ballsEarned:earned,ballsSpent:spent,ballsRemaining:balls
+    ballsEarned:earned,ballsSpent:spent,ballsRemaining:balls,
+    longestNoWinStreak,lastWinBattle,winsByRegion:regionWins
   };
 }

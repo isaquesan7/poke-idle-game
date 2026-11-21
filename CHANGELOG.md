@@ -489,3 +489,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ### D-064AC — simulação longitudinal com resultado do combate real (não publicado)
 - Novo laboratório puro de jornada regional com combate resolvido por `simulateKantoBattle`, XP condicional à vitória, 1–3 Pokémon, afinidade e treino hipotéticos, e políticas de captura comparáveis com contabilidade de estoque. Testes de reprodutibilidade e invariantes, sem tocar no save nem habilitar economia regional.
+
+
+### D-064AD — auditoria de estagnação e separação do release (não publicado)
+- Laboratório longitudinal passa a reportar maior sequência sem vitória, última vitória e vitórias por região. Teste compara 16 jornadas reais curtas, detecta travamento de progressão e preserva invariantes de estoque/seed.
+- `docs/REGIONAL_RELEASE_GATES_D064AD.md` propõe release por cortes: mapa sem escrita primeiro, preview isolada depois, economia/captura somente após autoridade, transação persistente segura e aprovação do balanceamento. Nenhum gameplay ou writer foi integrado.
