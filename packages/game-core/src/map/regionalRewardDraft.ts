@@ -193,6 +193,8 @@ export function applyRegionalBattleDraft(
       if(!drop)return reject(journal,'Fonte de Poké Bolas indisponível.');
       const amounts={...pocket.pocket.quantities};
       for(const key of ['poke-ball','great-ball','ultra-ball'] as const){
+        // Uma vitória sem drop não deve criar chaves zeradas no bolso.
+        if(drop[key]===0)continue;
         const quantity=(amounts[key]??0)+drop[key];
         if(!Number.isSafeInteger(quantity)||quantity>100000)
           return reject(journal,'Estoque de Poké Bolas fora do limite.');
