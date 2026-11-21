@@ -85,9 +85,10 @@ export function applyRegionalBattleDraft(
   if(!encounter)return reject(journal,'Encontro fora da região.');
   const species=KANTO_BATTLE_SPECIES[encounter.speciesId];
   if(!species)return reject(journal,'Espécie selvagem não disponível.');
-  if(command.outcome!=='win'&&
-    (command.affinityGain!==undefined||command.ballId!==undefined))
-    return reject(journal,'Derrota não pode receber afinidade ou tentar capturar.');
+  // A bola pode ser selecionada antes do combate; se perder/empatar,
+  // não se tenta capturar e a bola NÃO é consumida.
+  if(command.outcome!=='win'&&command.affinityGain!==undefined)
+    return reject(journal,'Derrota não pode receber afinidade.');
   if(command.outcome==='win'){
     const gain=command.affinityGain;
     if(typeof gain!=='number'||!Number.isSafeInteger(gain)||gain<2||gain>5)
@@ -96,7 +97,7 @@ export function applyRegionalBattleDraft(
 
   let capture:{readonly pokemonId:number;readonly moveName:string}|undefined;
   let spentPocket:KantoBallPocketV1|undefined;
-  if(command.ballId!==undefined){
+  if(command.outcome==='win'&&command.ballId!==undefined){
     const pocket=inspectKantoBallPocket(current.ballPocket);
     if(pocket.status!=='valid')
       return reject(journal,'Poké Bolas não inicializadas ou mochila inválida.');
