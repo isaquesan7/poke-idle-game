@@ -12,7 +12,7 @@ import {
   KANTO_BATTLE_SPECIES, KANTO_BATTLE_MOVES, KANTO_WILD_POOL,
   LEGACY_ITEMS, LEGACY_BADGES, STATS, trainerTotals, pokemonFinalStats,
   pokemonOwnStats, effectiveLegacyTitle, simulateKantoBattle,
-  reduceLegacyPokemonMoveJson, kantoLevelMoves, reduceKantoEvolutionJson,
+  reduceLegacyPokemonMoveJson, kantoLevelMoves,kantoWildMoveLoadout,reduceKantoEvolutionJson,
   KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson,
   kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant,
   inspectKantoBallPocket,resolveKantoCaptureAttempt,d064DraftBallDrop,
@@ -258,10 +258,13 @@ function playBattle(
     const enemy=KANTO_BATTLE_SPECIES[wildSpeciesId]!;
     const wildLevel=encounter?.level
       ??Math.max(2,Math.min(100,(active.level as number)+((seed>>>8)%5)-2));
+    // D064AV: selvagens também usam golpes FRLG liberados para seu nível.
+    // A mesma IA/SP/precisão/limitador de turnos atende os dois lados.
+    const wildMoves=kantoWildMoveLoadout(enemy.id,wildLevel,enemy.move);
     const wild:Combatant={
       speciesId:enemy.id,name:enemy.name,level:wildLevel,types:enemy.types,
       stats:pokemonOwnStats(enemy.base,wildLevel,zeroStats()),
-      move:enemy.move,rank:0
+      move:wildMoves[0]!,moves:wildMoves,rank:0
     };
     const result=simulateKantoBattle(player,wild,seed);
     // A Arena clássica permanece com captura legada. Na região, a captura
