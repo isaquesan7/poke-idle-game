@@ -1,0 +1,26 @@
+/* D-064AF: palco demonstrativo com paleta Kanto Dark, sem economia. */
+.panel{display:grid;gap:var(--space-4);background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-panel);padding:var(--space-5)}
+.heading h3{margin:var(--space-2) 0;font-size:1.25rem}
+.heading p{margin:0;color:var(--color-text-muted);line-height:1.6}
+.kicker{color:var(--color-primary);font-size:.78rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.controls{display:flex;flex-wrap:wrap;gap:var(--space-3);align-items:end}
+.controls label{display:grid;gap:var(--space-1);font-size:.85rem;color:var(--color-text-muted);min-width:150px;flex:1}
+.controls select{border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-surface-raised);color:var(--color-text);padding:var(--space-3);min-height:44px;max-width:100%}
+.start,.skip{border:1px solid var(--color-primary);border-radius:var(--radius-control);background:var(--color-surface-raised);color:var(--color-primary);font-weight:800;cursor:pointer;padding:var(--space-3);min-height:44px}
+.start:hover,.skip:hover{background:var(--color-navbtn-active-background-1)}
+.battle{display:grid;gap:var(--space-4);border-top:1px solid var(--color-border);padding-top:var(--space-4)}
+.opponents{display:flex;align-items:center;justify-content:space-around;gap:var(--space-2)}
+.combatant{display:grid;gap:var(--space-1);justify-items:center;text-align:center;min-width:0;flex:1}
+.combatant img{max-width:100%;object-fit:contain}
+.combatant strong{overflow-wrap:anywhere}
+.combatant small{font-size:.77rem;color:var(--color-text-muted)}
+.versus{font-weight:900;color:var(--color-gold)}
+.playback{display:grid;gap:var(--space-3)}
+.playbackHeading{display:flex;justify-content:space-between;flex-wrap:wrap;gap:var(--space-2)}
+.playbackHeading span{color:var(--color-text-muted);font-size:.82rem}
+.log{margin:0;min-height:110px;max-height:350px;overflow:auto;list-style:decimal;padding:var(--space-3) var(--space-4) var(--space-3) var(--space-8);border:1px solid var(--color-border);background:var(--color-bg);border-radius:var(--radius-card)}
+.log li{padding:var(--space-1) 0;font-size:.85rem;overflow-wrap:anywhere}
+.status{color:var(--color-text-muted);font-size:.84rem;margin:0}
+.skip{justify-self:start}
+@media(max-width:560px){.panel{padding:var(--space-3)}.controls{display:grid;grid-template-columns:1fr}.opponents{gap:var(--space-1)}.combatant img{width:72px;height:72px}.log{padding-left:var(--space-7)}}
+@media(prefers-reduced-motion:reduce){.panel{scroll-behavior:auto}}
