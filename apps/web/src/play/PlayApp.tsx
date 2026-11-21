@@ -511,7 +511,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                   <section className={styles.panel}>
                     <h2>Coleção e equipe</h2>
                     <p>{data.roster.length} Pokémon capturado(s) · {data.team.length}/3 na equipe</p>
-                    <p>Organize seus parceiros e escolha o líder que combate na Arena.</p>
+                    <p>Organize seus parceiros e escolha quem lidera as batalhas nas regiões.</p>
                     <button type="button" className={styles.secondary} onClick={() => setTab('collection')}>Abrir coleção</button>
                   </section>
                   <section className={styles.panel}>
@@ -580,7 +580,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         </div>
                         <small>Transferência de atributos: {(affinityRate(focused.affinity)*100).toFixed(1)}%</small>
                       </div>
-                      <p className={styles.pokemonRole}>{data.team[0]===focused.uid?'Participa da Arena como líder da equipe.'
+                      <p className={styles.pokemonRole}>{data.team[0]===focused.uid?'Lidera as batalhas regionais.'
                         :data.team.includes(focused.uid)?'Está na equipe, podendo ser escolhido como líder.':'Está na coleção, fora da equipe ativa.'}</p>
                     </div>
                   </div>
@@ -696,7 +696,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                           Poder {move.power}{move.name==='double-kick'?' × 2 impactos':''} · Precisão {move.accuracy}%</small>
                           <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'} ·
                             PP {kantoMovePp(move.name)??'não catalogado'} ·
-                            Custo {kantoMoveSpCost(move)} SP na Arena</small>
+                            Custo {kantoMoveSpCost(move)} SP em batalha</small>
                           <small>{rank>=maxRank?'Rank máximo atingido': 'Custo do próximo aprimoramento: 1 ponto'} · Disponíveis: {availablePoints}</small>
                           {upgradeReason&&<small className={styles.pokemonUpgradeReason} role="status">{upgradeReason}</small>}
                            {effectLabel(move.name)&&<small>{effectLabel(move.name)}</small>}
@@ -781,7 +781,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                       const pokemon=data.roster.find(p=>p.uid===uid);
                       return (
                         <article key={position} data-testid={'team-slot-'+position} className={pokemon?styles.teamSlot:styles.teamSlotEmpty}>
-                          <span className={styles.slotCaption}><i className={'fa-solid '+(position===0?'fa-crown':'fa-shield')} aria-hidden="true"/> {position===0?'Líder · Arena':'Slot '+(position+1)}</span>
+                          <span className={styles.slotCaption}><i className={'fa-solid '+(position===0?'fa-crown':'fa-shield')} aria-hidden="true"/> {position===0?'Líder · Regiões':'Slot '+(position+1)}</span>
                           {pokemon ? <>
                             <PokemonArt id={pokemon.pokemonId} name={speciesName(pokemon.pokemonId)} />
                             <strong>{speciesName(pokemon.pokemonId)}</strong>
