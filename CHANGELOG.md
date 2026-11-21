@@ -378,3 +378,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Nova tela Regiões na navegação do jogo e na rota /regions com dez áreas desbloqueadas por nível, catálogo ponderado real de 151 Pokémon, descoberta e capturas por região, vitórias e estoque do bolso; UI responsiva com tokens e navegação por teclado.
 - Botão de combate usa a MESMA ação regional do writer da Arena; retorna à Arena para animação, diário gradual e recompensas do save já validado. Rota /regions substitui a demonstração sem save por gameplay de perfil real.
 - Vitest e Playwright desktop/mobile verificam locked/unlocked, bolso, leitura sem mutação, batalha com recibo único e persistência após reload.
+
+
+### D-064AJ — combate exclusivamente regional e curva de XP do treinador (em revisão)
+- Remove a entrada direta da Arena e o ataque selvagem genérico; combate abre somente após seleção de uma região, nome regional no cabeçalho, lista de encontros do pool escolhido, botão de retorno e replay do último combate sem recompensas.
+- Palco verticalmente centralizado, rolagem automática até o topo ao entrar na luta. Nomes/títulos consistentes com a região real.
+- XP treinador desacelerado via threshold quadrático e prêmio por batalha menor, fonte compartilhada entre domínio e replay; XP Pokémon intacto. Vitest e E2E cobrindo nível55, Costa Oceânica, domínio, navegador e responsividade. **Nenhum merge ou deploy até gates**.
