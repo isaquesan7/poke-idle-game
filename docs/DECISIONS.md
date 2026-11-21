@@ -94,3 +94,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 - **Decisão:** corrigir implementação prévia que só permitia ranks no golpe principal. Jogador pode gastar 1 ponto em qualquer golpe ofensivo aprendido e equipado nos quatro slots, com teto de rank e orçamento por nível preservados. O principal não muda ao aprimorar secundário.
 - **Motivo:** sistema mostrava pontos disponíveis e golpe equipado, mas bloqueava sem explicação; agravado pela interface D057 com custo explícito.
 - **Restrições:** validar domínio por UID e slots; não permitir golpes sem dano, não equipados ou forgery; UI explica rank máximo e pontos insuficientes; sem mudança de SP, dano base, saldo, schema ou combate.
+
+
+| D-064AE | 2026-11-20 | CANDIDATO DE RELEASE SEM MERGE | Criar PR estreita diretamente de main para o Corte A: catálogo informativo de dez regiões, sem economia ou mudanças de save. /regions, acessibilidade e E2E de zero escrita são gates. Release deste corte não autoriza writer/capturas D064. |
