@@ -139,3 +139,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AV | 2026-11-21 | EM VALIDAÇÃO | Selvagens deixaram de receber somente golpe padrão: equipar automaticamente até 3 ofensivos recentes e 1 suporte recente desbloqueados da espécie/nível FRLG, sem TMs e sem benefício de rank/treino/itens. Compartilhar IA/SP/turnos/precisão já existentes com o jogador. Onde não houver ataque elegível implementado, manter fallback alfa. Aumento de dificuldade será auditado antes de balanceamento. |
+
+
+| D-064AW | 2026-11-21 | DIAGNÓSTICO EM VALIDAÇÃO | Medir o impacto da equipagem selvagem D064AV por 1.440 pares de seeds das dez regiões versus baseline antigo de golpe único, sem alterar qualquer mecânica ou prometer win-rate fixo. Variação pós-primeira ação modifica consumo de RNG; relatório é heurístico e não telemetria. Rebalanceamento dependerá de testes com progressão válida via writer e aprovação. |
