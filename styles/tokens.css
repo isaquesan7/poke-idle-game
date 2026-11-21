@@ -15,6 +15,18 @@
   --color-text: #f2f5fa;
   --color-text-muted: #9baec6;
   --color-primary: #69d6e5;
+  /* D-064B — mapa vetorial original: tintas da paisagem, sem valores locais. */
+  --map-water: #133e5d;
+  --map-forest: #193c35;
+  --map-grass: #245540;
+  --map-ridge: #16364b;
+  --map-land-deep: #214d3e;
+  --map-stream: #5ab7d8;
+  --map-hills-soft: #83ad8c;
+  --map-hills-light: #a8ce9e;
+  --map-lake: #8bcdd5;
+  --map-path-edge: #091721;
+  --map-path: #e1d6ac;
   /* D-062: scrollbar compartilhada por /play e pelo protótipo legado /. */
   --scrollbar-track: var(--color-bg);
   --scrollbar-thumb: var(--color-border);

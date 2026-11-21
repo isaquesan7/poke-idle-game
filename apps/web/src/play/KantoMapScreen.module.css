@@ -1,0 +1,117 @@
+/* D-064B — Mapa de Kanto, preview isolada.
+ * Paisagem vetorial original, sem imagem externa nem lógica de recompensas.
+ * Cores e sombras de interface seguem os tokens globais Kanto Dark. */
+.page{display:grid;gap:var(--space-5);min-width:0}
+.header{display:flex;justify-content:space-between;align-items:center;gap:var(--space-4);
+  padding:var(--space-5);border:1px solid var(--trainer-card-border);border-radius:var(--radius-panel);
+  background:radial-gradient(ellipse at 85% 5%,var(--trainer-glow-cyan-soft),transparent 70%),
+    linear-gradient(145deg,var(--color-panel-gradient-1),var(--color-panel-gradient-2))}
+.header h2{margin:var(--space-2) 0;font-size:clamp(1.55rem,3vw,2.4rem)}
+.header p{color:var(--color-text-muted);font-size:.87rem;line-height:1.5;max-width:710px;margin:0}
+.kicker{color:var(--color-primary);font-weight:800;font-size:.73rem;letter-spacing:.12em}
+.secondary{flex:none;min-height:42px;border:1px solid var(--trainer-card-border);
+  background:var(--color-surface-raised);color:var(--color-text);border-radius:var(--radius-control);
+  padding:var(--space-2) var(--space-3);cursor:pointer;font-weight:750}
+.secondary:hover{border-color:var(--color-primary);box-shadow:0 0 13px var(--trainer-glow-cyan-soft)}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-3)}
+.metrics>div{border:1px solid var(--trainer-card-border);border-radius:var(--radius-card);
+  background:var(--color-surface-raised);padding:var(--space-3);
+  display:grid;gap:var(--space-2)}
+.metrics small{font-size:.72rem;color:var(--color-text-muted)}
+.metrics strong{font-size:1.18rem;font-variant-numeric:tabular-nums;color:var(--color-primary)}
+.columns{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);
+  gap:var(--space-4);align-items:start}
+.map{position:relative;isolation:isolate;aspect-ratio:6/5;min-height:450px;
+  border:1px solid var(--trainer-card-border);border-radius:var(--radius-panel);
+  background:var(--color-surface-raised);overflow:hidden;
+  box-shadow:inset 0 1px 0 var(--trainer-card-highlight),var(--trainer-shadow-cyan)}
+.landscape{position:absolute;inset:0;width:100%;height:100%;z-index:-1}
+.compass{position:absolute;top:var(--space-3);left:var(--space-3);
+  border-radius:var(--radius-pill);padding:var(--space-2) var(--space-3);
+  background:var(--color-surface);font-weight:900;font-size:.75rem;
+  color:var(--color-primary);border:1px solid var(--trainer-card-border)}
+.compass i{margin-right:var(--space-2)}
+.marker{position:absolute;transform:translate(-50%,-50%);
+  max-width:130px;min-width:72px;display:grid;justify-items:center;gap:2px;
+  border:0;background:transparent;color:var(--color-text);
+  padding:var(--space-1);font-weight:800;font-size:.72rem;cursor:pointer;
+  text-shadow:0 2px 7px var(--color-bg);text-align:center}
+.markerIcon{display:grid;place-items:center;width:40px;height:40px;border:2px solid var(--color-primary);
+  border-radius:50%;background:var(--color-surface);color:var(--color-primary);
+  box-shadow:0 0 13px var(--trainer-glow-cyan-soft);font-size:1.08rem;
+  transition:transform var(--duration-fast),box-shadow var(--duration-fast)}
+.markerName{display:inline-block;padding:var(--space-1);background:var(--color-surface);
+  border:1px solid var(--trainer-card-border);border-radius:var(--radius-control);
+  max-width:130px;line-height:1.2}
+.marker:hover .markerIcon,.marker:focus-visible .markerIcon{
+  transform:scale(1.12);box-shadow:0 0 21px var(--trainer-glow-cyan)}
+.marker:focus-visible{outline:2px solid var(--color-primary);outline-offset:3px;border-radius:var(--radius-control)}
+.active .markerIcon{border-color:var(--color-gold);color:var(--color-gold);box-shadow:0 0 20px var(--trainer-glow-cyan)}
+.locked .markerIcon{color:var(--color-text-muted);border-color:var(--trainer-card-border);box-shadow:none}
+.locked .markerName{opacity:.8}
+.detail{min-width:0;border:1px solid var(--trainer-card-border);border-radius:var(--radius-panel);
+  background:linear-gradient(145deg,var(--color-panel-gradient-1),var(--color-panel-gradient-2));
+  padding:var(--space-4);display:grid;gap:var(--space-3)}
+.detail h3{margin:0;font-size:clamp(1.3rem,2vw,1.7rem)}
+.badges{display:flex;flex-wrap:wrap;gap:var(--space-2)}
+.badges span{padding:var(--space-2);font-size:.73rem;font-weight:800;
+  border:1px solid var(--trainer-card-border);border-radius:var(--radius-pill);
+  background:var(--trainer-glow-cyan-soft)}
+.note,.rareSection p{color:var(--color-text-muted);font-size:.75rem;line-height:1.5;margin:0}
+.poolHeading{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2)}
+.poolHeading h4,.rareSection h4{margin:0;font-size:.9rem}
+.poolHeading span{font-size:.75rem;color:var(--color-primary)}
+.species{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-2)}
+.speciesCard{min-width:0;display:flex;flex-direction:column;align-items:center;gap:var(--space-1);
+  border:1px solid var(--trainer-card-border);border-radius:var(--radius-control);
+  padding:var(--space-2);background:var(--color-surface-raised);text-align:center}
+.speciesCard img{height:55px;width:auto;max-width:100%;object-fit:contain;aspect-ratio:auto;
+  filter:drop-shadow(0 0 8px var(--trainer-glow-cyan-soft))}
+.speciesCard strong{font-size:.69rem;overflow-wrap:anywhere}
+.speciesCard small{font-size:.59rem;color:var(--color-text-muted)}
+.rareSection{display:grid;gap:var(--space-3);border-top:1px solid var(--trainer-card-border);
+  padding-top:var(--space-3)}
+.rareSection h4{color:var(--color-gold)}
+.disabledBattle{width:100%;min-height:45px;border:1px solid var(--trainer-card-border);
+  border-radius:var(--radius-control);background:var(--color-surface-raised);
+  color:var(--color-text-muted);cursor:not-allowed;opacity:.7}
+@media(max-width:1120px){.columns{grid-template-columns:minmax(0,1fr)}.map{aspect-ratio:16/10;min-height:400px}}
+@media(max-width:690px){
+ .header{display:grid;padding:var(--space-3)}.header .secondary{justify-self:start}
+ .metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
+ .columns{gap:var(--space-3)}
+ .map{aspect-ratio:3/4;min-height:450px}
+ .marker{min-width:55px;max-width:95px;font-size:.6rem}
+ .markerIcon{width:33px;height:33px;font-size:.85rem}
+ .markerName{max-width:95px}
+ .detail{padding:var(--space-3)}
+}
+@media(max-width:380px){.species{grid-template-columns:repeat(2,minmax(0,1fr))}.markerName{font-size:.52rem}}
+@media(prefers-reduced-motion:reduce){.markerIcon{transition:none}}
+
+/* D-064B · Silhueta de espécies não descobertas: mesma privacidade da Pokédex. */
+.hiddenArt{height:55px;width:55px;display:grid;place-items:center;border-radius:50%;
+  background:var(--color-surface);color:var(--color-text-muted);font-weight:900;font-size:1.5rem;
+  border:1px solid var(--trainer-card-border)}
+
+/* D-064K · painel estritamente informativo da simulação regional. */
+.simulation{display:grid;gap:var(--space-2);min-width:0}
+.simulationButton{width:100%;min-height:46px;background:var(--color-surface-raised);
+  color:var(--color-primary);border:1px solid var(--color-primary);border-radius:var(--radius-control);
+  font-weight:800;cursor:pointer;transition:box-shadow var(--duration-fast)}
+.simulationButton:hover:not(:disabled){box-shadow:0 0 17px var(--trainer-glow-cyan-soft)}
+.simulationButton:focus-visible{outline:2px solid var(--color-primary);outline-offset:3px}
+.simulationButton:disabled{opacity:.48;cursor:not-allowed;border-color:var(--trainer-card-border)}
+.simulationResult{display:grid;gap:var(--space-2);padding:var(--space-3);
+  border:1px solid var(--trainer-card-border);border-radius:var(--radius-card);
+  background:var(--color-surface-raised)}
+.simulationResult strong{font-size:.92rem;overflow-wrap:anywhere}
+.simulationResult>span{font-size:.8rem;color:var(--color-primary)}
+.simulationResult>small{font-size:.72rem;color:var(--color-text-muted)}
+.simulationLog{max-height:200px;overflow:auto;list-style:none;padding:var(--space-2);margin:0;
+  border:1px solid var(--trainer-card-border);border-radius:var(--radius-control);
+  background:var(--color-bg);display:grid;gap:var(--space-2)}
+.simulationLog li{font-size:.73rem;line-height:1.5;border-bottom:1px solid var(--trainer-card-border);
+  padding-bottom:var(--space-1)}
+.simulationError{font-size:.78rem;color:var(--color-danger);margin:0}
+@media(prefers-reduced-motion:reduce){.simulationButton{transition:none}}
