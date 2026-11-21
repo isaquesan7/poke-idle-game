@@ -989,3 +989,11 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - O comando opcional Poké Bola só funciona se o bolso já estiver no snapshot; saves sem bolso rejeitam a tentativa sem conceder captura. Sem bola, o dry-run pode demonstrar recompensas apenas hipotéticas. Nunca chama `updatePlaySave`, localStorage nem `commit`.
 - Testes validam resultado autêntico, journal hipotético com recibo, original intacto, inexistência de captura sem bola e bloqueio por região. Continua com XP/moedas legados **APENAS NO DRY RUN**, não ativados em produção.
 - Próximo: migração versionada de bolso/região, economia ajustada e integração transacional ao writer com persistência e cenários de falha antes de liberar modo Mapa como gameplay.
+
+
+## D-064M — expedição regional transacional em RAM (20–21/11/2026; PR #88)
+- Criado `packages/game-core/src/map/regionalExpeditionDraft.ts`: `applyRegionalExpeditionDraft` implementa início, recebimento e encerramento com `regionId`, UID de cada membro, relógio e recibo com revisão idempotente do journal, **SEM conectar ao writer real**.
+- Treinador deve ter acesso à região; cada Pokémon deve cumprir o piso da região anterior. XP de cada integrante para **exatamente** no teto regional (por exemplo Nv9 + 7 XP até Nv10); moedas continuam em todos os ciclos, inclusive quando todos estão no teto. Mudar de região exige STOP e novo START. Os membros da expedição ficam fixos até terminar; impede relock ao trocar equipe.
+- XP do Treinador no dry-run está **provisoriamente 0**, não é a nova curva aprovada. Recompensas de moedas/afinidade usam valores legados somente para testar mecânica; o sistema atual publicado continua idêntico.
+- Saves com `expedition` legada ativa sem `regionId` são **rejeitados pela função regional**, não alterados ou migrados silenciosamente: recebimentos anteriores ainda exigem caminho de migração seguro. Testes protegem grupo misto, cap, stop/start, relógio retrocedendo, retries e saldo.
+- Próxima etapa: verificar CI, migração explícita de saves/expedição legado e integrar writer definitivo somente após revisão de XP/moedas e origem de Poké Bolas.
