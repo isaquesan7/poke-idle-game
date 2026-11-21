@@ -958,3 +958,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 ## D-064E — simulador econômico experimental (20/11/2026; branch)
 - Adicionado `regionalEconomyDraft.ts` com limiares propostos para XP de Treinador/Pokémon e recompensa de batalha, mais simulação determinística de trajetória com abertura de região por nível. Testes de progressão longa protegem a relação Treinador mais lento que Pokémon. Nenhum uso no writer, combate ou UI.
 - O último commit da PR #88 ainda NÃO é funcional em produção. Conferir CI após alterações no simulador; integrar com engine/região/bolsa e testes econômicos pareados somente com valores aprovados.
+
+
+## D-064F/G — simulação regional com motor de combate e projeção de captura (20/11/2026)
+- PR #88 atualizada com pré-resolução regional segura: `previewKantoRegionalBattle` valida level Trainer e sorteia inimigo da pool regional, utiliza o motor existente no modo read-only e não concede recompensas nem captura. `simulateKantoBattle` mantém modo `standard` como padrão para não alterar a Arena atual.
+- Projeção de captura por `captureRate` local + multiplicador da Poké Bola + chance de aparição regional, sem RNG nem escrita; destaca raridade extrema. Requer simulação adicional e decisão de estoque/migração antes de habilitar. Testes adicionados.
+- **NÃO publicado**. Próximo passo: integrar posse e consumo atômicos da bola no writer, definir obtenção sustentável, conectar seleção regional ao save e depois substituir Arena por Mapa.
