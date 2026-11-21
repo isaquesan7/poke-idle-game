@@ -6,7 +6,8 @@ import {
   canStartRegionalExpedition,cappedRegionalPokemonXp,xpThreshold,
   inspectKantoBallPocket,spendKantoBallForAttempt,
   d064DraftXpThreshold,d064DraftBattleReward,d064DraftSimulateWins,
-  previewKantoRegionalBattle,KANTO_BATTLE_SPECIES,pokemonOwnStats,zeroStats
+  previewKantoRegionalBattle,KANTO_BATTLE_SPECIES,pokemonOwnStats,zeroStats,
+  d064CaptureProjection
 } from '../src/index.js';
 
 describe('D-064 — mapa regional de Kanto, catálogo de 151',()=>{
@@ -200,5 +201,30 @@ describe('D-064F — simulação regional REAL sem recompensas',()=>{
     const second=previewKantoRegionalBattle(20,2,p,777);
     expect(first).toEqual(second);
     expect(JSON.stringify(p)).toBe(before);
+  });
+});
+
+
+describe('D-064G — probabilidade teórica de completar Kanto',()=>{
+  it('calcula encontros muito raros com Ultra Ball, sem habilitar captura',()=>{
+    const bird=d064CaptureProjection(144,9,'ultra-ball',100,0);
+    const mew=d064CaptureProjection(151,10,'ultra-ball',100,0);
+    expect(bird).not.toBeNull();
+    expect(mew).not.toBeNull();
+    expect(bird!.appearanceChance).toBeCloseTo(1/843,8);
+    expect(mew!.appearanceChance).toBeCloseTo(1/1682,8);
+    expect(mew!.appearanceChance).toBeLessThan(bird!.appearanceChance);
+    expect(bird!.captureChance).toBeGreaterThan(0);
+    expect(mew!.captureChance).toBeGreaterThan(0);
+    expect(mew!.expectedBattlesPerCapture).toBeGreaterThan(10000);
+  });
+  it('impede captura dos raros com bolas comuns e rejeita Master automática',()=>{
+    expect(d064CaptureProjection(144,9,'poke-ball',100,0)).toBeNull();
+    expect(d064CaptureProjection(150,10,'great-ball',100,0)).toBeNull();
+    expect(d064CaptureProjection(151,10,'master-ball',100,0)).toBeNull();
+    expect(d064CaptureProjection(151,9,'ultra-ball',100,0)).toBeNull();
+    expect(d064CaptureProjection(16,1,'poke-ball',100,100)).not.toBeNull();
+    expect(d064CaptureProjection(16,1,'great-ball',100,100)!.captureChance)
+      .toBeGreaterThan(d064CaptureProjection(16,1,'poke-ball',100,100)!.captureChance);
   });
 });
