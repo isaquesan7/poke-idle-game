@@ -105,6 +105,9 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
       region.id,Math.floor(rng()*4294967296),active.level
     );
     if(!encounter)return null;
+    // Sorteia para toda batalha (mesmo sem tentativa) e mantém o mesmo
+    // resultado potencial de captura ao comparar estratégias pareadas.
+    const captureSeed=Math.floor(captureRng()*4294967296);
     regionBattles[region.id-1]!++;
     const rare=region.rareSpeciesIds.includes(encounter.speciesId);
     if(rare)rareEncounters++;
@@ -136,7 +139,7 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
           regionId:region.id,speciesId:encounter.speciesId,ballId:ball,
           pocket:{version:1,quantities:{...stock}} as KantoBallPocketV1,
           maxHp:100,currentHp:0,
-          seed:Math.floor(captureRng()*4294967296)
+          seed:captureSeed
         });
         if(attempt.status!=='resolved')return null;
         stock[ball]--;spent[ball]++;
