@@ -1,5 +1,10 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AX — writers e tempo real do replay (21/11/2026; branch)
+- Auditoria de evolução, pontos de treinamento e 12 batalhas regionais por inicial em save real com UID e recibos; cenário sem demo confirma bloqueio de evolução precoce e região9.
+- Playwright Chromium desktop/mobile agora registra intervalos reais entre registros do replay em 1× e 2×, conferindo preservação do save e testes de pausa/GIF/HP/SP. Resultados em marcadores `D064AX_BROWSER_PLAYBACK` dos logs CI. Não altera gameplay, economia, chances ou UI. Documentação `docs/REAL_PROGRESSION_PLAYBACK_D064AX.md`.
+
+
 ## D-064AW — auditoria de equilíbrio regional da IA selvagem (21/11/2026; branch)
 - Teste diagnóstico novo `d064aw-regional-wild-balance.test.ts`: 10 regiões, 2 níveis, 2 perfis de treinamento, 3 linhas de starters e 12 seeds = 1.440 pares de simulações da IA antiga (um golpe selvagem) versus IA D064AV (até quatro golpes legais), total 2.880 batalhas.
 - Relatório determinístico em log CI com win-rates, uso de novos golpes/SP, duração média e métricas por região; documentação `docs/REGIONAL_BALANCE_D064AW.md`. Nenhuma alteração funcional, recompensas, captura, save ou GIFs. CI, merge e Railway pendentes.
