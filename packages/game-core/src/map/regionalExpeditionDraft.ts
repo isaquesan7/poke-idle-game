@@ -59,6 +59,7 @@ export function applyRegionalExpeditionDraft(
     ||state.trainer.level>100||!natural(state.coins)
     ||!Array.isArray(state.roster)||!Array.isArray(state.team))
     return rejected(journal,'Treinador ou equipe inválidos.');
+  const trainer=state.trainer as Mutable;
   const roster=state.roster;
   const team=state.team;
   const teamUids=team.filter(positive);
@@ -76,7 +77,7 @@ export function applyRegionalExpeditionDraft(
       return rejected(journal,'Já existe uma expedição em andamento.');
     if(!teamUids.every(uid=>{
       const member=roster.find(entry=>object(entry)&&entry.uid===uid) as Mutable;
-      return canStartRegionalExpedition(state.trainer.level as number,
+      return canStartRegionalExpedition(trainer.level as number,
         member.level as number,cmd.regionId);
     }))return rejected(journal,'Treinador ou Pokémon sem acesso à região.');
     state.expedition={
