@@ -385,3 +385,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## D-064J — recibo regional transacional em memória (2026-11-20; sem deploy)
 - Protótipo atômico no journal com validação de região/UID, vitória/derrota, bola consumida somente ao tentar captura após vitória, criação de UID na mesma revisão e proteção de replay por ID/payload.
 - Ainda utiliza economia legada e não está conectado ao jogo; requer validação e publicação posterior.
+
+
+## D-064K — Simulação read-only do Mapa com líder real (2026-11-20; PR isolada)
+- O Mapa em prévia permite simular um encontro por região liberada, com motor real da Arena, stats/bonificações/slots do Pokémon do save, resultado e log sem premiação ou captura. Região bloqueada impede simular.
+- Testes de integridade do save e navegação mobile/desktop adicionados; em produção a Arena antiga segue inalterada.
