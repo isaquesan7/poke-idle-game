@@ -409,7 +409,7 @@ export function simulateKantoBattle(
     const score=(move:KantoMove):number=>
       move.name==='night-shade'
         ?actor.level*move.accuracy*(kantoTypeMultiplier(move.type,target.types)>0?1:0)
-        :(move.name==='night-shade'?actor.level:move.power*kantoMoveHitCount(move.name))
+        :move.power*kantoMoveHitCount(move.name)
       *move.accuracy*kantoTypeMultiplier(move.type,target.types)
       *(actor.types.includes(move.type)?1.5:1)
       *(move.category==='physical'
@@ -568,6 +568,7 @@ export function simulateKantoBattle(
         if(isPlayer)wildHp=Math.max(0,wildHp-hit.damage);
         else playerHp=Math.max(0,playerHp-hit.damage);
         const effectText=hit.effectiveness===0?' · Imune'
+          :move.name==='night-shade'?' · Dano fixo'
           :hit.effectiveness>=2?' · Super efetivo'
             :hit.effectiveness<1?' · Resistido':'';
         const part=hitTotal>1?' (acerto '+index+'/'+hitTotal+')':'';
