@@ -45,6 +45,7 @@ jobs:
           npm run verify:gifs
           node --check apps/web/tests/e2e/playable-route.mjs
           node --check apps/web/tests/e2e/regions-preview.mjs
+          node --check apps/web/tests/e2e/regional-writer-bridge.mjs
       - name: Preparar Chromium compatível
         run: |
           # npm10 quebra Arborist (edgesOut:null) após Vitest4; npm11 corrige.
@@ -63,6 +64,8 @@ jobs:
         run: node apps/web/tests/e2e/playable-route.mjs
       - name: E2E do catálogo de regiões somente leitura
         run: node apps/web/tests/e2e/regions-preview.mjs
+      - name: E2E da Arena regional com writer e save real
+        run: node apps/web/tests/e2e/regional-writer-bridge.mjs
       - name: Guardar capturas para revisão visual
         if: always()
         uses: actions/upload-artifact@v4

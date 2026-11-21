@@ -22,6 +22,7 @@ import { BattlePlayback } from './BattlePlayback';
 import { BattleStage } from './BattleStage';
 import { TrainerScreen } from './TrainerScreen';
 import { PokemonTraining } from './PokemonTraining';
+import {PREVIEW_REGIONS} from '../regions/previewCatalog';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -112,6 +113,7 @@ function sectionName(tab: Tab): string {
 export function PlayApp() {
   const [save, setSave] = useState<PlayRead>(readSafe);
   const [tab, setTab] = useState<Tab>('overview');
+  const [regionalArea, setRegionalArea] = useState(1);
   const [name, setName] = useState('');
   const [starter, setStarter] = useState(1);
   const [demo, setDemo] = useState(false);
@@ -198,7 +200,7 @@ export function PlayApp() {
   }
 
   /** Browser seguro: sorteia seed uint32, resolução real ocorre no game-core. */
-  function fight(): void {
+  function fight(regionId?:number): void {
     if (busy || (battlePlayback&&!battlePlayback.done) || save.status!=='ready') return;
     const expected=save.snapshot.revision;
     const seed = window.crypto.getRandomValues(new Uint32Array(1))[0];
@@ -207,11 +209,12 @@ export function PlayApp() {
       return;
     }
     // Uma única transação de gameplay; animação não toca o save nem recompensas.
-    void transact(()=>updatePlaySave(window.localStorage,expected,{type:'battle',seed}))
+    void transact(()=>updatePlaySave(window.localStorage,expected,
+      regionId===undefined?{type:'battle',seed}:{type:'regional-battle',regionId,seed}))
       .then(result=>{
         if(result?.status==='ok'){
           setTab('arena');
-          setBattlePlayback({id:'battle-v02-'+result.snapshot.revision,seq:(battlePlayback?.seq??0)+1,done:false});
+          setBattlePlayback({id:(regionId===undefined?'battle-v02-':'regional-v02-')+result.snapshot.revision,seq:(battlePlayback?.seq??0)+1,done:false});
         }
       });
   }
@@ -304,7 +307,7 @@ export function PlayApp() {
     && 'outcome' in lastBattleRaw && 'wildSpeciesId' in lastBattleRaw
     && 'log' in lastBattleRaw && Array.isArray(lastBattleRaw.log)
     ? lastBattleRaw as {
-        battleId?:string;
+        battleId?:string;regionId?:number;regionName?:string;
         playerSpeciesId?:number;playerName?:string;playerLevel?:number;
         playerMaxHp?:number;wildMaxHp?:number;
         playerMaxSp?:number;wildMaxSp?:number;
@@ -911,8 +914,24 @@ export function PlayApp() {
                       <div><i className="fa-solid fa-shield-halved" aria-hidden="true"/><strong>{typeof data.losses==='number'?data.losses:0}</strong><span>Derrotas e empates</span></div>
                       <div><i className="fa-solid fa-medal" aria-hidden="true"/><strong>{view.badges.length}<small>/8</small></strong><span>Insígnias</span></div>
                     </div>
+                    <div style={{display:'grid',gap:'var(--space-3)',padding:'var(--space-4)',background:'var(--color-surface-raised)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-card)'}}>
+                      <label htmlFor="region-arena-select"><strong>Explorar região de Kanto</strong></label>
+                      <select id="region-arena-select" aria-label="Região para batalha"
+                        value={regionalArea} onChange={event=>setRegionalArea(Number(event.target.value))}
+                        style={{minHeight:44,padding:'var(--space-3)',color:'var(--color-text)',background:'var(--color-surface)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-control)'}}>
+                        {PREVIEW_REGIONS.map(region=><option key={region.id} value={region.id}
+                          disabled={view.level<region.unlockTrainerLevel}>
+                          {region.id}. {region.name} · Treinador Lv. {region.unlockTrainerLevel}
+                        </option>)}
+                      </select>
+                      <button className={styles.primary} type="button" disabled={busy||battlePlaying}
+                        onClick={()=>fight(regionalArea)}>
+                        <i className="fa-solid fa-map-location-dot" aria-hidden="true"/> Batalhar na região
+                      </button>
+                      <small>Vitórias contam na mesma progressão da Arena. Captura de lendários exige o futuro sistema de Pokébolas.</small>
+                    </div>
                     <button className={styles.primary+' '+styles.arenaFightButton} type="button"
-                      disabled={busy||battlePlaying} onClick={fight}>
+                      disabled={busy||battlePlaying} onClick={()=>fight()}>
                       <i className="fa-solid fa-khanda" aria-hidden="true"/> Batalhar contra Pokémon selvagem
                     </button>
                     <p className={styles.arenaMicrocopy}>
@@ -946,7 +965,7 @@ export function PlayApp() {
                 {lastBattle && (
                   <div className={styles.twoColumn}>
                     <section className={styles.panel+' '+styles.arenaResultPanel} aria-label="Resultado da última batalha">
-                      <div className={styles.kicker}><i className="fa-solid fa-flag-checkered" aria-hidden="true"/> ÚLTIMO COMBATE</div>
+                      <div className={styles.kicker}><i className="fa-solid fa-flag-checkered" aria-hidden="true"/> ÚLTIMO COMBATE{lastBattle.regionName?' · '+lastBattle.regionName:''}</div>
                       {battlePlaying ? <>
                         <h2>Batalha em andamento…</h2>
                         <p>As ações aparecem ataque por ataque, acompanhadas por um cronômetro.</p>

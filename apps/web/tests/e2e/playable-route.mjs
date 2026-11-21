@@ -413,6 +413,14 @@ async function exercise(browser, label, viewport) {
     await page.getByRole('button',{name:'Pausar'}).click();
     await page.getByRole('button',{name:'Continuar'}).waitFor();
   }
+  // D-064AG: em máquinas lentas, o replay curto pode terminar entre
+  // comandos de teclado no mobile. Reinicie e pause apenas o replay visual
+  // antes de validar a leitura assistiva; não altere o save.
+  if(!(await page.getByRole('button',{name:'Ativar leitura assistiva'}).count())){
+    await page.getByRole('button',{name:'Reassistir à batalha'}).click();
+    await page.getByRole('button',{name:'Pausar'}).click();
+    await page.getByRole('button',{name:'Continuar'}).waitFor();
+  }
   await page.getByRole('button',{name:'Ativar leitura assistiva'}).click();
   await page.getByRole('button',{name:'Desativar leitura assistiva'}).waitFor();
   assert.equal(await page.getByTestId('battle-screenreader-status').getAttribute('aria-live'),'polite');
