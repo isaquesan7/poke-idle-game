@@ -5,7 +5,8 @@
  */
 import {useState} from 'react';
 import {KANTO_REGIONS,KANTO_POKEDEX} from '@kanto/game-core';
-import type {KantoRegionDefinition} from '@kanto/game-core';
+import type {KantoRegionDefinition,RewardJournal,KantoRegionalPreviewResult} from '@kanto/game-core';
+import {previewRegionalBattleFromJournal} from './regionalBattleBridge';
 import styles from './KantoMapScreen.module.css';
 
 const POSITIONS:readonly [number,number][]=[
@@ -29,11 +30,13 @@ function unlock(region:KantoRegionDefinition,trainerLevel:number){
 
 interface Props {
   readonly trainerLevel:number;
+  readonly journal:RewardJournal;
   readonly revealedSpeciesIds:readonly number[];
   readonly onClose:()=>void;
 }
-export function KantoMapScreen({trainerLevel,revealedSpeciesIds,onClose}:Props){
+export function KantoMapScreen({trainerLevel,journal,revealedSpeciesIds,onClose}:Props){
   const [selectedId,setSelectedId]=useState(1);
+  const [preview,setPreview]=useState<KantoRegionalPreviewResult|null>(null);
   const selected=KANTO_REGIONS.find(r=>r.id===selectedId)??KANTO_REGIONS[0]!;
   const allowed=unlock(selected,trainerLevel);
   const revealed=new Set(revealedSpeciesIds);
@@ -92,7 +95,7 @@ export function KantoMapScreen({trainerLevel,revealedSpeciesIds,onClose}:Props){
             style={{left:x+'%',top:y+'%'}}
             aria-pressed={active}
             aria-label={'Região '+region.id+': '+region.name+'. '+(accessible?'Disponível':'Bloqueada, exige treinador nível '+region.trainerUnlockLevel)}
-            onClick={()=>setSelectedId(region.id)}>
+            onClick={()=>{setSelectedId(region.id);setPreview(null);}}>
             <span className={styles.markerIcon}><i className={'fa-solid '+(accessible?REGION_ICONS[i]:'fa-lock')} aria-hidden="true"/></span>
             <span className={styles.markerName}>{region.id}. {region.name}</span>
           </button>;
@@ -128,6 +131,29 @@ export function KantoMapScreen({trainerLevel,revealedSpeciesIds,onClose}:Props){
           </div>
           <p>Capturas futuras exigirão Ultra Ball. A Master Ball permanece reservada para uso manual.</p>
         </div>}
+        <div className={styles.simulation} aria-label="Simulação regional sem recompensas">
+          <button type="button" className={styles.simulationButton}
+            disabled={!allowed}
+            onClick={()=>{
+              const seed=window.crypto.getRandomValues(new Uint32Array(1))[0];
+              setPreview(seed===undefined
+                ?{status:'blocked',reason:'Não foi possível gerar o encontro.'}
+                :previewRegionalBattleFromJournal(journal,selected.id,seed));
+            }}>
+            <i className="fa-solid fa-flask" aria-hidden="true"/> Simular encontro (sem recompensas)
+          </button>
+          {preview?.status==='blocked'&&<p role="status" className={styles.simulationError}>{preview.reason}</p>}
+          {preview?.status==='ready'&&<div className={styles.simulationResult} role="status">
+            <strong>{preview.preview.battle.playerName} vs. {revealed.has(preview.preview.wildSpeciesId)
+              ?KANTO_POKEDEX[preview.preview.wildSpeciesId-1]?.name
+              :'Pokémon selvagem'} · Nv. {preview.preview.wildLevel}</strong>
+            <span>{preview.preview.battle.outcome==='win'?'Vitória simulada':preview.preview.battle.outcome==='loss'?'Derrota simulada':'Empate simulado'} · {preview.preview.battle.turns} turnos</span>
+            <ol aria-label="Diário da simulação" className={styles.simulationLog}>
+              {preview.preview.battle.log.map((line,index)=><li key={index}>{line}</li>)}
+            </ol>
+            <small>Simulação local. Nenhuma captura, experiência, moeda ou mudança no save.</small>
+          </div>}
+        </div>
         <button type="button" className={styles.disabledBattle} disabled
           title="A batalha regional será habilitada depois da validação da economia, dos níveis e das Poké Bolas">
           <i className="fa-solid fa-lock" aria-hidden="true"/> Batalha regional em preparação
