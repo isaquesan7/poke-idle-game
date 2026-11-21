@@ -87,7 +87,10 @@ describe('D064AM — combate por região avançada, seeds e níveis',()=>{
     const all:Sample[]=[];
     for(const regionId of REGION_IDS){
       const region=KANTO_REGIONS.find(r=>r.id===regionId)!;
-      const levels=[region.levelMin,region.levelMax,100] as const;
+      // No Santuário, levelMax=100: usar o ponto médio para evitar estratos duplicados.
+      const levels=[region.levelMin,
+        region.levelMax===100?Math.floor((region.levelMin+region.levelMax)/2):region.levelMax,
+        100] as const;
       for(const level of levels)for(let m=0;m<MODES.length;m++){
         const mode=MODES[m]!;
         const bucket:Sample[]=[];
