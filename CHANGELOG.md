@@ -367,3 +367,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Nova ação `regional-battle` selecionável pela Arena; desbloqueio por nível no save, espécies e faixas regionais canônicas da prévia, e recompensa pela transação já existente de Arena. Batalha clássica não foi alterada.
 - Lendários não são capturados gratuitamente; não existe bolso/custo de bolas neste corte. Registro visual log/frames preservado.
 - Testes Vitest e E2E desktop/mobile garantem região bloqueada, commit único, idempotência por revisão e persistência pós-reload. Economia D064 avançada segue separada e não publicada.
+
+
+### D-064AH — Pokébolas e encontros regionais completos (não publicado)
+- Adiciona catálogo de 151 espécies regionais, pesos de encontro e bolas de captura com estoque versionado, 12 bolas iniciais, reposição por vitórias regionais e consumo apenas após vitória. Resultado de captura, XP/moedas e consumo no mesmo writer com recibo único. Lendários só com Ultra Ball. Sem Master Ball automática.
+- Arena mostra estoque e seleção de captura, E2E/regressão e testes de integridade de revisão. Semente ainda é local e regras econômicas continuam beta. Arena clássica preservada.
