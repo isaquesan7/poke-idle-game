@@ -123,3 +123,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AC | 2026-11-20 | LABORATÓRIO NÃO PUBLICADO | Separar progressão por derrotas reais (motor existente) de hipótese de treino e persistência de recursos. Equipe roda entre 1–3 UIDs, HP/SP são restaurados a cada encontro, modo focused usa pontos teóricos em HP/Attack e afinidade por vitória, captura e estoque só em RAM. Nenhum parâmetro pode ser adotado em produção sem CI, simulação multi-seed, política de recuperação e writer seguro. |
+
+
+| D-064AD | 2026-11-20 | RELEASE GATE — SEM AUTORIZAÇÃO DE PUBLICAR | Dividir a entrega em Corte A mapa somente leitura, Corte B prévia regional isolada e Corte C capturas/economia persistentes condicionadas a autoridade, migração, concorrência, recuperação e balanceamento. Medir estagnação por sequências reais sem vitória antes de fixar regiões. A PR experimental não pode ser mesclada para apressar a publicação; criar PR estreita do Corte A após CI e QA próprios. |
