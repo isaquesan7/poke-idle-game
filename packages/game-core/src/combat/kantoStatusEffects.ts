@@ -30,6 +30,13 @@ const FRLG_SECONDARY_EFFECTS:Readonly<Record<string,KantoSecondaryEffect>>=
     else if(meta.effectId===71&&chance>0)effect={kind:'speed-drop',chance,stages:1};
     return effect?[[meta.name,effect]]:[];
   }));
+/** D064AU: só Twineedle possui rolagem de poison por impacto. */
+export const KANTO_PER_HIT_SECONDARY_EFFECTS:Readonly<Record<string,KantoSecondaryEffect>>={
+  twineedle:Object.freeze({kind:'status',status:'poison',chance:20})
+};
+export function kantoPerHitSecondaryEffect(moveName:string):KantoSecondaryEffect|null{
+  return KANTO_PER_HIT_SECONDARY_EFFECTS[moveName]??null;
+}
 export const KANTO_SECONDARY_EFFECTS: Readonly<Record<string,KantoSecondaryEffect>> = {
   ...FRLG_SECONDARY_EFFECTS,
   ember:{kind:'status',status:'burn',chance:10},
