@@ -130,3 +130,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AS | 2026-11-21 | EM VALIDAÇÃO | Night Shade level-up FRLG é exceção fechada à exigência de poder positivo: `power:0` marca dano fixo igual ao nível, sem STAB/defesa/variação/crítico, preservando imunidade de tipo. Custo SP com PP oficial snapshot e peso12; validação por UID/nível no writer, sem TM09 ou efeitos genéricos novos. Não alterar regras de salvamento nem economia. |
+
+
+| D-064AT | 2026-11-21 | EM VALIDAÇÃO | Golpes 2–5 hits effectId30 no FRLG level-up permitidos apenas em whitelist auditada, com sorteio determinístico 3/8,3/8,1/8,1/8 após precisão, SP uma vez e log/frame por impacto. Bonemerang effect45 (dois hits) entra, Double Kick preservado. Twineedle effect78 bloqueado até status secundário por impacto; TM09/Bullet Seed não ensinável. IA/energia usam 3 hits esperados; sem alterações de economia/save. |
