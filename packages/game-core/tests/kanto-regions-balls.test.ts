@@ -191,6 +191,8 @@ describe('D-064F — simulação regional REAL sem recompensas',()=>{
         expect(fight.battle.frames.length).toBe(fight.battle.log.length);
         expect(fight.captureDisabled).toBe(true);
         expect('captured' in fight.battle).toBe(false);
+        expect(fight.battle.log.some(line=>line.startsWith('Captura!'))).toBe(false);
+        expect(fight.battle.log.some(line=>line.includes('Recompensas de combate recebidas'))).toBe(false);
       }
     }
   });
