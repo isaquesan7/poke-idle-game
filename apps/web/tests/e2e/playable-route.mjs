@@ -295,6 +295,20 @@ async function exercise(browser, label, viewport) {
     'Mew e Mewtwo precisam estar no pool raro da última região');
   assert.equal(await map.getByText('???').count()>0,true,
     'Espécies ainda não descobertas devem manter a privacidade da Pokédex');
+  // D-064K: simular uma região liberada deve exibir resultado real,
+  // mas nunca consumir bolas, registrar Pokémon, XP ou salvar recompensas.
+  await map.getByRole('button',{name:/Região 1: Bosque Inicial/}).click();
+  await map.getByRole('button',{name:/Simular encontro \(sem recompensas\)/}).click();
+  await map.getByRole('list',{name:'Diário da simulação'}).waitFor();
+  await map.getByText('Simulação local. Nenhuma captura, experiência, moeda ou mudança no save.').waitFor();
+  assert.equal(await map.getByRole('listitem').count()>0,true);
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeMap,
+    'Simular batalha regional não pode gravar XP, moedas, capturas ou alterar save');
+  await map.getByRole('button',{name:/Região 10: Santuário Lendário/}).click();
+  assert.equal(await map.getByRole('button',{name:/Simular encontro \(sem recompensas\)/}).isDisabled(),true,
+    'Região bloqueada não permite simular confronto');
+  assert.equal(await map.getByRole('list',{name:'Diário da simulação'}).count(),0,
+    'Trocar região precisa limpar o resultado anterior');
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeMap,
     'Abrir e navegar no mapa não podem gravar no save');
   await page.screenshot({path:new URL('map-preview-'+label+'.png',shots).pathname,fullPage:true});
