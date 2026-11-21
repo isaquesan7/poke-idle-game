@@ -8,6 +8,8 @@
  */
 import {readPlaySave} from './playSave';
 import type {PlaySnapshot} from './playSave';
+import {RegionalWriterMemoryLab} from './regionalWriterMemoryLab';
+import type {RegionalLabCommand} from './regionalWriterMemoryLab';
 
 export type RegionalPersistenceGate =
   | {readonly status:'blocked';readonly reason:string;readonly canWrite:false}
@@ -59,4 +61,37 @@ export function inspectRegionalPersistenceCandidate(
     oldRevision:original.revision,projectedRevision:candidate.revision,
     addedReceipts:newReceipts.length-oldReceipts.length
   };
+}
+
+/**
+ * D-064W — compara um candidato com a execução canônica do motor regional.
+ * Não aceita outcome, espécie, coins, captura ou recibos da interface como
+ * prova: a simulação reconstruída a partir da ORIGEM deve ser idêntica.
+ *
+ * Ainda é somente leitura. Seed fornecida pelo cliente NÃO é antifraude;
+ * para a versão com jogadores será necessária autoridade de servidor.
+ */
+export function inspectCanonicalRegionalProposal(
+  original:PlaySnapshot,
+  candidate:PlaySnapshot,
+  command:RegionalLabCommand
+):RegionalPersistenceGate {
+  const structural=inspectRegionalPersistenceCandidate(
+    original,candidate,command.expectedRevision
+  );
+  if(structural.status==='blocked')return structural;
+  try{
+    const lab=new RegionalWriterMemoryLab(original);
+    const resolved=lab.apply(command);
+    if(resolved.status!=='applied')
+      return deny(resolved.status==='blocked'
+        ?resolved.reason:'Comando regional duplicado não gera novo candidato.');
+    // A comparação integral inclui recibos, moedas, XP, bolso, UID,
+    // capturas, batalhas e todos os campos extras preservados.
+    if(JSON.stringify(resolved.snapshot)!==JSON.stringify(candidate))
+      return deny('Candidato difere do resultado calculado pelo motor regional.');
+    return structural;
+  }catch{
+    return deny('Não foi possível verificar a proposta regional canônica.');
+  }
 }
