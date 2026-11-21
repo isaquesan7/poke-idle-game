@@ -16,7 +16,7 @@ import { KANTO_POKEDEX } from '../catalog/kantoSpecies.js';
 import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
 import { kantoMoveSecondaryEffect } from './kantoStatusEffects.js';
 import {KANTO_SUPPORT_MOVES,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
-import {kantoMoveHitCount} from './kantoMultiHit.js';
+import {KANTO_MULTI_HIT_MOVES,kantoMoveExpectedHits,kantoRollHitCount} from './kantoMultiHit.js';
 import type { KantoBattleStatus } from './kantoStatusEffects.js';
 import {
   KANTO_BASIC_ATTACK,KANTO_CONCENTRATE,KANTO_SP_BALANCE,
@@ -225,9 +225,9 @@ function validMove(m:KantoMove|undefined):boolean{
       &&m.power===0&&m.accuracy===fixed.accuracy
       &&m.priority===fixed.priority;
   }
-  // D-045: o nome do golpe com 2 hits não pode aceitar potência/tipo adulterados.
-  if(m.name==='double-kick'){
-    const fixed=KANTO_BATTLE_MOVES['double-kick'];
+  // D064AT: bloquear alteração de poder/tipo/precisão de TODOS os multi-hit.
+  if(Object.hasOwn(KANTO_MULTI_HIT_MOVES,m.name)){
+    const fixed=KANTO_BATTLE_MOVES[m.name];
     return !!fixed&&m.type===fixed.type&&m.category===fixed.category
       &&m.power===fixed.power&&m.accuracy===fixed.accuracy
       &&m.priority===fixed.priority;
@@ -409,7 +409,7 @@ export function simulateKantoBattle(
     const score=(move:KantoMove):number=>
       move.name==='night-shade'
         ?actor.level*move.accuracy*(kantoTypeMultiplier(move.type,target.types)>0?1:0)
-        :move.power*kantoMoveHitCount(move.name)
+        :move.power*kantoMoveExpectedHits(move.name)
       *move.accuracy*kantoTypeMultiplier(move.type,target.types)
       *(actor.types.includes(move.type)?1.5:1)
       *(move.category==='physical'
@@ -556,10 +556,11 @@ export function simulateKantoBattle(
       const stagedDefender={...defender,
         stats:{...defender.stats,defense:Math.max(1,Math.floor(
           defender.stats.defense*2/(2+foeDefenseDrop)))}};
-      const hitTotal=kantoMoveHitCount(move.name);
+      // Um teste de precisão, um custo SP e UM sorteio de quantidade por ação.
+      const hitTotal=kantoRollHitCount(move.name,roll);
       let hit:ReturnType<typeof kantoDamage>|null=null;
-      // Double Kick: UMA ação/precisão/custo SP, dois danos com RNG de cada
-      // impacto. Cada acerto vira uma linha/frame; interrompe imediatamente
+      // Multi-hit: UMA ação/precisão/custo SP, danos individuais por acerto.
+      // Cada acerto vira uma linha/frame; interrompe imediatamente
       // no KO ou imunidade. Não reinicia turnos nem duplica recibos.
       for(let index=1;index<=hitTotal;index++){
         hit=kantoDamage(stagedActor,stagedDefender,roll(),roll(),
