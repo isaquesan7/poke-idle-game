@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
-  KANTO_BATTLE_SPECIES, KANTO_WILD_POOL, pokemonFinalStats, affinityRate, zeroStats,
+  KANTO_BATTLE_SPECIES, pokemonFinalStats, affinityRate, zeroStats,
   kantoLevelMoves,kantoSupportMoves,KANTO_SUPPORT_MOVES,pokemonMoveSlots,
   legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
   kantoMoveSpCost,kantoMovePp,
@@ -25,14 +25,14 @@ import { TrainerScreen } from './TrainerScreen';
 import { PokemonTraining } from './PokemonTraining';
 import { RegionsScreen } from '../regions/RegionsScreen';
 
-type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'arena' | 'expedition';
+type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
 type CollectionSort = 'recent' | 'level' | 'affinity' | 'species';
 type PokemonSection = 'profile' | 'evolution' | 'moves';
 /** D-051: navegação consistente com o Font Awesome da tela do treinador. */
 const NAV_ICONS:Readonly<Record<Tab,string>>={
   overview:'fa-house',trainer:'fa-user',pokemon:'fa-dragon',collection:'fa-layer-group',
-  pokedex:'fa-book-open',regions:'fa-map-location-dot',arena:'fa-khanda',expedition:'fa-compass'
+  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',expedition:'fa-compass'
 };
 
 /** D-042: animações completas na Arena independentemente do sistema operacional. */
@@ -103,7 +103,7 @@ function PokemonArt({ id, name, large = false }: {
 }
 
 function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', arena: 'Arena', expedition: 'Expedição' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', expedition: 'Expedição' }[tab];
 }
 
 /**
@@ -202,7 +202,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   }
 
   /** Browser seguro: sorteia seed uint32, resolução real ocorre no game-core. */
-  function fight(regionId?:number): void {
+  function fight(regionId:number): void {
     if (busy || (battlePlayback&&!battlePlayback.done) || save.status!=='ready') return;
     const expected=save.snapshot.revision;
     const seed = window.crypto.getRandomValues(new Uint32Array(1))[0];
@@ -212,12 +212,12 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     }
     // Uma única transação de gameplay; animação não toca o save nem recompensas.
     void transact(()=>updatePlaySave(window.localStorage,expected,
-      regionId===undefined?{type:'battle',seed}:{type:'regional-battle',regionId,seed,
-        ballId:captureBall}))
+      {type:'regional-battle',regionId,seed,ballId:captureBall}))
       .then(result=>{
         if(result?.status==='ok'){
-          setTab('arena');
-          setBattlePlayback({id:(regionId===undefined?'battle-v02-':'regional-v02-')+result.snapshot.revision,seq:(battlePlayback?.seq??0)+1,done:false});
+          setTab('battle');
+          setBattlePlayback({id:'regional-v02-'+result.snapshot.revision,seq:(battlePlayback?.seq??0)+1,done:false});
+          window.requestAnimationFrame(()=>window.scrollTo(0,0));
         }
       });
   }
@@ -332,6 +332,11 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         playerRemainingHp:number;wildRemainingHp:number
       }
     : null;
+  const battleRegion=KANTO_REGIONS.find(region=>region.id===lastBattle?.regionId)
+    ??KANTO_REGIONS.find(region=>region.id===regionalArea)??KANTO_REGIONS[0]!;
+  useLayoutEffect(()=>{
+    if(tab==='battle')window.scrollTo(0,0);
+  },[tab,save.status==='ready'?save.snapshot.revision:0]);
   const displayedBattleId=lastBattle?.battleId??'legacy-battle';
   const battlePlaying=Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
   const playbackKey=displayedBattleId+':'+(battlePlayback?.seq??0);
@@ -432,10 +437,10 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         <nav className={styles.menu} aria-label="Navegação do jogo">
-          {(['overview','trainer','pokemon','collection','pokedex','regions','arena','expedition'] as Tab[]).map(item => (
+          {(['overview','trainer','pokemon','collection','pokedex','regions','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
-              onClick={() => { if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='arena')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
+              onClick={() => { if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
@@ -448,7 +453,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         <header className={styles.topbar}>
           <div>
             <div className={styles.kicker}>REGIÃO DE KANTO · SEASON 1</div>
-            <h1>{sectionName(tab)}</h1>
+            <h1>{tab==='battle'?battleRegion.name:sectionName(tab)}</h1>
           </div>
           <div className={styles.trainerChip}><span className={serverOnline===true?styles.serverOnline:styles.serverOffline} role="status">{serverOnline===null?'Verificando servidor':serverOnline?'● Servidor Online':'● Servidor indisponível'}</span><span className={styles.avatar}>★</span>
             <span><strong>{view?.name ?? data?.name}</strong><small>Nível {view?.level ?? '?'}</small></span>
@@ -891,7 +896,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
               <PokedexPanel
                 seenIds={seenDexIds}
                 capturedSpeciesIds={caughtDexIds}
-                onArena={()=>setTab('arena')}
+                onArena={()=>setTab('regions')}
                 onCollection={()=>setTab('collection')}
               />
             )}
@@ -916,14 +921,18 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
               />
             )}
 
-            {tab === 'arena' && (
+            {tab === 'battle' && (
               <>
                 <section className={styles.battleIntro}>
                   <div>
-                    <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
-                    <h2>Arena de batalha</h2>
-                    <p className={styles.arenaLead}>Seu parceiro enfrenta Pokémon selvagens de Kanto em batalhas automáticas. Acompanhe os ataques, o HP e a energia de cada combatente em tempo real.</p>
-                    <div className={styles.arenaLeader} aria-label="Líder da Arena">
+                    <button type="button" className={styles.secondary}
+                      onClick={()=>{setBattlePlayback(null);setTab('regions');window.scrollTo(0,0);}}>
+                      <i className="fa-solid fa-arrow-left" aria-hidden="true"/> Voltar às regiões
+                    </button>
+                    <div className={styles.kicker}>ENCONTROS SELVAGENS · {battleRegion.name.toUpperCase()}</div>
+                    <h2>Batalha na {battleRegion.name}</h2>
+                    <p className={styles.arenaLead}>Seu parceiro enfrenta Pokémon selvagens na região escolhida. Acompanhe os ataques, o HP e a energia dos dois combatentes.</p>
+                    <div className={styles.arenaLeader} aria-label="Líder do combate">
                       <div className={styles.arenaLeaderPortrait}>
                         <PokemonArt id={active.pokemonId} name={speciesName(active.pokemonId)} />
                       </div>
@@ -970,14 +979,10 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                       </button>
                       <small>As bolas são gastas apenas ao tentar capturar após uma vitória, mesmo que a captura falhe. Vitória pode conceder novas bolas; lendários exigem Ultra Ball.</small>
                     </div>
-                    <button className={styles.primary+' '+styles.arenaFightButton} type="button"
-                      disabled={busy||battlePlaying} onClick={()=>fight()}>
-                      <i className="fa-solid fa-khanda" aria-hidden="true"/> Batalhar contra Pokémon selvagem
-                    </button>
                     <p className={styles.arenaMicrocopy}>
                       <i className="fa-solid fa-circle-info" aria-hidden="true"/>
                       {battlePlaying?' Assista ao confronto antes de iniciar outra batalha.':
-                        ' Vitórias concedem experiência, moedas e afinidade; capturas podem acontecer após vencer.'}
+                        ' Vitórias concedem experiência, moedas e afinidade; a tentativa de captura usa a Pokébola escolhida.'}
                     </p>
                   </div>
                   <BattleStage
@@ -1039,16 +1044,16 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 )}
                 <section className={styles.panel+' '+styles.arenaEncounters}>
                   <div className={styles.arenaEncountersHeading}>
-                    <div><div className={styles.kicker}>EXPLORAÇÃO DE KANTO</div><h2>Pokémon encontrados nesta arena</h2></div>
-                    <span>{KANTO_WILD_POOL.length} espécies selvagens</span>
+                    <div><div className={styles.kicker}>EXPLORAÇÃO DE {battleRegion.name.toUpperCase()}</div><h2>Pokémon encontrados nesta área</h2></div>
+                    <span>{battleRegion.speciesIds.length} espécies selvagens</span>
                   </div>
                   <div className={styles.encounterGrid}>
-                    {KANTO_WILD_POOL.slice(0,12).map(id=><div key={id} className={styles.encounterCard}>
+                    {battleRegion.speciesIds.map(id=><div key={id} className={styles.encounterCard}>
                       <PokemonArt id={id} name={KANTO_BATTLE_SPECIES[id]!.name} />
                       <span>{KANTO_BATTLE_SPECIES[id]!.name}</span>
                     </div>)}
                   </div>
-                  <p className={styles.disclaimer}>Uma amostra de 12 Pokémon selvagens que você pode encontrar. Conheça os outros registros da região na Pokédex.</p>
+                  <p className={styles.disclaimer}>Todas as espécies possíveis desta região. Os encontros lendários são extremamente raros.</p>
                   <button type="button" className={styles.secondary}
                     onClick={()=>setTab('pokedex')}>Explorar Pokédex 151</button>
                 </section>
