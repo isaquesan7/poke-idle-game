@@ -428,3 +428,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064S — bloqueios de consistência do preflight regional (branch, não publicado)
 - A auditoria read-only de economia/bolso/combate regional deixa de sinalizar `ready` se as revisões do envelope e journal divergem ou o save muda durante seu cálculo; falha de leitura bloqueia o resultado.
 - Testes adicionais de corrida de aba, erro de storage e revisões inconsistentes. Sem alteração de gameplay, save persistido, Pokébolas, XP, UI, economia, legado ou GIFs; sem deploy.
+
+
+### D-064T — laboratório de transação regional (não publicado)
+- Novo laboratório privado em memória para ensaiar migração explícita de XP/bolso e recompensa de batalha/captura regional em uma transição validada, com revisão e idempotência por ID.
+- Testes para rollback em falhas, retries, corrida de revisão, falta de bolas, região bloqueada e ausência total de gravação no save local. Nenhum novo writer no navegador, nenhuma alteração na Arena publicada ou no balanceamento vigente. Deploy não realizado.
