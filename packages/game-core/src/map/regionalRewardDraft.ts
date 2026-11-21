@@ -22,6 +22,7 @@ import type {KantoBallPocketV1} from '../capture/kantoBallPocket.js';
 import {resolveKantoCaptureAttempt} from '../capture/regionalCaptureAttempt.js';
 import type {KantoBallId} from '../capture/kantoBalls.js';
 import {d064DraftBattleReward,d064DraftGrantXp} from './regionalEconomyDraft.js';
+import {d064DraftBallDrop} from '../capture/draftBallSupply.js';
 
 export interface RegionalBattleDraftCommand {
   readonly id:string;
@@ -167,6 +168,39 @@ export function applyRegionalBattleDraft(
     state.caughtSpecies=[...knownCaught];
   }
   if(spentPocket)state.ballPocket=spentPocket;
+  if(command.outcome==='win'){
+    // Contagem de vitórias POR REGIÃO. O mesmo evento não pode somar
+    // duas vezes: o recibo é escrito na revisão única abaixo.
+    const oldWins=state.regionalWins;
+    if(oldWins!==undefined&&(!oldWins||typeof oldWins!=='object'||Array.isArray(oldWins)))
+      return reject(journal,'Contador regional inválido.');
+    const rawWins=oldWins as Record<string,unknown>|undefined;
+    if(rawWins&&Object.entries(rawWins).some(([id,count])=>
+      !/^(?:[1-9]|10)$/.test(id)||!Number.isSafeInteger(count)
+      ||typeof count!=='number'||count<0))
+      return reject(journal,'Vitórias regionais inconsistentes.');
+    const count=rawWins?.[String(region.id)]??0;
+    if(typeof count!=='number'||!Number.isSafeInteger(count+1))
+      return reject(journal,'Contador regional esgotado.');
+    const nextWins=count+1;
+    state.regionalWins={...rawWins,[String(region.id)]:nextWins};
+    // O fornecimento é APENAS UM PROTÓTIPO; ainda não é concedido na
+    // produção. Sem bolso migrado, não inventamos estoque.
+    const pocket=inspectKantoBallPocket(state.ballPocket);
+    if(pocket.status==='invalid')return reject(journal,pocket.reason);
+    if(pocket.status==='valid'){
+      const drop=d064DraftBallDrop(region.id,nextWins);
+      if(!drop)return reject(journal,'Fonte de Poké Bolas indisponível.');
+      const amounts={...pocket.pocket.quantities};
+      for(const key of ['poke-ball','great-ball','ultra-ball'] as const){
+        const quantity=(amounts[key]??0)+drop[key];
+        if(!Number.isSafeInteger(quantity)||quantity>100000)
+          return reject(journal,'Estoque de Poké Bolas fora do limite.');
+        amounts[key]=quantity;
+      }
+      state.ballPocket={version:1,quantities:amounts};
+    }
+  }
   const receipts=applied.journal.receipts.map(receipt=>
     receipt.id===command.id?{id:receipt.id,fingerprint}:receipt);
   return{status:'applied',journal:{
