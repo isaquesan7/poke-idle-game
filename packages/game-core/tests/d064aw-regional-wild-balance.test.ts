@@ -171,6 +171,7 @@ describe('D064AW — equilíbrio regional após equipagem de IA selvagem',()=>{
       newWildExpandedOffensiveHitFrames:newWildSpecialMoveHits,
       segments:regional
     };
-    console.info('D064AW_REGIONAL_BALANCE_REPORT '+JSON.stringify(report));
+    (globalThis as unknown as {console:{info:(text:string)=>void}}).console.info(
+      'D064AW_REGIONAL_BALANCE_REPORT '+JSON.stringify(report));
   },120000);
 });
