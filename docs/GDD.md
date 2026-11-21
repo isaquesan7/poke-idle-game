@@ -233,3 +233,7 @@ Ataque Ghost Night Shade aprendido somente por level-up FRLG: `power:null` da or
 
 ### D-064AT — impactos múltiplos (21/11/2026; branch em validação)
 Nos golpes FRLG de level-up com effectId30, um acerto de precisão consome um custo SP e sorteará quantidade 2, 3, 4 ou 5 com probabilidades 37,5%, 37,5%, 12,5% e 12,5%. Danos, críticos e frames individuais por impacto, com corte imediato por KO ou imunidade. EffectId45 mantém 2 hits fixos sem sorteio extra. IA e custo SP consideram expectativa de 3 impactos. Não habilitar Twineedle com poison por acerto sem motor dedicado, nem Bullet Seed/TM09 sem política de aprendizado própria. Não muda progressão nem recompensas.
+
+
+### D-064AU — Twineedle (21/11/2026; em validação)
+Beedrill aprende Twineedle Nv20 pelo level-up FRLG. Golpe Bug/physical power25 por impacto, exatamente 2 danos, precisão100%, PP20, único gasto de SP; cada impacto efetivo que não cause KO pode infligir envenenamento com 20% de chance se o alvo estiver sem outro status e não for Poison/Steel. Estado permanece apenas na batalha. Linha/frame por impacto e por novo status; sem alterar captura/XP/economia/TM09.

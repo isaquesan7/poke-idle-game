@@ -16,17 +16,18 @@ function fighter(id:number,level:number,moves:readonly KantoMove[]):Combatant{
 }
 
 describe('D064AT — golpes com acertos múltiplos FRLG',()=>{
-  it('libera somente os 11 novos nomes permitidos e preserva Double Kick',()=>{
+  it('libera 12 nomes FRLG incluindo Twineedle seguro e preserva Double Kick',()=>{
     const expected=[
       'double-kick','double-slap','comet-punch','fury-attack','pin-missile',
       'spike-cannon','barrage','fury-swipes','bonemerang','bone-rush',
-      'icicle-spear','rock-blast'
+      'icicle-spear','rock-blast','twineedle'
     ].sort();
     expect(Object.keys(KANTO_MULTI_HIT_MOVES).sort()).toEqual(expected);
     for(const name of expected.filter(n=>n!=='double-kick')){
       const api=Object.values(KANTO_FRLG_MOVE_META).find(x=>x.name===name)!;
       const hit=KANTO_MULTI_HIT_MOVES[name]!;
-      expect(api.effectId===30||api.effectId===45).toBe(true);
+      expect(api.effectId===30||api.effectId===45||
+        (name==='twineedle'&&api.effectId===78)).toBe(true);
       expect(hit.minHits).toBe(2);
       expect(hit.maxHits).toBe(api.maxHits);
       expect(KANTO_BATTLE_MOVES[name]).toEqual({
@@ -36,7 +37,7 @@ describe('D064AT — golpes com acertos múltiplos FRLG',()=>{
       expect(kantoMovePp(name)).toBe(api.pp);
       expect(kantoMoveSpCost(KANTO_BATTLE_MOVES[name]!)).toBeGreaterThan(0);
     }
-    expect(KANTO_MULTI_HIT_MOVES['twineedle']).toBeUndefined();
+    expect(KANTO_MULTI_HIT_MOVES['twineedle']).toEqual({minHits:2,maxHits:2});
     expect(KANTO_MULTI_HIT_MOVES['bullet-seed']).toBeUndefined();
     expect(kantoTmIsTeachEnabled('tm09',1)).toBe(false);
   });

@@ -1,5 +1,10 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AU — Twineedle por impacto (21/11/2026; em validação)
+- Beedrill aprende Twineedle no Nv20 FRLG: dois impactos de poder 25, PP20, chance de envenenamento 20% por impacto efetivo, com uma ação/precisão/custo SP e frames individuais. Imunidades e estado único do alvo preservados; sem efeito após KO.
+- Whitelist multi-hit e SP atualizados; novos testes de UID/nível, seed, logs/frames, poison/Steel, payload adulterado e TM09 indisponível. Detalhes em `docs/TWINEEDLE_D064AU.md`. Sem mudar economia, XP, capturas, expedição ou save. CI/merge/Railway ainda pendentes.
+
+
 ## D-064AT — 11 ataques múltiplos FRLG (21/11/2026; BRANCH)
 - Novos 2–5 hits de level-up: Double Slap, Comet Punch, Fury Attack, Pin Missile, Spike Cannon, Barrage, Fury Swipes, Bone Rush, Icicle Spear, Rock Blast; Bonemerang com 2 hits. Double Kick preservado.
 - Sorteio determinístico de 2/3/4/5 impactos 37,5%/37,5%/12,5%/12,5%; precisão/SP uma vez, log/frame por impacto, encerra no KO. IA e SP calculam 3 hits esperados. Writer UID e anti-adulteração revisados, TM09/Bullet Seed e Twineedle continuam bloqueados. Sem impacto em XP/capturas/save/economia.
