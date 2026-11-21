@@ -79,7 +79,6 @@ describe('D064AP — equipe hipotética e limites de progressão regional',()=>{
     const report:Record<string,unknown>={};
     let total=0;
     for(const regionId of REGIONS)for(const level of LEVELS)for(const trained of [false,true]){
-      const fixed=fighter(TEAM[0],level,trained);
       const team=TEAM.map(id=>fighter(id,level,trained));
       let fixedWins=0,rotationWins=0,oracleWins=0,oracleXp=0,rotationXp=0;
       let sumLines=0,maxLines=0;
