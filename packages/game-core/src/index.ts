@@ -73,7 +73,8 @@ export {
   KANTO_STATUS_SOURCE_COMMIT, KANTO_SECONDARY_EFFECTS, kantoMoveSecondaryEffect
 } from './combat/kantoStatusEffects.js';
 export type { KantoBattleStatus, KantoSecondaryEffect } from './combat/kantoStatusEffects.js';
-export {KANTO_MULTI_HIT_MOVES,kantoMoveHitCount} from './combat/kantoMultiHit.js';
+export {KANTO_MULTI_HIT_MOVES,kantoMoveHitCount,kantoMoveExpectedHits,kantoRollHitCount}
+  from './combat/kantoMultiHit.js';
 export {
   KANTO_TM_SOURCE_COMMIT,KANTO_TM_SOURCE_BLOBS,KANTO_TM_VERSION_POLICY,
   KANTO_TM09_PREVIEW,kantoTmPreview,kantoTmIsTeachEnabled,
