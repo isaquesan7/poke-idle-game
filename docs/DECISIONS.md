@@ -100,3 +100,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AF | 2026-11-21 | PREVIEW DE COMBATE SEM ECONOMIA | Permitir ao jogador experimentar enfrentamentos regionais com simulateKantoBattle na rota /regions, como sandbox sem recompensas/capturas. Texto da Arena que concederia recursos é suprimido no preview. Seed vem do cliente apenas para demo sem valor econômico; nenhum save ou writer deve ser acessado. |
+
+
+| D-064AG | 2026-11-21 | BETA REGIONAL COM WRITER ÚNICO, GATE DE CI | Integrar batalhas regionais à mesma ação/reward journal da Arena v0.2, sem writer ou moeda alternativos. Requisitos regionais validados pelo nível real do treinador; espécies/níveis iniciais do catálogo estático; XP/coins/afinidade iguais à Arena. Captura comum ainda usa taxa legada de 35% sem bolas; lendários não podem ser capturados sem política de consumo/estoque, e as fórmulas econômicas D064 não estão ativadas. Exigir CI antes do merge e comunicar limitação de RNG manipulável de cliente (beta sem antifraude). |
