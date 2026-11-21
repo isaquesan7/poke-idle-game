@@ -403,3 +403,6 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Teste determinístico de 4.608 confrontos no motor Kanto nas regiões 7–10, por líder, nível, treino e seed, com métricas de vitórias, derrotas, turnos, duração teórica do replay e XP médio por encontro.
 - Documentação em `docs/BALANCE_D064AM.md`. Não modifica gameplay, níveis, chances, XP, save, Pokébolas, expedição, GIFs ou rota pública.
 - Publicação apenas após CI e Railway confirmados no commit de integração.
+
+
+- Resultado D064AM medido em CI no motor: 4.608/4.608 combates, taxa de vitórias da matriz 7=68,06%, 8=63,54%, 9=43,06% e 10=57,73%; p95 teórico normal por região até 26,1 s. Identificado Pico Dracônico como foco da próxima auditoria; sem modificar dano, XP, raridade ou limite de nível.
