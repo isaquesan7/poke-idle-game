@@ -18,7 +18,7 @@ interface Props{
   readonly busy:boolean;
   readonly onFight:(regionId:number)=>void;
   readonly onOpenTeam:()=>void;
-  readonly lastBattleRegionId?:number;
+  readonly lastBattleRegionId?:number|undefined;
   readonly onReplayBattle?:()=>void;
 }
 const ballLabels=[
