@@ -131,3 +131,6 @@ export type {CaptureProjection} from './capture/regionalCaptureProjection.js';
 
 export {resolveKantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
 export type {KantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
+
+export {D064_DRAFT_STARTER_BALLS,d064DraftBallDrop,d064DraftBallSupply} from './capture/draftBallSupply.js';
+export type {D064DraftBallDrop} from './capture/draftBallSupply.js';
