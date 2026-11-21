@@ -1067,3 +1067,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Workflow `d064-stacked-regression.yml` foi ampliado para `pull_request` com base nas branches `feat/d064**`/`test/d064**`, além dos pushes regionais, para facilitar CI das PRs empilhadas. O resultado terminal TypeScript/Vitest/Playwright/Docker do HEAD FINAL ainda deve ser observado antes de qualquer merge.
 - **Limites fundamentais:** seeds continuam fornecidas pelo cliente; comparação contra motor local não é autoridade antifraude, não protege contra scripts adulterados, nem coordena abas. Economia D064/kit/raridades ainda experimentais. PRs #88–#92 continuam sem publicação na main; `isaquesan7/pokedex` intocado.
 - **Próxima etapa concreta:** verificar os checks completos do HEAD final, corrigir qualquer erro, revisar a necessidade de backend autoritativo e validar a curva de XP/bolas antes de implementar writer versionado persistente com lock, backup e recuperação.
+
+
+## D-064X — correção de fixture TS nos gates D064 (20/11/2026; PR empilhada, SEM DEPLOY)
+- Auditoria estática dos novos testes identificou mutação direta dos campos `readonly` `PlaySnapshot.revision` e `RewardJournal.revision` no teste `regional-persistence-gate.test.ts`. A fixture agora cria um novo envelope imutável e acrescenta o receipt por cópia, preservando o caso de teste de histórico adulterado.
+- Os workflows GitHub para o SHA da D064W não retornaram execuções/estados via consulta do conector; o runner local tampouco conseguiu acessar GitHub via DNS. **Não há comprovação de TypeScript/Vitest/Playwright/Docker SUCCESS**, portanto PRs seguem em revisão e SEM MERGE nem Railway.
+- Próxima ação: executar/registar CI na branch empilhada com acesso ao runner; corrigir falhas adicionais e consolidar recortes aprovados. Economia e writer regional continuam sem autorização de produção.
