@@ -143,3 +143,6 @@ export type {RegionalExpeditionDraftCommand} from './map/regionalExpeditionDraft
 
 export {migrateD064PocketDraft} from './capture/kantoPocketMigrationDraft.js';
 export type {D064PocketMigrationCommand,D064PocketMigrationPolicy} from './capture/kantoPocketMigrationDraft.js';
+
+export {d064DraftGrantXp} from './map/regionalEconomyDraft.js';
+export type {DraftProgress} from './map/regionalEconomyDraft.js';
