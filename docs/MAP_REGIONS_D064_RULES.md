@@ -131,3 +131,8 @@ Este documento explicita decisões aprovadas, hipóteses para simulação e ques
 ## D-064N — contrato de migração de saves antigos (isolado)
 - Migração declarativa `legacy-empty` ou `starter-proposal`, ambas protegidas por receipt e revisões. O bolso só pode ser inicializado se for `legacy-untracked`; nunca substitui um bolso já válido, nem mascara um registro inválido. Todo o restante do save é preservado, **inclusive Expedição antiga ativa**, sem consumir ciclos nem mover automaticamente a região.
 - A decisão de kit para perfis legados e iniciais novos precisa ser definida no rollout; a versão com 12 Poké Balls **não é aplicada a ninguém nesta etapa**. Proteções testadas contra replay, migração dupla e política divergente.
+
+
+## D-064O — curva econômica na transação regional simulada
+- O evento experimental regional usa `d064DraftBattleReward` para moedas e XP e `d064DraftGrantXp` para limites de XP Treinador/Pokémon. Após `applyRewardEvent` legado reconstruir estrutura de captura/insígnias, substitui no mesmo journal os ganhos legados pelo cálculo **exclusivamente D-064 do snapshot original**, sem somar duas vezes recompensas.
+- Curva D064 não toca os `xpThreshold` e `grantXp` globais: as batalhas e Expedições públicas permanecem com números originais. A chegada à curva definitiva exige migração de XP dos saves existentes ou política expressa de rollout e testes com progressão de níveis altos. Não afirmar que os valores experimentais foram aprovados.
