@@ -30,6 +30,8 @@ describe('D-064AA — comparação quantitativa sem save',()=>{
     expect(all.regionWins).toEqual(rare.regionWins);
     expect(all.unlockBattles).toEqual(rare.unlockBattles);
     expect(all.rareEncounters).toBe(rare.rareEncounters);
+    expect(rare.rareCaptureAttempts).toBeGreaterThanOrEqual(all.rareCaptureAttempts);
+    expect(rare.rareCaptures).toBeGreaterThanOrEqual(all.rareCaptures);
     expect(all.trainer).toEqual(rare.trainer);
     expect(all.team).toEqual(rare.team);
   });
