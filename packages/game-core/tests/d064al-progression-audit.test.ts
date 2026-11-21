@@ -42,7 +42,6 @@ describe('D064AL — projeção teórica de progressão, sem alterar regras',()=
     expect(result.trainer.level).toBe(93);
     expect(result.gates.map(g=>g.regionId)).toEqual(KANTO_REGIONS.map(r=>r.id));
     expect(result.wins).toBe(4110);
-    console.log('D064AL_BATTLE_ONLY '+JSON.stringify(result));
   });
   it('modelo hipotético batalha+idle mantém progressão e não oculta o custo temporal',()=>{
     const result=diagnostic(true);
@@ -50,7 +49,6 @@ describe('D064AL — projeção teórica de progressão, sem alterar regras',()=
     expect(result.gates).toHaveLength(10);
     expect(result.wins).toBe(3205);
     expect(expeditionRewards(3600000).trainerXp).toBe(1440);
-    console.log('D064AL_MIXED_POTENTIAL '+JSON.stringify(result));
   });
   it('todas regiões seguem com gate duplo efetivo e progressão monotônica',()=>{
     for(let i=0;i<KANTO_REGIONS.length;i++){
