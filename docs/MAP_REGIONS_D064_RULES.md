@@ -148,3 +148,8 @@ Este documento explicita decisões aprovadas, hipóteses para simulação e ques
 - `applyRegionalBattleDraft` agora demonstra em RAM a ligação entre vitórias regionais e `d064DraftBallDrop`. O saldo só é modificado se o jogador já possui um bolso válido; vitórias apenas sem bolso continuam possíveis no dry-run, mas NÃO geram itens fictícios.
 - Na mesma revisão journalizada, uma vitória pode consumir 1 Poké Bola pela tentativa e repor 1 por marco de vitória. Um receipt impede processar novamente a captura/drop; counters regionais e limites numéricos são validados. A fonte renovável permite estudar a obtenção de Ultra Balls sem loja, mas suas cadências definitivas não estão aprovadas.
 - Próximo gate: demonstrar aquisição suficiente sob os pesos raros, quantidade de capturas esperada, ritmo de moedas e limites de tempo do jogo. Sem merge nem deploy.
+
+
+## D-064R — ensaio sem commits de migração para Mapa
+- `auditRegionalRollout(storage,request)` lê snapshot v0.2, valida revisão e bloqueia expedição legada ativa, compõe sequencialmente migração XP, migração de bolso por política explícita e dry-run de combate regional, sem nenhum write/commit.
+- A API retorna apenas **indicadores** (operação, revisão hipotética, espécie, resultado, moedas, níveis, contagem de Pokémon e bolas); não expõe journal candidato ao chamador, impedindo integração acidental da migração como escrita. Testes garantem zero `setItem` e proteção de saves existentes. A política de aquisição de bolas permanece não aprovada.
