@@ -918,6 +918,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 busy={busy||battlePlaying}
                 onFight={fight}
                 onOpenTeam={()=>setTab('collection')}
+                lastBattleRegionId={lastBattle?.regionId}
+                onReplayBattle={()=>{setBattlePlayback(null);setTab('battle');}}
               />
             )}
 
@@ -945,7 +947,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         <i className="fa-solid fa-users" aria-hidden="true"/> Equipe {data.team.length}/3
                       </button>
                     </div>
-                    <div className={styles.arenaOverview} aria-label="Desempenho na Arena">
+                    <div className={styles.arenaOverview} aria-label="Desempenho na região">
                       <div><i className="fa-solid fa-trophy" aria-hidden="true"/><strong>{typeof data.wins==='number'?data.wins:0}</strong><span>Vitórias</span></div>
                       <div><i className="fa-solid fa-shield-halved" aria-hidden="true"/><strong>{typeof data.losses==='number'?data.losses:0}</strong><span>Derrotas e empates</span></div>
                       <div><i className="fa-solid fa-medal" aria-hidden="true"/><strong>{view.badges.length}<small>/8</small></strong><span>Insígnias</span></div>
