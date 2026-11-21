@@ -86,7 +86,11 @@ describe('D064AV — IA selvagem: golpe permitido por nível e paridade',()=>{
     const moves=kantoWildMoveLoadout(15,30,KANTO_BATTLE_SPECIES[15]!.move);
     expect(moves.some(m=>m.name==='twineedle')).toBe(true);
     const wild=combatant(15,30,moves);
-    const player=combatant(143,80,[KANTO_BATTLE_MOVES['tackle']!]);
+    // Dummy Psychic lento, de HP alto e Ataque baixo: Beedrill tem
+    // oportunidades reais de escolher uma habilidade sem KO precoce.
+    const base=combatant(63,25,[KANTO_BATTLE_MOVES['tackle']!]);
+    const player:Combatant={...base,stats:{...base.stats,
+      hp:10000,attack:1,defense:500,specialAttack:1,specialDefense:500,speed:1}};
     let usedTwineedle=false;
     for(let seed=0;seed<80;seed++){
       const battle=simulateKantoBattle(player,wild,Math.imul(seed+1,0x9e3779b9)>>>0);
