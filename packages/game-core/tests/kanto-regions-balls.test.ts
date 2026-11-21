@@ -7,7 +7,8 @@ import {
   inspectKantoBallPocket,spendKantoBallForAttempt,
   d064DraftXpThreshold,d064DraftBattleReward,d064DraftSimulateWins,
   previewKantoRegionalBattle,KANTO_BATTLE_SPECIES,pokemonOwnStats,zeroStats,
-  d064CaptureProjection,resolveKantoCaptureAttempt
+  d064CaptureProjection,resolveKantoCaptureAttempt,
+  D064_DRAFT_STARTER_BALLS,d064DraftBallDrop,d064DraftBallSupply
 } from '../src/index.js';
 
 describe('D-064 — mapa regional de Kanto, catálogo de 151',()=>{
@@ -267,5 +268,25 @@ describe('D-064H — uma bola consumida por tentativa de captura',()=>{
       pocket:{version:1,quantities:{}},maxHp:100,currentHp:0,seed:12}).status).toBe('blocked');
     expect(resolveKantoCaptureAttempt({regionId:1,speciesId:16,ballId:'poke-ball',
       pocket,maxHp:100,currentHp:0,seed:-1}).status).toBe('blocked');
+  });
+});
+
+
+describe('D-064I — reposição de bolas apenas em simulação',()=>{
+  it('kit proposto é limitado e não contém Master Ball nem Ultra no início',()=>{
+    expect(D064_DRAFT_STARTER_BALLS.quantities).toEqual({'poke-ball':12});
+  });
+  it('garante reposição básica a partir de vitórias em regiões iniciais',()=>{
+    expect(d064DraftBallDrop(1,1)?.['poke-ball']).toBe(0);
+    expect(d064DraftBallDrop(1,3)?.['poke-ball']).toBe(1);
+    expect(d064DraftBallSupply(1,100)?.['poke-ball']).toBe(33);
+  });
+  it('grandes e Ultra Balls chegam progressivamente, sem Master',()=>{
+    expect(d064DraftBallDrop(4,7)?.['great-ball']).toBe(1);
+    expect(d064DraftBallDrop(9,15)?.['ultra-ball']).toBe(1);
+    expect(d064DraftBallSupply(9,1000)?.['ultra-ball']).toBe(66);
+    expect(Object.keys(d064DraftBallDrop(9,15)!)).not.toContain('master-ball');
+    expect(d064DraftBallDrop(11,15)).toBeNull();
+    expect(d064DraftBallSupply(1,-1)).toBeNull();
   });
 });
