@@ -112,3 +112,9 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AJ | 2026-11-21 | IMPLEMENTAÇÃO EM PR, CI PENDENTE | A Arena deixa de existir como menu e modalidade de batalha independente; Regiões é o ponto obrigatório de seleção e entrada. Combate retém animações/diário/placar, mostra título da região e lista real de espécies locais, volta ao mapa sem criar rewards. Rolagem sempre no topo ao entrar. Reduzir fortemente velocidade do treinador: threshold 140+35L+ceil(3.5L²) e XP por vitória 50+3W; curva e XP dos Pokémon não mudam. Lançamento após CI completo, sem apagar progresso prévio. |
+
+
+## D-064AK (21/11/2026) — seleção regional de expedição
+- Uma expedição nova exige simultaneamente `trainer.level >= region.trainerUnlockLevel` e `pokemonLider.level >= region.levelMin`. A regra usa o catálogo `KANTO_REGIONS`, sem tabela paralela.
+- O líder do momento da partida é o único UID expedicionário elegível e é congelado na expedição. A equipe continua bloqueada durante a expedição. Saves antigos que iniciaram expedição sem região conservam seus UIDs e podem ser resgatados normalmente.
+- Decisão conservadora: não multiplicar moedas/XP por região até medição de progressão de longo prazo; manter writer local, revision/receipts, rewards e custo atuais. A UI não é fonte de autoridade.

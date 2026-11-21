@@ -215,3 +215,9 @@ PR #38 integrada em main `8748d315`, CI `44120721898` SUCCESS, Railway deploy `d
 - **Batalhas selvagens somente pelas Regiões**: abrir uma das 10 áreas desbloqueadas, selecionar se haverá tentativa de captura e Pokébola, iniciar batalha na área escolhida. A tela de combate não é uma seção Arena independente; o nome da região aparece no cabeçalho, o diário permanece gradual e a seleção de regiões pode ser alterada para o próximo combate. Mostra apenas espécies do pool da região corrente.
 - **Treinador longo prazo**: valor provisório de beta para threshold em cada nível L: `140 + 35L + ceil(3.5L²)`; XP por vitória de nível selvagem W: `50 + 3W`. No nível55/W65, 52 vitórias sem XP prévio por nível (limiar12653, ganho245), em vez de aproximadamente 4. Alterar apenas XP treinador; Pokémon mantêm própria curva/growth e itens/afinidade/bolas não foram alterados. XP de expedições soma ao mesmo limiar crescente.
 - Revisar após dados de QA: a meta é não alcançar nível100 em um dia; verificar se desbloquear região 9/10 continua viável ao longo de semanas, sem obrigar taxa de derrota impossível. Não conceder XP retroativo nem apagar saves.
+
+
+## D-064AK — regra de expedição regional (21/11/2026; em validação)
+- Seleção de região antes de iniciar; região acessível apenas se nível do treinador cumprir desbloqueio regional e nível do Pokémon líder alcançar `levelMin` da região. Não exige nível do Pokémon igual ao do treinador.
+- O Pokémon líder no início é fixado como expedicionário e único receptor de XP/afinidade da nova expedição. Expedições pré-existentes mantêm o contrato anterior para não invalidar resgates.
+- Os ciclos continuam com 10 s, limite de 8 h, +7 moedas, +4 XP treinador e +5 XP Pokémon por ciclo, afinidade +1 por três ciclos. Qualquer balanceamento desses números necessita testes e decisão posterior.

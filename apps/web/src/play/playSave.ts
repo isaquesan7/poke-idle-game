@@ -48,7 +48,8 @@ export type PlayAction =
       readonly operation:'select'|'upgrade' }
   | { readonly type:'move-set'; readonly uid:number; readonly moveName:string;
       readonly operation:'add'|'remove'|'primary' }
-  | { readonly type: 'start-expedition' | 'claim-expedition' | 'stop-expedition'; readonly nowMs: number };
+  | { readonly type: 'start-expedition'; readonly nowMs: number; readonly regionId: number }
+  | { readonly type: 'claim-expedition' | 'stop-expedition'; readonly nowMs: number };
 
 export type PlayWrite =
   | { readonly status: 'ok'; readonly snapshot: PlaySnapshot }
@@ -468,12 +469,14 @@ export function updatePlaySave(
     if (result.status==='blocked') return result;
     next=result.journal;
   } else {
-    const command: RewardCommand = {
+    const eventBase = {
       id: 'idle-v02-' + (previous.snapshot.revision + 1),
       expectedRevision: journal.revision,
-      type: action.type,
       nowMs: action.nowMs
     };
+    const command: RewardCommand = action.type === 'start-expedition'
+      ? {...eventBase,type:'start-expedition',regionId:action.regionId}
+      : {...eventBase,type:action.type};
     const result = applyRewardEvent(journal, command);
     if (result.status !== 'applied') {
       return { status: 'blocked', reason: result.status === 'rejected'

@@ -13,6 +13,7 @@
 import { grantXp, battleTrainerXp } from '../progression/xp.js';
 import { expeditionRewards } from '../rewards/expedition.js';
 import { LEGACY_BADGES } from './catalog.js';
+import { kantoRegion } from '../map/kantoRegions.js';
 
 type Entry = Record<string, unknown>;
 
@@ -40,7 +41,7 @@ export type RewardCommand =
     /** Captura já resolvida (nenhuma rolagem ou sorteio dentro do reducer). */
     readonly capture?: { readonly pokemonId: number; readonly moveName?: string | null };
   })
-  | (CommandBase & { readonly type: 'start-expedition'; readonly nowMs: number })
+  | (CommandBase & { readonly type: 'start-expedition'; readonly nowMs: number; readonly regionId?: number })
   | (CommandBase & { readonly type: 'claim-expedition'; readonly nowMs: number })
   | (CommandBase & { readonly type: 'stop-expedition'; readonly nowMs: number });
 
@@ -116,6 +117,8 @@ function parseState(raw: string): ValidState | null {
     if (!natural(exp.startedAt) || !natural(exp.lastClaimAt)
       || exp.lastClaimAt < exp.startedAt || !Array.isArray(exp.teamUids)
       || exp.teamUids.length < 1 || exp.teamUids.length > 3) return null;
+    // Expedições criadas antes da D064AK não possuem regionId; preservá-las.
+    if (exp.regionId !== undefined && (!positive(exp.regionId) || !kantoRegion(exp.regionId))) return null;
     const members = new Set<number>();
     for (const uid of exp.teamUids as unknown[]) {
       if (!positive(uid) || !uids.has(uid) || members.has(uid)) return null;
@@ -288,9 +291,24 @@ export function applyRewardEvent(journal: RewardJournal, cmd: RewardCommand): Re
         if (!natural(cmd.nowMs) || state.expedition !== null) {
           throw new RangeError('Expedição já ativa ou horário inválido.');
         }
-        state.expedition = {
-          startedAt: cmd.nowMs, lastClaimAt: cmd.nowMs, teamUids: [...state.team]
-        };
+        if (cmd.regionId !== undefined) {
+          const region = kantoRegion(cmd.regionId);
+          const leader = state.roster.find(p => p.uid === state.team[0]);
+          if (!region || !leader || (state.trainer.level as number) < region.trainerUnlockLevel
+            || leader.level < region.levelMin) {
+            throw new RangeError('Região bloqueada ou nível do Pokémon insuficiente para a expedição.');
+          }
+          // Congelar a região e o UID evita trocar Pokémon para receber XP indevida.
+          state.expedition = {
+            startedAt: cmd.nowMs, lastClaimAt: cmd.nowMs,
+            regionId: region.id, teamUids: [leader.uid]
+          };
+        } else {
+          // Compatibilidade com expedições antigas e fixtures anteriores à D064AK.
+          state.expedition = {
+            startedAt: cmd.nowMs, lastClaimAt: cmd.nowMs, teamUids: [...state.team]
+          };
+        }
         break;
       case 'claim-expedition':
         claimExpedition(state, cmd.nowMs, true);

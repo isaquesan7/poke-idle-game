@@ -124,6 +124,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   const [save, setSave] = useState<PlayRead>(readSafe);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [regionalArea, setRegionalArea] = useState(1);
+  const [expeditionArea, setExpeditionArea] = useState(1);
   const [captureBall,setCaptureBall] = useState<KantoBallId|null>('poke-ball');
   const [name, setName] = useState('');
   const [starter, setStarter] = useState(1);
@@ -318,7 +319,13 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     if(collectionSort==='species')return a.pokemonId-b.pokemonId||a.uid-b.uid;
     return b.uid-a.uid;
   }) ?? [];
-  const expedition = data?.expedition as { lastClaimAt: number; startedAt: number } | null | undefined;
+  const expedition = data?.expedition as { lastClaimAt: number; startedAt: number; regionId?:number; teamUids?:number[] } | null | undefined;
+  const expeditionRegion = KANTO_REGIONS.find(region=>region.id===expedition?.regionId);
+  const expeditionOptions=KANTO_REGIONS.map(region=>({
+    region,unlocked: Boolean(view&&active&&view.level>=region.trainerUnlockLevel&&active.level>=region.levelMin)
+  }));
+  const expeditionSelected=expeditionOptions.find(option=>option.region.id===expeditionArea);
+  const expeditionAllowed=expeditionSelected?.unlocked??false;
   const pending = expedition
     ? expeditionRewards(Math.max(0, now - expedition.lastClaimAt)) : null;
   const lastBattleRaw = data?.lastBattle;
@@ -1074,13 +1081,21 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
               <div className={styles.twoColumn}>
                 <section className={styles.panel}>
                   <h2>{expedition ? 'Expedição em andamento' : 'Expedição de Kanto'}</h2>
-                  <p>Seu Pokémon explora a região em ciclos de 10 segundos. Cada ciclo concede 7 moedas, 4 XP ao treinador e 5 XP ao Pokémon. O resgate acumula no máximo 8 horas por vez.</p>
+                  <p>Escolha uma região desbloqueada pelo treinador e compatível com o nível do Pokémon líder. Cada ciclo de 10 segundos rende 7 moedas, 4 XP ao treinador e 5 XP ao Pokémon expedicionário (até 8 horas por resgate).</p>
+                  {expedition ? <p><strong>Região da expedição:</strong> {expeditionRegion?.name??'Expedição antiga'} · Pokémon UID {expedition.teamUids?.join(', ')??'—'}</p> : <label htmlFor="expedition-region"><strong>Região para expedição</strong>
+                    <select id="expedition-region" value={expeditionArea} onChange={event=>setExpeditionArea(Number(event.target.value))}>
+                      {expeditionOptions.map(({region,unlocked})=><option key={region.id} value={region.id} disabled={!unlocked}>
+                        {region.name} · Treinador Nv. {region.trainerUnlockLevel} · Pokémon Nv. {region.levelMin}{unlocked?'':' (bloqueada)'}
+                      </option>)}
+                    </select>
+                    {!expeditionAllowed&&<span role="status">O líder ou treinador ainda não atende aos requisitos desta região.</span>}
+                  </label>}
                   <div className={styles.partner}><PokemonArt id={active.pokemonId} name={view.active.name} />
                     <div><strong>{view.active.name}</strong><p>Parceiro da equipe · Nível {active.level}</p></div>
                   </div>
                   {!expedition
-                    ? <button type="button" className={styles.primary} disabled={busy}
-                        onClick={() => dispatch({type:'start-expedition',nowMs:Date.now()})}>Iniciar expedição</button>
+                    ? <button type="button" className={styles.primary} disabled={busy||!expeditionAllowed}
+                        onClick={() => dispatch({type:'start-expedition',regionId:expeditionArea,nowMs:Date.now()})}>Iniciar expedição</button>
                     : <div className={styles.heroActions}>
                         <button type="button" className={styles.primary} disabled={busy || !pending?.cycles}
                           onClick={() => dispatch({type:'claim-expedition',nowMs:Date.now()})}>Resgatar recompensas</button>

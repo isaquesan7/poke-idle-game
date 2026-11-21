@@ -384,3 +384,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Remove a entrada direta da Arena e o ataque selvagem genérico; combate abre somente após seleção de uma região, nome regional no cabeçalho, lista de encontros do pool escolhido, botão de retorno e replay do último combate sem recompensas.
 - Palco verticalmente centralizado, rolagem automática até o topo ao entrar na luta. Nomes/títulos consistentes com a região real.
 - XP treinador desacelerado via threshold quadrático e prêmio por batalha menor, fonte compartilhada entre domínio e replay; XP Pokémon intacto. Vitest e E2E cobrindo nível55, Costa Oceânica, domínio, navegador e responsividade. **Nenhum merge ou deploy até gates**.
+
+
+## D-064AK (21/11/2026) — em validação, não publicado
+- Expedições iniciadas pela interface agora exigem região desbloqueada pelo treinador e nível mínimo do Pokémon líder.
+- Writer de recompensas valida região e Pokémon diretamente no snapshot; salva `regionId` e UID de expedição para impedir troca indevida de beneficiário.
+- Expedições antigas sem região permanecem resgatáveis; valores e temporização das recompensas seguem idênticos. Cobertura de testes de rejeição, recibos e idempotência.
+- Pendente CI/PR/merge/deploy; esta entrada não declara publicação.
