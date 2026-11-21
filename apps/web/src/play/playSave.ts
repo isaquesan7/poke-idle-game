@@ -16,7 +16,7 @@ import {
   KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson,
   kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant,
   inspectKantoBallPocket,resolveKantoCaptureAttempt,d064DraftBallDrop,
-  D064_DRAFT_STARTER_BALLS
+  D064_DRAFT_STARTER_BALLS,battleTrainerXp
 } from '@kanto/game-core';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant,
@@ -352,7 +352,7 @@ function playBattle(
       battleId:eventId,
       wildName:enemy.name,wildLevel,
       rewardCoins:result.outcome==='win'?25+wildLevel*3:0,
-      trainerXp:result.outcome==='win'?30+wildLevel*7:0,
+      trainerXp:result.outcome==='win'?battleTrainerXp(wildLevel):0,
       pokemonXp:result.outcome==='win'?20+wildLevel*6:0
     };
     return {status:'ok',journal:{...applied.journal,raw:JSON.stringify(updated)}};
