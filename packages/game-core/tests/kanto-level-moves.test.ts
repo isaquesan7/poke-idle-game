@@ -38,7 +38,9 @@ describe('aprendizado validado de golpes — PokéAPI FireRed/LeafGreen',()=>{
   it('não inventa golpe se espécie não possui movimento de dano elegível neste recorte',()=>{
     expect(names(129,5)).toEqual([]);
     expect(names(129,15)).toEqual(['tackle']);
-    expect(names(150,50)).toEqual([]);
+    // D064AO: Swift é aprendido por Mewtwo no nível 33 (grupo FRLG 7).
+    expect(names(150,32)).not.toContain('swift');
+    expect(names(150,50)).toContain('swift');
     expect(names(0,5)).toEqual([]);
     expect(names(152,5)).toEqual([]);
     expect(names(1,0)).toEqual([]);
@@ -57,6 +59,7 @@ describe('aprendizado validado de golpes — PokéAPI FireRed/LeafGreen',()=>{
         if(row.learnedAt>1)expect(names(species.id,row.learnedAt-1)).not.toContain(row.move.name);
       }
     }
-    expect(totalSpecies).toBe(126);
+    // Antes do snapshot completo só 126 espécies tinham golpes neste recorte.
+    expect(totalSpecies).toBe(135);
   });
 });
