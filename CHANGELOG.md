@@ -356,3 +356,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064AE — catálogo regional em recorte de release independente (não publicado)
 - Nova rota /regions com dez áreas acessíveis, teclado e exemplos de GIFs, link navegável no /play. Sem batalhas/capturas/recompensas regionais nem escrita de save.
 - Servidor Node entrega /regions pelo HTML React; E2E desktop/mobile confere localStorage intacto. Release condicionado aos gates e aceite explícito; sem deploy.
+
+
+### D-064AF — laboratório de batalhas regionais sem escrita (não publicado)
+- `/regions` passa a oferecer simulação de combate do motor Kanto entre um starter escolhido e espécie ilustrativa da região, com níveis selecionáveis, GIFs, HP e diário gradual. Mensagens do motor que sugerem recompensa/captura real são retiradas da demonstração. Nem save nem inventário recebem alterações.
+- Vitest prova determinismo e rejeição de seed inválida; Playwright desktop/mobile executa demonstração e comprova localStorage intacto.
