@@ -413,3 +413,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## D-064P — migração experimental da curva de experiência (2026-11-20; sem produção)
 - Modelo puro de conversão proporcional de XP dentro do nível anterior, sem reduzir níveis, moedas, UID, Poké Bolas ou Expedições; execução única com fingerprint e recibo no journal.
 - Testes de níveis-limite, progressão, migração dupla, invalidade e preserves. Não altera saves atuais nem thresholds globais.
+
+
+## D-064Q — supply de Poké Bolas em transação regional experimental (2026-11-20)
+- Vitórias por região registradas no journal em RAM e recompensas de Poké Balls calculadas junto ao resultado/captura em uma única revisão, com recibos idempotentes, limites de estoque e testes de não duplicação.
+- Sem bolso migrado não se inventam itens; cadências de drops ainda são hipóteses para balanceamento, sem conexão à produção.
