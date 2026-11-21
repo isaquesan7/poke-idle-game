@@ -102,6 +102,15 @@ function PokemonArt({ id, name, large = false }: {
   );
 }
 
+/** Preposição natural para o título da batalha: na Costa Oceânica, no Bosque Inicial etc. */
+function regionBattleTitle(regionId:number,regionName:string):string {
+  const byId:Readonly<Record<number,string>>={
+    1:'no',2:'nas',3:'na',4:'nos',5:'nas',
+    6:'no',7:'na',8:'na',9:'no',10:'no'
+  };
+  return 'Batalha '+(byId[regionId]??'em')+' '+regionName;
+}
+
 function sectionName(tab: Tab): string {
   return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', expedition: 'Expedição' }[tab];
 }
@@ -932,7 +941,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                       <i className="fa-solid fa-arrow-left" aria-hidden="true"/> Voltar às regiões
                     </button>
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · {battleRegion.name.toUpperCase()}</div>
-                    <h2>Batalha na {battleRegion.name}</h2>
+                    <h2>{regionBattleTitle(battleRegion.id,battleRegion.name)}</h2>
                     <p className={styles.arenaLead}>Seu parceiro enfrenta Pokémon selvagens na região escolhida. Acompanhe os ataques, o HP e a energia dos dois combatentes.</p>
                     <div className={styles.arenaLeader} aria-label="Líder do combate">
                       <div className={styles.arenaLeaderPortrait}>
