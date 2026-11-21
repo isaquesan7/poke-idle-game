@@ -137,3 +137,6 @@ export type {D064DraftBallDrop} from './capture/draftBallSupply.js';
 
 export {applyRegionalBattleDraft} from './map/regionalRewardDraft.js';
 export type {RegionalBattleDraftCommand} from './map/regionalRewardDraft.js';
+
+export {applyRegionalExpeditionDraft} from './map/regionalExpeditionDraft.js';
+export type {RegionalExpeditionDraftCommand} from './map/regionalExpeditionDraft.js';
