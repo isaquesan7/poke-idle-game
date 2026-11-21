@@ -485,3 +485,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064AB — matrizes multi-seed e motor real validados (não publicado)
 - Amostras multi-seed para 1/3 UIDs, 75% de vitória hipotética e consumo de Poké Bolas, mais 12 confrontos com simulador REAL de combate (32 seeds/linha) registrados em `docs/REGIONAL_MULTISEED_COMBAT_D064AB.md`.
 - CI HEAD experimental `774962e495594bc8027419eb1fb95cd033907b6f`: regional `44855952598`, regressão geral `44855964863`, Playwright `44855964830`, Docker `44855964891`, todos SUCCESS. PRs #100/#101 abertas; nenhum writer, economia ou deploy habilitados.
+
+
+### D-064AC — simulação longitudinal com resultado do combate real (não publicado)
+- Novo laboratório puro de jornada regional com combate resolvido por `simulateKantoBattle`, XP condicional à vitória, 1–3 Pokémon, afinidade e treino hipotéticos, e políticas de captura comparáveis com contabilidade de estoque. Testes de reprodutibilidade e invariantes, sem tocar no save nem habilitar economia regional.
