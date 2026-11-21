@@ -106,3 +106,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AH | 2026-11-21 | BETA REGIONAL, CI PENDENTE | Implantar Poké/Great/Ultra no mesmo journal da Arena (12 iniciais, tentativa após vitória consumindo 1, mesmo commit para drop/captura/recompensa), pesos de encontro por região com as 151 espécies, lendários só Ultra; Master Ball fora do automático. Drops 1 Poké/3 vitórias até área6, 1 Great/7 vitórias área4+, 1 Ultra/15 vitórias área7+ são PROPOSTAS de beta. RNG ainda em cliente, sem servidor autoritativo nem segurança multiplayer. |
+
+
+| D-064AI | 2026-11-21 | TELA REGIONAL JOGÁVEL — PENDENTE DE CI | /regions e a aba Regiões do PlayApp passam a usar o save v0.2 e o catálogo KANTO_REGIONS; escolher área desbloqueada e lutar invoca a mesma action regional-battle do writer Arena D064AH, abrindo o BattleStage/replay da Arena. Sem segunda economia, sem novo writer e sem mudanças nas regras de captura, drops ou raridade. Espécies não descobertas ficam ocultas. |

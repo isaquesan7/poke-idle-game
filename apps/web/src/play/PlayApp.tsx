@@ -23,15 +23,16 @@ import { BattlePlayback } from './BattlePlayback';
 import { BattleStage } from './BattleStage';
 import { TrainerScreen } from './TrainerScreen';
 import { PokemonTraining } from './PokemonTraining';
+import { RegionsScreen } from '../regions/RegionsScreen';
 
-type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
+type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
 type CollectionSort = 'recent' | 'level' | 'affinity' | 'species';
 type PokemonSection = 'profile' | 'evolution' | 'moves';
 /** D-051: navegação consistente com o Font Awesome da tela do treinador. */
 const NAV_ICONS:Readonly<Record<Tab,string>>={
   overview:'fa-house',trainer:'fa-user',pokemon:'fa-dragon',collection:'fa-layer-group',
-  pokedex:'fa-book-open',arena:'fa-khanda',expedition:'fa-compass'
+  pokedex:'fa-book-open',regions:'fa-map-location-dot',arena:'fa-khanda',expedition:'fa-compass'
 };
 
 /** D-042: animações completas na Arena independentemente do sistema operacional. */
@@ -102,7 +103,7 @@ function PokemonArt({ id, name, large = false }: {
 }
 
 function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', arena: 'Arena', expedition: 'Expedição' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', arena: 'Arena', expedition: 'Expedição' }[tab];
 }
 
 /**
@@ -110,9 +111,9 @@ function sectionName(tab: Tab): string {
  * recebe recursos idle na mesma chave local, sem simular vitória falsa.
  * A v0.1 existente não é importada nem modificada.
  */
-export function PlayApp() {
+export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'|'regions'}={}) {
   const [save, setSave] = useState<PlayRead>(readSafe);
-  const [tab, setTab] = useState<Tab>('overview');
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [regionalArea, setRegionalArea] = useState(1);
   const [captureBall,setCaptureBall] = useState<KantoBallId|null>('poke-ball');
   const [name, setName] = useState('');
@@ -431,14 +432,11 @@ export function PlayApp() {
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         <nav className={styles.menu} aria-label="Navegação do jogo">
-          {(['overview','trainer','pokemon','collection','pokedex','arena','expedition'] as Tab[]).map(item => (
+          {(['overview','trainer','pokemon','collection','pokedex','regions','arena','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
               onClick={() => { if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='arena')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
-          <a href="/regions" className={styles.menuItem} style={{textDecoration:'none'}}>
-            <i className="fa-solid fa-map" aria-hidden="true"/>Regiões (prévia)
-          </a>
         </nav>
         <div className={styles.sidebarFooter}>
           <p>Pré-lançamento v0.2</p>
@@ -895,6 +893,26 @@ export function PlayApp() {
                 capturedSpeciesIds={caughtDexIds}
                 onArena={()=>setTab('arena')}
                 onCollection={()=>setTab('collection')}
+              />
+            )}
+
+            {tab === 'regions' && (
+              <RegionsScreen
+                trainerLevel={view.level}
+                leaderSpeciesId={active.pokemonId}
+                leaderLevel={active.level}
+                selectedRegionId={regionalArea}
+                onSelectRegion={setRegionalArea}
+                balls={ballQuantities}
+                selectedBall={captureBall}
+                onSelectBall={setCaptureBall}
+                wins={Array.isArray(ballGame?.regionWins)
+                  ?(ballGame.regionWins as number[]):[]}
+                seenIds={seenDexIds}
+                capturedIds={caughtDexIds}
+                busy={busy||battlePlaying}
+                onFight={fight}
+                onOpenTeam={()=>setTab('collection')}
               />
             )}
 
