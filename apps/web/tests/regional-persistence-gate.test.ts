@@ -59,10 +59,15 @@ describe('D-064V — gate estrutural SEM gravação',()=>{
   it('detecta alteração de recibo de histórico já confirmado',()=>{
     const f=fixture();
     const previous=f.candidate;
-    const extra:PlaySnapshot=JSON.parse(JSON.stringify(previous));
-    extra.revision++;
-    extra.journal.revision++;
-    (extra.journal.receipts as unknown as Array<{id:string;fingerprint:string}>).push({id:'regional-gate-extra',fingerprint:'test'});
+    const extra:PlaySnapshot={
+      ...previous,
+      revision:previous.revision+1,
+      journal:{
+        ...previous.journal,
+        revision:previous.journal.revision+1,
+        receipts:[...previous.journal.receipts,{id:'regional-gate-extra',fingerprint:'test'}]
+      }
+    };
     const eligible=inspectRegionalPersistenceCandidate(previous,extra,previous.revision);
     expect(eligible.status).toBe('eligible-preview');
     const tampered:PlaySnapshot=JSON.parse(JSON.stringify(extra));

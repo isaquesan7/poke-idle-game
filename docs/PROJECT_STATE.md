@@ -1067,3 +1067,21 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Workflow `d064-stacked-regression.yml` foi ampliado para `pull_request` com base nas branches `feat/d064**`/`test/d064**`, além dos pushes regionais, para facilitar CI das PRs empilhadas. O resultado terminal TypeScript/Vitest/Playwright/Docker do HEAD FINAL ainda deve ser observado antes de qualquer merge.
 - **Limites fundamentais:** seeds continuam fornecidas pelo cliente; comparação contra motor local não é autoridade antifraude, não protege contra scripts adulterados, nem coordena abas. Economia D064/kit/raridades ainda experimentais. PRs #88–#92 continuam sem publicação na main; `isaquesan7/pokedex` intocado.
 - **Próxima etapa concreta:** verificar os checks completos do HEAD final, corrigir qualquer erro, revisar a necessidade de backend autoritativo e validar a curva de XP/bolas antes de implementar writer versionado persistente com lock, backup e recuperação.
+
+
+## D-064X — correção de fixture TS nos gates D064 (20/11/2026; PR empilhada, SEM DEPLOY)
+- Auditoria estática dos novos testes identificou mutação direta dos campos `readonly` `PlaySnapshot.revision` e `RewardJournal.revision` no teste `regional-persistence-gate.test.ts`. A fixture agora cria um novo envelope imutável e acrescenta o receipt por cópia, preservando o caso de teste de histórico adulterado.
+- Os workflows GitHub para o SHA da D064W não retornaram execuções/estados via consulta do conector; o runner local tampouco conseguiu acessar GitHub via DNS. **Não há comprovação de TypeScript/Vitest/Playwright/Docker SUCCESS**, portanto PRs seguem em revisão e SEM MERGE nem Railway.
+- Próxima ação: executar/registar CI na branch empilhada com acesso ao runner; corrigir falhas adicionais e consolidar recortes aprovados. Economia e writer regional continuam sem autorização de produção.
+
+### D-064X — retorno dos gates CI e correção da suite D064S (20/11/2026)
+- Na PR #95 (head `168805e34bd2ce123f3492948838e6d73b0ee54f`), workflows `44852005205` (geral), `44852005155` (Playwright isolado) e `44851986337` (regional) encerraram em **FAILURE** no mesmo erro de parser Vitest: `apps/web/tests/regional-rollout-audit.test.ts:19:2 Expected "}" but found "it"`. Imagem Docker D044 `44852005146` e job Docker regional concluíram em **SUCCESS**.
+- Causa: inclusão dos casos D064S antes de fechar a factory `request`; corrigidas as duas branches `fix/d064x-regression-hardening` (PR #94) e `test/d064-full-stack-ci-only` (PR #95) com `});` e `describe` dedicado. Os logs citados são do commit antigo; **exigir novos resultados completos do commit corrigido** antes de aprovar.
+- Próximo passo: observar CI novo, corrigir qualquer falha adicional, preservar PR #95 como CI-only sem merge ou deploy.
+
+
+## D-064Y — validação integral e auditoria de balanceamento (20/11/2026; PR #94, SEM DEPLOY)
+- PR de CI-only #95, HEAD `a8d5f90273ab5cd1be074ec413e95c1e09035001`: **SUCESSO confirmado** dos workflows `44852547201` (regressão geral, TypeScript/Vitest/browser), `44852547212` (Playwright isolado desktop/mobile) e `44852547230` (Docker imagem mínima). Falha de parser anterior foi corrigida em D064X. **NÃO mesclar a PR #95**, pois ela aponta para `main` somente para executar checks.
+- Novo relatório `docs/REGIONAL_BALANCE_AUDIT_D064.md`, sem alterações de lógica. Projeção otimista: regiões 2/5/8/9/10 desbloqueadas após ~40/354/1.546/2.166/2.773 vitórias, respectivamente; o Pokémon projetado alcança nível 100 já na região 8, antes de o treinador desbloquear regiões 9/10. Raridade agregada região 9 ~0,356%, região 10 ~0,119%; fontes de bolas D064 continuam hipóteses.
+- **Bloqueio:** antes de ativar a economia regional, validar pacing/derrotas e progressão com múltiplos UIDs; determinar autoridade da seed, consumos/drop de bolas e save persistente com segurança entre abas. Os checks passam para o código testado, mas NÃO equivalem a aprovação econômica. Nenhum merge/deploy ou alteração de dados reais; repositório pokedex não tocado.
+- **Próxima ação concreta:** elaborar simulações de vitória/derrota e captura sustentável e revisar metas de progressão com o usuário; só depois propor writer real protegido.
