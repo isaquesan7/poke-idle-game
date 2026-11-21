@@ -218,7 +218,11 @@ describe('D-064G — probabilidade teórica de completar Kanto',()=>{
     expect(mew!.appearanceChance).toBeLessThan(bird!.appearanceChance);
     expect(bird!.captureChance).toBeGreaterThan(0);
     expect(mew!.captureChance).toBeGreaterThan(0);
-    expect(mew!.expectedBattlesPerCapture).toBeGreaterThan(10000);
+    // Taxas oficiais distintas: Mew=45, Mewtwo=3 (não retconar catálogo).
+    expect(mew!.expectedBattlesPerCapture).toBeGreaterThan(4000);
+    const mewtwo=d064CaptureProjection(150,10,'ultra-ball',100,0);
+    expect(mewtwo!.expectedBattlesPerCapture).toBeGreaterThan(10000);
+    expect(mewtwo!.captureChance).toBeLessThan(mew!.captureChance);
   });
   it('impede captura dos raros com bolas comuns e rejeita Master automática',()=>{
     expect(d064CaptureProjection(144,9,'poke-ball',100,0)).toBeNull();
