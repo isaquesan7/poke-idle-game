@@ -964,3 +964,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - PR #88 atualizada com pré-resolução regional segura: `previewKantoRegionalBattle` valida level Trainer e sorteia inimigo da pool regional, utiliza o motor existente no modo read-only e não concede recompensas nem captura. `simulateKantoBattle` mantém modo `standard` como padrão para não alterar a Arena atual.
 - Projeção de captura por `captureRate` local + multiplicador da Poké Bola + chance de aparição regional, sem RNG nem escrita; destaca raridade extrema. Requer simulação adicional e decisão de estoque/migração antes de habilitar. Testes adicionados.
 - **NÃO publicado**. Próximo passo: integrar posse e consumo atômicos da bola no writer, definir obtenção sustentável, conectar seleção regional ao save e depois substituir Arena por Mapa.
+
+
+## D-064H/I — tentativas de captura e fontes renováveis simuladas (2026-11-20)
+- Branch PR #88: `resolveKantoCaptureAttempt` implementa contrato puro de captura condicionada à Ultra para raros, bola no bolso e decremento por tentativa com seed determinística. `d064DraftBallDrop/Supply` simula kit inicial e ganhos garantidos por vitórias na região. Testes para replay determinístico, Master indisponível, saldo vazio, consumo imutável e suprimento.
+- **Nenhum desses cálculos altera save ou conta:** falta ligar a recompensa ao writer transacional, escolher uma fonte oficial/validada de estoque e testar migrações. Inventário geral e loja permanecem reservados para fases futuras.
+- PR #88 **sem merge e sem Railway**. Próxima ação: escritor de captura e recompensa regional versionado, testes de save antigo e batalhas/expedições; depois escolher valores finais e publicar por etapas seguras.
