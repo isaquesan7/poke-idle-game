@@ -1093,3 +1093,10 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Sono agora tem suporte de status no core: Hypnosis, Sleep Powder, Spore com whitelist FRLG, power null→0, SP e suporte de IA, 1–3 ações perdidas por seed, despertar com log/frame, estado não persistido. Leer/Stun Spore/Glare mantidos. Save/XP/captura/raridade/expedição/TM09/GIFs inalterados.
 - Testes D064AR e D064AQ, atualizações das expectativas D064AO; design em `docs/SLEEP_MOVES_D064AR.md`. **Esta branch não está publicada** até CI completo, revisão, merge, Docker e Railway confirmados.
 - Próxima D064AS: Night Shade por nível/imunidade em PR específico; depois ampliar suporte e progressão por equipe com writer e validar BattlePlayback real PC/mobile.
+
+
+## D-064AS — Night Shade, ataque de dano fixo (21/11/2026; em branch)
+- PR #119 D064AR (sono + Leer/Stun Spore/Glare) MERGED main SHA `f107a71014905042071dfc81f6acbde0717f6a9a` após regressão geral `44932171640 SUCCESS`, Playwright isolado `44932171631 SUCCESS` e Docker `44932171783 SUCCESS`. **Railway não verificado nesta sessão, não alegar deploy.** Branch D064AS `feat/d064as-night-shade-fixed-damage` baseada na main após esse merge.
+- Night Shade (move101, effect88 no snapshot FRLG grupo7/método1, power null/PP15) implementado como exceção canônica `power:0`: dano igual ao nível, sem defesa/STAB/crítico/variação/multiplicador não nulo, imunidade Ghost×Normal ainda vigente. Editor de slots só oferece nas espécies/níveis FRLG; SP por raridade PP e peso12, IA avalia dano em vez do marcador zero, replay com frame por evento e informação de dano fixo. Testes de UID, níveis, imunidade, determinismo, SP e log em `d064as-night-shade.test.ts`.
+- Nenhum ajuste de experiência, níveis, batalha regional, captura, drop, inventário, expedição, schema2, GIFs, TM09 ou repositório `isaquesan7/pokedex`. Metodologia em `docs/FIXED_DAMAGE_D064AS.md`.
+- **Não publicar antes de CI final** TypeScript/Vitest/core/web/v0.1, E2E PC/celular, Docker, revisão e Railway SUCCESS no SHA merged. Próxima D064AT: multihit histórico 2–5 com testes e decisão de custo; traçar progressão por writer e medir playback real.
