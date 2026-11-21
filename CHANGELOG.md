@@ -391,3 +391,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Writer de recompensas valida região e Pokémon diretamente no snapshot; salva `regionId` e UID de expedição para impedir troca indevida de beneficiário.
 - Expedições antigas sem região permanecem resgatáveis; valores e temporização das recompensas seguem idênticos. Cobertura de testes de rejeição, recibos e idempotência.
 - Pendente CI/PR/merge/deploy; esta entrada não declara publicação.
+
+
+## D-064AL (21/11/2026) — auditoria em validação
+- Testes determinísticos de avanço pelas dez regiões com nível do treinador e Pokémon, cenários de 20 vitórias/h apenas batalha e modelo hipotético batalha+expedição.
+- Novo relatório `docs/PROGRESSION_AUDIT_D064AL.md` com hipóteses, número de vitórias/horas e advertências metodológicas.
+- **Nenhuma alteração em runtime, recompensas, desbloqueios, saldo, save ou interface.** PR/CI/deploy pendentes; D064AK foi integrada na main pelo PR #112 com três gates SUCCESS.
