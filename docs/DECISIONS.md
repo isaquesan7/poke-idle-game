@@ -103,3 +103,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AG | 2026-11-21 | BETA REGIONAL COM WRITER ÚNICO, GATE DE CI | Integrar batalhas regionais à mesma ação/reward journal da Arena v0.2, sem writer ou moeda alternativos. Requisitos regionais validados pelo nível real do treinador; espécies/níveis iniciais do catálogo estático; XP/coins/afinidade iguais à Arena. Captura comum ainda usa taxa legada de 35% sem bolas; lendários não podem ser capturados sem política de consumo/estoque, e as fórmulas econômicas D064 não estão ativadas. Exigir CI antes do merge e comunicar limitação de RNG manipulável de cliente (beta sem antifraude). |
+
+
+| D-064AH | 2026-11-21 | BETA REGIONAL, CI PENDENTE | Implantar Poké/Great/Ultra no mesmo journal da Arena (12 iniciais, tentativa após vitória consumindo 1, mesmo commit para drop/captura/recompensa), pesos de encontro por região com as 151 espécies, lendários só Ultra; Master Ball fora do automático. Drops 1 Poké/3 vitórias até área6, 1 Great/7 vitórias área4+, 1 Ultra/15 vitórias área7+ são PROPOSTAS de beta. RNG ainda em cliente, sem servidor autoritativo nem segurança multiplayer. |

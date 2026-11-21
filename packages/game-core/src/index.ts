@@ -102,3 +102,14 @@ export type {
 // D-053: leitura de propriedade/slots ainda não conectada ao writer de recompensas.
 export {BASE_BAG_SLOTS,inspectInventoryOwnership,inventorySlotsUsed,inventorySlotsAvailable,mayEquipOwnedItem} from './inventory/ownership.js';
 export type {InventoryOwnershipV1,InventoryOwnershipRead} from './inventory/ownership.js';
+
+// D-064AH — catálogo Kanto completo e contrato de captura regional.
+export {KANTO_REGIONS,kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant}
+  from './map/kantoRegions.js';
+export {KANTO_BALLS,canUseKantoBall} from './capture/kantoBalls.js';
+export {inspectKantoBallPocket,spendKantoBallForAttempt}
+  from './capture/kantoBallPocket.js';
+export {resolveKantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
+export {d064DraftBallDrop,D064_DRAFT_STARTER_BALLS} from './capture/draftBallSupply.js';
+export type {KantoBallId} from './capture/kantoBalls.js';
+export type {KantoBallPocketV1} from './capture/kantoBallPocket.js';
