@@ -7,7 +7,7 @@ import type {KantoMove} from './kantoBattle.js';
 import {KANTO_POKEDEX} from '../catalog/kantoSpecies.js';
 import {KANTO_MOVE_PP} from '../catalog/kantoMovePp.js';
 import {kantoMoveSecondaryEffect} from './kantoStatusEffects.js';
-import {kantoMoveHitCount} from './kantoMultiHit.js';
+import {kantoMoveExpectedHits} from './kantoMultiHit.js';
 
 export const KANTO_BASIC_ATTACK:KantoMove=Object.freeze({
   name:'basic-attack',type:'normal',category:'physical',
@@ -114,7 +114,7 @@ export function kantoMoveSpCost(move:KantoMove):number{
   const secondary=kantoMoveSecondaryEffect(move.name)?4:0;
   const priority=move.priority>0?3:0;
   return clamp(KANTO_SP_BALANCE.minMoveSpCost,KANTO_SP_BALANCE.maxMoveSpCost,
-    Math.round(scarcity+.18*move.power*kantoMoveHitCount(move.name)+secondary+priority));
+    Math.round(scarcity+.18*move.power*kantoMoveExpectedHits(move.name)+secondary+priority));
 }
 
 /**
