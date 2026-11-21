@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {
   prepareRewardJournal,migrateD064EconomyDraft,
   d064DraftConvertLegacyXp,D064_EXPERIMENTAL_ECONOMY_VERSION,
-  xpThreshold,d064DraftXpThreshold
+  xpThreshold,d064DraftXpThreshold,applyRegionalBattleDraft,d064DraftBattleReward
 } from '../src/index.js';
 
 const source=()=>({
@@ -76,6 +76,33 @@ describe('D-064P — migração de XP sem perder níveis existentes',()=>{
     const tagged=journal({...source(),economyVersion:D064_EXPERIMENTAL_ECONOMY_VERSION});
     expect(migrateD064EconomyDraft(tagged,cmd).status).toBe('rejected');
     expect(initial.revision).toBe(0);
+  });
+  it('após migração, recompensa regional usa curva nova e recibo separado',()=>{
+    const first=migrateD064EconomyDraft(journal(),cmd);
+    expect(first.status).toBe('applied');
+    if(first.status!=='applied')return;
+    const original=JSON.parse(first.journal.raw);
+    const battle=applyRegionalBattleDraft(first.journal,{
+      id:'regional-after-migration',expectedRevision:1,
+      regionId:1,seed:2,activeUid:1,outcome:'win',affinityGain:3
+    });
+    expect(battle.status).toBe('applied');
+    if(battle.status!=='applied')return;
+    const updated=JSON.parse(battle.journal.raw);
+    const reward=d064DraftBattleReward(10)!;
+    expect(updated.coins).toBe(original.coins+reward.coins);
+    expect(updated.economyVersion).toBe(D064_EXPERIMENTAL_ECONOMY_VERSION);
+    expect(updated.trainer.level).toBe(original.trainer.level);
+    expect(updated.trainer.xp).toBe(original.trainer.xp+reward.trainerXp);
+    expect(updated.roster[0].level).toBe(original.roster[0].level);
+    expect(updated.roster[0].xp).toBe(original.roster[0].xp+reward.pokemonXp);
+    expect(updated.ballPocket).toEqual(original.ballPocket);
+    expect(updated.expedition).toEqual(original.expedition);
+    expect(battle.journal.receipts).toHaveLength(2);
+    expect(applyRegionalBattleDraft(battle.journal,{
+      id:'regional-after-migration',expectedRevision:1,
+      regionId:1,seed:2,activeUid:1,outcome:'win',affinityGain:3
+    }).status).toBe('duplicate');
   });
   it('migração não altera os resultados da Arena antiga; economia ainda é hipotética',()=>{
     const initial=journal();
