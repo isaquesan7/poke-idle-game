@@ -5,7 +5,8 @@
  * para conceder resultado, e insere bolso/seen/caught no MESMO envelope e
  * revisão; não executa IO nem deixa débito separado da captura.
  *
- * IMPORTANTE: ainda aplica recompensas e curva LEGADAS do reducer.
+ * IMPORTANTE: usa o reducer legado apenas como base estrutural/UID e
+ * reconcilia recompensas para a curva EXPERIMENTAL D-064 na mesma revisão.
  * Nunca conectar à UI antes de equilibrar XP/coins, validar vitória pelo
  * simulador real, definir migração/estoque e integração E2E.
  *
@@ -20,6 +21,7 @@ import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
 import type {KantoBallPocketV1} from '../capture/kantoBallPocket.js';
 import {resolveKantoCaptureAttempt} from '../capture/regionalCaptureAttempt.js';
 import type {KantoBallId} from '../capture/kantoBalls.js';
+import {d064DraftBattleReward,d064DraftGrantXp} from './regionalEconomyDraft.js';
 
 export interface RegionalBattleDraftCommand {
   readonly id:string;
@@ -118,9 +120,41 @@ export function applyRegionalBattleDraft(
     ...(command.outcome==='win'?{affinityGain:command.affinityGain}:{}),
     ...(capture?{capture}:{})
   };
+  // A transição legada conserva o mecanismo de UID/badges, mas seus
+  // valores de XP e moedas NÃO podem vazar para a economia D-064.
+  // Revalidamos ANTES do reducer para impedir migração implícita de XP:
+  // essa curva somente poderá ir ao writer com política de rollout.
+  const coins=current.coins;
+  const sourceTrainerXp=trainer.xp;
+  const sourceActiveXp=active.xp;
+  if(typeof coins!=='number'||!Number.isSafeInteger(coins)||coins<0
+    ||typeof sourceTrainerXp!=='number'||!Number.isSafeInteger(sourceTrainerXp)||sourceTrainerXp<0
+    ||typeof sourceActiveXp!=='number'||!Number.isSafeInteger(sourceActiveXp)||sourceActiveXp<0)
+    return reject(journal,'Saldo ou XP original inválido.');
+  const draftReward=command.outcome==='win'
+    ?d064DraftBattleReward(encounter.level):null;
+  const trainerNext=d064DraftGrantXp('trainer',{
+    level:trainer.level as number,xp:sourceTrainerXp
+  },draftReward?.trainerXp??0);
+  const pokemonNext=d064DraftGrantXp('pokemon',{
+    level:active.level,xp:sourceActiveXp
+  },draftReward?.pokemonXp??0);
+  if(!trainerNext||!pokemonNext||!Number.isSafeInteger(coins+(draftReward?.coins??0)))
+    return reject(journal,'XP precisa de migração para a nova curva ou saldo inválido.');
   const applied=applyRewardEvent(journal,base);
   if(applied.status!=='applied')return applied;
   const state=JSON.parse(applied.journal.raw) as Record<string,unknown>;
+  if(command.outcome==='win'){
+    const updatedTrainer=state.trainer as Record<string,unknown>;
+    const updatedRoster=state.roster as Record<string,unknown>[];
+    const updatedActive=updatedRoster.find(p=>p.uid===command.activeUid);
+    if(!updatedActive)return reject(journal,'Pokémon ativo não encontrado após recompensa.');
+    state.coins=coins+draftReward!.coins;
+    updatedTrainer.level=trainerNext.level;
+    updatedTrainer.xp=trainerNext.xp;
+    updatedActive.level=pokemonNext.level;
+    updatedActive.xp=pokemonNext.xp;
+  }
   const known=new Set((seen as unknown[]).filter(v=>positive(v)&&v<=151));
   known.add(species.id);
   state.seen=[...known];
