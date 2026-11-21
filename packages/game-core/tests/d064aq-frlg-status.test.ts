@@ -14,7 +14,7 @@ function fighter(id:number,moves:readonly KantoMove[]):Combatant{
     move:moves[0]!,moves,rank:0};
 }
 describe('D064AQ — Leer / Stun Spore / Glare FRLG',()=>{
-  it('fonte, custos e nivelamento exatos sem liberar Hypnosis',()=>{
+  it('fonte, custos e nivelamento exatos com Hypnosis liberado somente após D064AR',()=>{
     for(const [name,at,id] of [
       ['leer',7,21],['stun-spore',16,43],['glare',20,23]
     ] as const){
@@ -30,7 +30,7 @@ describe('D064AQ — Leer / Stun Spore / Glare FRLG',()=>{
     expect(kantoSupportEffect('leer')).toEqual({kind:'lower-defense',stages:1});
     expect(kantoSupportEffect('stun-spore')).toEqual({kind:'status',status:'paralysis'});
     expect(kantoSupportEffect('glare')).toEqual({kind:'status',status:'paralysis'});
-    expect(kantoSupportMoves(94,45).map(x=>x.move.name)).not.toContain('hypnosis');
+    expect(kantoSupportMoves(94,45).map(x=>x.move.name)).toContain('hypnosis');
   });
   it('writer recusa aprendizados prematuros e preserva slots/UID',()=>{
     const json=(level:number)=>JSON.stringify({version:1,badges:[],team:[1],
