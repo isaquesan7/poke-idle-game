@@ -102,3 +102,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 - **Decisão:** Expedição de Pokémon fica limitada à região e ao nível individual. XP para exatamente no teto, sem transportar excedentes; moedas continuam; mudar de tier requer encerrar e reiniciar. Curva de Treinador mais lenta que a de Pokémon, recompensas de batalha e economia completas precisam revisão conjunta.
 - **Bloqueio de publicação:** nenhuma captura por bola pode entrar em produção sem débito transacional, fonte renovável de estoque, tratamento de saves existentes, teste de replay/idempotência e chance de captura validada. Os contratos D-064 na PR #88 são **isolados e não operacionais** no writer atual.
 - **Parâmetros ainda experimentais:** portas de treinador [1,6,12,20,30,42,55,69,82,93], pesos raros e fórmulas de XP/coins. Não interpretar como regra final sem prova de balanceamento.
+
+
+| D-064T | 2026-11-20 | LABORATÓRIO EXPERIMENTAL, NÃO PUBLICADO | Prototipar transação de migração XP + bolso + batalha regional em instância privada sem Storage nem writer público; aplicar candidato apenas após validação e registrar IDs para idempotência. O ensaio **não autoriza** persistência, não equivale a lock entre abas e mantém economia/drop/bolas D064 como hipóteses até aprovação específica. |
