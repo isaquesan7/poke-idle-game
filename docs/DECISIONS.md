@@ -111,3 +111,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064V | 2026-11-20 | CANDIDATO DE GATE, NÃO EXECUTÁVEL | Separar inspeção estrutural do candidato do direito de escrever: verificar esquema, revisões e cadeia de recibos em função pura, retornando sempre `canWrite:false` e sem expor payload gravável. O gate não autentica novos recibos nem RNG de cliente; autorização persistente exige escritor canônico, backup, locks cooperativos e decisão de balanceamento. |
+
+
+| D-064W | 2026-11-20 | EXPERIMENTAL / READ-ONLY | Exigir que o candidato de transação regional corresponda exatamente ao resultado reconstruído pelo domínio a partir da origem e comando, além da validade estrutural do journal. Continuar retornando `canWrite:false`; simulação determinística com seed do cliente NÃO autentica recompensas nem permite liberar writer sem modelo de autoridade, lock, backup e aprovação econômica. |
