@@ -411,3 +411,6 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## D-064AN — auditoria avançada de golpes (21/11/2026; validação)
 - Adicionado teste determinístico de 9.216 batalhas no motor das regiões 8–10 com slots realmente equipáveis por nível, comparação default vs learned pareada por seed, XP com derrotas e previsão teórica de apresentação.
 - Relatório técnico `docs/BALANCE_D064AN.md`, sem mudanças em gameplay, recompensas, níveis, chances de captura, Pokébolas ou saves.
+
+
+- D064AN CI de 9.216 confrontos: no Pico, +8,27 pontos percentuais de taxa de vitória ao usar golpes aprendidos equipáveis na matriz pareada (47,26%→55,53%). Sem alteração de parâmetros; consultar documentação e limitações de amostra em `docs/BALANCE_D064AN.md`.
