@@ -268,10 +268,11 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string, regio
     }
     // A trilha visual do motor marca captura automática; suprimir quando
     // a política regional não permite conceder o lendário.
-    const battleLog=captured===result.captured?result.log
-      :result.log.filter(line=>!line.startsWith('Captura! '));
+    const keepLine=(line:string)=>captured||!line.startsWith('Captura! ');
+    const battleLog=result.log.filter(keepLine);
+    const battleFrames=result.frames.filter((_,index)=>keepLine(result.log[index]??''));
     updated.lastBattle={
-      ...result,captured,log:battleLog,
+      ...result,captured,log:battleLog,frames:battleFrames,
       ...(selectedRegion?{regionId:selectedRegion.id,regionName:selectedRegion.name}:{ }),
       battleId:eventId,
       wildName:enemy.name,wildLevel,
