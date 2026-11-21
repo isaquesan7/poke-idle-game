@@ -287,7 +287,7 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
   await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
-  await page.getByRole('heading',{name:'Batalha na Bosque Inicial'}).waitFor();
+  await page.getByRole('heading',{name:'Batalha no Bosque Inicial'}).waitFor();
   // D-063: a visão inicial da Arena apresenta líder, indicadores e ação
   // principal; as informações do motor não devem poluir a tela do jogador.
   const arenaLeader=page.getByLabel('Líder do combate');
