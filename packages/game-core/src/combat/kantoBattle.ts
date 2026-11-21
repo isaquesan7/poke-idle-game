@@ -14,7 +14,7 @@
 import type { StatValues } from '../stats/types.js';
 import { KANTO_POKEDEX } from '../catalog/kantoSpecies.js';
 import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
-import { kantoMoveSecondaryEffect } from './kantoStatusEffects.js';
+import { kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect } from './kantoStatusEffects.js';
 import {KANTO_SUPPORT_MOVES,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import {KANTO_MULTI_HIT_MOVES,kantoMoveExpectedHits,kantoRollHitCount} from './kantoMultiHit.js';
 import type { KantoBattleStatus } from './kantoStatusEffects.js';
@@ -580,7 +580,21 @@ export function simulateKantoBattle(
           {...meta,...(index>1?{spCost:0}:{}),
             ...(hitTotal>1?{hitIndex:index,hitTotal}:{}),
             critical:hit.critical,effectiveness:hit.effectiveness});
-        if(hit.damage===0||(isPlayer?wildHp:playerHp)===0)break;
+        // D064AU: veneno Twineedle é avaliado por impacto efetivo, nunca
+        // após KO, imunidade ou se já existe uma condição no adversário.
+        const foeHp=isPlayer?wildHp:playerHp;
+        const perHit=kantoPerHitSecondaryEffect(move.name);
+        if(hit.damage>0&&foeHp>0&&perHit?.kind==='status'){
+          const existing=isPlayer?wildStatus:playerStatus;
+          if(existing===null&&statusAllowed(perHit.status,defender)
+            &&roll()*100<perHit.chance){
+            if(isPlayer)wildStatus=perHit.status;else playerStatus=perHit.status;
+            note('T'+turns+' · '+defender.name+' ficou envenenado pelo acerto '+
+              index+'/'+hitTotal+' de '+move.name+'.','status',enemySide,0,
+              {...meta,spCost:0});
+          }
+        }
+        if(hit.damage===0||foeHp===0)break;
       }
 
       // Sem hit efetivo ou alvo já derrotado não há efeitos adicionais.
