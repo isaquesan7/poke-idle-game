@@ -153,3 +153,7 @@ export type {D064EconomyMigrationCommand} from './map/regionalEconomyMigrationDr
 // D-064Z: cenários hipotéticos de progressão e abastecimento, sem writer.
 export {d064SimulateRegionalScenario} from './map/regionalScenarioLab.js';
 export type {RegionalScenarioInput,RegionalScenarioResult,DraftCaptureStrategy} from './map/regionalScenarioLab.js';
+
+// D-064AB: amostras de batalha real sem progresso persistente.
+export {d064SampleRealRegionalBattles} from './map/regionalRealCombatSampleLab.js';
+export type {RegionalBattleSampleRequest,RegionalBattleSampleSummary} from './map/regionalRealCombatSampleLab.js';
