@@ -1,5 +1,10 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AS — Night Shade com dano fixo (21/11/2026; branch)
+- Catálogo FRLG nível/Gastly/Haunter/Gengar: Night Shade (PokeAPI power null) equipável via writer validado por UID, dano igual ao nível sem crítico/STAB/variação/resistências, preservando imunidade Ghost vs Normal; custo SP próprio e IA que reconhece a habilidade. Replay preserva log/frame de cada golpe.
+- Novos testes de dano, níveis, SP, imunidade e determinismo; D064AO ajustado para nova elegibilidade. Nenhum ajuste de XP, economia, captura, expedição, save schema, TM09, GIFs. Detalhes docs/FIXED_DAMAGE_D064AS.md. CI/merge/deploy a verificar.
+
+
 ## D-064AR — sono e integração dos novos status (21/11/2026; BRANCH)
 - Novos suportes Hypnosis, Sleep Powder e Spore aprendíveis apenas com registro FRLG verificado, custo SP, turnos de sono 1–3, log/frame de adormecer/acordar e proteção de save. Leer/Stun Spore/Glare da PR #118 reaplicados em branch a partir da main com auditoria D064AP integrada.
 - Testes de aprendizado, slots UID, determinismo e regressão; o motor não concede XP/itens extras, não altera TM09, captura, animações, GIFs ou progresso. Detalhes em docs/SLEEP_MOVES_D064AR.md. CI/merge/deploy ainda pendentes.
