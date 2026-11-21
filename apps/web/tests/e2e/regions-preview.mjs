@@ -51,6 +51,16 @@ try{
     await page.getByRole('heading',{name:'Santuário Lendário'}).waitFor();
     await page.getByText('Estes requisitos são preliminares').waitFor();
     assert.equal(await page.getByRole('button',{name:/Capturar agora|Iniciar batalha|Receber recompensa/}).count(),0);
+    // D-064AF: executar motor real em sandbox, sem recompensas ou save.
+    await page.getByRole('combobox',{name:'Seu Pokémon'}).selectOption('7');
+    await page.getByRole('combobox',{name:'Nível de demonstração'}).selectOption('100');
+    await page.getByRole('button',{name:'Simular encontro'}).click();
+    const preview=page.getByTestId('regional-demo-result');
+    await preview.waitFor();
+    await preview.getByRole('button',{name:'Ver resultado completo'}).click();
+    await preview.getByText(/Demonstração encerrada após/).waitFor();
+    assert.equal(await preview.getByText(/Captura! |Recompensas de combate recebidas/).count(),0,
+      'A prévia não pode reivindicar recompensas reais ou captura');
     const after=await page.evaluate(()=>JSON.stringify(Object.entries(localStorage).sort()));
     assert.equal(after,before,'Catálogo jamais deve escrever em localStorage');
     assert.deepEqual(errors,[],'Catálogo deve abrir sem erros JS');
