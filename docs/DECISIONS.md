@@ -133,3 +133,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AT | 2026-11-21 | EM VALIDAÇÃO | Golpes 2–5 hits effectId30 no FRLG level-up permitidos apenas em whitelist auditada, com sorteio determinístico 3/8,3/8,1/8,1/8 após precisão, SP uma vez e log/frame por impacto. Bonemerang effect45 (dois hits) entra, Double Kick preservado. Twineedle effect78 bloqueado até status secundário por impacto; TM09/Bullet Seed não ensinável. IA/energia usam 3 hits esperados; sem alterações de economia/save. |
+
+
+| D-064AU | 2026-11-21 | EM VALIDAÇÃO | Liberar Twineedle apenas por level-up de Beedrill #15 Nv20 FRLG; dois impactos e poison20% após cada hit efetivo com alvo vivo/suscetível, usando o RNG determinístico, um único custo SP e registros frame por evento. Permitir apenas este efeito per-hit em allowlist, não duplicar rolls globais, manter TM09 indisponível. Status não persistido. |
