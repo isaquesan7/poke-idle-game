@@ -369,3 +369,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## D-064E — projeções puras de balanceamento (2026-11-20; sem publicação)
 - Simulador read-only de limiares propostos de XP, recompensas de vitória, trajetória por regiões e checkpoints até Nv.100, mais testes Vitest.
 - Não muda curvas atuais nem moedas ou Expedições publicadas. Requer validação com combate real e aprovação antes de ativação.
+
+
+## D-064F/G — motor regional em prévia e projeção de captura (2026-11-20; PR aberta)
+- Combate simulado com os Pokémon reais da região, mesmo motor de golpes/HP/SP da Arena e desbloqueio pelo Treinador, sem recompensa nem captura; logs da prévia não anunciam ganhos inexistentes.
+- Projeção teórica de chance de captura usa taxa de espécie PokéAPI, tipo de Poké Bola e peso regional. Ainda não é algoritmo final nem débito do inventário.
+- Testes de nível, pool, raridade, determinismo e logs. Compatibilidade da Arena antiga preservada; sem deploy.
