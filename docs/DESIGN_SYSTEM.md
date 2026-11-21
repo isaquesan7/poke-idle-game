@@ -129,3 +129,9 @@ Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em 
 - Cena de batalha possui duas colunas equivalentes de lutadores, VS central, GIFs contidos com proporção original, medidores HP/SP sincronizados por frames e animações já existentes. Não remonta GIF em replay.
 - Diário mantém progressão de uma linha por evento, controles por teclado, tempo de apresentação (não tempo do motor), acessibilidade e barra global D062. Resultado/recompensas continuam escondidos até fim da apresentação.
 - Catálogo de encontros usa grade responsiva e 12 exemplos do pool real; nenhuma ilustração ou dado simulado adicional.
+
+
+## D-064B — mapa vetorial original (prévia)
+- A paisagem Kanto é uma implementação original SVG/CSS responsiva com trilha pontilhada, marcadores com estado visual (bloqueado/desbloqueado/selecionado) e detalhes da região acessíveis por teclado. Referência fornecida foi usada apenas para composição, sem copiar arte.
+- Painel de detalhes lista espécies pela mesma fonte `KANTO_REGIONS` do futuro motor; Pokémon não vistos usam silhueta e `???`; raros são separados e Master Ball não aparece como opção de captura.
+- Não transformar protótipo em navegação publicada enquanto combate, níveis, expedição, captura e itens não estiverem conectados e testados. Tokens globais, foco, mobile e redução de movimento seguem os padrões Kanto Dark.

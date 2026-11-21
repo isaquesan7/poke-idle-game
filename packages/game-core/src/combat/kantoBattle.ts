@@ -291,7 +291,8 @@ export function kantoDamage(
  * Status e estágios NÃO são persistidos entre combates.
  */
 export function simulateKantoBattle(
-  player:Combatant,wild:Combatant,seed:number
+  player:Combatant,wild:Combatant,seed:number,
+  mode:'standard'|'regional-preview'='standard'
 ):KantoBattleResult {
   validateCombatant(player);validateCombatant(wild);
   if (!Number.isSafeInteger(seed) || seed<0 || seed>0xffffffff) {
@@ -590,8 +591,12 @@ export function simulateKantoBattle(
   const outcome:BattleOutcome=wildHp===0&&playerHp===0?'draw'
     :wildHp===0?'win':playerHp===0?'loss':'draw';
   const affinityGain=outcome==='win'?2+Math.floor(roll()*4):null;
-  const captured=outcome==='win'&&roll()<0.35;
-  note(outcome==='win'?'Vitória! Recompensas de combate recebidas.'
+  // D-064: a prévia regional nunca lança uma Poké Bola nem anuncia
+  // recompensas inexistentes. O caminho padrão permanece idêntico.
+  const captured=mode==='standard'&&outcome==='win'&&roll()<0.35;
+  note(outcome==='win'?(mode==='regional-preview'
+    ?'Vitória na simulação! Sem recompensas nem captura.'
+    :'Vitória! Recompensas de combate recebidas.')
     :outcome==='draw'?(playerHp===0?'Empate: ambos os Pokémon desmaiaram.':'Empate: limite de 30 turnos.')
       :'Derrota. Treine seu Pokémon e tente novamente.','outcome');
   if(captured)note('Captura! '+wild.name+' entrou na coleção.','outcome');

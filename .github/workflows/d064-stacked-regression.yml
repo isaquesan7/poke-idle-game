@@ -1,0 +1,62 @@
+name: D-064 — regressão em branches de integração regional
+
+on:
+  push:
+    branches:
+      - 'feat/d064**'
+      - 'test/d064**'
+  pull_request:
+    branches:
+      - 'feat/d064**'
+      - 'test/d064**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  regional-domain-and-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependências fixadas
+        run: |
+          npm install --global npm@11
+          npm ci
+      - name: TypeScript, Vitest e build
+        run: |
+          npm run typecheck:core
+          npm run test:core
+          npm run typecheck:web
+          npm run test:web
+          npm run build:web
+          npm test
+          npm run verify:gifs
+      - name: Preparar navegador
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Regressão /play desktop e mobile
+        run: node apps/web/tests/e2e/playable-route.mjs
+
+  regional-docker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir imagem isolada
+        run: docker build --tag kanto-d064-regional-ci --file Dockerfile .
+      - name: Smoke das rotas em runtime
+        run: |
+          docker run --detach --rm --name kanto-d064-ci -p 127.0.0.1:18080:8080 -e PORT=8080 kanto-d064-regional-ci npm start
+          D044_SMOKE_BASE_URL=http://127.0.0.1:18080 node tests/e2e/runtime-image-smoke.mjs
+      - name: Logs e limpeza
+        if: always()
+        run: |
+          docker logs kanto-d064-ci 2>&1 || true
+          docker stop kanto-d064-ci 2>/dev/null || true

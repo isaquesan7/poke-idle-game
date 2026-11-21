@@ -22,6 +22,7 @@ import { BattlePlayback } from './BattlePlayback';
 import { BattleStage } from './BattleStage';
 import { TrainerScreen } from './TrainerScreen';
 import { PokemonTraining } from './PokemonTraining';
+import { KantoMapScreen } from './KantoMapScreen';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'arena' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -124,6 +125,8 @@ export function PlayApp() {
   const [collectionSort, setCollectionSort] = useState<CollectionSort>('recent');
   const [feedback, setFeedback] = useState('');
   const [serverOnline,setServerOnline]=useState<boolean|null>(null);
+  /** D-064B: prévia do mapa desligada do sorteio legado e sem writes. */
+  const [mapPreview,setMapPreview]=useState(false);
   const [battlePlayback, setBattlePlayback] = useState<{id:string;seq:number;done:boolean}|null>(null);
   /** Apenas reprodução: não faz parte do save do jogo. */
   const [battleReveal,setBattleReveal]=useState<{key:string;visible:number}|null>(null);
@@ -231,6 +234,7 @@ export function PlayApp() {
     }
     setSave(readSafe());
     setBattlePlayback(null);
+    setMapPreview(false);
     setTab('overview');
     setSelectedUid(null);
     setPokemonSection('profile');
@@ -883,12 +887,20 @@ export function PlayApp() {
               />
             )}
 
-            {tab === 'arena' && (
+            {tab === 'arena' && mapPreview && (
+              <KantoMapScreen trainerLevel={view.level} journal={save.snapshot.journal}
+                revealedSpeciesIds={[...new Set([...seenDexIds,...caughtDexIds])]} onClose={()=>setMapPreview(false)}/>
+            )}
+            {tab === 'arena' && !mapPreview && (
               <>
                 <section className={styles.battleIntro}>
                   <div>
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · KANTO</div>
                     <h2>Arena de batalha</h2>
+                    <button type="button" className={styles.secondary} onClick={()=>setMapPreview(true)}
+                      data-testid="open-kanto-map-preview">
+                      <i className="fa-solid fa-map-location-dot" aria-hidden="true"/> Prévia do Mapa de Kanto
+                    </button>
                     <p className={styles.arenaLead}>Seu parceiro enfrenta Pokémon selvagens de Kanto em batalhas automáticas. Acompanhe os ataques, o HP e a energia de cada combatente em tempo real.</p>
                     <div className={styles.arenaLeader} aria-label="Líder da Arena">
                       <div className={styles.arenaLeaderPortrait}>
