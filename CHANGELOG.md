@@ -438,3 +438,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064U — laboratório de recuperação e CI regional (não publicado)
 - Ensaio em RAM de falhas de transação entre backup, candidato e marcador, recuperação conservadora com bloqueio em caso de commit inconsistente. Testes verificam todos os pontos de falha e salvamento do jogador inalterado.
 - Novo workflow GitHub Actions para validar branches regionais empilhadas com TS/Vitest, React, navegador e Docker antes de merge, sem deploy.
+
+
+### D-064V — pré-validação conservadora de persistência (não publicado)
+- Novo gate estrutural read-only de snapshot regional e histórico de recibos, sempre retornando `canWrite:false`. Testes de conflitos, dados corrompidos e preservação integral da chave local. Nenhum writer regional ou mudança de economia em produção.

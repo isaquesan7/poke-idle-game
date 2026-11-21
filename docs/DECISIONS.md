@@ -108,3 +108,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064U | 2026-11-20 | TESTE ISOLADO, NÃO PUBLICADO | Antes do writer persistente, exigir ensaio de interrupções em backup → candidato → marcador: sem confirmação o progresso original permanece recuperável; marcador inconsistente deve bloquear reparos automáticos. Adicionar CI específico para branches regionais empilhadas, pois PRs contra feature branch não acionavam os workflows gerais baseados em `main`. O ensaio não prova atomicidade em localStorage nem autoriza produção. |
+
+
+| D-064V | 2026-11-20 | CANDIDATO DE GATE, NÃO EXECUTÁVEL | Separar inspeção estrutural do candidato do direito de escrever: verificar esquema, revisões e cadeia de recibos em função pura, retornando sempre `canWrite:false` e sem expor payload gravável. O gate não autentica novos recibos nem RNG de cliente; autorização persistente exige escritor canônico, backup, locks cooperativos e decisão de balanceamento. |
