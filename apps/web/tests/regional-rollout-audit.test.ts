@@ -16,6 +16,51 @@ function setup(demo=false){
 }
 const request=(policy:'legacy-empty'|'starter-proposal'='starter-proposal')=>({
   expectedRevision:0,regionId:1,seed:2,pocketPolicy:policy
+  it('nega envelope com revisão externa diferente da revisão do journal',()=>{
+    const {storage,map,writeCount}=setup(true);
+    const baseline=writeCount();
+    const raw=JSON.parse(storage.getItem(PLAY_SAVE_KEY)!);
+    raw.revision=1;
+    map.set(PLAY_SAVE_KEY,JSON.stringify(raw));
+    const result=auditRegionalRollout(storage,{...request(),expectedRevision:1});
+    expect(result.status).toBe('blocked');
+    if(result.status==='blocked')expect(result.reason).toMatch(/Revisões internas/);
+    expect(writeCount()).toBe(baseline);
+  });
+  it('nega resultado obsoleto quando outra aba modifica o save entre leituras',()=>{
+    const {storage,map,writeCount}=setup(true);
+    const baseline=writeCount();
+    const original=storage.getItem(PLAY_SAVE_KEY)!;
+    let reads=0;
+    const racingStorage={
+      getItem:(key:string)=>{
+        reads++;
+        if(reads===2){
+          const tampered=JSON.parse(original);
+          tampered.journal.raw=tampered.journal.raw.replace('"coins":200','"coins":199');
+          map.set(key,JSON.stringify(tampered));
+        }
+        return storage.getItem(key);
+      }
+    };
+    const result=auditRegionalRollout(racingStorage,request());
+    expect(result.status).toBe('blocked');
+    if(result.status==='blocked')expect(result.reason).toMatch(/mudou durante a auditoria/);
+    expect(writeCount()).toBe(baseline);
+  });
+  it('nega auditoria quando a segunda leitura fica indisponível',()=>{
+    const {storage,writeCount}=setup(true);
+    const baseline=writeCount();
+    let reads=0;
+    const flaky={getItem:(key:string)=>{
+      if(++reads===2)throw new Error('blocked storage');
+      return storage.getItem(key);
+    }};
+    const result=auditRegionalRollout(flaky,request());
+    expect(result.status).toBe('blocked');
+    expect(writeCount()).toBe(baseline);
+  });
+
 });
 describe('D-064R — auditoria de migração e combate sem qualquer persistência',()=>{
   it('ensaia migração XP, bolso e batalha a partir do save antigo sem um setItem',()=>{

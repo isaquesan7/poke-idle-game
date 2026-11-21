@@ -76,6 +76,9 @@ export function auditRegionalRollout(
   if(source.status!=='ready')return deny('Save indisponível ou inválido.');
   if(source.snapshot.revision!==request.expectedRevision)
     return deny('Revisão do save desatualizada.');
+  // A auditoria não pode confundir duas revisões divergentes no mesmo envelope.
+  if(source.snapshot.journal.revision!==source.snapshot.revision)
+    return deny('Revisões internas do save divergentes.');
   // Não reinterpreta ciclos antigos ou muda de área numa expedição ativa.
   const old=parse(source.snapshot.journal.raw);
   if(!old)return deny('Save de origem inválido.');
@@ -120,6 +123,20 @@ export function auditRegionalRollout(
   const final=parse(outcome.proposedJournal.raw);
   if(!final||!isObject(final.trainer)||!Array.isArray(final.roster)
     ||typeof final.coins!=='number')return deny('Resultado da auditoria inválido.');
+  // Uma aba pode escrever enquanto o ensaio está calculando. A comparação
+  // final não é CAS/lock, mas impede exibir como atual um resultado obsoleto.
+  // O preflight permanece estritamente somente leitura.
+  try {
+    const latest=readPlaySave(storage);
+    if(latest.status!=='ready'
+      ||latest.snapshot.revision!==source.snapshot.revision
+      ||latest.snapshot.journal.raw!==source.snapshot.journal.raw
+      ||latest.snapshot.journal.revision!==source.snapshot.journal.revision
+      ||JSON.stringify(latest.snapshot.journal.receipts)!==JSON.stringify(source.snapshot.journal.receipts))
+      return deny('O progresso mudou durante a auditoria. Refaça a verificação.');
+  } catch {
+    return deny('Não foi possível verificar novamente o progresso.');
+  }
   // Não devolvemos JSON nem RewardJournal para impedir commits de prévia.
   return{status:'ready',
     originalRevision:source.snapshot.revision,

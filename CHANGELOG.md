@@ -423,3 +423,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## D-064R — auditoria integrada de rollout em read-only (2026-11-20; sem deploy)
 - Plano não gravável simula migração XP, bolso, encontro regional real e recompensa no journal em memória com proteção para saves antigos/expedições ativas, validações de revisão e testes de ausência de escritas.
 - Nenhum item, nível, XP, moeda ou captura é concedido no jogo; PR segue isolada.
+
+
+### D-064S — bloqueios de consistência do preflight regional (branch, não publicado)
+- A auditoria read-only de economia/bolso/combate regional deixa de sinalizar `ready` se as revisões do envelope e journal divergem ou o save muda durante seu cálculo; falha de leitura bloqueia o resultado.
+- Testes adicionais de corrida de aba, erro de storage e revisões inconsistentes. Sem alteração de gameplay, save persistido, Pokébolas, XP, UI, economia, legado ou GIFs; sem deploy.
