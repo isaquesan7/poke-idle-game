@@ -268,9 +268,13 @@ function playBattle(
     // consumida mesmo quando falha, na mesma revisão de recompensa.
     let captured=result.captured;
     let nextPocket:KantoBallPocketV1=pocket;
+    let usedBallId:KantoBallId|null=null;
     if(selectedRegion){
       captured=false;
-      if(result.outcome==='win'&&ballId){
+      const rare=selectedRegion.rareSpeciesIds.includes(wildSpeciesId);
+      // Poké/Great não são gastas contra raros e não cancelam combate:
+      // o adversário é sorteado DEPOIS da escolha de bola.
+      if(result.outcome==='win'&&ballId&&(!rare||ballId==='ultra-ball')){
         const attempted=resolveKantoCaptureAttempt({
           regionId:selectedRegion.id,speciesId:wildSpeciesId,ballId,
           pocket,maxHp:result.wildMaxHp,currentHp:0,
@@ -278,6 +282,7 @@ function playBattle(
         });
         if(attempted.status!=='resolved')
           return{status:'blocked',reason:attempted.reason};
+        usedBallId=ballId;
         captured=attempted.captured;
         nextPocket=attempted.pocket;
       }
@@ -330,8 +335,8 @@ function playBattle(
     const keepLine=(line:string)=>!selectedRegion||!line.startsWith('Captura! ');
     const battleLog=result.log.filter(keepLine);
     const battleFrames=result.frames.filter((_,index)=>keepLine(result.log[index]??''));
-    if(selectedRegion&&result.outcome==='win'&&ballId){
-      const label=ballId==='poke-ball'?'Poké Ball':ballId==='great-ball'?'Great Ball':'Ultra Ball';
+    if(selectedRegion&&result.outcome==='win'&&usedBallId){
+      const label=usedBallId==='poke-ball'?'Poké Ball':usedBallId==='great-ball'?'Great Ball':'Ultra Ball';
       battleLog.push(captured
         ?label+' lançada! '+enemy.name+' foi capturado.'
         :label+' lançada! '+enemy.name+' escapou da captura.');
@@ -342,7 +347,7 @@ function playBattle(
       ...result,captured,log:battleLog,frames:battleFrames,
       ...(selectedRegion?{
         regionId:selectedRegion.id,regionName:selectedRegion.name,
-        captureBallId:result.outcome==='win'?ballId??null:null
+        captureBallId:usedBallId
       }:{ }),
       battleId:eventId,
       wildName:enemy.name,wildLevel,
