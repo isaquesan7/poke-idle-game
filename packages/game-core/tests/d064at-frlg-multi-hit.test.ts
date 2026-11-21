@@ -92,8 +92,11 @@ describe('D064AT — golpes com acertos múltiplos FRLG',()=>{
     const observed=new Set<number>();
     let actions=0;
     for(let seed=0;seed<180;seed++){
-      const battle=simulateKantoBattle(attacker,target,seed);
-      expect(battle).toEqual(simulateKantoBattle(attacker,target,seed));
+      // Seeds espaçadas em 32 bits cobrem as faixas do LCG, ao contrário
+      // de seeds consecutivas, altamente correlacionadas nos primeiros rolls.
+      const sampledSeed=Math.imul(seed+1,0x9e3779b9)>>>0;
+      const battle=simulateKantoBattle(attacker,target,sampledSeed);
+      expect(battle).toEqual(simulateKantoBattle(attacker,target,sampledSeed));
       expect(battle.frames).toHaveLength(battle.log.length);
       expect(battle.playerRemainingSp).toBeGreaterThanOrEqual(0);
       expect(battle.turns).toBeLessThanOrEqual(30);
