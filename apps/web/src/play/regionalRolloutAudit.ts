@@ -14,7 +14,7 @@ import {
   inspectKantoBallPocket,migrateD064EconomyDraft,migrateD064PocketDraft
 } from '@kanto/game-core';
 import type {KantoBallId,RewardJournal,D064PocketMigrationPolicy} from '@kanto/game-core';
-import {PLAY_SAVE_KEY,readPlaySave} from './playSave';
+import {readPlaySave} from './playSave';
 import type {PlayStorage} from './playSave';
 import {dryRunRegionalBattleTransaction} from './regionalBattleBridge';
 
