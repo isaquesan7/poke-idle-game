@@ -15,6 +15,7 @@ import {
   reduceLegacyPokemonMoveJson, kantoLevelMoves, reduceKantoEvolutionJson,
   KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson
 } from '@kanto/game-core';
+import {PREVIEW_REGIONS} from '../regions/previewCatalog';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant
 } from '@kanto/game-core';
@@ -37,6 +38,7 @@ export type PlayAction =
   | { readonly type: 'trainer-invest-batch'; readonly increments: Readonly<Partial<Record<keyof StatValues, number>>> }
   | { readonly type: 'pokemon-invest-batch'; readonly uid:number; readonly increments: Readonly<Partial<Record<keyof StatValues,number>>> }
   | { readonly type: 'battle'; readonly seed: number }
+  | { readonly type: 'regional-battle'; readonly seed:number; readonly regionId:number }
   | { readonly type: 'evolution'; readonly uid:number; readonly targetSpeciesId:number }
   | { readonly type: 'evolution-test-kit' }
   | { readonly type: 'move'; readonly uid:number; readonly moveName:string;
@@ -138,7 +140,12 @@ export function createPlaySave(
  * aceitar outcome, dano, XP, espécie alvo ou captura arbitrários do botão.
  * Uma seed de navegador ainda é manipulável: apenas alfa sem antifraude.
  */
-function playBattle(journal: RewardJournal, seed: number, eventId: string):
+function trainerLevel(game:Record<string,unknown>):number {
+  const trainer=game.trainer;
+  return record(trainer)&&Number.isSafeInteger(trainer.level)?trainer.level as number:-1;
+}
+
+function playBattle(journal: RewardJournal, seed: number, eventId: string, regionId?:number):
   | { readonly status:'ok'; readonly journal:RewardJournal }
   | { readonly status:'blocked'; readonly reason:string } {
   if (!Number.isSafeInteger(seed) || seed<0 || seed>0xffffffff) {
@@ -151,6 +158,15 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
       || !Array.isArray(game.badges) || !Array.isArray(game.seen)
       || !Number.isSafeInteger(game.wins)) {
       return {status:'blocked',reason:'Save de combate inválido.'};
+    }
+    // D-064AG: o nível é consultado no save REAL, nunca no botão.
+    // A Arena antiga continua sem parâmetros regionais.
+    const selectedRegion=regionId===undefined?null
+      :PREVIEW_REGIONS.find(region=>region.id===regionId);
+    if(regionId!==undefined&&(!selectedRegion
+      ||!Number.isSafeInteger(trainerLevel(game))
+      ||trainerLevel(game)<selectedRegion.unlockTrainerLevel)){
+      return {status:'blocked',reason:'Região bloqueada para o nível atual do treinador.'};
     }
     const trainer=game.trainer;
     const trainerManual=trainer.manual as Record<string,unknown>;
@@ -207,21 +223,31 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
       move,rank:rank as number,moves:equippedMoves as NonNullable<Combatant['moves']>,
       ranks:upgrades as NonNullable<Combatant['ranks']>
     };
-    const wildSpeciesId=KANTO_WILD_POOL[seed % KANTO_WILD_POOL.length]!;
+    const wildSpeciesId=selectedRegion
+      ?selectedRegion.examples[seed % selectedRegion.examples.length]!
+      :KANTO_WILD_POOL[seed % KANTO_WILD_POOL.length]!;
     const enemy=KANTO_BATTLE_SPECIES[wildSpeciesId]!;
-    const wildLevel=Math.max(2,Math.min(100,(active.level as number)+((seed>>>8)%5)-2));
+    const wildLevel=selectedRegion
+      ?Math.min(selectedRegion.maxLevel,Math.max(selectedRegion.minLevel,
+        (active.level as number)+((seed>>>8)%5)-2))
+      :Math.max(2,Math.min(100,(active.level as number)+((seed>>>8)%5)-2));
     const wild:Combatant={
       speciesId:enemy.id,name:enemy.name,level:wildLevel,types:enemy.types,
       stats:pokemonOwnStats(enemy.base,wildLevel,zeroStats()),
       move:enemy.move,rank:0
     };
     const result=simulateKantoBattle(player,wild,seed);
+    // Enquanto não existe estoque transacional de Ultra Balls, a região
+    // lendária pode ser enfrentada, mas não capturada gratuitamente.
+    const captureAllowed=!selectedRegion
+      ||![144,145,146,150,151].includes(wildSpeciesId);
+    const captured=result.captured&&captureAllowed;
     const base={ id:eventId,expectedRevision:journal.revision,type:'battle-result' as const,
       outcome:result.outcome,activeUid:currentUid as number,wildLevel };
     const command:RewardCommand=result.outcome==='win'
       ? {
         ...base,outcome:'win',affinityGain:result.affinityGain!,
-        ...(result.captured?{capture:{pokemonId:wildSpeciesId,moveName:enemy.move.name}}:{})
+        ...(captured?{capture:{pokemonId:wildSpeciesId,moveName:enemy.move.name}}:{})
       } : base;
     const applied=applyRewardEvent(journal,command);
     if (applied.status!=='applied') {
@@ -231,7 +257,7 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
     const seen=new Set(game.seen.filter(n=>Number.isSafeInteger(n) && (n as number)>=1 && (n as number)<=151));
     seen.add(wildSpeciesId);
     updated.seen=Array.from(seen);
-    if(result.captured){
+    if(captured){
       const caughtRaw=Array.isArray(updated.caughtSpecies)?updated.caughtSpecies:[];
       const caught=new Set([
         ...caughtRaw.filter(n=>Number.isSafeInteger(n)&&n>=1&&n<=151),
@@ -240,8 +266,13 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string):
       ]);
       updated.caughtSpecies=Array.from(caught);
     }
+    // A trilha visual do motor marca captura automática; suprimir quando
+    // a política regional não permite conceder o lendário.
+    const battleLog=captured===result.captured?result.log
+      :result.log.filter(line=>!line.startsWith('Captura! '));
     updated.lastBattle={
-      ...result,
+      ...result,captured,log:battleLog,
+      ...(selectedRegion?{regionId:selectedRegion.id,regionName:selectedRegion.name}:{ }),
       battleId:eventId,
       wildName:enemy.name,wildLevel,
       rewardCoins:result.outcome==='win'?25+wildLevel*3:0,
@@ -353,8 +384,10 @@ export function updatePlaySave(
         : {type:'grant-test-kit'});
     if(result.status!=='ok')return{status:'blocked',reason:result.reason};
     next={...journal,raw:result.json};
-  } else if (action.type === 'battle') {
-    const result=playBattle(journal,action.seed,'battle-v02-'+(previous.snapshot.revision+1));
+  } else if (action.type === 'battle'||action.type === 'regional-battle') {
+    const region=action.type==='regional-battle'?action.regionId:undefined;
+    const idPrefix=region===undefined?'battle-v02-':'regional-v02-';
+    const result=playBattle(journal,action.seed,idPrefix+(previous.snapshot.revision+1),region);
     if (result.status==='blocked') return result;
     next=result.journal;
   } else {
