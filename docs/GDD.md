@@ -209,3 +209,9 @@ PR #38 integrada em main `8748d315`, CI `44120721898` SUCCESS, Railway deploy `d
 
 ## D-058 — política de aprimoramento dos golpes (2026-11-19)
 **Acordado:** qualquer golpe ofensivo aprendido e presente em um dos quatro slots do Pokémon pode receber rank, mesmo sem ser o principal. Custo fixo atual: 1 ponto por rank. Orçamento e teto existentes: floor(nível/5) de pontos totais e até min(10,floor(nível/10)+1) ranks por golpe. Golpes de suporte/sem poder de dano ainda não recebem rank; não conceder upgrades a golpes não equipados. A troca do golpe principal não é efeito colateral de aprimorar um secundário. Rank vinculado ao UID e nome do golpe, persistindo quando o jogador reorganiza slots.
+
+
+## D-064AJ — regras de batalha regional e progressão do treinador (21/11/2026)
+- **Batalhas selvagens somente pelas Regiões**: abrir uma das 10 áreas desbloqueadas, selecionar se haverá tentativa de captura e Pokébola, iniciar batalha na área escolhida. A tela de combate não é uma seção Arena independente; o nome da região aparece no cabeçalho, o diário permanece gradual e a seleção de regiões pode ser alterada para o próximo combate. Mostra apenas espécies do pool da região corrente.
+- **Treinador longo prazo**: valor provisório de beta para threshold em cada nível L: `140 + 35L + ceil(3.5L²)`; XP por vitória de nível selvagem W: `50 + 3W`. No nível55/W65, 52 vitórias sem XP prévio por nível (limiar12653, ganho245), em vez de aproximadamente 4. Alterar apenas XP treinador; Pokémon mantêm própria curva/growth e itens/afinidade/bolas não foram alterados. XP de expedições soma ao mesmo limiar crescente.
+- Revisar após dados de QA: a meta é não alcançar nível100 em um dia; verificar se desbloquear região 9/10 continua viável ao longo de semanas, sem obrigar taxa de derrota impossível. Não conceder XP retroativo nem apagar saves.
