@@ -79,7 +79,10 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
     ||!valid(input.seed,0,0xffffffff)
     ||!['none','rare-only','every-win'].includes(input.captureStrategy))return null;
 
+  // Sorteio do encontro/vitória isolado do sorteio de captura. Assim,
+  // diferentes estratégias podem ser comparadas com os mesmos encontros.
   const rng=randomFactory(input.seed);
+  const captureRng=randomFactory((input.seed^0xa5a5a5a5)>>>0);
   let trainer:DraftProgress={level:1,xp:0};
   const team:DraftProgress[]=Array.from({length:input.teamSize},()=>({level:5,xp:0}));
   const regionWins=Array<number>(10).fill(0);
@@ -133,7 +136,7 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
           regionId:region.id,speciesId:encounter.speciesId,ballId:ball,
           pocket:{version:1,quantities:{...stock}} as KantoBallPocketV1,
           maxHp:100,currentHp:0,
-          seed:Math.floor(rng()*4294967296)
+          seed:Math.floor(captureRng()*4294967296)
         });
         if(attempt.status!=='resolved')return null;
         stock[ball]--;spent[ball]++;
