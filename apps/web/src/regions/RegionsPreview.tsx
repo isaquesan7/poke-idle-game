@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {KANTO_BATTLE_SPECIES} from '@kanto/game-core';
 import {PREVIEW_REGIONS} from './previewCatalog';
+import {RegionalBattleDemo} from './RegionalBattleDemo';
 import styles from './RegionsPreview.module.css';
 
 /** D-064AE: nenhum save é lido ou escrito nesta página pública de consulta. */
@@ -53,6 +54,7 @@ export function RegionsPreview(){
         <p className={styles.note}>Amostra ilustrativa, não é a lista completa nem uma promessa de disponibilidade ou chance de captura.</p>
       </div>
     </section>
+    <RegionalBattleDemo key={active.id} regionId={active.id}/>
     <footer className={styles.footer}>
       Prévia informativa · Nenhum progresso do jogador é alterado nesta página.
     </footer>
