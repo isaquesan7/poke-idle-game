@@ -16,6 +16,9 @@ function setup(demo=false){
 }
 const request=(policy:'legacy-empty'|'starter-proposal'='starter-proposal')=>({
   expectedRevision:0,regionId:1,seed:2,pocketPolicy:policy
+});
+
+describe('D-064S — consistência de leitura da auditoria regional',()=>{
   it('nega envelope com revisão externa diferente da revisão do journal',()=>{
     const {storage,map,writeCount}=setup(true);
     const baseline=writeCount();
