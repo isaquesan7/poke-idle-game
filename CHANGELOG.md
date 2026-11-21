@@ -453,3 +453,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Teste do gate de persistência agora constrói snapshot e journal novos em vez de modificar propriedades TypeScript readonly. Nenhuma alteração no jogo, economia, storage ou no motor. Validação CI completa ainda pendente.
 
 - Correção adicional após logs reais GitHub Actions: `regional-rollout-audit.test.ts` tinha a factory `request()` não fechada antes de três testes D064S. Restaurado `});` e bloco `describe`, eliminando erro de parsing `Expected "}" but found "it"` na linha 19. Docker regional/D044 passaram; demais suites serão reexecutadas no SHA corrigido.
+
+
+### D-064Y — CI completo aprovado e auditoria de economia, sem publicação
+- CI-only PR #95 (SHA `a8d5f90273ab5cd1be074ec413e95c1e09035001`): regressão geral `44852547201`, Playwright `44852547212` e Docker `44852547230` SUCCESS. Nenhum merge na main.
+- Relatório `docs/REGIONAL_BALANCE_AUDIT_D064.md` quantifica desbloqueios otimistas, raridade e suprimento de bolas; aponta Pokémon no nível 100 antes das últimas regiões e dependência de seed do cliente como riscos de design. Nenhuma regra ou valor do jogo alterado.
