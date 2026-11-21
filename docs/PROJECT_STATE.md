@@ -1099,3 +1099,10 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - D064Z PR #96 e CI-only #97 tiveram SUCESSO no SHA `622cdc00d84c2d72de21eb5e8afd21437227b266`: workflows `44853653344` (geral), `44853653329` (Playwright) e `44853653347` (Docker). A cadeia regional permanece fora da main.
 - Novo teste `regional-scenario-matrix.test.ts` gera 12 cenários reproduzíveis no game-core: win rate 50/75/100%, equipe 1/3 UIDs, captura `every-win` vs `rare-only`, 10.000 encontros por cenário, seed 20261120. Imprime dados `D064AA_MATRIX` em logs CI e verifica conservação do estoque e determinismo. Não muda nenhuma fórmula econômica ou save.
 - **Próxima etapa:** executar CI, extrair os resultados efetivos e elaborar recomendação quantitativa com limitações documentadas. Sem merge ou publicação antes de aprovação do balanceamento e writer real seguro.
+
+
+### D-064AA — revisão metodológica após CI (20/11/2026)
+- O primeiro workflow de matriz apontou erro TS2584: `console` não faz parte dos tipos do workspace core. O teste com logging passou a residir em `apps/web/tests/regional-scenario-matrix.test.ts`, usando exportação pura do core sem alterar a configuração TypeScript.
+- Revisão de fidelidade: duas estratégias inicialmente consumiam números aleatórios diferentes para encontros, contaminando a comparação. O simulador agora separa PRNG de batalha do PRNG de captura e sorteia potencial de captura para TODA batalha, independentemente de tentar capturar. Assim, as séries de encontros, vitórias e potenciais de captura são pareadas entre estratégias.
+- Ajuste adicional: conforme `regionalRewardDraft.ts`, o gasto de bola ocorre antes de conceder o drop por vitória; o simulador foi alinhado para não usar no mesmo encontro a bola adquirida na vitória. Teste pareado exige igualdade das séries de vitórias/desbloqueios e que a estratégia rara não realize menos tentativas/capturas raras que `every-win` para a mesma seed.
+- Um novo HEAD na branch CI-only #99 deve provar novamente TypeScript/Vitest/Playwright/Docker e gerar a matriz FINAL; métricas da execução anterior de D064AA não devem ser tratadas como valores finais. Não alterar economia ou escrever save.
