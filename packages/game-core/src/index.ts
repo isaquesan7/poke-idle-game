@@ -102,3 +102,62 @@ export type {
 // D-053: leitura de propriedade/slots ainda não conectada ao writer de recompensas.
 export {BASE_BAG_SLOTS,inspectInventoryOwnership,inventorySlotsUsed,inventorySlotsAvailable,mayEquipOwnedItem} from './inventory/ownership.js';
 export type {InventoryOwnershipV1,InventoryOwnershipRead} from './inventory/ownership.js';
+
+// D-064: contratos puros de mapa e Poké Bolas; ainda sem writer de captura.
+export {
+  KANTO_REGIONS,kantoRegion,kantoRegionForSpecies,kantoRegionalEncounter,
+  kantoRegionCatalogInvariant
+} from './map/kantoRegions.js';
+export type {KantoRegionDefinition} from './map/kantoRegions.js';
+export {KANTO_BALLS,canUseKantoBall} from './capture/kantoBalls.js';
+export type {KantoBallDefinition,KantoBallId,KantoBallUseResult} from './capture/kantoBalls.js';
+
+export {
+  canStartRegionalExpedition,cappedRegionalPokemonXp
+} from './map/regionalExpeditionXp.js';
+export type {RegionExpeditionXpResult} from './map/regionalExpeditionXp.js';
+
+export {inspectKantoBallPocket,spendKantoBallForAttempt} from './capture/kantoBallPocket.js';
+export type {KantoBallPocketV1,KantoBallPocketRead,KantoBallSpendResult} from './capture/kantoBallPocket.js';
+
+export {d064DraftXpThreshold,d064DraftBattleReward,d064DraftSimulateWins} from './map/regionalEconomyDraft.js';
+export type {RegionalDraftReward} from './map/regionalEconomyDraft.js';
+
+export {previewKantoRegionalBattle} from './map/regionalBattlePreview.js';
+export type {KantoRegionalBattlePreview,KantoRegionalPreviewResult} from './map/regionalBattlePreview.js';
+
+export {d064CaptureProjection} from './capture/regionalCaptureProjection.js';
+export type {CaptureProjection} from './capture/regionalCaptureProjection.js';
+
+export {resolveKantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
+export type {KantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
+
+export {D064_DRAFT_STARTER_BALLS,d064DraftBallDrop,d064DraftBallSupply} from './capture/draftBallSupply.js';
+export type {D064DraftBallDrop} from './capture/draftBallSupply.js';
+
+export {applyRegionalBattleDraft} from './map/regionalRewardDraft.js';
+export type {RegionalBattleDraftCommand} from './map/regionalRewardDraft.js';
+
+export {applyRegionalExpeditionDraft} from './map/regionalExpeditionDraft.js';
+export type {RegionalExpeditionDraftCommand} from './map/regionalExpeditionDraft.js';
+
+export {migrateD064PocketDraft} from './capture/kantoPocketMigrationDraft.js';
+export type {D064PocketMigrationCommand,D064PocketMigrationPolicy} from './capture/kantoPocketMigrationDraft.js';
+
+export {d064DraftGrantXp} from './map/regionalEconomyDraft.js';
+export type {DraftProgress} from './map/regionalEconomyDraft.js';
+
+export {D064_EXPERIMENTAL_ECONOMY_VERSION,d064DraftConvertLegacyXp,migrateD064EconomyDraft} from './map/regionalEconomyMigrationDraft.js';
+export type {D064EconomyMigrationCommand} from './map/regionalEconomyMigrationDraft.js';
+
+// D-064Z: cenários hipotéticos de progressão e abastecimento, sem writer.
+export {d064SimulateRegionalScenario} from './map/regionalScenarioLab.js';
+export type {RegionalScenarioInput,RegionalScenarioResult,DraftCaptureStrategy} from './map/regionalScenarioLab.js';
+
+// D-064AB: amostras de batalha real sem progresso persistente.
+export {d064SampleRealRegionalBattles} from './map/regionalRealCombatSampleLab.js';
+export type {RegionalBattleSampleRequest,RegionalBattleSampleSummary} from './map/regionalRealCombatSampleLab.js';
+
+// D-064AC: trajetória hipotética com outcome real, sem IO nem save.
+export {d064SimulateRealRegionalJourney} from './map/regionalRealJourneyLab.js';
+export type {RealRegionalJourneyInput,RealRegionalJourneySummary,RealCapturePolicy,RealTrainingPolicy} from './map/regionalRealJourneyLab.js';
