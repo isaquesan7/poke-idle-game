@@ -114,3 +114,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064W | 2026-11-20 | EXPERIMENTAL / READ-ONLY | Exigir que o candidato de transação regional corresponda exatamente ao resultado reconstruído pelo domínio a partir da origem e comando, além da validade estrutural do journal. Continuar retornando `canWrite:false`; simulação determinística com seed do cliente NÃO autentica recompensas nem permite liberar writer sem modelo de autoridade, lock, backup e aprovação econômica. |
+
+
+| D-064Z | 2026-11-20 | LABORATÓRIO, SEM RELEASE | Usar cenários de vitória parametrizados (0–100%), rodízio hipotético entre 1–3 UIDs e as fórmulas experimentais existentes para medir gargalos de progressão e estoque de bolas antes de alterar números. A taxa de vitória não é simulada pelo motor de atributos; nenhum comportamento do laboratório autoriza writer, drop ou RNG de produção. |
