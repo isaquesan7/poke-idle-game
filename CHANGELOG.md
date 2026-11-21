@@ -399,3 +399,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## D-064M — expedição regional experimental com recibos (21/11/2026; sem deploy)
 - Novo reducer puro `applyRegionalExpeditionDraft` para iniciar/resgatar/parar Expedição em regiões acessíveis, limitando XP de cada Pokémon individualmente e preservando moedas mesmo no teto.
 - Testes de três fases, UID, grupos com níveis diferentes, duplicações, relógio, recibos e saves legados, ainda sem writer nem UI de produção.
+
+
+## D-064N — migração versionada da mochila de Poké Bolas em RAM (2026-11-21; sem publicação)
+- Contrato puro e testes de upgrade único do bolso, protegendo saves com Expedição legada, saldos e capturas pré-existentes. Sem estoque fictício ou reinicialização de bolsa já existente. Política de 12 Poké Balls é apenas hipótese explícita.
