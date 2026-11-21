@@ -22,3 +22,27 @@ A regressão falha somente por invariantes verificáveis (golpe ilegal, erro de 
 
 ## Continuidade
 Ler resultados reais da execução CI, registrar destaques e regiões críticas nos arquivos de documentação numa PR posterior caso necessário, sem reescrever relatórios históricos. Prática seguinte D064AX: construir cenários de posse de equipe comprovada por writer, medir a dificuldade entre progressões reais de nível/XP, e verificar tempo do BattlePlayback em navegador desktop/mobile (pausa, 1× e 2×). Não alterar economia, drop, probabilidades, captura, regiões, lenços de campeão ou GIFs nesta etapa.
+
+
+## Resultados efetivamente observados (CI `44961823193`, HEAD `8a64e542e0bd848a24cd1c780b87adc9c171da9c`)
+
+O teste em `packages/game-core/tests/d064aw-regional-wild-balance.test.ts` passou durante a regressão completa. Docker/HTTP `44961823191 SUCCESS`. Amostras: 1.440 pares, total 2.880 batalhas; 92,08% dos selvagens tiveram loadout diferente do legado, 2.116 frames de ataque usando golpes novos, nenhuma violação detectada de aprendizado por nível. Percentual de resultados que mudou entre os cenários: **11,39%**.
+
+| Região | Vitória IA antiga | Vitória IA nova | Delta (p.p.) |
+|---|---:|---:|---:|
+| 1 — Bosque Inicial | 74,30% | 77,08% | +2,78 |
+| 2 — Colinas de Kanto | 65,97% | 65,28% | -0,70 |
+| 3 — Caverna Rochosa | 66,67% | 58,33% | -8,34 |
+| 4 — Lagos Serenos | 76,39% | 71,53% | -4,86 |
+| 5 — Planícies Elétricas | 88,20% | 78,47% | -9,72 |
+| 6 — Bosque Nebuloso | 90,97% | 78,47% | -12,50 |
+| 7 — Costa Oceânica | 66,66% | 63,19% | -3,47 |
+| 8 — Reserva Selvagem | 80,55% | 72,91% | -7,64 |
+| 9 — Pico Dracônico | 50,00% | 34,72% | -15,28 |
+| 10 — Santuário Lendário | 79,16% | 69,44% | -9,72 |
+
+**Geral:** vitórias **73,89%** na baseline versus **66,94%** na IA nova (**-6,94 p.p.**). Turnos médios: 4,82 antes / 4,64 depois. Linhas de replay: 11,88 antes / 11,93 depois. Duração teórica com 900 ms por linha após a primeira: 9,83 segundos no cenário novo; **nenhum cronômetro real do browser foi medido**.
+
+**Sinais para investigar:** Pico Dracônico R9 (34,72% de vitória média; no nível 83 sem treino, 19,44%), Bosque Nebuloso R6 (-12,50 p.p. médio), Planícies Elétricas R5 (-9,72 p.p.) e Caverna Rochosa R3 perto do nível 29 (-16,67 p.p. em ambos os perfis). Cada célula tem apenas 36 cenários, sem inferência robusta de taxa populacional. A amostra assume linhas iniciais evoluídas automaticamente e 4/8 pontos por atributo no perfil moderado, portanto **não comprova que jogadores conseguem adquirir essa equipe e esse treino no prazo**.
+
+**Decisão:** nenhuma mudança automática no poder dos golpes ou níveis selvagens. Próxima avaliação deve reproduzir perfis construídos via writers de save, XP, evolução e equipe, incluir matchup por espécie (inclusive raros das regiões 9–10), testar distribuição mais ampla de seeds e medir tempo real do replay. O jogo continua usando a IA D064AV publicada.
