@@ -34,11 +34,11 @@ describe('D-064T — writer transacional isolado em memória',()=>{
     expect(result.snapshot.journal.receipts).toHaveLength(3);
     const before=JSON.parse(f.baseline!);
     const after=JSON.parse(result.snapshot.journal.raw);
-    expect(after.trainer.level).toBe(before.journal?JSON.parse(before.journal.raw).trainer.level:21);
+    expect(after.trainer.level).toBe(JSON.parse(before.journal.raw).trainer.level);
     expect(after.ballPocket).toBeDefined();
     expect(f.writes()).toBe(startWrites);
     expect(f.map.get(PLAY_SAVE_KEY)).toBe(f.baseline);
-    result.snapshot.journal.receipts.splice?.(0); // apenas saída isolada (sem alteração da instância)
+    (result.snapshot.journal.receipts as unknown[]).splice(0); // saída clonada, não altera o laboratório
     expect(f.lab.inspect().journal.receipts).toHaveLength(3);
   });
   it('retry idêntico não cria novos recibos e ID conflitante é negado',()=>{
