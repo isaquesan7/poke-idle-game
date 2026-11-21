@@ -140,3 +140,6 @@ export type {RegionalBattleDraftCommand} from './map/regionalRewardDraft.js';
 
 export {applyRegionalExpeditionDraft} from './map/regionalExpeditionDraft.js';
 export type {RegionalExpeditionDraftCommand} from './map/regionalExpeditionDraft.js';
+
+export {migrateD064PocketDraft} from './capture/kantoPocketMigrationDraft.js';
+export type {D064PocketMigrationCommand,D064PocketMigrationPolicy} from './capture/kantoPocketMigrationDraft.js';
