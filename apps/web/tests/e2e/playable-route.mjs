@@ -464,8 +464,15 @@ async function exercise(browser, label, viewport) {
   await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).waitFor();
   assert.equal(await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).isDisabled(),false);
   await page.getByRole('button',{name:'Vistos',exact:true}).click();
-  assert.equal(await page.getByTestId('pokedex-'+battleSave.lastBattle.wildSpeciesId).count(),
-    battleSave.lastBattle.captured ? 0 : 1);
+  // D064AK: o filtro "Vistos" contém apenas espécies ainda não capturadas.
+  // O encontro atual pode repetir uma espécie capturada anteriormente.
+  const wildId=battleSave.lastBattle.wildSpeciesId;
+  const caughtIds=new Set([
+    ...(Array.isArray(battleSave.caughtSpecies)?battleSave.caughtSpecies:[]),
+    ...battleSave.roster.map(member=>member.pokemonId)
+  ]);
+  assert.equal(await page.getByTestId('pokedex-'+wildId).count(),
+    caughtIds.has(wildId)?0:1);
   await openSavedBattle(page);
   await page.getByRole('heading',{name:'Diário de combate'}).waitFor();
   await page.reload();
