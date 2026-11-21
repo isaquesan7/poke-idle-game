@@ -97,11 +97,8 @@ describe('D064AT — golpes com acertos múltiplos FRLG',()=>{
       expect(battle.frames).toHaveLength(battle.log.length);
       expect(battle.playerRemainingSp).toBeGreaterThanOrEqual(0);
       expect(battle.turns).toBeLessThanOrEqual(30);
-      const byTurn=new Map<string,typeof battle.frames[number][]>();
       for(const frame of battle.frames){
         if(frame.moveName!=='rock-blast'||frame.kind!=='attack')continue;
-        const key=String(frame.hitTotal)+'-'+String(frame.spCost!==0)
-          +'-'+String(frame.hitIndex===1?battle.frames.indexOf(frame):0);
         // Grupos deriváveis do início (hitIndex1) e acertos subsequentes.
         if(frame.hitIndex===1){
           actions++;
@@ -112,7 +109,6 @@ describe('D064AT — golpes com acertos múltiplos FRLG',()=>{
         expect(frame.hitIndex).toBeLessThanOrEqual(frame.hitTotal!);
         expect(frame.hitTotal).toBeGreaterThanOrEqual(2);
         expect(frame.hitTotal).toBeLessThanOrEqual(5);
-        void key;void byTurn;
       }
     }
     expect(actions).toBeGreaterThan(0);
