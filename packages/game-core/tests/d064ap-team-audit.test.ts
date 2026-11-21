@@ -126,7 +126,7 @@ describe('D064AP — equipe hipotética e limites de progressão regional',()=>{
     }
     expect(total).toBe(3*3*2*SEEDS*TEAM.length);
     expect(Object.keys(report)).toHaveLength(18);
-    console.info('D064AP_TEAM_AUDIT_REPORT '+JSON.stringify({
+    (globalThis as unknown as {console:{info:(s:string)=>void}}).console.info('D064AP_TEAM_AUDIT_REPORT '+JSON.stringify({
       version:'D064AP',source:'deterministic-engine-fixtures',
       warning:'NOT user telemetry; all four Pokemon assumed owned/trained; no party-switching in battle; oracle sees future outcome and is NOT playable; replay seconds are theoretical',
       battles:total,team:TEAM,segments:report
