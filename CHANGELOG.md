@@ -418,3 +418,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## D-064Q — supply de Poké Bolas em transação regional experimental (2026-11-20)
 - Vitórias por região registradas no journal em RAM e recompensas de Poké Balls calculadas junto ao resultado/captura em uma única revisão, com recibos idempotentes, limites de estoque e testes de não duplicação.
 - Sem bolso migrado não se inventam itens; cadências de drops ainda são hipóteses para balanceamento, sem conexão à produção.
+
+
+## D-064R — auditoria integrada de rollout em read-only (2026-11-20; sem deploy)
+- Plano não gravável simula migração XP, bolso, encontro regional real e recompensa no journal em memória com proteção para saves antigos/expedições ativas, validações de revisão e testes de ausência de escritas.
+- Nenhum item, nível, XP, moeda ou captura é concedido no jogo; PR segue isolada.
