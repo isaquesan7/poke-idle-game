@@ -936,3 +936,96 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - NÃO mudam: simulador de combate, lógica de encontro, save, recompensas, probabilidades de captura, movimentos, times, efeitos, velocidade/ritmo ou comportamento de replay. As informações técnicas continuam documentadas no core e GDD, somente removidas da interface inicial.
 - E2E PC/mobile verifica presença de líder/placar, ausência das fórmulas na UI, 12 exemplos de encontros e save intacto após reassistir/pular. Screenshots acrescentados.
 - Validar CI completa (TypeScript/Vitest, Playwright e Docker) antes do merge; verificar Railway pelo SHA exato e /health. Após D063, refinar Arena com feedback do usuário, mantendo Inventário/Economia em espera.
+
+
+## D-064 — mapa regional, raridades e Poké Bolas: fundamentos isolados (2026-11-20)
+- Usuário aprovou a ideia do Mapa com regras complementares: 151 espécies acessíveis, 10 áreas inicialmente, Articuno/Zapdos/Moltres raros só na penúltima região, Mewtwo/Mew ainda mais raros só na última, desbloqueio pelo nível do Treinador, retorno livre a áreas abertas.
+- Expedição por Pokémon/região: por exemplo Treinador Nv11 e Pokémon Nv5 só ganha XP de Bosque Inicial até Pokémon Nv10; moedas continuam, e próximo tier exige encerrar/reiniciar expedição. XP treinador deve ser muito mais lento que Pokémon; economia, moedas, expedições e captura precisam simulação integrada.
+- Poké Ball, Great Ball e Ultra Ball com modificadores clássicos 1x/1.5x/2x; Ultra exigida para lendários e míticos; Master Ball garantida, mas reservada para uso manual futuro e fora da loja convencional. Tentativa consome 1 bola; captura proibida sem estoque. Ainda não existe writer de consumíveis ou loja, então NÃO ativar regra sem fonte renovável de bolas.
+- Branch **feat/d064-region-ball-foundation**: contratos puros `map/kantoRegions.ts` cobrindo 151 espécies exatamente uma vez, cinco raros somente 9/10, pesos raros preliminares e seleção determinística; `capture/kantoBalls.ts` com quatro tipos e validação de elegibilidade; testes core e `docs/MAP_REGIONS_D064_RULES.md`.
+- Estas funções **NÃO estão conectadas** a `playBattle`, captura de 35%, Expedição, UI Mapa, save ou loja. Publicação de gameplay suspensa até simulação, migração, aquisição de bolas e testes completos. D054 Inventário/Economia gerais continuam em espera, exceto consumo de Poké Bolas solicitado especificamente.
+- Próxima etapa: curva e simulação de XP/moedas, caps regionais, bolsa transacional/estoque inicial e protótipo navegável do Mapa; somente após validação integrar e publicar.
+
+
+## D-064B — mapa vetorial navegável em prévia isolada (20/11/2026)
+- Branch `feat/d064-region-ball-foundation`, PR #88 continua **sem merge e sem publicação**. Criado `KantoMapScreen.tsx`/CSS: mapa vetorial original inspirado na composição enviada pelo usuário, caminho entre dez regiões, níveis de desbloqueio provisórios, marcadores acessíveis via teclado/click, detalhes, contagem e espécies regionais geradas do catálogo `KANTO_REGIONS`.
+- A prévia é acessada pela Arena de testes por botão `Prévia do Mapa de Kanto` e pode voltar sem gravar. Batalhas **regionais estão desativadas** na prévia para não falsear sorteios/encontros: Arena antiga continua funcional até integrar motor, UX e economy.
+- Espécies não descobertas aparecem como `???` sem imagem/tipos, inclusive lendários, respeitando proteção da Pokédex. A lista exibida é a futura pool real declarativa, mas a batalha atual ainda não a utiliza.
+- E2E valida dez marcadores, regiões 9/10, raridades, bloqueio de combate regional, privacidade e save inalterado em desktop/mobile. Inventário/economia gerais continuam em espera além das Poké Bolas específicas solicitadas.
+- Próxima etapa: prototipar curva econômica de XP/coins e emissão sustentável de Poké Bolas, integrar por escritor de batalha idempotente e expedição regional com migração segura; só depois promover a navegação principal Arena→Mapa e publicar.
+
+
+## D-064E — simulador econômico experimental (20/11/2026; branch)
+- Adicionado `regionalEconomyDraft.ts` com limiares propostos para XP de Treinador/Pokémon e recompensa de batalha, mais simulação determinística de trajetória com abertura de região por nível. Testes de progressão longa protegem a relação Treinador mais lento que Pokémon. Nenhum uso no writer, combate ou UI.
+- O último commit da PR #88 ainda NÃO é funcional em produção. Conferir CI após alterações no simulador; integrar com engine/região/bolsa e testes econômicos pareados somente com valores aprovados.
+
+
+## D-064F/G — simulação regional com motor de combate e projeção de captura (20/11/2026)
+- PR #88 atualizada com pré-resolução regional segura: `previewKantoRegionalBattle` valida level Trainer e sorteia inimigo da pool regional, utiliza o motor existente no modo read-only e não concede recompensas nem captura. `simulateKantoBattle` mantém modo `standard` como padrão para não alterar a Arena atual.
+- Projeção de captura por `captureRate` local + multiplicador da Poké Bola + chance de aparição regional, sem RNG nem escrita; destaca raridade extrema. Requer simulação adicional e decisão de estoque/migração antes de habilitar. Testes adicionados.
+- **NÃO publicado**. Próximo passo: integrar posse e consumo atômicos da bola no writer, definir obtenção sustentável, conectar seleção regional ao save e depois substituir Arena por Mapa.
+
+
+## D-064H/I — tentativas de captura e fontes renováveis simuladas (2026-11-20)
+- Branch PR #88: `resolveKantoCaptureAttempt` implementa contrato puro de captura condicionada à Ultra para raros, bola no bolso e decremento por tentativa com seed determinística. `d064DraftBallDrop/Supply` simula kit inicial e ganhos garantidos por vitórias na região. Testes para replay determinístico, Master indisponível, saldo vazio, consumo imutável e suprimento.
+- **Nenhum desses cálculos altera save ou conta:** falta ligar a recompensa ao writer transacional, escolher uma fonte oficial/validada de estoque e testar migrações. Inventário geral e loja permanecem reservados para fases futuras.
+- PR #88 **sem merge e sem Railway**. Próxima ação: escritor de captura e recompensa regional versionado, testes de save antigo e batalhas/expedições; depois escolher valores finais e publicar por etapas seguras.
+
+
+## D-064J — recebimento regional e captura no mesmo journal, ainda isolado (2026-11-20)
+- PR #88 inclui `applyRegionalBattleDraft` como prova de transação funcional em memória: espécie/nível derivados da região e seed, validação de level/UID, consumo de uma bola por tentativa vencida, captura condicional e crédito de XP/coins/afinidade numa única revisão de journal, fingerprint idempotente completo; derrota não gasta bola. Testes exclusivos `regional-reward-draft.test.ts`.
+- **Não integrado ao `playSave.updatePlaySave` ou UI**, porque usa valores legados e ainda não reconstrói resultado via motor nesta camada. Sem publicação. Aguardar CI de TypeScript/Vitest/Playwright/Docker e finalizar fórmula de economia, saves antigos e estoque antes de ativar.
+
+
+## D-064K — Mapa simula encontro real por snapshot sem gravação (2026-11-20; PR #88)
+- `apps/web/src/play/regionalBattleBridge.ts` reconstrói o Pokémon líder diretamente do journal: espécies, nível, afinidade, atributos do treinador e Pokémon, equipamentos, insígnias, título, até quatro golpes equipados e ranks. Chama `previewKantoRegionalBattle` que resolve espécie/nível só da região e seed em modo sem captura/prêmios; não é writer.
+- `KantoMapScreen.tsx` agora oferece botão **Simular encontro (sem recompensas)** somente em regiões desbloqueadas, com log e resultado real sem leitura/escrita de localStorage, além do botão definitivo de batalha ainda bloqueado. Ao trocar de região limpa o replay em memória; todas as regiões continuam no catálogo, mas nenhuma recompensa regional pode ser gerada pela prévia.
+- Unitário em `apps/web/tests/play-save.test.ts` valida determinismo, líder e save intacto; E2E desktop/mobile valida resultado/log, troca de região, região bloqueada e save inalterado.
+- Publicação continua BLOQUEADA: falta ativar o writer regional com outcome derivado do simulador, economia balanceada, migração, bolso persistente e expedição. CI da PR #88 deve aprovar antes de novas integrações.
+
+
+## D-064L — dry-run autenticado de transação, sem gravação (20/11/2026; PR #88)
+- `dryRunRegionalBattleTransaction` usa `previewRegionalBattleFromJournal`, que reconstrói Combatant e resolve a vitória/derrota por RNG do motor, e gera **somente um journal hipotético em memória** via `applyRegionalBattleDraft`. A interface não pode declarar outcome nem afinidade: ambos vêm do simulador.
+- O comando opcional Poké Bola só funciona se o bolso já estiver no snapshot; saves sem bolso rejeitam a tentativa sem conceder captura. Sem bola, o dry-run pode demonstrar recompensas apenas hipotéticas. Nunca chama `updatePlaySave`, localStorage nem `commit`.
+- Testes validam resultado autêntico, journal hipotético com recibo, original intacto, inexistência de captura sem bola e bloqueio por região. Continua com XP/moedas legados **APENAS NO DRY RUN**, não ativados em produção.
+- Próximo: migração versionada de bolso/região, economia ajustada e integração transacional ao writer com persistência e cenários de falha antes de liberar modo Mapa como gameplay.
+
+
+## D-064M — expedição regional transacional em RAM (20–21/11/2026; PR #88)
+- Criado `packages/game-core/src/map/regionalExpeditionDraft.ts`: `applyRegionalExpeditionDraft` implementa início, recebimento e encerramento com `regionId`, UID de cada membro, relógio e recibo com revisão idempotente do journal, **SEM conectar ao writer real**.
+- Treinador deve ter acesso à região; cada Pokémon deve cumprir o piso da região anterior. XP de cada integrante para **exatamente** no teto regional (por exemplo Nv9 + 7 XP até Nv10); moedas continuam em todos os ciclos, inclusive quando todos estão no teto. Mudar de região exige STOP e novo START. Os membros da expedição ficam fixos até terminar; impede relock ao trocar equipe.
+- XP do Treinador no dry-run está **provisoriamente 0**, não é a nova curva aprovada. Recompensas de moedas/afinidade usam valores legados somente para testar mecânica; o sistema atual publicado continua idêntico.
+- Saves com `expedition` legada ativa sem `regionId` são **rejeitados pela função regional**, não alterados ou migrados silenciosamente: recebimentos anteriores ainda exigem caminho de migração seguro. Testes protegem grupo misto, cap, stop/start, relógio retrocedendo, retries e saldo.
+- Próxima etapa: verificar CI, migração explícita de saves/expedição legado e integrar writer definitivo somente após revisão de XP/moedas e origem de Poké Bolas.
+
+
+## D-064N — migração explícita de bolso de Poké Bolas (2026-11-21; PR #88 isolada)
+- Novo `migrateD064PocketDraft` em `capture/kantoPocketMigrationDraft.ts`, com receipt/versão de journal/idempotência: preserva exatamente trainer, XP, moedas, UID, roster, equipe, atributos, dados adicionais e **expedição legada ativa**, mudando somente `ballPocket` quando o bolso ainda não existe.
+- Políticas de simulação explícitas: `legacy-empty` inicia bolso vazio, sem inventar itens; `starter-proposal` concede 12 Poké Balls **somente se a política de rollout for aprovada**. Se já existe bolso válido, bloqueia a repetição/concessão dupla. Se o bolso é inválido, bloqueia em vez de sobrescrever. Comando stale/ID repetido com payload distinto é negado.
+- O comando NÃO está conectado ao criador de saves, UI, localStorage ou writers. Em particular, bolso vazio não será ativado enquanto captura exigir itens e não houver suprimento renovável aprovado. Testes de migração preservam a expedição antiga sem encerrá-la ou consumir ciclos.
+- Fase D-064M segue como reducer regional PURO; economia/XP do treinador e aquisição de Poké Bolas ainda precisam validação para ativação. Publicação bloqueada.
+
+
+## D-064O — transação econômica regional experimental (2026-11-20/21; PR #88, sem deploy)
+- `map/regionalEconomyDraft.ts` exporta agora `d064DraftGrantXp` com limites de nível (1–100), XP seguro e teto Lv100, seguindo a curva experimental D064 para Treinador e Pokémon, distinta da progressão v0.1/v0.2 publicada.
+- `applyRegionalBattleDraft` continua utilizando `applyRewardEvent` **apenas** para validação estrutural, ganhos de afinidade/insígnias e UID/captura; após a transição, reconcilia **no mesmo journal** moedas e XP do Treinador/Pokémon líder exclusivamente com `d064DraftBattleReward` e `d064DraftGrantXp` calculados do snapshot original (sem somar os prêmios legados). Perda/empate não credita economia. Conflitos de XP pré-existente na nova curva são rejeitados, sem migração oculta.
+- Criados testes `regional-economy-reward-draft.test.ts` para curvas de recompensa, níveis 100, saldo protegido, defeat e receipt idempotente. Este protótipo **NÃO está conectado ao `playSave`**, captura regional ainda não está ativa e a migração econômica definitiva/Expedições continuam exigindo aprovação de balanceamento. CI pendente antes de merge.
+
+
+## D-064P — conversão segura de XP entre curvas, em journal de teste (2026-11-20; PR #88)
+- Novo `map/regionalEconomyMigrationDraft.ts`: `d064DraftConvertLegacyXp` transfere a **fração de XP acumulada dentro do nível atual** da curva legada para os limiares experimentais D064, arredondando para baixo; preserva exatamente todos os níveis já conquistados (incluindo Lv100 com XP0).
+- `migrateD064EconomyDraft` valida journal e revisão, faz UMA transição idempotente com receipt, define `economyVersion:'d064-regional-draft-v1'` e converte XP de Treinador e TODOS os Pokémon; preserva moedas, equipe, UID, afinidade, Poké Bolas, insígnias, Expedição legada ativa, demais campos e JSON extra. Impede segunda conversão e rejeita XP incompatível sem commit.
+- Testes checam proporcionalidade da progressão, níveis 1–100, preservação de inventário/Expedição, replay de comando e revisão stale. **A migração é somente um protótipo puro e não é executada em saves da produção**. Ativar a curva exige planejamento de rollout e testes com saves reais e compras futuras.
+
+
+## D-064Q — reposição de Poké Bolas no journal regional (2026-11-20; PR #88, isolado)
+- `applyRegionalBattleDraft` registra contagem `regionalWins` validada para cada área, incrementada **somente em vitória** e incluída no mesmo receipt que XP/coins, encontro, tentativa de captura/consumo de bola e UID. Cada vitória chama `d064DraftBallDrop` para fornecer bolsa renovável com os valores EXPERIMENTAIS, desde que o bolso tenha sido inicializado explicitamente; se não existir bolso, NÃO inventar estoque ou conceder itens silenciosamente.
+- O contador rejeita negativos, regiões inválidas e overflow. O estoque de bolas não pode passar de 100000; qualquer problema rejeita o evento integralmente sem retornar mutação parcial.
+- Testes `regional-ball-supply-transaction.test.ts`: seis vitórias no Bosque e reposição cada três; combate com bola gasta + reposta + UID + XP na mesma revisão; Ultra Balls a cada quinze vitórias no Pico Dracônico, Great Ball a cada sete; proteção de replay, contador adulterado e bolso cheio.
+- O sistema NÃO está conectado à UI nem ao writer persistente. A origem e cadência de aquisição ainda exigem simulação econômica e aprovação. PR #88 permanece sem merge/deploy.
+
+
+## D-064R — auditoria de rollout de save sem gravação (2026-11-20; PR #88)
+- Novo `apps/web/src/play/regionalRolloutAudit.ts` ensaia a sequência completa a partir de um save real de navegador: validar schema/revisão, bloquear expedição legada ativa, migrar XP para curva experimental, inicializar bolsa por política EXPLÍCITA (`legacy-empty` ou `starter-proposal`), reconstruir combate regional do snapshot e calcular recompensa/captura no journal em RAM. Nenhum `PlayAction`, `setItem`, `updatePlaySave`, `commit` ou JSON gravável é exportado; retorna somente resumo da auditoria com `willWrite:false`.
+- Não aplica automaticamente migrações: teste de rollout com kit 12 Poké Balls é apenas HIPÓTESE no plano. Rejeita região bloqueada, revisão stale, falta de bola e Expedição ativa; garante que nenhuma tentativa altere o save original. Testes `apps/web/tests/regional-rollout-audit.test.ts` verificam zero gravações, revisões internas hipotéticas, política empty, repetições e preservação de Expedição.
+- Publicação de economia/captura ainda bloqueada: próximo gate é contrato de write definitivo com persistência/versionamento, segurança contra abas duplicadas, migração de Expedições e balanceamento aprovado. Não interpretar auditoria como migração real ou combate regional recompensado.

@@ -351,3 +351,75 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Arena redesenhada com líder da equipe, resumo de vitórias/derrotas/insígnias, botão de batalha destacado e descrições concisas sem fórmulas internas de energia.
 - Palco e GIFs proporcionais, cartões HP/SP, resultados, recompensas, diário turno a turno e amostra de encontros harmonizados ao Kanto Dark, inclusive layout mobile.
 - Nenhuma mudança no core de combate, ritmo do replay, chance de captura, saves ou economia. Teste E2E para indicadores e cards, screenshots desktop/mobile; CI e deploy pendentes.
+
+
+## D-064 (fundamentos isolados, ainda não publicado) — 2026-11-20
+- Catálogo declarativo de 10 regiões e cobertura dos 151 Pokémon de Kanto, com Articuno, Zapdos, Moltres exclusivamente na 9ª, Mewtwo e Mew exclusivamente na 10ª e sorteio ponderado determinístico para simulações futuras.
+- Catálogo oficial de Poké Ball/Great Ball/Ultra Ball/Master Ball e política de elegibilidade: Ultra Ball exclusiva entre bolas ativas para lendários/míticos, Master Ball futura/manual; sem captura ou estoque ativado.
+- Testes de integridade das 151 espécies, raridades, limite de nível e política de uso; documento completo de requisitos e migração antes de alterar economia ou expedições.
+- Nenhuma mudança no jogo publicado até terminar o sistema de inventário consumível, balanceamento e aquisição renovável de bolas.
+
+
+## D-064B — prévia original do Mapa de Kanto (2026-11-20; sem deploy)
+- Adicionada em branch isolada uma prévia explorável em SVG/CSS das dez regiões, com caminhos, níveis de acesso, detalhes e pools regionais completos compartilhados com o catálogo de domínio.
+- Informações de espécies não vistas permanecem ocultas; raros e míticos exclusivos de áreas 9/10. O botão de batalha da prévia fica bloqueado até conectar o writer regional. Arena existente e saves permanecem intactos.
+- E2E PC/celular avalia mapa, privacidade e read-only. Publicação somente após integração do combate e economia de Poké Bolas.
+
+
+## D-064E — projeções puras de balanceamento (2026-11-20; sem publicação)
+- Simulador read-only de limiares propostos de XP, recompensas de vitória, trajetória por regiões e checkpoints até Nv.100, mais testes Vitest.
+- Não muda curvas atuais nem moedas ou Expedições publicadas. Requer validação com combate real e aprovação antes de ativação.
+
+
+## D-064F/G — motor regional em prévia e projeção de captura (2026-11-20; PR aberta)
+- Combate simulado com os Pokémon reais da região, mesmo motor de golpes/HP/SP da Arena e desbloqueio pelo Treinador, sem recompensa nem captura; logs da prévia não anunciam ganhos inexistentes.
+- Projeção teórica de chance de captura usa taxa de espécie PokéAPI, tipo de Poké Bola e peso regional. Ainda não é algoritmo final nem débito do inventário.
+- Testes de nível, pool, raridade, determinismo e logs. Compatibilidade da Arena antiga preservada; sem deploy.
+
+
+## D-064H/I — tentativas de Poké Bola e reposição experimental (2026-11-20; sem deploy)
+- Contratos puros para tentativa determinística de captura após encontro regional com gasto de uma bola, bloqueio por estoque insuficiente, Ultra obrigatória nos lendários e Master manual reservada.
+- Modelo de kit e reposição garantida por vitórias regionais, somente para análise. Não habilita loja, inventário persistente nem captura na Arena publicada.
+
+
+## D-064J — recibo regional transacional em memória (2026-11-20; sem deploy)
+- Protótipo atômico no journal com validação de região/UID, vitória/derrota, bola consumida somente ao tentar captura após vitória, criação de UID na mesma revisão e proteção de replay por ID/payload.
+- Ainda utiliza economia legada e não está conectado ao jogo; requer validação e publicação posterior.
+
+
+## D-064K — Simulação read-only do Mapa com líder real (2026-11-20; PR isolada)
+- O Mapa em prévia permite simular um encontro por região liberada, com motor real da Arena, stats/bonificações/slots do Pokémon do save, resultado e log sem premiação ou captura. Região bloqueada impede simular.
+- Testes de integridade do save e navegação mobile/desktop adicionados; em produção a Arena antiga segue inalterada.
+
+
+## D-064L — dry-run da transação regional com resultado real (2026-11-20; PR isolada)
+- Combate reconstruído do save gera resultado do motor e o encaminha a um journal hipotético de recompensas/captura, sem IO nem gravação. Testes asseguram journal original intacto e bloqueio de Poké Bola ausente.
+
+
+## D-064M — expedição regional experimental com recibos (21/11/2026; sem deploy)
+- Novo reducer puro `applyRegionalExpeditionDraft` para iniciar/resgatar/parar Expedição em regiões acessíveis, limitando XP de cada Pokémon individualmente e preservando moedas mesmo no teto.
+- Testes de três fases, UID, grupos com níveis diferentes, duplicações, relógio, recibos e saves legados, ainda sem writer nem UI de produção.
+
+
+## D-064N — migração versionada da mochila de Poké Bolas em RAM (2026-11-21; sem publicação)
+- Contrato puro e testes de upgrade único do bolso, protegendo saves com Expedição legada, saldos e capturas pré-existentes. Sem estoque fictício ou reinicialização de bolsa já existente. Política de 12 Poké Balls é apenas hipótese explícita.
+
+
+## D-064O — reconciliação econômica regional em RAM (2026-11-21; sem publicação)
+- `applyRegionalBattleDraft` agora calcula XP/coins experimentais de D064 a partir dos valores anteriores ao combate, sem conceder os antigos bônus excessivos do reducer legado. Captura/UID, medalhas, bolso e recibos continuam na mesma revisão de journal hipotética.
+- Testes para vitórias, derrotas, níveis-limite, replay de eventos, XP inválido e proteção dos saves existentes. Nenhum writer em produção alterado.
+
+
+## D-064P — migração experimental da curva de experiência (2026-11-20; sem produção)
+- Modelo puro de conversão proporcional de XP dentro do nível anterior, sem reduzir níveis, moedas, UID, Poké Bolas ou Expedições; execução única com fingerprint e recibo no journal.
+- Testes de níveis-limite, progressão, migração dupla, invalidade e preserves. Não altera saves atuais nem thresholds globais.
+
+
+## D-064Q — supply de Poké Bolas em transação regional experimental (2026-11-20)
+- Vitórias por região registradas no journal em RAM e recompensas de Poké Balls calculadas junto ao resultado/captura em uma única revisão, com recibos idempotentes, limites de estoque e testes de não duplicação.
+- Sem bolso migrado não se inventam itens; cadências de drops ainda são hipóteses para balanceamento, sem conexão à produção.
+
+
+## D-064R — auditoria integrada de rollout em read-only (2026-11-20; sem deploy)
+- Plano não gravável simula migração XP, bolso, encontro regional real e recompensa no journal em memória com proteção para saves antigos/expedições ativas, validações de revisão e testes de ausência de escritas.
+- Nenhum item, nível, XP, moeda ou captura é concedido no jogo; PR segue isolada.
