@@ -414,3 +414,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 
 - D064AN CI de 9.216 confrontos: no Pico, +8,27 pontos percentuais de taxa de vitória ao usar golpes aprendidos equipáveis na matriz pareada (47,26%→55,53%). Sem alteração de parâmetros; consultar documentação e limitações de amostra em `docs/BALANCE_D064AN.md`.
+
+
+## D-064AO — expansão de golpes PokéAPI (21/11/2026; em validação)
+- Snapshot oficial fixo de learnsets FireRed/LeafGreen: 151 espécies, 1.536 entradas por nível e 273 nomes de golpes (metadados de golpe atuais da PokéAPI).
+- Amplia os golpes equipáveis de level-up pelo subconjunto de 52 técnicas ofensivas de efeitos já simulados; completa PP e secundários para os novos golpes, preservando os movimentos anteriores e a política de TMs.
+- Sem criação de efeitos não suportados, alteração de XP, recompensas, drops, capturas, save v0.2 ou GIFs. Auditoria e fontes em `docs/POKEAPI_MOVES_D064AO.md`.
