@@ -179,6 +179,15 @@ const EXTRA_LEARNS:Readonly<Record<number,readonly (readonly [number,string])[]>
   32:[[12,'double-kick']],33:[[12,'double-kick']],34:[[1,'double-kick']]
 };
 
+/** D064AS: efeito fixo 88 da PokéAPI, único ataque de poder null permitido.
+ * Usar power:0 como marcador tipado; o motor calcula nível, não potência.
+ * Metadados históricos de TM continuam independentes e bloqueados. */
+const NIGHT_SHADE_META=Object.values(KANTO_FRLG_MOVE_META).find(meta=>meta.name==='night-shade');
+export const KANTO_NIGHT_SHADE:KantoMove=Object.freeze({
+  name:'night-shade',type:'ghost',category:'special',power:0,
+  accuracy:NIGHT_SHADE_META?.accuracy??100,priority:NIGHT_SHADE_META?.priority??0
+});
+
 export interface KantoLearnableMove {
   readonly move: KantoMove;
   readonly learnedAt: number;
@@ -198,7 +207,7 @@ export function kantoLevelMoves(speciesId:number,level:number):readonly KantoLea
   // D064AO: método level-up e grupo FRLG auditados; golpes sem efeitos
   // executáveis continuam no catálogo completo, mas NÃO são equipáveis.
   for(const entry of kantoFrlgLevelMoveCatalog(speciesId,level)){
-    if(!entry.executable)continue;
+    if(!entry.executable&&entry.meta.name!=='night-shade')continue;
     const move=KANTO_LEVELUP_DAMAGE_MOVES[entry.meta.name];
     if(move&&(!found.has(move.name)||entry.learnedAt<found.get(move.name)!.learnedAt))
       found.set(move.name,{move,learnedAt:entry.learnedAt});
@@ -224,6 +233,7 @@ const FRLG_EXPANDED_PLAYABLE_MOVES:Readonly<Record<string,KantoMove>>=
 /** Preservar golpes anteriores e suas fichas publicadas em saves existentes. */
 export const KANTO_LEVELUP_DAMAGE_MOVES: Readonly<Record<string,KantoMove>> = {
   ...FRLG_EXPANDED_PLAYABLE_MOVES,
+  'night-shade':KANTO_NIGHT_SHADE,
   ...Object.fromEntries([...MOVES,...Object.values(EXTRA_LEVEL_MOVES)]
     .map(move=>[move.name,move]))
 };
