@@ -433,3 +433,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064T — laboratório de transação regional (não publicado)
 - Novo laboratório privado em memória para ensaiar migração explícita de XP/bolso e recompensa de batalha/captura regional em uma transição validada, com revisão e idempotência por ID.
 - Testes para rollback em falhas, retries, corrida de revisão, falta de bolas, região bloqueada e ausência total de gravação no save local. Nenhum novo writer no navegador, nenhuma alteração na Arena publicada ou no balanceamento vigente. Deploy não realizado.
+
+
+### D-064U — laboratório de recuperação e CI regional (não publicado)
+- Ensaio em RAM de falhas de transação entre backup, candidato e marcador, recuperação conservadora com bloqueio em caso de commit inconsistente. Testes verificam todos os pontos de falha e salvamento do jogador inalterado.
+- Novo workflow GitHub Actions para validar branches regionais empilhadas com TS/Vitest, React, navegador e Docker antes de merge, sem deploy.
