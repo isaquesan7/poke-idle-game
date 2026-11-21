@@ -307,6 +307,8 @@ export function simulateKantoBattle(
     wildMaxSp=kantoMaxSp(wild.level,wild.speciesId);
   let playerSp=playerMaxSp,wildSp=wildMaxSp;
   let playerStatus:KantoBattleStatus|null=null,wildStatus:KantoBattleStatus|null=null;
+  // D064AR: sono dura 1–3 ações do alvo, nunca atravessa batalhas/saves.
+  let playerSleepActions=0,wildSleepActions=0;
   let playerSpeedDrops=0,wildSpeedDrops=0;
   let playerAttackDrops=0,wildAttackDrops=0;
   let playerDefenseDrops=0,wildDefenseDrops=0;
@@ -420,6 +422,17 @@ export function simulateKantoBattle(
       const defender=isPlayer?wild:player;
       const move=isPlayer?playerMove:wildMove;
       const actorStatus=isPlayer?playerStatus:wildStatus;
+      if(actorStatus==='sleep'){
+        const remaining=isPlayer?playerSleepActions:wildSleepActions;
+        if(remaining>0){
+          if(isPlayer)playerSleepActions--;else wildSleepActions--;
+          note('T'+turns+' · '+actor.name+' está dormindo e não conseguiu agir.',
+            'status',isPlayer?'player':'wild');
+          continue;
+        }
+        if(isPlayer)playerStatus=null;else wildStatus=null;
+        note('T'+turns+' · '+actor.name+' acordou.','status',isPlayer?'player':'wild');
+      }
       if(actorStatus==='paralysis'&&roll()<0.25){
         note('T'+turns+' · '+actor.name+' ficou paralisado e não conseguiu agir.',
           'status',isPlayer?'player':'wild');
@@ -485,10 +498,16 @@ export function simulateKantoBattle(
         }else if(support.kind==='status'){
           const current=isPlayer?wildStatus:playerStatus;
           if(current===null&&statusAllowed(support.status,defender)){
-            if(isPlayer)wildStatus=support.status;else playerStatus=support.status;
+            if(isPlayer){
+              wildStatus=support.status;
+              if(support.status==='sleep')wildSleepActions=1+Math.floor(roll()*3);
+            }else{
+              playerStatus=support.status;
+              if(support.status==='sleep')playerSleepActions=1+Math.floor(roll()*3);
+            }
             note('T'+turns+' · '+actor.name+' usou '+move.name+
               ': '+defender.name+' ficou '+
-              (support.status==='poison'?'envenenado':'paralisado')+spText+'.',
+              (support.status==='poison'?'envenenado':support.status==='sleep'?'adormecido':'paralisado')+spText+'.',
               'status',enemySide,0,meta);
           }else note('T'+turns+' · '+move.name+' não teve efeito'+spText+'.',
             'info',enemySide,0,meta);
