@@ -408,3 +408,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## D-064O — reconciliação econômica regional em RAM (2026-11-21; sem publicação)
 - `applyRegionalBattleDraft` agora calcula XP/coins experimentais de D064 a partir dos valores anteriores ao combate, sem conceder os antigos bônus excessivos do reducer legado. Captura/UID, medalhas, bolso e recibos continuam na mesma revisão de journal hipotética.
 - Testes para vitórias, derrotas, níveis-limite, replay de eventos, XP inválido e proteção dos saves existentes. Nenhum writer em produção alterado.
+
+
+## D-064P — migração experimental da curva de experiência (2026-11-20; sem produção)
+- Modelo puro de conversão proporcional de XP dentro do nível anterior, sem reduzir níveis, moedas, UID, Poké Bolas ou Expedições; execução única com fingerprint e recibo no journal.
+- Testes de níveis-limite, progressão, migração dupla, invalidade e preserves. Não altera saves atuais nem thresholds globais.
