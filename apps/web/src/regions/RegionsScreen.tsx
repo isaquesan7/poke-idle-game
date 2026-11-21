@@ -18,6 +18,8 @@ interface Props{
   readonly busy:boolean;
   readonly onFight:(regionId:number)=>void;
   readonly onOpenTeam:()=>void;
+  readonly lastBattleRegionId?:number;
+  readonly onReplayBattle?:()=>void;
 }
 const ballLabels=[
   {id:'poke-ball',name:'Poké Ball'},
@@ -28,7 +30,8 @@ const ballLabels=[
 /** D-064AI: visualiza o save real, mas não o modifica; batalhar delega ao writer da Arena. */
 export function RegionsScreen({
   trainerLevel,leaderSpeciesId,leaderLevel,selectedRegionId,onSelectRegion,balls,
-  selectedBall,onSelectBall,wins,seenIds,capturedIds,busy,onFight,onOpenTeam
+  selectedBall,onSelectBall,wins,seenIds,capturedIds,busy,onFight,onOpenTeam,
+  lastBattleRegionId,onReplayBattle
 }:Props){
   const selected=KANTO_REGIONS.find(region=>region.id===selectedRegionId)??KANTO_REGIONS[0]!;
   const unlocked=trainerLevel>=selected.trainerUnlockLevel;
@@ -42,7 +45,7 @@ export function RegionsScreen({
       <div>
         <span className={styles.kicker}>KANTO · EXPLORAÇÃO REGIONAL</span>
         <h2>Suas regiões</h2>
-        <p>Escolha uma área para enfrentar Pokémon selvagens, ganhar experiência e tentar novas capturas. As batalhas usam a Arena e salvam seu progresso normalmente.</p>
+        <p>Escolha uma área para enfrentar Pokémon selvagens, ganhar experiência e tentar novas capturas. As batalhas acontecem na região escolhida e salvam seu progresso normalmente.</p>
       </div>
       <div className={styles.summary} aria-label="Resumo da exploração">
         <div><strong>{KANTO_REGIONS.filter(r=>trainerLevel>=r.trainerUnlockLevel).length}/10</strong><span>Regiões abertas</span></div>
@@ -131,9 +134,13 @@ export function RegionsScreen({
           onClick={()=>onFight(selected.id)}>
           <i className="fa-solid fa-khanda" aria-hidden="true"/> Batalhar em {selected.name}
         </button>
+        {lastBattleRegionId===selected.id&&onReplayBattle&&
+          <button type="button" className={styles.link} onClick={onReplayBattle}>
+            Rever último combate nesta região
+          </button>}
         {!unlocked&&<p className={styles.notice} role="status">Alcance o nível {selected.trainerUnlockLevel} de treinador para lutar nesta região.</p>}
         {!available&&<p className={styles.notice} role="status">Sem estoque dessa Pokébola. Escolha outra ou lute sem tentar capturar.</p>}
-        <p className={styles.notice}>A batalha abrirá a Arena com animações e diário turno a turno. Pokébolas só são gastas numa tentativa após a vitória. Lendários exigem Ultra Ball.</p>
+        <p className={styles.notice}>O combate abre a tela da região com animações e diário turno a turno. Pokébolas só são gastas numa tentativa após a vitória. Lendários exigem Ultra Ball.</p>
       </section>
     </section>
   </div>;
