@@ -63,7 +63,7 @@ describe('aprendizado validado de golpes — PokéAPI FireRed/LeafGreen',()=>{
         if(row.learnedAt>1)expect(names(species.id,row.learnedAt-1)).not.toContain(row.move.name);
       }
     }
-    // Antes do snapshot completo só 126 espécies tinham golpes neste recorte.
-    expect(totalSpecies).toBe(135);
+    // D064AT: os ataques múltiplos FRLG elevaram a cobertura a 142 espécies.
+    expect(totalSpecies).toBe(142);
   });
 });

@@ -229,3 +229,7 @@ Hipótese de balanceamento implementada no ramo D064AR: Hypnosis, Sleep Powder e
 
 ### D-064AS — Night Shade (21/11/2026; em validação)
 Ataque Ghost Night Shade aprendido somente por level-up FRLG: `power:null` da origem transformado em marcador `power:0` tipado, dano fixo de `nívelAtacante` se o tipo não for imune, sem crítico/STAB/variação, defesa ou amplificação de efetividade. SP = clamp(8,40,round(0.45*(45-PP15)+12)) = 26 SP por ação; precisão 100% conforme snapshot. IA pontua o dano pelo nível e bloqueia alvos imunes; replay somente lê os frames. Sem itens, TM ou mudança do XP.
+
+
+### D-064AT — impactos múltiplos (21/11/2026; branch em validação)
+Nos golpes FRLG de level-up com effectId30, um acerto de precisão consome um custo SP e sorteará quantidade 2, 3, 4 ou 5 com probabilidades 37,5%, 37,5%, 12,5% e 12,5%. Danos, críticos e frames individuais por impacto, com corte imediato por KO ou imunidade. EffectId45 mantém 2 hits fixos sem sorteio extra. IA e custo SP consideram expectativa de 3 impactos. Não habilitar Twineedle com poison por acerto sem motor dedicado, nem Bullet Seed/TM09 sem política de aprendizado própria. Não muda progressão nem recompensas.

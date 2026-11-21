@@ -20,6 +20,7 @@
  */
 import type { KantoMove } from '../combat/kantoBattle.js';
 import { kantoSpecies } from './kantoSpecies.js';
+import {KANTO_MULTI_HIT_MOVES} from '../combat/kantoMultiHit.js';
 import {
   KANTO_FRLG_MOVE_META,KANTO_FRLG_EXECUTABLE_EFFECT_IDS,
   kantoFrlgLevelMoveCatalog
@@ -207,7 +208,8 @@ export function kantoLevelMoves(speciesId:number,level:number):readonly KantoLea
   // D064AO: método level-up e grupo FRLG auditados; golpes sem efeitos
   // executáveis continuam no catálogo completo, mas NÃO são equipáveis.
   for(const entry of kantoFrlgLevelMoveCatalog(speciesId,level)){
-    if(!entry.executable&&entry.meta.name!=='night-shade')continue;
+    if(!entry.executable&&entry.meta.name!=='night-shade'
+      &&!Object.hasOwn(KANTO_MULTI_HIT_MOVES,entry.meta.name))continue;
     const move=KANTO_LEVELUP_DAMAGE_MOVES[entry.meta.name];
     if(move&&(!found.has(move.name)||entry.learnedAt<found.get(move.name)!.learnedAt))
       found.set(move.name,{move,learnedAt:entry.learnedAt});
@@ -225,7 +227,9 @@ export function kantoLevelMoves(speciesId:number,level:number):readonly KantoLea
 const FRLG_EXPANDED_PLAYABLE_MOVES:Readonly<Record<string,KantoMove>>=
   Object.fromEntries(Object.values(KANTO_FRLG_MOVE_META).filter(meta=>
     meta.category!=='status'&&meta.power!==null&&meta.power>0
-    &&meta.pp!==null&&meta.pp>0&&KANTO_FRLG_EXECUTABLE_EFFECT_IDS.has(meta.effectId)
+    &&meta.pp!==null&&meta.pp>0
+    &&(KANTO_FRLG_EXECUTABLE_EFFECT_IDS.has(meta.effectId)
+      ||Object.hasOwn(KANTO_MULTI_HIT_MOVES,meta.name))
   ).map(meta=>[meta.name,{
     name:meta.name,type:meta.type,category:meta.category,power:meta.power!,
     accuracy:meta.accuracy??100,priority:meta.priority

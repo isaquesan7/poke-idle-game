@@ -1,5 +1,11 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AT — 11 ataques múltiplos FRLG (21/11/2026; BRANCH)
+- Novos 2–5 hits de level-up: Double Slap, Comet Punch, Fury Attack, Pin Missile, Spike Cannon, Barrage, Fury Swipes, Bone Rush, Icicle Spear, Rock Blast; Bonemerang com 2 hits. Double Kick preservado.
+- Sorteio determinístico de 2/3/4/5 impactos 37,5%/37,5%/12,5%/12,5%; precisão/SP uma vez, log/frame por impacto, encerra no KO. IA e SP calculam 3 hits esperados. Writer UID e anti-adulteração revisados, TM09/Bullet Seed e Twineedle continuam bloqueados. Sem impacto em XP/capturas/save/economia.
+- Testes em `d064at-frlg-multi-hit.test.ts`, documentação `docs/MULTI_HIT_D064AT.md`. CI/merge/deploy pendentes.
+
+
 ## D-064AS — Night Shade com dano fixo (21/11/2026; branch)
 - Catálogo FRLG nível/Gastly/Haunter/Gengar: Night Shade (PokeAPI power null) equipável via writer validado por UID, dano igual ao nível sem crítico/STAB/variação/resistências, preservando imunidade Ghost vs Normal; custo SP próprio e IA que reconhece a habilidade. Replay preserva log/frame de cada golpe.
 - Novos testes de dano, níveis, SP, imunidade e determinismo; D064AO ajustado para nova elegibilidade. Nenhum ajuste de XP, economia, captura, expedição, save schema, TM09, GIFs. Detalhes docs/FIXED_DAMAGE_D064AS.md. CI/merge/deploy a verificar.
