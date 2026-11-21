@@ -40,14 +40,15 @@ describe('D064AO — PokéAPI FRLG completa e catálogo executável controlado',
       }
     }
   });
-  it('Gengar ganhou Lick e Shadow Punch, mas não golpes sem implementação',()=>{
+  it('Gengar ganhou Lick, Shadow Punch e Hypnosis, mantendo outros efeitos bloqueados',()=>{
     const lvl24=kantoLevelMoves(94,24).map(x=>x.move.name);
     const lvl25=kantoLevelMoves(94,25).map(x=>x.move.name);
     expect(lvl24).toContain('lick');
     expect(lvl24).not.toContain('shadow-punch');
     expect(lvl25).toContain('shadow-punch');
-    expect(lvl25).not.toContain('hypnosis');
+    expect(kantoSupportMoves(94,25).map(x=>x.move.name)).toContain('hypnosis');
     expect(lvl25).not.toContain('night-shade');
+    // O snapshot de ATAQUES continua somente leitura; Hypnosis é suporte jogável.
     expect(kantoFrlgLevelMoveCatalog(94,100).find(x=>x.meta.name==='hypnosis')?.executable).toBe(false);
     expect(kantoFrlgLevelMoveCatalog(94,100).find(x=>x.meta.name==='night-shade')?.executable).toBe(false);
     expect(kantoLevelMoves(94,100).some(x=>x.move.name==='shadow-ball')).toBe(false);
@@ -60,7 +61,7 @@ describe('D064AO — PokéAPI FRLG completa e catálogo executável controlado',
     expect(add.status).toBe('ok');
     if(add.status!=='ok')return;
     expect(JSON.parse(add.json).roster[0].moveNames).toEqual(['tackle','shadow-punch']);
-    expect(reducePokemonMoveSlotsJson(add.json,{uid:1,moveName:'hypnosis',operation:'add'}).status).toBe('invalid');
+    expect(reducePokemonMoveSlotsJson(add.json,{uid:1,moveName:'hypnosis',operation:'add'}).status).toBe('ok');
     expect(reducePokemonMoveSlotsJson(add.json,{uid:1,moveName:'shadow-ball',operation:'add'}).status).toBe('invalid');
     const earlier=JSON.stringify({version:1,badges:[],team:[1],
       roster:[{uid:1,pokemonId:94,level:24,moveName:'tackle',moveNames:['tackle']}]});

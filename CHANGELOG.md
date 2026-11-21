@@ -1,5 +1,10 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AR — sono e integração dos novos status (21/11/2026; BRANCH)
+- Novos suportes Hypnosis, Sleep Powder e Spore aprendíveis apenas com registro FRLG verificado, custo SP, turnos de sono 1–3, log/frame de adormecer/acordar e proteção de save. Leer/Stun Spore/Glare da PR #118 reaplicados em branch a partir da main com auditoria D064AP integrada.
+- Testes de aprendizado, slots UID, determinismo e regressão; o motor não concede XP/itens extras, não altera TM09, captura, animações, GIFs ou progresso. Detalhes em docs/SLEEP_MOVES_D064AR.md. CI/merge/deploy ainda pendentes.
+
+
 ## D-064AP — auditoria hipotética de equipe (21/11/2026; branch, NÃO PUBLICADA)
 - Novo teste determinístico de 2.304 duelos nas regiões 8–10, com quatro possíveis líderes, golpes FRLG realmente liberados, 3 níveis e 2 treinos, para comparar líder fixo, rotação pré-definida e teto contrafactual (oracle). Reporta vitórias, XP/tentativa e duração de replay apenas teórica; não é telemetria nem prova de equipe adquirida.
 - Nenhum ajuste de combate, economia, XP, captura, expedições, save, interface, GIFs, runtime ou Pokédex externa. Metodologia: docs/TEAM_AUDIT_D064AP.md. PR/CI/merge/deploy ainda pendentes; D064AQ deve validar trajetória com writer e playback browser real.

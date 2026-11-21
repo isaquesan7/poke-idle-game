@@ -25,7 +25,7 @@ describe('slots de golpe por UID e IA determinística',()=>{
    expect(KANTO_SUPPORT_SOURCE_COMMIT).toBe('ac2f1acb055026e3dff1e0aca743bb46256a810a');
    expect(kantoSupportMoves(4,1).map(x=>x.move.name)).toEqual(['growl']);
    expect(kantoSupportMoves(7,4).map(x=>x.move.name)).toEqual(['tail-whip']);
-   expect(kantoSupportMoves(1,15).map(x=>x.move.name)).toEqual(['growl','poison-powder']);
+   expect(kantoSupportMoves(1,15).map(x=>x.move.name)).toEqual(['growl','poison-powder','sleep-powder']);
    expect(kantoSupportMoves(25,8).map(x=>x.move.name)).toEqual(['growl','tail-whip','thunder-wave']);
    expect(kantoSupportMoves(0,1)).toEqual([]);
  });
