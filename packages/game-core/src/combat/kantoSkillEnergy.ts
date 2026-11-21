@@ -93,6 +93,7 @@ export function kantoMoveSpCost(move:KantoMove):number{
     const weights:Readonly<Record<string,number>>={
       growl:10,'tail-whip':10,leer:10,
       'poison-powder':14,'thunder-wave':16,'stun-spore':16,glare:16,
+      hypnosis:18,'sleep-powder':18,spore:20,
       // A cura de 50% HP paga escassez de PP + bônus fixo 18 (D-039).
       recover:18
     };
