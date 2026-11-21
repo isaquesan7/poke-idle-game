@@ -105,3 +105,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064T | 2026-11-20 | LABORATÓRIO EXPERIMENTAL, NÃO PUBLICADO | Prototipar transação de migração XP + bolso + batalha regional em instância privada sem Storage nem writer público; aplicar candidato apenas após validação e registrar IDs para idempotência. O ensaio **não autoriza** persistência, não equivale a lock entre abas e mantém economia/drop/bolas D064 como hipóteses até aprovação específica. |
+
+
+| D-064U | 2026-11-20 | TESTE ISOLADO, NÃO PUBLICADO | Antes do writer persistente, exigir ensaio de interrupções em backup → candidato → marcador: sem confirmação o progresso original permanece recuperável; marcador inconsistente deve bloquear reparos automáticos. Adicionar CI específico para branches regionais empilhadas, pois PRs contra feature branch não acionavam os workflows gerais baseados em `main`. O ensaio não prova atomicidade em localStorage nem autoriza produção. |
