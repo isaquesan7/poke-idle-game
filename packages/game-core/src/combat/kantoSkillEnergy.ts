@@ -101,6 +101,13 @@ export function kantoMoveSpCost(move:KantoMove):number{
     if(weight===undefined)throw new RangeError('Suporte sem custo catalogado.');
     return clamp(10,move.name==='recover'?40:36,Math.round(scarcity+weight));
   }
+  // D064AS: Night Shade não utiliza power nem STAB; PP15 e efeito fixo.
+  if(move.name==='night-shade'){
+    if(move.type!=='ghost'||move.category!=='special'||move.power!==0
+      ||move.accuracy!==100||move.priority!==0)
+      throw new RangeError('Night Shade adulterado.');
+    return clamp(8,40,Math.round(scarcity+12));
+  }
   if((move.category!=='physical'&&move.category!=='special')
     ||!Number.isFinite(move.power)||move.power<=0||move.power>250)
     throw new RangeError('Golpe ofensivo inválido.');
