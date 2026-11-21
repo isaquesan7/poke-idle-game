@@ -38,6 +38,8 @@ export function previewRegionalBattleFromJournal(
       ||!intRange(source.wins,0,Number.MAX_SAFE_INTEGER))
       return fail('Save inválido para simulação.');
     const trainer=source.trainer;
+    const trainerManualValues=trainer.manual as ObjectRecord;
+    const badgeIds=source.badges as unknown[];
     if(!intRange(trainer.level,1,100))return fail('Nível de Treinador inválido.');
     const uid=source.team[0];
     const active=source.roster.find(v=>object(v)&&v.uid===uid);
@@ -50,7 +52,7 @@ export function previewRegionalBattleFromJournal(
     const trainerManual:StatValues=zeroStats();
     const pokemonManual:StatValues=zeroStats();
     for(const stat of STATS){
-      const value=trainer.manual[stat]??0;
+      const value=trainerManualValues[stat]??0;
       const amount=active.manual[stat]??0;
       if(!intRange(value,0,40)||!intRange(amount,0,200))
         return fail('Atributos inválidos para simulação.');
@@ -59,7 +61,7 @@ export function previewRegionalBattleFromJournal(
     }
     const equipped=object(trainer.equipped)?trainer.equipped:{};
     const items=LEGACY_ITEMS.filter(item=>equipped[item.slot]===item.id);
-    const badges=LEGACY_BADGES.filter(badge=>source.badges.includes(badge.id));
+    const badges=LEGACY_BADGES.filter(badge=>badgeIds.includes(badge.id));
     const title=effectiveLegacyTitle(trainer.title,source.wins,
       source.seen.length,source.badges.length);
     const totals=trainerTotals({
