@@ -380,3 +380,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## D-064H/I — tentativas de Poké Bola e reposição experimental (2026-11-20; sem deploy)
 - Contratos puros para tentativa determinística de captura após encontro regional com gasto de uma bola, bloqueio por estoque insuficiente, Ultra obrigatória nos lendários e Master manual reservada.
 - Modelo de kit e reposição garantida por vitórias regionais, somente para análise. Não habilita loja, inventário persistente nem captura na Arena publicada.
+
+
+## D-064J — recibo regional transacional em memória (2026-11-20; sem deploy)
+- Protótipo atômico no journal com validação de região/UID, vitória/derrota, bola consumida somente ao tentar captura após vitória, criação de UID na mesma revisão e proteção de replay por ID/payload.
+- Ainda utiliza economia legada e não está conectado ao jogo; requer validação e publicação posterior.
