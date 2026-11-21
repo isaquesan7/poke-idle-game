@@ -209,3 +209,11 @@ PR #38 integrada em main `8748d315`, CI `44120721898` SUCCESS, Railway deploy `d
 
 ## D-058 — política de aprimoramento dos golpes (2026-11-19)
 **Acordado:** qualquer golpe ofensivo aprendido e presente em um dos quatro slots do Pokémon pode receber rank, mesmo sem ser o principal. Custo fixo atual: 1 ponto por rank. Orçamento e teto existentes: floor(nível/5) de pontos totais e até min(10,floor(nível/10)+1) ranks por golpe. Golpes de suporte/sem poder de dano ainda não recebem rank; não conceder upgrades a golpes não equipados. A troca do golpe principal não é efeito colateral de aprimorar um secundário. Rank vinculado ao UID e nome do golpe, persistindo quando o jogador reorganiza slots.
+
+
+## D-064 — decisões de produto: regiões, expedição, XP e Poké Bolas (20/11/2026)
+- **Decidido:** navegação principal futura chama-se **Mapa**; ao entrar em região, apresenta combate D-063. Dez regiões são suficientes se todas as 151 espécies forem acessíveis, com retorno livre a áreas desbloqueadas pelo nível do Treinador.
+- **Decidido:** Articuno, Zapdos e Moltres apenas na penúltima região, raros entre Pokémon comuns; Mewtwo/Mew apenas na última, com aparição ainda mais rara. A chance de captura é separada da chance de aparição.
+- **Decidido:** a Expedição usa **nível individual do Pokémon e nível de região desbloqueada**; cada Pokémon só recebe XP até o teto da região em que iniciou a expedição. Ao atingir o teto, moedas continuam, XP Pokémon não; progresso para próxima região exige encerrar e iniciar expedição nova. Treinador deve evoluir muito mais lentamente que Pokémon; números definitivos requerem simulação.
+- **Decidido:** captura exige Poké Bola no inventário e consumo por tentativa. Poké Ball, Great Ball, Ultra Ball usam multiplicadores tradicionais 1/1,5/2; lendários/míticos somente Ultra Ball na primeira fase. Master Ball (captura garantida) fica reservada para uso manual posterior, nunca automática nem na loja convencional.
+- **Ainda não decidido:** valores finais de XP/coins e requisitos de desbloqueio, preço e aquisição de bolas, algoritmo exato de captura após vitória e XP de Treinador durante Expedição após atingir teto regional. Catálogo e simuladores D-064 permanecem na PR #88, sem publicação até integrar transações e testes.

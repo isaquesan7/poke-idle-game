@@ -278,6 +278,42 @@ async function exercise(browser, label, viewport) {
   // Arena real: resultado deve vir do motor, nunca de um botão "ganhar".
   await page.getByRole('button',{name:'Arena',exact:true}).click();
   await page.getByRole('heading',{name:'Arena de batalha'}).waitFor();
+  // D-064B: mapa apenas em prévia, sem rodar a batalha legada e sem gravar.
+  const beforeMap=await page.evaluate(key=>localStorage.getItem(key),SAVE);
+  await page.getByTestId('open-kanto-map-preview').click();
+  const map=page.getByTestId('kanto-map-preview');
+  await map.getByRole('heading',{name:'Regiões do Mapa'}).waitFor();
+  assert.equal(await map.locator('button[aria-label^="Região "]').count(),10);
+  await map.getByRole('button',{name:/Região 9: Pico Dracônico/}).click();
+  await map.getByRole('heading',{name:'Pico Dracônico'}).waitFor();
+  await map.getByRole('heading',{name:'Encontros extremamente raros'}).waitFor();
+  assert.equal(await map.getByText('Batalha regional em preparação').count(),1);
+  assert.equal(await map.getByRole('button',{name:/Batalha regional em preparação/}).isDisabled(),true);
+  await map.getByRole('button',{name:/Região 10: Santuário Lendário/}).click();
+  await map.getByRole('heading',{name:'Santuário Lendário'}).waitFor();
+  assert.equal(await map.getByText('Encontro muito raro').count(),2,
+    'Mew e Mewtwo precisam estar no pool raro da última região');
+  assert.equal(await map.getByText('???').count()>0,true,
+    'Espécies ainda não descobertas devem manter a privacidade da Pokédex');
+  // D-064K: simular uma região liberada deve exibir resultado real,
+  // mas nunca consumir bolas, registrar Pokémon, XP ou salvar recompensas.
+  await map.getByRole('button',{name:/Região 1: Bosque Inicial/}).click();
+  await map.getByRole('button',{name:/Simular encontro \(sem recompensas\)/}).click();
+  await map.getByRole('list',{name:'Diário da simulação'}).waitFor();
+  await map.getByText('Simulação local. Nenhuma captura, experiência, moeda ou mudança no save.').waitFor();
+  assert.equal(await map.getByRole('listitem').count()>0,true);
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeMap,
+    'Simular batalha regional não pode gravar XP, moedas, capturas ou alterar save');
+  await map.getByRole('button',{name:/Região 10: Santuário Lendário/}).click();
+  assert.equal(await map.getByRole('button',{name:/Simular encontro \(sem recompensas\)/}).isDisabled(),true,
+    'Região bloqueada não permite simular confronto');
+  assert.equal(await map.getByRole('list',{name:'Diário da simulação'}).count(),0,
+    'Trocar região precisa limpar o resultado anterior');
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeMap,
+    'Abrir e navegar no mapa não podem gravar no save');
+  await page.screenshot({path:new URL('map-preview-'+label+'.png',shots).pathname,fullPage:true});
+  await map.getByRole('button',{name:/Voltar à Arena atual/}).click();
+  await page.getByRole('heading',{name:'Arena de batalha'}).waitFor();
   // D-063: a visão inicial da Arena apresenta líder, indicadores e ação
   // principal; as informações do motor não devem poluir a tela do jogador.
   const arenaLeader=page.getByLabel('Líder da Arena');
