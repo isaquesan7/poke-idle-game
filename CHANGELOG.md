@@ -375,3 +375,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Combate simulado com os Pokémon reais da região, mesmo motor de golpes/HP/SP da Arena e desbloqueio pelo Treinador, sem recompensa nem captura; logs da prévia não anunciam ganhos inexistentes.
 - Projeção teórica de chance de captura usa taxa de espécie PokéAPI, tipo de Poké Bola e peso regional. Ainda não é algoritmo final nem débito do inventário.
 - Testes de nível, pool, raridade, determinismo e logs. Compatibilidade da Arena antiga preservada; sem deploy.
+
+
+## D-064H/I — tentativas de Poké Bola e reposição experimental (2026-11-20; sem deploy)
+- Contratos puros para tentativa determinística de captura após encontro regional com gasto de uma bola, bloqueio por estoque insuficiente, Ultra obrigatória nos lendários e Master manual reservada.
+- Modelo de kit e reposição garantida por vitórias regionais, somente para análise. Não habilita loja, inventário persistente nem captura na Arena publicada.
