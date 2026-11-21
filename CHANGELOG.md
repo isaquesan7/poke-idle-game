@@ -447,3 +447,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064W — validar candidato regional contra simulação canônica (não publicado)
 - Prévia de persistência regional agora pode comparar um candidato completo com o motor de batalha e o writer experimental reconstruídos em RAM, rejeitando recompensas, recibos ou UID forjados. Sempre `canWrite:false` e sem salvar.
 - Cobertura Vitest de manipulações e workflow D064 estendido para PRs com base em branches regionais. Nenhum deploy, economia nova ou captura regional liberada.
+
+
+### D-064X — correção da fixture de regressão (não publicado)
+- Teste do gate de persistência agora constrói snapshot e journal novos em vez de modificar propriedades TypeScript readonly. Nenhuma alteração no jogo, economia, storage ou no motor. Validação CI completa ainda pendente.
