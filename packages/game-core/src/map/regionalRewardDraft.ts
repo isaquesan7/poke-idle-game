@@ -17,6 +17,7 @@ import type {RewardCommand,RewardEventResult,RewardJournal} from '../legacy/rewa
 import {KANTO_BATTLE_SPECIES} from '../combat/kantoBattle.js';
 import {kantoRegionalEncounter,kantoRegion} from './kantoRegions.js';
 import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
+import type {KantoBallPocketV1} from '../capture/kantoBallPocket.js';
 import {resolveKantoCaptureAttempt} from '../capture/regionalCaptureAttempt.js';
 import type {KantoBallId} from '../capture/kantoBalls.js';
 
@@ -87,12 +88,14 @@ export function applyRegionalBattleDraft(
   if(command.outcome!=='win'&&
     (command.affinityGain!==undefined||command.ballId!==undefined))
     return reject(journal,'Derrota não pode receber afinidade ou tentar capturar.');
-  if(command.outcome==='win'&&(!Number.isSafeInteger(command.affinityGain)
-    ||command.affinityGain!<2||command.affinityGain!>5))
-    return reject(journal,'Ganho de afinidade inválido.');
+  if(command.outcome==='win'){
+    const gain=command.affinityGain;
+    if(typeof gain!=='number'||!Number.isSafeInteger(gain)||gain<2||gain>5)
+      return reject(journal,'Ganho de afinidade inválido.');
+  }
 
   let capture:{readonly pokemonId:number;readonly moveName:string}|undefined;
-  let spentPocket:ReturnType<typeof inspectKantoBallPocket>|undefined;
+  let spentPocket:KantoBallPocketV1|undefined;
   if(command.ballId!==undefined){
     const pocket=inspectKantoBallPocket(current.ballPocket);
     if(pocket.status!=='valid')
@@ -103,7 +106,7 @@ export function applyRegionalBattleDraft(
       maxHp:100,currentHp:0,seed:command.seed
     });
     if(attempt.status!=='resolved')return reject(journal,attempt.reason);
-    spentPocket={status:'valid',pocket:attempt.pocket};
+    spentPocket=attempt.pocket;
     if(attempt.captured)capture={pokemonId:species.id,moveName:species.move.name};
   }
 
@@ -128,7 +131,7 @@ export function applyRegionalBattleDraft(
     );
     state.caughtSpecies=[...knownCaught];
   }
-  if(spentPocket?.status==='valid')state.ballPocket=spentPocket.pocket;
+  if(spentPocket)state.ballPocket=spentPocket;
   const receipts=applied.journal.receipts.map(receipt=>
     receipt.id===command.id?{id:receipt.id,fingerprint}:receipt);
   return{status:'applied',journal:{
