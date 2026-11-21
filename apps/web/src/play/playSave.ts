@@ -13,11 +13,14 @@ import {
   LEGACY_ITEMS, LEGACY_BADGES, STATS, trainerTotals, pokemonFinalStats,
   pokemonOwnStats, effectiveLegacyTitle, simulateKantoBattle,
   reduceLegacyPokemonMoveJson, kantoLevelMoves, reduceKantoEvolutionJson,
-  KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson
+  KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson,
+  kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant,
+  inspectKantoBallPocket,resolveKantoCaptureAttempt,d064DraftBallDrop,
+  D064_DRAFT_STARTER_BALLS
 } from '@kanto/game-core';
-import {PREVIEW_REGIONS} from '../regions/previewCatalog';
 import type {
-  LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant
+  LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant,
+  KantoBallId, KantoBallPocketV1
 } from '@kanto/game-core';
 
 export const PLAY_SAVE_KEY = 'kanto-idle-play-v02';
@@ -38,7 +41,7 @@ export type PlayAction =
   | { readonly type: 'trainer-invest-batch'; readonly increments: Readonly<Partial<Record<keyof StatValues, number>>> }
   | { readonly type: 'pokemon-invest-batch'; readonly uid:number; readonly increments: Readonly<Partial<Record<keyof StatValues,number>>> }
   | { readonly type: 'battle'; readonly seed: number }
-  | { readonly type: 'regional-battle'; readonly seed:number; readonly regionId:number }
+  | { readonly type: 'regional-battle'; readonly seed:number; readonly regionId:number; readonly ballId?:KantoBallId|null }
   | { readonly type: 'evolution'; readonly uid:number; readonly targetSpeciesId:number }
   | { readonly type: 'evolution-test-kit' }
   | { readonly type: 'move'; readonly uid:number; readonly moveName:string;
@@ -127,7 +130,8 @@ export function createPlaySave(
       xp: 0, manual: zeroStats(), affinity: demo ? 70 : 0,
       moveName: starterId === 4 ? 'scratch' : 'tackle', upgrades: {}
     }],
-    team: [1], nextUid: 2, expedition: null, lastClaim: null
+    team: [1], nextUid: 2, expedition: null, lastClaim: null,
+    ballPocket: D064_DRAFT_STARTER_BALLS, regionWins: Array(10).fill(0)
   };
   const journal = prepareRewardJournal(JSON.stringify(game));
   if (!journal) return { status: 'blocked', reason: 'Falha ao preparar o perfil inicial.' };
@@ -145,7 +149,10 @@ function trainerLevel(game:Record<string,unknown>):number {
   return record(trainer)&&Number.isSafeInteger(trainer.level)?trainer.level as number:-1;
 }
 
-function playBattle(journal: RewardJournal, seed: number, eventId: string, regionId?:number):
+function playBattle(
+  journal: RewardJournal,seed:number,eventId:string,
+  regionId?:number,ballId?:KantoBallId|null
+):
   | { readonly status:'ok'; readonly journal:RewardJournal }
   | { readonly status:'blocked'; readonly reason:string } {
   if (!Number.isSafeInteger(seed) || seed<0 || seed>0xffffffff) {
@@ -161,13 +168,32 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string, regio
     }
     // D-064AG: o nível é consultado no save REAL, nunca no botão.
     // A Arena antiga continua sem parâmetros regionais.
-    const selectedRegion=regionId===undefined?null
-      :PREVIEW_REGIONS.find(region=>region.id===regionId);
+    const selectedRegion=regionId===undefined?null:kantoRegion(regionId);
     if(regionId!==undefined&&(!selectedRegion
-      ||!Number.isSafeInteger(trainerLevel(game))
-      ||trainerLevel(game)<selectedRegion.unlockTrainerLevel)){
+      ||!kantoRegionCatalogInvariant()
+      ||trainerLevel(game)<selectedRegion.trainerUnlockLevel)){
       return {status:'blocked',reason:'Região bloqueada para o nível atual do treinador.'};
     }
+    // O estoque e as vitórias são sempre lidos do snapshot, nunca da UI.
+    // A inicialização do bolso é uma regra beta para novos saves locais,
+    // aplicável à primeira batalha regional de perfis de teste existentes.
+    const pocketRead=inspectKantoBallPocket(game.ballPocket);
+    if(selectedRegion&&pocketRead.status==='invalid')
+      return {status:'blocked',reason:'Bolso de Pokébolas inválido.'};
+    const pocket:KantoBallPocketV1=pocketRead.status==='valid'
+      ?pocketRead.pocket:D064_DRAFT_STARTER_BALLS;
+    const winsRaw=game.regionWins;
+    const regionWins=winsRaw===undefined?Array<number>(10).fill(0)
+      :Array.isArray(winsRaw)&&winsRaw.length===10
+        &&winsRaw.every(value=>Number.isSafeInteger(value)&&value>=0&&value<=100000)
+        ?[...winsRaw as number[]]:null;
+    if(selectedRegion&&!regionWins)
+      return {status:'blocked',reason:'Histórico de vitórias regionais inválido.'};
+    if(selectedRegion&&ballId!==undefined&&ballId!==null
+      &&!['poke-ball','great-ball','ultra-ball'].includes(ballId))
+      return {status:'blocked',reason:'Pokébola inválida para captura automática.'};
+    if(selectedRegion&&ballId&&(pocket.quantities[ballId]??0)<1)
+      return {status:'blocked',reason:'Você não possui esta Pokébola.'};
     const trainer=game.trainer;
     const trainerManual=trainer.manual as Record<string,unknown>;
     const badgeIds=game.badges as unknown[];
@@ -223,25 +249,39 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string, regio
       move,rank:rank as number,moves:equippedMoves as NonNullable<Combatant['moves']>,
       ranks:upgrades as NonNullable<Combatant['ranks']>
     };
-    const wildSpeciesId=selectedRegion
-      ?selectedRegion.examples[seed % selectedRegion.examples.length]!
-      :KANTO_WILD_POOL[seed % KANTO_WILD_POOL.length]!;
+    const encounter=selectedRegion
+      ?kantoRegionalEncounter(selectedRegion.id,seed,active.level as number):null;
+    if(selectedRegion&&!encounter)return{status:'blocked',reason:'Encontro regional inválido.'};
+    const wildSpeciesId=encounter?.speciesId
+      ??KANTO_WILD_POOL[seed % KANTO_WILD_POOL.length]!;
     const enemy=KANTO_BATTLE_SPECIES[wildSpeciesId]!;
-    const wildLevel=selectedRegion
-      ?Math.min(selectedRegion.maxLevel,Math.max(selectedRegion.minLevel,
-        (active.level as number)+((seed>>>8)%5)-2))
-      :Math.max(2,Math.min(100,(active.level as number)+((seed>>>8)%5)-2));
+    const wildLevel=encounter?.level
+      ??Math.max(2,Math.min(100,(active.level as number)+((seed>>>8)%5)-2));
     const wild:Combatant={
       speciesId:enemy.id,name:enemy.name,level:wildLevel,types:enemy.types,
       stats:pokemonOwnStats(enemy.base,wildLevel,zeroStats()),
       move:enemy.move,rank:0
     };
     const result=simulateKantoBattle(player,wild,seed);
-    // Enquanto não existe estoque transacional de Ultra Balls, a região
-    // lendária pode ser enfrentada, mas não capturada gratuitamente.
-    const captureAllowed=!selectedRegion
-      ||![144,145,146,150,151].includes(wildSpeciesId);
-    const captured=result.captured&&captureAllowed;
+    // A Arena clássica permanece com captura legada. Na região, a captura
+    // acontece APENAS após vitória e lançamento autorizado: uma bola é
+    // consumida mesmo quando falha, na mesma revisão de recompensa.
+    let captured=result.captured;
+    let nextPocket:KantoBallPocketV1=pocket;
+    if(selectedRegion){
+      captured=false;
+      if(result.outcome==='win'&&ballId){
+        const attempted=resolveKantoCaptureAttempt({
+          regionId:selectedRegion.id,speciesId:wildSpeciesId,ballId,
+          pocket,maxHp:result.wildMaxHp,currentHp:0,
+          seed:(seed^0xa5a5a5a5)>>>0
+        });
+        if(attempted.status!=='resolved')
+          return{status:'blocked',reason:attempted.reason};
+        captured=attempted.captured;
+        nextPocket=attempted.pocket;
+      }
+    }
     const base={ id:eventId,expectedRevision:journal.revision,type:'battle-result' as const,
       outcome:result.outcome,activeUid:currentUid as number,wildLevel };
     const command:RewardCommand=result.outcome==='win'
@@ -266,14 +306,36 @@ function playBattle(journal: RewardJournal, seed: number, eventId: string, regio
       ]);
       updated.caughtSpecies=Array.from(caught);
     }
-    // A trilha visual do motor marca captura automática; suprimir quando
-    // a política regional não permite conceder o lendário.
-    const keepLine=(line:string)=>captured||!line.startsWith('Captura! ');
+    if(selectedRegion){
+      const regionWinNumber=(regionWins![selectedRegion.id-1]??0)
+        +(result.outcome==='win'?1:0);
+      regionWins![selectedRegion.id-1]=regionWinNumber;
+      const drop=result.outcome==='win'
+        ?d064DraftBallDrop(selectedRegion.id,regionWinNumber):null;
+      if(result.outcome==='win'&&!drop)
+        return{status:'blocked',reason:'Reposição regional inválida.'};
+      const quantities={...nextPocket.quantities};
+      if(drop)for(const ball of ['poke-ball','great-ball','ultra-ball'] as const){
+        const amount=(quantities[ball]??0)+drop[ball];
+        if(!Number.isSafeInteger(amount)||amount>100000)
+          return{status:'blocked',reason:'Limite de Pokébolas atingido.'};
+        quantities[ball]=amount;
+      }
+      updated.ballPocket={version:1,quantities};
+      updated.regionWins=regionWins;
+    }
+    // O motor da Arena inclui captura automática no log, mas a captura
+    // regional agora possui um sorteio independente. Sempre remover
+    // a mensagem antiga e adicionar a verdade do novo lançamento.
+    const keepLine=(line:string)=>!selectedRegion||!line.startsWith('Captura! ');
     const battleLog=result.log.filter(keepLine);
     const battleFrames=result.frames.filter((_,index)=>keepLine(result.log[index]??''));
     updated.lastBattle={
       ...result,captured,log:battleLog,frames:battleFrames,
-      ...(selectedRegion?{regionId:selectedRegion.id,regionName:selectedRegion.name}:{ }),
+      ...(selectedRegion?{
+        regionId:selectedRegion.id,regionName:selectedRegion.name,
+        captureBallId:result.outcome==='win'?ballId??null:null
+      }:{ }),
       battleId:eventId,
       wildName:enemy.name,wildLevel,
       rewardCoins:result.outcome==='win'?25+wildLevel*3:0,
@@ -388,7 +450,8 @@ export function updatePlaySave(
   } else if (action.type === 'battle'||action.type === 'regional-battle') {
     const region=action.type==='regional-battle'?action.regionId:undefined;
     const idPrefix=region===undefined?'battle-v02-':'regional-v02-';
-    const result=playBattle(journal,action.seed,idPrefix+(previous.snapshot.revision+1),region);
+    const result=playBattle(journal,action.seed,idPrefix+(previous.snapshot.revision+1),region,
+      action.type==='regional-battle'?action.ballId:undefined);
     if (result.status==='blocked') return result;
     next=result.journal;
   } else {
