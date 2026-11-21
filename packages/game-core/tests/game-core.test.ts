@@ -81,10 +81,10 @@ describe('afinidade e status Pokémon — GDD', () => {
 
 describe('XP e recompensas idle v0.1 — sem state externo', () => {
   it('preserva thresholds e acumula XP sem mutar o progresso original', () => {
-    expect(xpThreshold('trainer', 1)).toBe(122);
+    expect(xpThreshold('trainer', 1)).toBe(179);
     expect(xpThreshold('pokemon', 5)).toBe(175);
     const p = { level: 1, xp: 0 };
-    expect(grantXp('trainer', p, 122)).toEqual({ level: 2, xp: 0, gainedLevels: 1 });
+    expect(grantXp('trainer', p, 179)).toEqual({ level: 2, xp: 0, gainedLevels: 1 });
     expect(grantXp('pokemon', { level: 5, xp: 0 }, 180)).toEqual({ level: 6, xp: 5, gainedLevels: 1 });
     expect(p).toEqual({ level: 1, xp: 0 });
   });
