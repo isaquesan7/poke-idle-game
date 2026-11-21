@@ -982,3 +982,10 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - `KantoMapScreen.tsx` agora oferece botão **Simular encontro (sem recompensas)** somente em regiões desbloqueadas, com log e resultado real sem leitura/escrita de localStorage, além do botão definitivo de batalha ainda bloqueado. Ao trocar de região limpa o replay em memória; todas as regiões continuam no catálogo, mas nenhuma recompensa regional pode ser gerada pela prévia.
 - Unitário em `apps/web/tests/play-save.test.ts` valida determinismo, líder e save intacto; E2E desktop/mobile valida resultado/log, troca de região, região bloqueada e save inalterado.
 - Publicação continua BLOQUEADA: falta ativar o writer regional com outcome derivado do simulador, economia balanceada, migração, bolso persistente e expedição. CI da PR #88 deve aprovar antes de novas integrações.
+
+
+## D-064L — dry-run autenticado de transação, sem gravação (20/11/2026; PR #88)
+- `dryRunRegionalBattleTransaction` usa `previewRegionalBattleFromJournal`, que reconstrói Combatant e resolve a vitória/derrota por RNG do motor, e gera **somente um journal hipotético em memória** via `applyRegionalBattleDraft`. A interface não pode declarar outcome nem afinidade: ambos vêm do simulador.
+- O comando opcional Poké Bola só funciona se o bolso já estiver no snapshot; saves sem bolso rejeitam a tentativa sem conceder captura. Sem bola, o dry-run pode demonstrar recompensas apenas hipotéticas. Nunca chama `updatePlaySave`, localStorage nem `commit`.
+- Testes validam resultado autêntico, journal hipotético com recibo, original intacto, inexistência de captura sem bola e bloqueio por região. Continua com XP/moedas legados **APENAS NO DRY RUN**, não ativados em produção.
+- Próximo: migração versionada de bolso/região, economia ajustada e integração transacional ao writer com persistência e cenários de falha antes de liberar modo Mapa como gameplay.
