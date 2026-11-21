@@ -72,7 +72,8 @@ describe('D064AP — equipe hipotética e limites de progressão regional',()=>{
       expect(moves.map(m=>m.name)).not.toContain('bullet-seed');
     }
     expect(legalMoves(94,81).map(m=>m.name)).toContain('shadow-punch');
-    expect(legalMoves(94,81).map(m=>m.name)).not.toContain('hypnosis');
+    expect(legalMoves(94,81).map(m=>m.name)).toContain('hypnosis');
+    expect(legalMoves(94,81).map(m=>m.name)).not.toContain('night-shade');
   });
 
   it('compara um líder fixo, rotação pré-determinada e teto contrafactual da equipe',()=>{
