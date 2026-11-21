@@ -221,3 +221,7 @@ PR #38 integrada em main `8748d315`, CI `44120721898` SUCCESS, Railway deploy `d
 - Seleção de região antes de iniciar; região acessível apenas se nível do treinador cumprir desbloqueio regional e nível do Pokémon líder alcançar `levelMin` da região. Não exige nível do Pokémon igual ao do treinador.
 - O Pokémon líder no início é fixado como expedicionário e único receptor de XP/afinidade da nova expedição. Expedições pré-existentes mantêm o contrato anterior para não invalidar resgates.
 - Os ciclos continuam com 10 s, limite de 8 h, +7 moedas, +4 XP treinador e +5 XP Pokémon por ciclo, afinidade +1 por três ciclos. Qualquer balanceamento desses números necessita testes e decisão posterior.
+
+
+### D-064AR — sono por golpes de nível (21/11/2026; em validação)
+Hipótese de balanceamento implementada no ramo D064AR: Hypnosis, Sleep Powder e Spore seguem learnsets FireRed/LeafGreen do snapshot fixo, aplicam sono após precisão e custam SP. A vítima perde de 1 a 3 oportunidades de agir (RNG seedado); no próximo momento de agir acorda e pode atacar. Sono não persiste após a batalha, não acumula com outro status e suporte é limitado ao uso único por encontro como os demais. Esta é uma convenção de Kanto Idle, **não reprodução fiel dos turnos de sono da geração III**. Sem alteração de XP/economia/captura/expedição.
