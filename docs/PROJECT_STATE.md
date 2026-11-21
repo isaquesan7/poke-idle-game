@@ -970,3 +970,8 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Branch PR #88: `resolveKantoCaptureAttempt` implementa contrato puro de captura condicionada à Ultra para raros, bola no bolso e decremento por tentativa com seed determinística. `d064DraftBallDrop/Supply` simula kit inicial e ganhos garantidos por vitórias na região. Testes para replay determinístico, Master indisponível, saldo vazio, consumo imutável e suprimento.
 - **Nenhum desses cálculos altera save ou conta:** falta ligar a recompensa ao writer transacional, escolher uma fonte oficial/validada de estoque e testar migrações. Inventário geral e loja permanecem reservados para fases futuras.
 - PR #88 **sem merge e sem Railway**. Próxima ação: escritor de captura e recompensa regional versionado, testes de save antigo e batalhas/expedições; depois escolher valores finais e publicar por etapas seguras.
+
+
+## D-064J — recebimento regional e captura no mesmo journal, ainda isolado (2026-11-20)
+- PR #88 inclui `applyRegionalBattleDraft` como prova de transação funcional em memória: espécie/nível derivados da região e seed, validação de level/UID, consumo de uma bola por tentativa vencida, captura condicional e crédito de XP/coins/afinidade numa única revisão de journal, fingerprint idempotente completo; derrota não gasta bola. Testes exclusivos `regional-reward-draft.test.ts`.
+- **Não integrado ao `playSave.updatePlaySave` ou UI**, porque usa valores legados e ainda não reconstrói resultado via motor nesta camada. Sem publicação. Aguardar CI de TypeScript/Vitest/Playwright/Docker e finalizar fórmula de economia, saves antigos e estoque antes de ativar.
