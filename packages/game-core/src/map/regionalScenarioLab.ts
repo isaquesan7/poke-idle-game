@@ -79,7 +79,10 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
     ||!valid(input.seed,0,0xffffffff)
     ||!['none','rare-only','every-win'].includes(input.captureStrategy))return null;
 
+  // Sorteio do encontro/vitória isolado do sorteio de captura. Assim,
+  // diferentes estratégias podem ser comparadas com os mesmos encontros.
   const rng=randomFactory(input.seed);
+  const captureRng=randomFactory((input.seed^0xa5a5a5a5)>>>0);
   let trainer:DraftProgress={level:1,xp:0};
   const team:DraftProgress[]=Array.from({length:input.teamSize},()=>({level:5,xp:0}));
   const regionWins=Array<number>(10).fill(0);
@@ -102,6 +105,9 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
       region.id,Math.floor(rng()*4294967296),active.level
     );
     if(!encounter)return null;
+    // Sorteia para toda batalha (mesmo sem tentativa) e mantém o mesmo
+    // resultado potencial de captura ao comparar estratégias pareadas.
+    const captureSeed=Math.floor(captureRng()*4294967296);
     regionBattles[region.id-1]!++;
     const rare=region.rareSpeciesIds.includes(encounter.speciesId);
     if(rare)rareEncounters++;
@@ -118,11 +124,6 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
     coins+=reward.coins;
     if(!Number.isSafeInteger(coins))return null;
 
-    // A reposição é conquistada depois da vitória, como no reducer D064J.
-    const drop=d064DraftBallDrop(region.id,regionWins[region.id-1]!);
-    if(!drop)return null;
-    for(const key of keys){stock[key]+=drop[key];earned[key]+=drop[key];}
-
     const shouldTry=input.captureStrategy==='every-win'
       ||input.captureStrategy==='rare-only'&&rare;
     if(shouldTry){
@@ -133,7 +134,7 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
           regionId:region.id,speciesId:encounter.speciesId,ballId:ball,
           pocket:{version:1,quantities:{...stock}} as KantoBallPocketV1,
           maxHp:100,currentHp:0,
-          seed:Math.floor(rng()*4294967296)
+          seed:captureSeed
         });
         if(attempt.status!=='resolved')return null;
         stock[ball]--;spent[ball]++;
@@ -141,6 +142,13 @@ export function d064SimulateRegionalScenario(input:RegionalScenarioInput):
         if(attempt.captured){if(rare)rareCaptures++;else normalCaptures++;}
       }
     }
+    // Igual ao reducer D064J: primeiro desconta a tentativa de captura,
+    // depois concede a reposição pela vitória. A bola ganha AGORA só pode
+    // ser usada no próximo encontro.
+    const drop=d064DraftBallDrop(region.id,regionWins[region.id-1]!);
+    if(!drop)return null;
+    for(const key of keys){stock[key]+=drop[key];earned[key]+=drop[key];}
+
     for(let i=1;i<KANTO_REGIONS.length;i++)
       if(unlockBattles[i]===null
         &&trainer.level>=KANTO_REGIONS[i]!.trainerUnlockLevel)
