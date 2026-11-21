@@ -3,6 +3,7 @@ import {
   PLAY_SAVE_KEY, createPlaySave, readPlaySave, resetPlaySave, updatePlaySave
 } from '../src/play/playSave';
 import type { PlayStorage } from '../src/play/playSave';
+import {previewRegionalBattleFromJournal,dryRunRegionalBattleTransaction} from '../src/play/regionalBattleBridge';
 
 function memory() {
   const map = new Map<string, string>();
@@ -532,5 +533,85 @@ describe('persistência da trilha visual, sem writer no replay',()=>{
     expect(snapshot.revision).toBe(1);
     expect(readPlaySave(storage)).toEqual({status:'ready',snapshot});
     expect(map.get('kanto-idle-lab-save-v01')).toBe('LEGACY-CONSERVADO');
+  });
+});
+
+
+describe('D-064K — encontro regional simulado a partir do save verdadeiro',()=>{
+  it('reconstrói stats e golpes do líder sem gravar dados ou conceder recursos',()=>{
+    const {storage}=memory();
+    expect(createPlaySave(storage,'Kanto',4,1000,true).status).toBe('ok');
+    const before=storage.getItem(PLAY_SAVE_KEY);
+    const journal=current(storage).journal;
+    const first=previewRegionalBattleFromJournal(journal,1,17);
+    const repeated=previewRegionalBattleFromJournal(journal,1,17);
+    expect(first.status).toBe('ready');
+    expect(first).toEqual(repeated);
+    if(first.status==='ready'){
+      expect(first.preview.battle.playerSpeciesId).toBe(4);
+      expect(first.preview.battle.playerLevel).toBe(20);
+      expect(first.preview.battle.frames).toHaveLength(first.preview.battle.log.length);
+      expect(first.preview.captureDisabled).toBe(true);
+      expect(first.preview.battle.log.some(line=>line.includes('Recompensas de combate recebidas'))).toBe(false);
+      expect(first.preview.battle.log.some(line=>line.startsWith('Captura!'))).toBe(false);
+    }
+    expect(storage.getItem(PLAY_SAVE_KEY)).toBe(before);
+    expect(current(storage).revision).toBe(0);
+  });
+  it('bloqueia região alta e entradas inválidas sem mudar a Arena anterior',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Kanto',1,1000);
+    const journal=current(storage).journal;
+    expect(previewRegionalBattleFromJournal(journal,10,123).status).toBe('blocked');
+    expect(previewRegionalBattleFromJournal(journal,1,-1).status).toBe('blocked');
+    expect(previewRegionalBattleFromJournal(
+      {...journal,raw:'{broken'},1,123).status).toBe('blocked');
+    expect(current(storage).revision).toBe(0);
+  });
+});
+
+
+describe('D-064L — journal regional experimental sempre usa batalha autenticada',()=>{
+  it('calcula transação em RAM sem commit, sem captura sem Poké Bola',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Kanto',4,1000,true);
+    const before=storage.getItem(PLAY_SAVE_KEY);
+    const journal=current(storage).journal;
+    let found=false;
+    for(let seed=0;seed<32;seed++){
+      const draft=dryRunRegionalBattleTransaction(journal,1,seed);
+      expect(draft.status).toBe('ready');
+      if(draft.status!=='ready')continue;
+      expect(draft.proposedJournal.revision).toBe(journal.revision+1);
+      expect(draft.proposedJournal.receipts).toHaveLength(1);
+      const data=JSON.parse(draft.proposedJournal.raw) as {
+        wins:number;losses:number;roster:unknown[];seen:number[]
+      };
+      expect(data.wins+data.losses).toBe(1);
+      expect(data.roster).toHaveLength(1);
+      expect(draft.proposedJournal.receipts[0]?.id).toBe('regional-dry-run-1');
+      expect(draft.preview.wildSpeciesId).toBeGreaterThanOrEqual(1);
+      if(draft.preview.battle.outcome==='win')found=true;
+    }
+    expect(found).toBe(true);
+    expect(storage.getItem(PLAY_SAVE_KEY)).toBe(before);
+    expect(current(storage).revision).toBe(0);
+  });
+  it('bolso não migrado bloqueia tentativa de bola sem gravar no save',()=>{
+    const {storage}=memory();
+    createPlaySave(storage,'Kanto',4,1000,true);
+    const journal=current(storage).journal;
+    const before=storage.getItem(PLAY_SAVE_KEY);
+    let blocked=false;
+    for(let seed=0;seed<30;seed++){
+      const preview=previewRegionalBattleFromJournal(journal,1,seed);
+      if(preview.status!=='ready'||preview.preview.battle.outcome!=='win')continue;
+      const result=dryRunRegionalBattleTransaction(journal,1,seed,'poke-ball');
+      expect(result.status).toBe('blocked');
+      blocked=true;break;
+    }
+    expect(blocked).toBe(true);
+    expect(storage.getItem(PLAY_SAVE_KEY)).toBe(before);
+    expect(dryRunRegionalBattleTransaction(journal,10,0).status).toBe('blocked');
   });
 });
