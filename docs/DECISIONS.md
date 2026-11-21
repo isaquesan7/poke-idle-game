@@ -120,3 +120,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AB | 2026-11-20 | PROVA DE CONCEITO SEM RELEASE | Distinguir cenários multi-seed de vitória paramétrica (não simula desempenho) da amostragem de resultados gerados pelo motor real em encontros isolados com líder fixo. Somente com esses dois diagnósticos e futura simulação longitudinal com times/HP/SP será possível decidir XP, abundância de bolas e regiões; não conectar resultados ao writer. |
+
+
+| D-064AC | 2026-11-20 | LABORATÓRIO NÃO PUBLICADO | Separar progressão por derrotas reais (motor existente) de hipótese de treino e persistência de recursos. Equipe roda entre 1–3 UIDs, HP/SP são restaurados a cada encontro, modo focused usa pontos teóricos em HP/Attack e afinidade por vitória, captura e estoque só em RAM. Nenhum parâmetro pode ser adotado em produção sem CI, simulação multi-seed, política de recuperação e writer seguro. |
