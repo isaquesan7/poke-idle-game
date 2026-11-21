@@ -89,6 +89,27 @@ describe('D-064AH — economia regional transacional',()=>{
     expect(map.get(PLAY_SAVE_KEY)).not.toBe(initial);
     expect(inspect(storage).snapshot).toEqual(saved.snapshot);
   });
+  it('repõe uma Poké Ball na terceira vitória regional sem duplicar recibos',()=>{
+    const {storage}=setup();
+    let revision=0;
+    let previousWins=0;
+    // Seleciona seeds reais que o motor consiga vencer com este líder.
+    for(let i=0;i<48&&previousWins<3;i++){
+      const prior=inspect(storage).snapshot;
+      const move=updatePlaySave(storage,revision,{
+        type:'regional-battle',regionId:1,seed:i,ballId:null
+      });
+      expect(move.status).toBe('ok');
+      revision++;
+      const after=inspect(storage);
+      expect(after.snapshot.revision).toBe(revision);
+      expect(after.snapshot.journal.receipts).toHaveLength(revision);
+      previousWins=after.game.regionWins[0]??0;
+    }
+    expect(previousWins).toBeGreaterThanOrEqual(3);
+    expect(inspect(storage).game.ballPocket.quantities['poke-ball'])
+      .toBe(12+Math.floor(previousWins/3));
+  });
   it('não consome bolas nas derrotas, nem captura sem escolha de bola',()=>{
     const {storage}=setup();
     const result=updatePlaySave(storage,0,{
