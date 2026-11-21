@@ -142,3 +142,9 @@ Este documento explicita decisões aprovadas, hipóteses para simulação e ques
 - Ao ativar a curva mais lenta, `migrateD064EconomyDraft` poderá preservar o **nível exato** do Treinador e de cada Pokémon, convertendo apenas a fração de XP no nível: `floor(oldXP/oldThreshold × newThreshold)`, sempre limitado a menos do novo limiar. Não conceder retroativamente níveis nem apagar XP dos jogadores; Lv100 permanece Lv100/XP0.
 - A conversão guarda um marcador de versão econômica e um recibo idempotente; XP fora dos intervalos do sistema legado, já migrado ou versão preexistente é recusado. Moedas, mochila, Equipe, títulos, insígnias e Expedição ativa são preservados em memória, sem write.
 - **Ainda é hipótese de migração**, não decisão de rollout aprovada. Não integrar ao `playSave` nem adotar a curva experimental publicamente sem a simulação completa de tempo/economia e testes de jornada com saves anteriores.
+
+
+## D-064Q — circuito de aquisição antes da loja (isolado)
+- `applyRegionalBattleDraft` agora demonstra em RAM a ligação entre vitórias regionais e `d064DraftBallDrop`. O saldo só é modificado se o jogador já possui um bolso válido; vitórias apenas sem bolso continuam possíveis no dry-run, mas NÃO geram itens fictícios.
+- Na mesma revisão journalizada, uma vitória pode consumir 1 Poké Bola pela tentativa e repor 1 por marco de vitória. Um receipt impede processar novamente a captura/drop; counters regionais e limites numéricos são validados. A fonte renovável permite estudar a obtenção de Ultra Balls sem loja, mas suas cadências definitivas não estão aprovadas.
+- Próximo gate: demonstrar aquisição suficiente sob os pesos raros, quantidade de capturas esperada, ritmo de moedas e limites de tempo do jogo. Sem merge nem deploy.
