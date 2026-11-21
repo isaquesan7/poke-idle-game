@@ -1,5 +1,10 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AV — justiça da IA e golpes dos selvagens (21/11/2026; branch)
+- Auditoria identificou selvagens com apenas um golpe padrão enquanto jogadores tinham até 4 slots. O novo `kantoWildMoveLoadout` equipa ofensivos e suportes que a mesma espécie pode aprender naquele nível FRLG (até 3 ofensivos recentes + 1 suporte). Fallback provisório somente quando não há ofensiva disponível.
+- Mesmos SP, IA, precisão, prioridade e efeitos por impacto dos jogadores, sem rank/bônus ocultos nem TMs; testes determinísticos cobrem 151 espécies e uso real de Twineedle selvagem. A dificuldade pode aumentar; sem mudança de captura, XP, economia ou salvamentos. Documentação `docs/WILD_AI_FAIRNESS_D064AV.md`, CI/merge/deploy pendentes.
+
+
 ## D-064AU — Twineedle por impacto (21/11/2026; em validação)
 - Beedrill aprende Twineedle no Nv20 FRLG: dois impactos de poder 25, PP20, chance de envenenamento 20% por impacto efetivo, com uma ação/precisão/custo SP e frames individuais. Imunidades e estado único do alvo preservados; sem efeito após KO.
 - Whitelist multi-hit e SP atualizados; novos testes de UID/nível, seed, logs/frames, poison/Steel, payload adulterado e TM09 indisponível. Detalhes em `docs/TWINEEDLE_D064AU.md`. Sem mudar economia, XP, capturas, expedição ou save. CI/merge/Railway ainda pendentes.
