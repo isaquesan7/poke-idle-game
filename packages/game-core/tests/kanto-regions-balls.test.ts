@@ -5,7 +5,8 @@ import {
   kantoRegionalEncounter,canUseKantoBall,
   canStartRegionalExpedition,cappedRegionalPokemonXp,xpThreshold,
   inspectKantoBallPocket,spendKantoBallForAttempt,
-  d064DraftXpThreshold,d064DraftBattleReward,d064DraftSimulateWins
+  d064DraftXpThreshold,d064DraftBattleReward,d064DraftSimulateWins,
+  previewKantoRegionalBattle,KANTO_BATTLE_SPECIES,pokemonOwnStats,zeroStats
 } from '../src/index.js';
 
 describe('D-064 — mapa regional de Kanto, catálogo de 151',()=>{
@@ -155,5 +156,49 @@ describe('D-064E — curva de XP/moedas experimental, sem rewards ativos',()=>{
     expect(d064DraftBattleReward(10)).toEqual({coins:15,trainerXp:25,pokemonXp:57});
     expect(d064DraftBattleReward(0)).toBeNull();
     expect(d064DraftSimulateWins(-1)).toBeNull();
+  });
+});
+
+
+describe('D-064F — simulação regional REAL sem recompensas',()=>{
+  const starter=KANTO_BATTLE_SPECIES[4]!;
+  function leader(level:number){
+    return {
+      speciesId:starter.id,name:starter.name,level,types:starter.types,
+      stats:pokemonOwnStats(starter.base,level,zeroStats()),
+      move:starter.move,rank:0
+    };
+  }
+  it('bloqueia nível de Treinador insuficiente e região inexistente',()=>{
+    expect(previewKantoRegionalBattle(1,2,leader(5),123).status).toBe('blocked');
+    expect(previewKantoRegionalBattle(5,2,leader(20),123).status).toBe('blocked');
+    expect(previewKantoRegionalBattle(100,11,leader(20),123).status).toBe('blocked');
+    expect(previewKantoRegionalBattle(100,1,leader(20),-1).status).toBe('blocked');
+  });
+  it('deriva inimigos e níveis apenas da pool da região e não oferece capturas',()=>{
+    for(const region of KANTO_REGIONS){
+      for(const seed of [0,1,7,33,100,999,1234567890]){
+        const resolved=previewKantoRegionalBattle(100,region.id,leader(region.levelMin),seed);
+        expect(resolved.status).toBe('ready');
+        if(resolved.status!=='ready')continue;
+        const fight=resolved.preview;
+        expect(region.speciesIds).toContain(fight.wildSpeciesId);
+        expect(fight.wildLevel).toBeGreaterThanOrEqual(region.levelMin);
+        expect(fight.wildLevel).toBeLessThanOrEqual(region.levelMax);
+        expect(fight.battle.wildSpeciesId).toBe(fight.wildSpeciesId);
+        expect(fight.battle.log.length).toBeGreaterThan(0);
+        expect(fight.battle.frames.length).toBe(fight.battle.log.length);
+        expect(fight.captureDisabled).toBe(true);
+        expect('captured' in fight.battle).toBe(false);
+      }
+    }
+  });
+  it('simulação idêntica para a mesma seed, sem mutar combatente',()=>{
+    const p=leader(14);
+    const before=JSON.stringify(p);
+    const first=previewKantoRegionalBattle(20,2,p,777);
+    const second=previewKantoRegionalBattle(20,2,p,777);
+    expect(first).toEqual(second);
+    expect(JSON.stringify(p)).toBe(before);
   });
 });
