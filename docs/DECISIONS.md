@@ -94,3 +94,11 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 - **Decisão:** corrigir implementação prévia que só permitia ranks no golpe principal. Jogador pode gastar 1 ponto em qualquer golpe ofensivo aprendido e equipado nos quatro slots, com teto de rank e orçamento por nível preservados. O principal não muda ao aprimorar secundário.
 - **Motivo:** sistema mostrava pontos disponíveis e golpe equipado, mas bloqueava sem explicação; agravado pela interface D057 com custo explícito.
 - **Restrições:** validar domínio por UID e slots; não permitir golpes sem dano, não equipados ou forgery; UI explica rank máximo e pontos insuficientes; sem mudança de SP, dano base, saldo, schema ou combate.
+
+
+## 2026-11-20 — D-064: mapa de 151 espécies, raridades e proteção da economia
+- **Decisão:** mover gradualmente a Arena para regiões com navegação por Mapa, mantendo combate atual dentro da região; 151 espécies devem ter pelo menos uma origem acessível. Desbloqueio por nível do Treinador, sem relock de regiões já alcançadas. A estrutura inicial é de dez regiões, sujeita a ajuste de UX.
+- **Decisão:** Articuno/Zapdos/Moltres aparecem exclusivamente no tier 9, muito raros; Mewtwo e Mew exclusivamente no tier 10, ainda mais raros. Além da dificuldade de encontro, lendários e míticos exigem Ultra Ball, enquanto Master Ball fica reservada para escolha manual futura.
+- **Decisão:** Expedição de Pokémon fica limitada à região e ao nível individual. XP para exatamente no teto, sem transportar excedentes; moedas continuam; mudar de tier requer encerrar e reiniciar. Curva de Treinador mais lenta que a de Pokémon, recompensas de batalha e economia completas precisam revisão conjunta.
+- **Bloqueio de publicação:** nenhuma captura por bola pode entrar em produção sem débito transacional, fonte renovável de estoque, tratamento de saves existentes, teste de replay/idempotência e chance de captura validada. Os contratos D-064 na PR #88 são **isolados e não operacionais** no writer atual.
+- **Parâmetros ainda experimentais:** portas de treinador [1,6,12,20,30,42,55,69,82,93], pesos raros e fórmulas de XP/coins. Não interpretar como regra final sem prova de balanceamento.
