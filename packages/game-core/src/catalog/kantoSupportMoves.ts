@@ -11,11 +11,11 @@ import type {KantoMove} from '../combat/kantoBattle.js';
 import {KANTO_FRLG_MOVE_META,KANTO_FRLG_LEVELUP_ROWS} from './kantoFrlgLevelupSnapshot.js';
 export const KANTO_SUPPORT_SOURCE_COMMIT='ac2f1acb055026e3dff1e0aca743bb46256a810a';
 export type KantoSupportEffect =
-  | {readonly kind:'status';readonly status:'poison'|'paralysis'}
+  | {readonly kind:'status';readonly status:'poison'|'paralysis'|'sleep'}
   | {readonly kind:'lower-attack'|'lower-defense';readonly stages:1}
   | {readonly kind:'heal';readonly healing:50};
 /** Somente efeitos já suportados pelo motor, filtrados no snapshot FRLG. */
-const D064AQ_STATUS_NAMES=new Set(['leer','stun-spore','glare']);
+const D064AQ_STATUS_NAMES=new Set(['leer','stun-spore','glare','hypnosis','sleep-powder','spore']);
 const D064AQ_STATUS_MOVES:Readonly<Record<string,KantoMove>>=Object.fromEntries(
   Object.values(KANTO_FRLG_MOVE_META).filter(meta=>D064AQ_STATUS_NAMES.has(meta.name)
     &&meta.category==='status'&&meta.power===null&&meta.pp!==null&&meta.pp>0)
@@ -39,7 +39,10 @@ export const KANTO_SUPPORT_EFFECTS:Readonly<Record<string,KantoSupportEffect>>={
   recover:{kind:'heal',healing:50},
   leer:{kind:'lower-defense',stages:1},
   'stun-spore':{kind:'status',status:'paralysis'},
-  glare:{kind:'status',status:'paralysis'}
+  glare:{kind:'status',status:'paralysis'},
+  hypnosis:{kind:'status',status:'sleep'},
+  'sleep-powder':{kind:'status',status:'sleep'},
+  spore:{kind:'status',status:'sleep'}
 };
 const LEARNS:Readonly<Record<number,readonly (readonly [number,string])[]>>={
   1:[[4,'growl'],[15,'poison-powder']],
