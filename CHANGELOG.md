@@ -475,3 +475,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D-064AA — resultados quantitativos finais e CI verde (não publicado)
 - Matriz de 12 cenários pareados executada via Vitest, com resultado completo documentado em `docs/REGIONAL_SCENARIO_MATRIX_D064AA.md`. Cenário 75% vitória: região 10 em 3.718 batalhas (um UID) contra 3.992 (três UIDs); captura every-win esgota bolas e rare-only preserva Ultra Balls.
 - Regressão geral `44855362160`, Playwright `44855362227` e Docker `44855362294` SUCCESS para o head CI-only `78bdd9997da690d9335b3a7e1ef5876a9addfa91`. PR #98 continua draft, PR #99 CI-only sem merge, economia e save público inalterados.
+
+
+### D-064AB — análise multi-seed e combate real isolado (não publicado)
+- Novo laboratório puro do core para amostrar vitórias e derrotas do motor `simulateKantoBattle` sob condições estáticas. Vitest compara 8 seeds do simulador econômico por time e estratégia de captura, registra métricas agregadas e prova replay determinístico.
+- Não integra writer, UI, estoque ou economia novos ao jogo público. Estágios de CI e análise de balanceamento ainda exigidos.
