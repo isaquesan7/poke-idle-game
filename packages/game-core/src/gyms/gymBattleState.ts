@@ -26,6 +26,8 @@ export interface GymFighterState {
   readonly sp:number;
   readonly maxSp:number;
   readonly status:KantoBattleStatus|null;
+  /** Ações próprias de sono restantes, não correm na reserva. */
+  readonly sleepActions?:number;
   readonly effects?:GymEffects;
   readonly confusionTurns?:number;
   readonly retreatRecoveriesUsed:number;
@@ -42,7 +44,7 @@ export interface GymSideState {
 export interface GymBattleState {
   readonly player:GymSideState;
   readonly leader:GymSideState;
-  readonly outcome:'ongoing'|'player-win'|'leader-win';
+  readonly outcome:'ongoing'|'player-win'|'leader-win'|'draw';
   readonly turn:number;
 }
 export type GymStateResult=
@@ -70,7 +72,7 @@ export function createGymBattleState(
       throw new RangeError('Combatente inválido.');
     const maxSp=kantoMaxSp(combatant.level,combatant.speciesId);
     return {combatant,uid,hp:combatant.stats.hp,maxSp,sp:maxSp,
-      status:null,confusionTurns:0,
+      status:null,sleepActions:0,confusionTurns:0,
       effects:{attackDrops:0,defenseDrops:0,speedDrops:0,specialDefenseDrops:0},
       retreatRecoveriesUsed:0,focusUses:0,lastFocusTurn:-100};
   };
@@ -106,6 +108,8 @@ function checkFighter(f:GymFighterState):void{
     ||!Number.isSafeInteger(f.sp)||f.sp<0||f.sp>f.maxSp
     ||!Number.isSafeInteger(f.retreatRecoveriesUsed)||f.retreatRecoveriesUsed<0
     ||f.retreatRecoveriesUsed>GYM_SWITCH_RULES.maxRetreatRecoveryPerPokemon
+    ||!Number.isSafeInteger(f.sleepActions??0)||(f.sleepActions??0)<0
+    ||(f.sleepActions??0)>3
     ||!Number.isSafeInteger(f.confusionTurns??0)||(f.confusionTurns??0)<0
     ||(f.confusionTurns??0)>5
     ||!Number.isSafeInteger(f.focusUses)||f.focusUses<0
@@ -243,4 +247,41 @@ export function focusGymSp(state:GymBattleState,side:GymSide):GymBattleState{
     ...active,sp:active.sp+recovered,focusUses:active.focusUses+1,
     lastFocusTurn:state.turn
   }));
+}
+
+/**
+ * Aplicação ATÔMICA de dano residual nos dois ativos após a rodada.
+ * Se ambos os ÚLTIMOS Pokémon caírem juntos, o resultado é empate.
+ * Se apenas um lado perder a equipe, o outro vence mesmo que seu ativo
+ * tenha desmaiado com membros na reserva. Nenhuma restauração de HP/SP.
+ */
+export function applyGymResidual(
+  state:GymBattleState,
+  amounts:Readonly<{player:number;leader:number}>
+):GymBattleState{
+  if(state.outcome!=='ongoing'||state.player.needsReplacement
+    ||state.leader.needsReplacement
+    ||!Number.isSafeInteger(amounts.player)||amounts.player<0
+    ||!Number.isSafeInteger(amounts.leader)||amounts.leader<0)
+    throw new RangeError('Dano residual ou confronto inválido.');
+  let updated=state;
+  for(const side of ['player','leader'] as const){
+    const party=updated[side];
+    const old=party.fighters[party.activeIndex]!;
+    checkFighter(old);
+    if(old.hp<=0)throw new RangeError('Ativo derrotado na fase residual.');
+    const newParty=updateFighter(party,party.activeIndex,{
+      ...old,hp:Math.max(0,old.hp-amounts[side])
+    });
+    updated=replaceSide(updated,side,newParty);
+  }
+  const playerAlive=updated.player.fighters.some(f=>f.hp>0);
+  const leaderAlive=updated.leader.fighters.some(f=>f.hp>0);
+  const outcome=!playerAlive&&!leaderAlive?'draw'
+    :!leaderAlive?'player-win':!playerAlive?'leader-win':'ongoing';
+  return {...updated,outcome,
+    player:{...updated.player,needsReplacement:outcome==='ongoing'
+      &&updated.player.fighters[updated.player.activeIndex]!.hp===0},
+    leader:{...updated.leader,needsReplacement:outcome==='ongoing'
+      &&updated.leader.fighters[updated.leader.activeIndex]!.hp===0}};
 }
