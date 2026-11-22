@@ -97,6 +97,10 @@ try{
     await page.getByRole('button',{name:/Entrar na região/}).click();
     await page.getByRole('heading',{name:'Batalha no Bosque Inicial'}).waitFor();
     await page.getByRole('button',{name:'Batalhar na região'}).click();
+    await page.waitForFunction(k=>{
+      const snapshot=JSON.parse(localStorage.getItem(k));
+      return Boolean(snapshot&&JSON.parse(snapshot.journal.raw).pendingBattle);
+    },key);
     const pending=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw).pendingBattle,key);
     assert.ok(pending,'o segundo encontro ainda não pagou recompensas');
     assert.equal(pending.preview.wildSpeciesId,54,'seed fixa seleciona Psyduck');
