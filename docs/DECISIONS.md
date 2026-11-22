@@ -148,3 +148,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AY | 2026-11-21 | EM VALIDAÇÃO | O inicial de todo novo perfil normal deve começar no nível 1, não 5; o treinador continua no nível1, e o modo demonstração permanece nível20 para testes explícitos. Não modificar saves antigos nem mudar XP, raridade, IA, regiões ou captura nessa mudança. |
+
+
+| D-064AZ | 2026-11-21 | DIAGNÓSTICO EM VALIDAÇÃO | Testar a jornada real de 3 iniciais nível1 através de 216 batalhas com writer regional, expedição apenas após Nv2 e capturas sem grants. Derrotas não concedem XP, primeira região tem Nv2–10; medir risco de bloqueio/frustração antes de mudar XP ou IA. Não alterar balanceamento sem dados. |
