@@ -546,3 +546,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### 2026-11-22 — D064BL (laboratório em PR)
 - Novos testes diagnósticos de progressão mista expedição+batalha identificam possível softlock de líder único na transição R3→R4 (treinador Lv19 ainda bloqueia R4 ao ficar sem recompensas na R3).
 - Não altera gameplay, IA, economia, desbloqueio, save ou release; documenta cenários ideais de recuperação e necessidade de testar o motor de combate de verdade.
+
+- D064BL: amostra adicional de 120 combates determinísticos com motor real, starters evoluídos e rivais da R3; diagnóstico de viabilidade de vitórias, sem alterar IA nem resultados. Ajustados asserts de XP para incluir implicitamente metadata `gainedLevels`; CI do HEAD novo pendente.
