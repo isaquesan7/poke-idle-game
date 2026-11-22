@@ -734,6 +734,14 @@ async function exercise(browser, label, viewport) {
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
     {key:SAVE,revision:11+firstBattleOffset});
+  const stagedTeamFight=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  assert.ok(JSON.parse(stagedTeamFight.journal.raw).pendingBattle,
+    'a batalha da equipe deve permanecer pendente antes da apresentação');
+  await page.getByRole('button',{name:'Pular apresentação'}).click();
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:12+secondBattleOffset});
+  const secondBattleOffset=firstBattleOffset+1;
   const last=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.ok(last.journal.receipts.at(-1).fingerprint.includes('"activeUid":'+firstUid),
     'Arena precisa combater com o UID promovido a líder');
@@ -765,13 +773,13 @@ async function exercise(browser, label, viewport) {
   }
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
-    {key:SAVE,revision:12+firstBattleOffset});
+    {key:SAVE,revision:12+secondBattleOffset});
   assert.equal(await page.getByRole('button',{name:'Equipar golpe tackle'}).count(),0,
     'Golpe equipado não pode exibir botão de equipar');
   await page.getByRole('button',{name:'Aprimorar golpe tackle'}).click();
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
-    {key:SAVE,revision:13+firstBattleOffset});
+    {key:SAVE,revision:13+secondBattleOffset});
   const moved=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);
   assert.equal(moved.roster.find(p=>p.uid===firstUid).moveName,'tackle');
   assert.equal(moved.roster.find(p=>p.uid===firstUid).upgrades.tackle,1);
@@ -795,7 +803,7 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Evoluir para Pidgeotto'}).click();
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
-    {key:SAVE,revision:14+firstBattleOffset});
+    {key:SAVE,revision:14+secondBattleOffset});
   const evolved=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);
   assert.equal(evolved.roster.find(p=>p.uid===firstUid).pokemonId,17);
   assert.equal(evolved.roster.find(p=>p.uid===firstUid).upgrades.tackle,1);
@@ -818,13 +826,13 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Adicionar golpe growl'}).click();
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
-    {key:SAVE,revision:15+firstBattleOffset});
+    {key:SAVE,revision:15+secondBattleOffset});
   let slots=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).roster.find(p=>p.uid===1),SAVE);
   assert.deepEqual(slots.moveNames,['scratch','growl']);
   await page.getByRole('button',{name:'Tornar principal growl'}).click();
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
-    {key:SAVE,revision:16+firstBattleOffset});
+    {key:SAVE,revision:16+secondBattleOffset});
   slots=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).roster.find(p=>p.uid===1),SAVE);
   assert.deepEqual(slots.moveNames,['growl','scratch']);
   await page.reload();
@@ -836,7 +844,7 @@ async function exercise(browser, label, viewport) {
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1 pela coleção',exact:true}).click();
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
-    {key:SAVE,revision:17+firstBattleOffset});
+    {key:SAVE,revision:17+secondBattleOffset});
   await page.getByRole('button',{name:'Regiões',exact:true}).click();
   // Seed FIXA só para esta batalha E2E: contra Caterpie deve usar Growl e
   // em seguida Scratch; sem depender da sorte do encontro no navegador.
@@ -852,7 +860,7 @@ async function exercise(browser, label, viewport) {
   });
   await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
   await page.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key))?.revision===revision,
-    {key:SAVE,revision:18+firstBattleOffset});
+    {key:SAVE,revision:18+secondBattleOffset});
   const multi=await page.evaluate(key=>{
     const saved=JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw);
     return saved.pendingBattle?.preview??saved.lastBattle;
@@ -861,7 +869,7 @@ async function exercise(browser, label, viewport) {
   assert.ok(multi.log.some(line=>line.includes('usou scratch')),'IA deve voltar a causar dano');
   await page.getByRole('button',{name:'Pular apresentação'}).click();
   await page.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key))?.revision===revision,
-    {key:SAVE,revision:19+firstBattleOffset});
+    {key:SAVE,revision:19+secondBattleOffset});
   await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
 
   // Replay antigo com barras de HP, mas sem SP (save do release D-036):
