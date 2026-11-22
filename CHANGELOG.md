@@ -482,3 +482,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Bosque Inicial: dois encontros aquáticos adicionais, Psyduck #54 e Poliwag #60, em lugar de Rattata #19 e Meowth #52. Rattata passa à região 3 e Meowth à região 4; 151 espécies permanecem exclusivas de uma região.
 - Sem pesos diferentes por inicial; 15 espécies de Bosque continuam equiprováveis. Não altera tipo, força, golpes, IA, XP, captura, raridade, níveis, saves ou ativos.
 - Testes de cobertura 151, lendários finais, sorteio determinístico e contagem uniforme; resultado da CI e efeito nas vitórias ainda não verificados. Sem deploy.
+
+- D064BB: teste adicional de 3.456 batalhas reais via writer, com mesmas coortes, seeds e políticas de D064BA para comparar taxas de vitória após diversificar o bosque. CI nova ainda pendente, sem deploy.
