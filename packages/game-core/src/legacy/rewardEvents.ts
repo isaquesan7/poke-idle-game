@@ -203,6 +203,28 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
   }
   const active = state.roster.find(p => p.uid === cmd.activeUid);
   if (!active) throw new RangeError('Pokémon ativo não pertence ao jogador.');
+  // D064BE: histórico da instância por UID, não da espécie. Campos ausentes
+  // em capturas/saves legados começam em zero (não inventar partidas antigas).
+  const historical=record(active.battleRecord)?active.battleRecord:null;
+  const recordCount=(key:'wins'|'draws'|'losses'):number=>{
+    const value=historical?.[key];
+    if(value===undefined)return 0;
+    if(!natural(value))throw new RangeError('Histórico individual inválido.');
+    return value;
+  };
+  const battleRecord={
+    wins:recordCount('wins'),draws:recordCount('draws'),losses:recordCount('losses')
+  };
+  const key=cmd.outcome==='win'?'wins':cmd.outcome==='draw'?'draws':'losses';
+  if(!Number.isSafeInteger(battleRecord[key]+1))
+    throw new RangeError('Limite de partidas do Pokémon.');
+  battleRecord[key]++;
+  active.battleRecord=battleRecord;
+  if(cmd.outcome==='draw'){
+    const prior=state.draws;
+    if(prior!==undefined&&!natural(prior))throw new RangeError('Empates inválidos.');
+    state.draws=(prior===undefined?0:prior as number)+1;
+  }
   if (cmd.outcome !== 'win') {
     if (cmd.capture !== undefined || cmd.affinityGain !== undefined) {
       throw new RangeError('Derrota/empate não pode receber bônus ou captura.');
@@ -247,7 +269,8 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
       level: cmd.wildLevel, xp: 0,
       manual: { hp: 0, attack: 0, defense: 0,
         specialAttack: 0, specialDefense: 0, speed: 0 },
-      affinity: 0, moveName: cmd.capture.moveName ?? null, upgrades: {}
+      affinity: 0, moveName: cmd.capture.moveName ?? null, upgrades: {},
+      battleRecord:{wins:0,draws:0,losses:0}
     };
     state.nextUid++;
     state.roster.push(p);
