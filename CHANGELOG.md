@@ -538,3 +538,11 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - D064BK UX: a tela de Expedição agora evidencia os próximos marcos de Poké/Great/Ultra Ball em **ciclos elegíveis** e avisa quando redução regional mais arredondamento zera o rendimento e pausa o contador de bolas. SSR e E2E do novo rótulo incluídos. Verificação CI/merge/deploy do último HEAD ainda pendente.
 
 - D064BK testes adicionais: writer de resgate com rendimentos zerados preserva mochila/progresso de bolas e receipt idempotente; grupo dos próximos marcos nomeado para leitores de tela. Sem migração/schema alterados.
+
+### 2026-11-22 — D064BK publicada
+- PR #137 integrada por squash na main em `cc3ae7d1abf9e13561be7cdaac87c926c59a563c`, CI (regressão geral, Playwright, Docker) SUCCESS no HEAD `da1973ed8fb1eb5b0dbcd06bc9ccfe50df773e3c`.
+- Railway Docker deploy `b5316053-3a63-4ce7-b19b-d6a722051092` **SUCCESS**, `/health` interno aprovado; HTTP público não confirmado diretamente. Correção do contador de Pokébolas em rendimento zero e marcos UI em ciclos elegíveis agora publicados.
+
+### 2026-11-22 — D064BL (laboratório em PR)
+- Novos testes diagnósticos de progressão mista expedição+batalha identificam possível softlock de líder único na transição R3→R4 (treinador Lv19 ainda bloqueia R4 ao ficar sem recompensas na R3).
+- Não altera gameplay, IA, economia, desbloqueio, save ou release; documenta cenários ideais de recuperação e necessidade de testar o motor de combate de verdade.
