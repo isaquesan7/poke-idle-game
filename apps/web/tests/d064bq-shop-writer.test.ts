@@ -29,10 +29,9 @@ const contents=(s:Storage)=>{
 describe('D064BQ: checkout Pokébola com moeda+estoque e receipt atômicos',()=>{
   it('compra no writer REAL, recibo único e preço calculado pelo core, não pelo cliente',()=>{
     const s=store();fixture(s,10000,55);
-    const result=updatePlaySave(s,0,{
-      type:'buy-ball',purchaseId:'shop-v1-unique-1',ballId:'poke-ball',
-      quantity:5,unitPrice:1
-    });
+    const forged={type:'buy-ball' as const,purchaseId:'shop-v1-unique-1',
+      ballId:'poke-ball',quantity:5,unitPrice:1};
+    const result=updatePlaySave(s,0,forged);
     expect(result.status).toBe('ok');
     const {snapshot,game}=contents(s);
     expect(snapshot.revision).toBe(1);
