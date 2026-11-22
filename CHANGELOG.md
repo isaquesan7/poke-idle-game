@@ -1,5 +1,10 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AY — Pokémon inicial nível 1 (21/11/2026)
+- Novo perfil normal: Bulbasaur, Charmander e Squirtle iniciam no **nível 1**, XP0, UID1. Treinador continua nível1. O modo demonstração (apenas testes) permanece Pokémon nível20 e treinador nível21.
+- Somente novos perfis são afetados; saves existentes, XP/recompensas, regiões, IA, captura, raridades e TM09 não foram alterados. Testes cobrem os três iniciais, persistência e bloqueio de evolução prematura. CI/merge/Railway são gates antes da publicação.
+
+
 ## D-064AX — writers e tempo real do replay (21/11/2026; branch)
 - Auditoria de evolução, pontos de treinamento e 12 batalhas regionais por inicial em save real com UID e recibos; cenário sem demo confirma bloqueio de evolução precoce e região9.
 - Playwright Chromium desktop/mobile agora registra intervalos reais entre registros do replay em 1× e 2×, conferindo preservação do save e testes de pausa/GIF/HP/SP. Resultados em marcadores `D064AX_BROWSER_PLAYBACK` dos logs CI. Não altera gameplay, economia, chances ou UI. Documentação `docs/REAL_PROGRESSION_PLAYBACK_D064AX.md`.

@@ -38,7 +38,7 @@ describe('primeiro save jogável v0.2, sem dependência da origem legada', () =>
     expect(state(storage).name).toBe('Ash');
     expect(state(storage).trainer.level).toBe(1);
     expect(state(storage).roster[0]?.pokemonId).toBe(4);
-    expect(state(storage).roster[0]?.level).toBe(5);
+    expect(state(storage).roster[0]?.level).toBe(1);
     expect(map.get('kanto-idle-lab-save-v01')).toBe('legado-intacto');
     expect(createPlaySave(storage, 'Outro', 1, 100000).status).toBe('blocked');
     expect(map.get(PLAY_SAVE_KEY)).toBeTruthy();
@@ -56,12 +56,24 @@ describe('primeiro save jogável v0.2, sem dependência da origem legada', () =>
     expect(map.get(PLAY_SAVE_KEY)).toBe('{"schemaVersion":3}');
   });
 
-  it('treina Pokémon desde nível 5, respeitando orçamento individual, sem mudar treinador', () => {
+  it('nível 1 não concede pontos manuais antes da progressão', () => {
+    const {storage}=memory();
+    createPlaySave(storage,'Misty',7,1000);
+    expect(state(storage).roster[0]?.level).toBe(1);
+    expect(updatePlaySave(storage,0,{
+      type:'trainer',value:{type:'invest',stat:'hp'}
+    }).status).toBe('blocked');
+    expect(updatePlaySave(storage,0,{
+      type:'pokemon',value:{type:'invest-pokemon',uid:1,stat:'defense'}
+    }).status).toBe('blocked');
+    expect(current(storage).revision).toBe(0);
+    expect(state(storage).roster[0]?.manual.defense).toBe(0);
+  });
+
+  it('modo demo mantém orçamento individual de treino sem afetar o treinador', () => {
     const { storage } = memory();
-    createPlaySave(storage, 'Misty', 7, 1000);
-    expect(updatePlaySave(storage, 0, {
-      type: 'trainer', value: { type: 'invest', stat: 'hp' }
-    }).status).toBe('blocked'); // treinador normal nível 1
+    createPlaySave(storage, 'Misty', 7, 1000, true);
+    expect(state(storage).roster[0]?.level).toBe(20);
     for (let i = 0; i < 8; i++) {
       expect(updatePlaySave(storage, i, {
         type: 'pokemon', value: { type: 'invest-pokemon', uid: 1, stat: 'defense' }
@@ -69,14 +81,17 @@ describe('primeiro save jogável v0.2, sem dependência da origem legada', () =>
     }
     expect(state(storage).roster[0]?.manual.defense).toBe(8);
     expect(state(storage).trainer.manual.defense).toBe(0);
+    // Demo nível20 tem orçamento maior do que o inicial nível5 antigo.
+    // Não impor teto oito: confirmar que pontos extras só vêm da progressão.
     expect(updatePlaySave(storage, 8, {
       type: 'pokemon', value: { type: 'invest-pokemon', uid: 1, stat: 'defense' }
-    }).status).toBe('blocked');
-    expect(updatePlaySave(storage, 8, {
+    }).status).toBe('ok');
+    expect(state(storage).roster[0]?.manual.defense).toBe(9);
+    expect(updatePlaySave(storage, 9, {
       type: 'pokemon', value: { type: 'reset-pokemon', uid: 1 }
     }).status).toBe('ok');
     expect(state(storage).roster[0]?.manual.defense).toBe(0);
-    expect(current(storage).revision).toBe(9);
+    expect(current(storage).revision).toBe(10);
   });
 
   it('modo demonstração habilita treino do treinador e mantém teto 40 por atributo', () => {

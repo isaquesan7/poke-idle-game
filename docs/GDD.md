@@ -241,3 +241,7 @@ Beedrill aprende Twineedle Nv20 pelo level-up FRLG. Golpe Bug/physical power25 p
 
 ### D-064AV — paridade de IA dos selvagens (21/11/2026; branch)
 Selvagens recebem até 3 golpes de dano desbloqueados mais recentes da espécie/nível FRLG, mais até um golpe de suporte também desbloqueado, total máximo 4. Mesmo motor de seleção de ataques, SP e efeitos do jogador; sem rank, equipamentos ou bônus ocultos. Onde não existir ofensiva FRLG implementada, usar o golpe padrão provisório da alfa. Não conceder TM sem writer; não forçar uma chance de vitória fixa. Validar win-rate antes de mexer na dificuldade.
+
+
+### D-064AY — inicial nível 1 (21/11/2026)
+Todo novo treinador em modo normal recebe um único inicial escolhido entre Bulbasaur, Charmander e Squirtle, **nível 1**, XP 0, UID 1, sem afinidade inicial; o treinador também começa no nível 1. Demo explicitamente opcional para teste mantém inicial nível20 e treinador nível21. Não migrar/rebaixar Pokémon ou perfis criados previamente. Reavaliar progressão natural a partir do nível 1, sem alterar IA, XP, captura ou regras de região automaticamente.
