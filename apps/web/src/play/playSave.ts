@@ -374,7 +374,8 @@ function playBattle(
       rewardFactor,
       rewardCoins:result.outcome==='win'?scaledRegionalReward(25+wildLevel*3,rewardFactor):0,
       trainerXp:result.outcome==='win'?scaledRegionalReward(battleTrainerXp(wildLevel),rewardFactor):0,
-      pokemonXp:result.outcome==='win'?scaledRegionalReward(20+wildLevel*6,rewardFactor):earlyLossXp,
+      pokemonXp:result.outcome==='win'&&active.level!==100
+        ?scaledRegionalReward(20+wildLevel*6,rewardFactor):earlyLossXp,
       affinityGain:result.outcome==='win'&&typeof result.affinityGain==='number'
         ?scaledRegionalReward(result.affinityGain,rewardFactor):null
     };
