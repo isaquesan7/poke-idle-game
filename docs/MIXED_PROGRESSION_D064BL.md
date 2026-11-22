@@ -31,3 +31,18 @@ O inicial começa no Lv1. O sistema `beginnerBattleXp` concede 22 XP Pokémon po
 
 ## Amostra complementar do motor de combate
 O teste `d064bl-real-battle-sample.test.ts` percorre 3 espécies evoluídas (#003, #006, #009) no Lv41, 5 selvagens reais da R3 Lv30 e 8 seeds fixas, executando 120 batalhas com o motor `simulateKantoBattle`. O objetivo é medir distribuição de vitórias/derrotas/empates e turnos com movimentos padrão. Não equipara um starter sem evolução ao Pokémon do cenário, nem simula pontos manuais, títulos, equipamento, afinidade, lista completa de golpes ou captura; portanto é um **controle mecânico limitado**, não previsão de sucesso do jogador ou verificação de 49 vitórias consecutivas.
+
+
+## Matriz completa R1–R10 (hipótese de redução dos gates, NÃO IMPLEMENTADA)
+O teste `d064bl-ten-region-scenarios.test.ts` conserva as taxas e fórmulas oficiais, mas aplica uma régua de desbloqueio **somente dentro da simulação**, mantendo o código de produção inalterado. O baseline da produção usa requisitos de treinador `[1,6,12,20,30,42,55,69,82,93]`. Uma hipótese para remover o bloqueio é `[1,6,12,18,21,24,27,30,33,36]`.
+
+| Política simulada | Intervalo de resgate | Horas de expedição até Pokémon Lv100 | Treinador ao chegar | Observação |
+|---|---:|---:|---:|---|
+| Atual | 8 h | Não alcança | Lv19, Pokémon Lv41 | R4 requer treinador Lv20; estagna após quatro claims |
+| Gate reduzido, apenas em teste | 8 h | 80 h | Lv44 | R1 a R10 em dez resgates |
+| Gate reduzido, apenas em teste | 2 h | 36 h | Lv40 | R10 alcançada, Pokémon Lv100 no resgate 18 |
+| Gate reduzido, apenas em teste | 5 min | 32 h 10 min | Lv39 | R10 alcançada, Pokémon Lv100 no resgate 386 |
+
+Essa comparação considera **somente expedições, 100% do tempo contado, nenhum combate, equipe de um Pokémon**, troca imediata à região mais avançada permitida a cada resgate, sem ganho externo e sem custos de loja. O relógio total que o jogador passa no jogo pode ser muito maior, porque os resgates precisam ocorrer nos intervalos. A equipe é limitada a Lv100, mas o treinador permanece bem abaixo de Lv100. *Não confundir o desbloqueio matemático com uma recomendação de publicação*: reduzir somente gates removeria o softlock mas permitiria evolução do Pokémon até Lv100 em cerca de 32 horas acumuladas de expedição ativa com coletas curtas, risco de economia acelerada. Tampouco alterar apenas R4 resolve os gates avançados.
+
+**Decisão pendente:** estabelecer simultaneamente ritmo mínimo razoável de Lv1→100 Pokémon, ritmo do treinador, exigência de regiões por treinador, papel das batalhas, custo de Pokébolas e segurança anti-farm. Somente então escolher ajuste sistêmico para as dez regiões. Não editar XP, gates ou combate com base apenas nesses experimentos.
