@@ -153,8 +153,3 @@
   70%{opacity:1}
   100%{opacity:0;transform:translateY(-10px)}
 }
-@media(prefers-reduced-motion:reduce){
-  .cueHit .pokemonArt,.cueHeal .pokemonArt,.cueCharge .pokemonArt,
-  .cueSwitch .pokemonArt,.cueLabel{animation:none}
-  .cueLabel{opacity:1;position:static}
-}
