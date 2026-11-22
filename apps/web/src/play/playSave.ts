@@ -474,7 +474,7 @@ function finalizeRegionalBattle(journal:RewardJournal,battleId:string):
   updated.lastBattle.captureStatus=updated.lastBattle.outcome==='win'?'available':'unavailable';
   updated.lastBattle.captureSeed=pending.seed;
   if(goodNumber(pending.startedAt)&&record(pending.preview))
-    stampBattleAffinity(updated,pending.preview.activeUid as number,pending.startedAt);
+    stampBattleAffinity(updated,Array.isArray(updated.team)?updated.team[0] as number:-1,pending.startedAt);
   return {status:'ok',journal:{...outcome.journal,raw:JSON.stringify(updated)}};
 }
 
