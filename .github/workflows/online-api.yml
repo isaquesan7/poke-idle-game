@@ -49,6 +49,33 @@ jobs:
           npm run db:migrate --prefix services/api
       - name: HTTP authentication and save isolation
         run: npm run test:integration --prefix services/api
+      - name: Disaster recovery drill on disposable PostgreSQL (never production)
+        run: |
+          set -euo pipefail
+          pg() {
+            docker run --rm --network host -e PGPASSWORD=ci_only_not_production \
+              postgres:18-alpine "$@"
+          }
+          pg pg_dump -h 127.0.0.1 -p 55432 -U kanto_ci -d kanto_ci -Fc \
+            > "$RUNNER_TEMP/kanto-ci.dump"
+          test -s "$RUNNER_TEMP/kanto-ci.dump"
+          pg psql -h 127.0.0.1 -p 55432 -U kanto_ci -d postgres \
+            -v ON_ERROR_STOP=1 -c 'CREATE DATABASE kanto_ci_restore'
+          docker run --rm -i --network host -e PGPASSWORD=ci_only_not_production \
+            postgres:18-alpine pg_restore -h 127.0.0.1 -p 55432 \
+              -U kanto_ci -d kanto_ci_restore --no-owner --no-acl \
+            < "$RUNNER_TEMP/kanto-ci.dump"
+          versions=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
+            -d kanto_ci_restore -c 'SELECT count(*) FROM game_schema_migrations')
+          test "$versions" = 3
+          saves=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
+            -d kanto_ci_restore -c 'SELECT count(*) FROM game_saves')
+          test "$saves" -ge 2
+          receipts=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
+            -d kanto_ci_restore -c 'SELECT count(*) FROM game_action_receipts')
+          test "$receipts" -ge 2
+          echo "ONLINE01C3_RESTORE_DRILL_OK: isolated PG18 backup/restore"
+          rm -f "$RUNNER_TEMP/kanto-ci.dump"
       - name: Build separate API image and verify isolation
         run: |
           docker build -f services/api/Dockerfile -t kanto-online-api .
