@@ -7,6 +7,8 @@
  */
 import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
 import {kantoDamage} from '../combat/kantoBattle.js';
+import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
+import {KANTO_MULTI_HIT_MOVES} from '../combat/kantoMultiHit.js';
 import {kantoMoveSpCost,KANTO_BASIC_ATTACK} from '../combat/kantoSkillEnergy.js';
 import {applyGymDamage,spendGymSp,switchGymPokemon} from './gymBattleState.js';
 import type {GymBattleState,GymSide,GymFighterState} from './gymBattleState.js';
@@ -53,6 +55,9 @@ function validateAction(
   const move=(active.combatant.moves??[active.combatant.move])
     .find(m=>m.name===action.moveName);
   if(!move||move.category==='status'||move.name===KANTO_BASIC_ATTACK.name
+    ||Object.hasOwn(KANTO_MULTI_HIT_MOVES,move.name)
+    ||kantoMoveSecondaryEffect(move.name)!==null
+    ||kantoPerHitSecondaryEffect(move.name)!==null
     ||kantoMoveSpCost(move)>active.sp)return null;
   return {action,move,priority:move.priority};
 }
@@ -108,11 +113,10 @@ export function resolveGymTurn(
   };
   const pSpeed=input.player.fighters[input.player.activeIndex]!.combatant.stats.speed;
   const lSpeed=input.leader.fighters[input.leader.activeIndex]!.combatant.stats.speed;
-  const first:pGroup= p.priority!==l.priority
+  const first:GymSide= p.priority!==l.priority
     ?p.priority>l.priority?'player':'leader'
     :pSpeed!==lSpeed?pSpeed>lSpeed?'player':'leader'
       :roll()<.5?'player':'leader';
-  type pGroup=GymSide;
   let state=input;
   const log:string[]=[];
   for(const side of [first,other(first)]){
