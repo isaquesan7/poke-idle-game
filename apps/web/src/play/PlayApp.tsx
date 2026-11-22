@@ -21,20 +21,21 @@ import styles from './PlayApp.module.css';
 import { PokedexPanel } from './PokedexPanel';
 import { BattlePlayback } from './BattlePlayback';
 import { BattleStage } from './BattleStage';
+import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
 import { PokemonTraining } from './PokemonTraining';
 import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
 import { formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
 
-type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'expedition';
+type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'expedition' | 'shop';
 type CollectionFilter = 'all' | 'team' | 'reserve';
 type CollectionSort = 'recent' | 'level' | 'affinity' | 'species';
 type PokemonSection = 'profile' | 'evolution' | 'moves';
 /** D-051: navegação consistente com o Font Awesome da tela do treinador. */
 const NAV_ICONS:Readonly<Record<Tab,string>>={
   overview:'fa-house',trainer:'fa-user',pokemon:'fa-dragon',collection:'fa-layer-group',
-  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',expedition:'fa-compass'
+  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',expedition:'fa-compass',shop:'fa-store'
 };
 
 /** D-042: animações completas na Arena independentemente do sistema operacional. */
@@ -123,7 +124,7 @@ function regionBattleTitle(regionId:number,regionName:string):string {
 }
 
 function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', expedition: 'Expedição' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', expedition: 'Expedição', shop:'Loja' }[tab];
 }
 
 /**
@@ -611,7 +612,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         <nav className={styles.menu} aria-label="Navegação do jogo">
-          {(['overview','trainer','pokemon','collection','pokedex','regions','expedition'] as Tab[]).map(item => (
+          {(['overview','trainer','pokemon','collection','pokedex','regions','expedition','shop'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
               onClick={() => { if(pendingBattle){setTab('battle');setFeedback('Conclua o combate em andamento antes de navegar.');return;} if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
@@ -1340,6 +1341,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 </section>
               </>
             )}
+            {tab === 'shop' && <BallShopPreview coins={data.coins}
+              trainerLevel={view.level} quantities={ballQuantities}/>} 
             {tab === 'expedition' && (
               <ExpeditionScreen
                 expedition={expedition??null}
