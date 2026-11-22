@@ -29,3 +29,37 @@ Não impor vitória de 50%, não modificar stats iniciais, IA, nível dos selvag
 **Não alterar:** captura, economia, lendários, TM09, catálogo FRLG, raridade, expedições, versões de save, sprites GIF nem `isaquesan7/pokedex`.
 
 **Próxima D-064BB:** teste de sensibilidade com loadouts aprendidos e equipes efetivamente capturadas, decisão de tutorial/XP/nível da região2 baseada nos dados, sem concessões ou reequilíbrio artificial.
+
+
+## Resultados efetivamente observados na CI (HEAD `510946b73c465ef6234ee9833e84fafa955bd0e7`)
+
+`D064BA_STARTER_COHORT_REPORT`: testes de writer passaram na regressão `44967852458` sem erros. São seis jornadas independentes por inicial e política; cada linha resume **576 batalhas** (96 por perfil, total de 3.456).
+
+| Inicial | Política | Vitórias | Nv Pokémon médio final | Nv treinador médio final | Evoluções Nv16 | Região2 liberada |
+|---|---|---:|---:|---:|---:|---:|
+| Bulbasaur | Somente combate | 216/576 (37,50%) | 10,33 | 7,33 | 0/6 | 5/6 |
+| Bulbasaur | Com expedições | 406/576 (70,49%) | 25,67 | 13,67 | 6/6 | 6/6 |
+| Charmander | Somente combate | 290/576 (50,35%) | 13,50 | 8,67 | 2/6 | 6/6 |
+| Charmander | Com expedições | 433/576 (75,17%) | 26,00 | 14,00 | 6/6 | 6/6 |
+| Squirtle | Somente combate | 183/576 (31,77%) | 9,17 | 6,50 | 0/6 | 5/6 |
+| Squirtle | Com expedições | 406/576 (70,49%) | 25,67 | 13,67 | 6/6 | 6/6 |
+
+**Marcos (mediana em tentativa de batalha; apenas perfis que chegaram ao marco):**
+
+| Inicial | Política | Primeiro Nv2 | Treinador Nv6 | Primeiro Nv16 / evolução |
+|---|---|---:|---:|---:|
+| Bulbasaur | Só combate | 4 | 71 (5/6) | não alcançou |
+| Bulbasaur | Expedições | 4 | 34,5 | 52 |
+| Charmander | Só combate | 4 | 58 | 95 (2/6) |
+| Charmander | Expedições | 4 | 31 | 50 |
+| Squirtle | Só combate | 4 | 76 (5/6) | não alcançou |
+| Squirtle | Expedições | 4 | 35,5 | 52,5 |
+
+**Leitura crítica:**
+- Sem expedições, o Charmander venceu **50,35%**, versus Bulbasaur **37,50%** e Squirtle **31,77%** nas seeds escolhidas. Diferença de até **18,58 pontos percentuais** entre Charmander e Squirtle. Isso justifica um estudo separado de matchups e golpes, **não buff/nerf imediato**.
+- Com 120 minutos totais de expedição por perfil (8×15 min), 18/18 alcançaram Nv16 e abriram R2. Sem expedições, 2/18 alcançaram Nv16 e 16/18 abriram R2 dentro de 96 combates. A jornada só de combate é visivelmente mais lenta, mas o tempo de interação por batalha **não foi medido** nesta auditoria.
+- Os 36 perfis chegam ao Nv2 **na quarta tentativa** independentemente do inicial, demonstrando que o piso de aprendizado de D064AZ impede o softlock. Eles não começaram com golpe novo equipado, não investiram pontos e não utilizaram capturas ou equipamento; portanto, o resultado **não é avaliação máxima de potencial dos iniciais**.
+- O ganho da expedição é contabilizado pelo motor como ciclos de 10 segundos; os minutos usados são **simulação de relógio** para testar regras. Não confundir 120 minutos simulados com o tempo real gasto pelo usuário nem afirmar que o ganho de XP é um tuning já aprovado.
+- Primeira evolução foi uma ação explícita de writer, com UID/nível/XP preservados. A R2 foi confirmada por batalha aceita somente após treinador Nv6. Nenhuma região foi desbloqueada por injeção de níveis.
+
+**Decisão D064BA:** preservar os parâmetros publicados e priorizar D064BB: comparar golpes equipáveis legítimos por nível e composição de equipes capturadas (sem presumir compra/captura), explorar evolução manual e cadência de expedições antes de propor mudanças de força ou XP.
