@@ -492,3 +492,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Coortes com movesets ofensivos aprendidos legalmente em FRLG pelo writer e equipes montadas apenas com capturas efetivas; política comparativa de líder único e rotação fixa, 2.592 encontros determinísticos, métricas de vitória/receipts/UID e perfil. Nenhum catálogo, IA, XP, raridade, captura, save, UI ou sprites foi alterado. CI, relatório final e deploy pendentes.
 
 - D064BC: primeiros 2.592 encontros writer passaram na CI; metodologia de seleção de golpes refinada para evitar alternância artificial; relatório final condicionado à nova CI. Nenhuma mudança de gameplay.
+
+- D064BC: CI corrigida aprovada (regressão `44971956167`, Docker `44971956153`) em 2.592 batalhas por writer; políticas isolado vs capturas com rotação: Bulbasaur 38,89/30,09%, Charmander 48,38/32,64%, Squirtle 33,80/30,56%. Sem alteração funcional. Estratégia de rotação arbitrária reduz XP do líder; não é indicação de nerf/buff.
