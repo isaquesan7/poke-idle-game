@@ -62,6 +62,19 @@ try{
     await page.getByRole('radio',{name:/Bulbasaur/}).check();
     await page.getByRole('checkbox',{name:/modo demonstração/}).check();
     await page.getByRole('button',{name:'Começar aventura'}).click();
+    // D064BP: vitrine exibe mochila e desbloqueios sem preço/compra falsa.
+    const shopBefore=await page.evaluate(k=>localStorage.getItem(k),key);
+    await page.getByRole('button',{name:'Loja',exact:true}).click();
+    const shop=page.getByTestId('shop-preview');
+    await shop.waitFor();
+    assert.equal(await shop.getByTestId('shop-item-poke-ball').count(),1);
+    assert.equal(await shop.getByTestId('shop-item-great-ball').count(),1);
+    assert.equal(await shop.getByTestId('shop-item-ultra-ball').count(),1);
+    assert.equal(await shop.getByText('Preço a definir').count(),3);
+    assert.equal(await shop.getByRole('button',{name:/Comprar/}).count(),0);
+    assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),shopBefore);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+    await page.screenshot({path:new URL('shop-'+device+'.png',folder).pathname,fullPage:true});
     await page.getByRole('button',{name:'Regiões',exact:true}).click();
     await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
     const grid=page.getByRole('region',{name:'Escolha de região'});
