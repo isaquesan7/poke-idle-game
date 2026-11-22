@@ -47,10 +47,10 @@ describe('D064BM — curva de nível Pokémon tardio',()=>{
   });
   it('regra de anti-farm permanece intacta em todas as regiões',()=>{
     for(const region of KANTO_REGIONS){
-      expect(battleProgressFactor(region.levelMax+2,region.levelMax)).toBe(1);
-      expect(battleProgressFactor(region.levelMax+11<=100?
-        region.levelMax+11:100,region.levelMax))
-        .toBeGreaterThanOrEqual(0);
+      if(region.levelMax+2<=100)
+        expect(battleProgressFactor(region.levelMax+2,region.levelMax)).toBe(1);
+      if(region.levelMax+11<=100)
+        expect(battleProgressFactor(region.levelMax+11,region.levelMax)).toBe(.1);
       if(region.levelMax+12<=100)
         expect(battleProgressFactor(region.levelMax+12,region.levelMax)).toBe(0);
     }
