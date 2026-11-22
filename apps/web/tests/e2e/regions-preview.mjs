@@ -65,7 +65,7 @@ try{
     // A rota /regions inicia na seção de regiões, não em Visão geral.
     await page.getByRole('region',{name:'Escolha de região'}).waitFor();
     await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===0,key);
-    // D064BP: vitrine exibe mochila e desbloqueios sem preço/compra falsa.
+    // D064BQ: loja com preços beta; saldo demo 200 não autoriza comprar Poké Ball 600.
     const shopBefore=await page.evaluate(k=>localStorage.getItem(k),key);
     await page.getByRole('button',{name:'Loja',exact:true}).click();
     const shop=page.getByTestId('shop-preview');
@@ -73,8 +73,14 @@ try{
     assert.equal(await shop.getByTestId('shop-item-poke-ball').count(),1);
     assert.equal(await shop.getByTestId('shop-item-great-ball').count(),1);
     assert.equal(await shop.getByTestId('shop-item-ultra-ball').count(),1);
-    assert.equal(await shop.getByText('Preço a definir').count(),3);
-    assert.equal(await shop.getByRole('button',{name:/Comprar/}).count(),0);
+    assert.equal(await shop.getByText('600 moedas').count(),1);
+    assert.equal(await shop.getByText('2.400 moedas').count(),1);
+    assert.equal(await shop.getByText('16.000 moedas').count(),1);
+    assert.equal(await shop.getByRole('button',{name:/Comprar/}).count(),3);
+    assert.equal(await shop.getByTestId('shop-buy-poke-ball').isDisabled(),true,
+      'saldo de 200 moedas deve impedir compra de Poké Ball 600');
+    assert.equal(await shop.getByTestId('shop-buy-great-ball').isDisabled(),true);
+    assert.equal(await shop.getByTestId('shop-buy-ultra-ball').isDisabled(),true);
     assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),shopBefore);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
     await page.screenshot({path:new URL('shop-'+device+'.png',folder).pathname,fullPage:true});

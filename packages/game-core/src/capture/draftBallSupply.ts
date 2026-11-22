@@ -1,53 +1,93 @@
 /**
- * D-064I — rascunho de abastecimento renovável de Poké Bolas.
+ * D064BQ — drop aleatório de Pokébolas após vitória regional elegível.
  *
- * Apesar do nome histórico "draft", o writer v0.2 JÁ utiliza esta função
- * para recompensar vitórias regionais. A loja ainda não existe.
- * D064BO (esclarecimento do usuário): Ultra Ball ganha em combate desde
- * a R7 a cada 15 vitórias. A restrição de Ultra Ball a R9/R10 é
- * EXCLUSIVA do modo EXPEDIÇÃO; não se aplica a vitórias regionais.
- * Preservar Poké/Great Ball e o teto de vitórias já publicados.
- * O writer futuro deve contar vitórias por região com recibo idempotente;
- * NÃO se basear em contador arbitrário enviado pelo botão/cliente.
+ * NÃO existe mais recompensa por marcos de 3/7/15 vitórias.
+ * Uma única rolagem independente, com chance para nenhum item ou uma bola.
+ * O seed do combate, id imutável do encontro e região formam o RNG determinista:
+ * um replay produz o mesmo drop, a confirmação só paga uma vez via journal.
+ * Sem backend autoritativo, RNG local não impede manipulação maliciosa.
  */
 import type {KantoBallPocketV1} from './kantoBallPocket.js';
 import {kantoRegion} from '../map/kantoRegions.js';
 
-/** Limite persistido histórico de vitórias de cada região. A UI pode seguir
- * batalhando no teto, mas não deve aumentar o contador nem repetir drops. */
 export const KANTO_REGION_WINS_CAP=100000;
-
 export type D064DraftBallDrop={
   readonly 'poke-ball':number;
   readonly 'great-ball':number;
   readonly 'ultra-ball':number;
 };
 
-/** Kit inicial realmente entregue a novos saves; não oferece Ultra Ball. */
+export type KantoBattleBallDropRates={
+  readonly 'poke-ball':number;
+  readonly 'great-ball':number;
+  readonly 'ultra-ball':number;
+};
+
+/** Porcentagens sobre vitórias válidas, exclusivas (máximo 1 bola por vitória).
+ * R1–R3: 30% Poké. R4–R6: 25% Poké + 14% Great.
+ * R7–R8: 18% Poké + 14% Great + 5% Ultra.
+ * R9–R10: 18% Poké + 14% Great + 7% Ultra.
+ * Expedição é FONTE INDEPENDENTE: Ultra apenas R9–R10 a cada 24h elegíveis.
+ */
+export function d064BattleBallDropRates(regionId:number):KantoBattleBallDropRates|null{
+  if(!kantoRegion(regionId))return null;
+  if(regionId<=3)return{'poke-ball':30,'great-ball':0,'ultra-ball':0};
+  if(regionId<=6)return{'poke-ball':25,'great-ball':14,'ultra-ball':0};
+  if(regionId<=8)return{'poke-ball':18,'great-ball':14,'ultra-ball':5};
+  return{'poke-ball':18,'great-ball':14,'ultra-ball':7};
+}
 export const D064_DRAFT_STARTER_BALLS:KantoBallPocketV1={
   version:1,quantities:{'poke-ball':12}
 };
-/** regionWinNumber é o total DE VITÓRIAS daquela região depois de aplicada
- * a batalha. A lógica não usa RNG nem concede Master Ball. */
-export function d064DraftBallDrop(regionId:number,regionWinNumber:number):
-  D064DraftBallDrop|null {
-  const region=kantoRegion(regionId);
-  if(!region||!Number.isSafeInteger(regionWinNumber)||regionWinNumber<1
-    ||regionWinNumber>KANTO_REGION_WINS_CAP)return null;
-  return {
-    'poke-ball':regionId<=6&&regionWinNumber%3===0?1:0,
-    'great-ball':regionId>=4&&regionWinNumber%7===0?1:0,
-    'ultra-ball':regionId>=7&&regionWinNumber%15===0?1:0
+
+/** Hash independente dos sorteios de golpe/captura.
+ * battleId muda por revisão; repetir o seed em encontros distintos
+ * não força drops idênticos. uint32 -> rolagem 0..9999.
+ */
+export function d064BattleBallRoll(regionId:number,seed:number,battleId:string):number|null{
+  if(!kantoRegion(regionId)||!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff
+    ||typeof battleId!=='string'||!/^regional-v02-[1-9][0-9]*$/.test(battleId)
+    ||battleId.length>96)return null;
+  let hash=(seed^(Math.imul(regionId,0x9e3779b9)>>>0)^0xa5a593cf)>>>0;
+  for(let i=0;i<battleId.length;i++)
+    hash=Math.imul(hash^battleId.charCodeAt(i),0x01000193)>>>0;
+  hash^=hash>>>16;
+  hash=Math.imul(hash,0x7feb352d)>>>0;
+  hash^=hash>>>15;
+  hash=Math.imul(hash,0x846ca68b)>>>0;
+  hash^=hash>>>16;
+  return(hash>>>0)%10000;
+}
+
+/** Nenhum tipo é garantido por quantidade de vitórias. Um roll sorteia
+ * no máximo UMA bola; não depende nem modifica regionWins (cap 100k).
+ */
+export function d064DraftBallDrop(
+  regionId:number,seed:number,battleId:string
+):D064DraftBallDrop|null{
+  const rates=d064BattleBallDropRates(regionId);
+  const roll=d064BattleBallRoll(regionId,seed,battleId);
+  if(!rates||roll===null)return null;
+  const poke=rates['poke-ball']*100;
+  const great=poke+rates['great-ball']*100;
+  const ultra=great+rates['ultra-ball']*100;
+  return{
+    'poke-ball':roll<poke?1:0,
+    'great-ball':roll>=poke&&roll<great?1:0,
+    'ultra-ball':roll>=great&&roll<ultra?1:0
   };
 }
-/** Soma apenas ganhos de vitórias reais; nenhuma quantidade pode ser negativa
- * ou depender de informação local não validada pelo journal de batalhas. */
+
+/** SOMENTE expectativa estatística, jamais quantidade prometida por vitórias.
+ * Pode produzir frações; não usar como comando de crédito de estoque.
+ */
 export function d064DraftBallSupply(regionId:number,wins:number):
-  D064DraftBallDrop|null {
-  if(!kantoRegion(regionId)||!Number.isSafeInteger(wins)||wins<0||wins>KANTO_REGION_WINS_CAP)return null;
+  Readonly<Record<keyof D064DraftBallDrop,number>>|null{
+  const rates=d064BattleBallDropRates(regionId);
+  if(!rates||!Number.isSafeInteger(wins)||wins<0)return null;
   return{
-    'poke-ball':regionId<=6?Math.floor(wins/3):0,
-    'great-ball':regionId>=4?Math.floor(wins/7):0,
-    'ultra-ball':regionId>=7?Math.floor(wins/15):0
+    'poke-ball':wins*rates['poke-ball']/100,
+    'great-ball':wins*rates['great-ball']/100,
+    'ultra-ball':wins*rates['ultra-ball']/100
   };
 }

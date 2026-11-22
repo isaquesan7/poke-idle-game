@@ -1,8 +1,9 @@
 import {describe,expect,it} from 'vitest';
 import {
   KANTO_BALL_SHOP_CATALOG,KANTO_BALL_SHOP_STATUS,
+  KANTO_BALL_SHOP_PRICE_POLICY,
   quoteKantoBallShopPurchase,
-  d064DraftBallDrop,expeditionRewards,emptyExpeditionBallProgress
+  d064DraftBallDrop,d064BattleBallDropRates,expeditionRewards,emptyExpeditionBallProgress
 } from '../src/index.js';
 import type {KantoShopPricePolicy,KantoBallPocketV1} from '../src/index.js';
 
@@ -17,7 +18,8 @@ const input=(ballId:string,quantity:number,coins=32000,trainerLevel=55,
   bag=pocket(12,5,2))=>({ballId,quantity,coins,trainerLevel,pocket:bag});
 describe('D064BP — fundação segura de loja, ainda sem preços aprovados',()=>{
   it('não vende itens sem política de preço explícita e não vende Master Ball',()=>{
-    expect(KANTO_BALL_SHOP_STATUS).toBe('pricing-pending');
+    expect(KANTO_BALL_SHOP_STATUS).toBe('open');
+    expect(KANTO_BALL_SHOP_PRICE_POLICY).toEqual(hypothetical);
     expect(Object.keys(KANTO_BALL_SHOP_CATALOG)).toEqual([
       'poke-ball','great-ball','ultra-ball'
     ]);
@@ -83,8 +85,11 @@ describe('D064BP — fundação segura de loja, ainda sem preços aprovados',()=
   });
   it('Ultra em batalhas R7+ é INDEPENDENTE de Ultra em expedições R9/10',()=>{
     for(let region=1;region<=10;region++){
-      const battle=d064DraftBallDrop(region,15);
-      expect(battle?.['ultra-ball']).toBe(region>=7?1:0);
+      const rates=d064BattleBallDropRates(region)!;
+      expect(rates['ultra-ball']).toBe(region<=6?0:region<=8?5:7);
+      const battle=d064DraftBallDrop(region,15,'regional-v02-15');
+      expect(battle).not.toBeNull();
+      if(region<=6)expect(battle?.['ultra-ball']).toBe(0);
       const expedition=expeditionRewards(8*60*60*1000,{
         regionId:region,pokemon:[{level:region<=8?10*region:100,xp:0}],
         ballProgress:emptyExpeditionBallProgress()

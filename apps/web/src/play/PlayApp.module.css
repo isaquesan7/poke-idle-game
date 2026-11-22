@@ -1094,3 +1094,20 @@
   .shopIcon{width:36px;height:36px;}
   .shopPricePending{grid-column:2;white-space:normal;}
 }
+
+/* D064BQ: checkout beta com valor total legível, sem overflow mobile. */
+.shopPriceGroup{display:grid;justify-items:end;gap:var(--space-2);text-align:right}
+.shopPriceGroup strong{color:var(--color-gold);white-space:nowrap;font-size:1rem}
+.shopPriceGroup small{color:var(--color-text-muted);font-size:.75rem}
+.shopPurchaseControls{display:flex;align-items:center;flex-wrap:wrap;
+  gap:var(--space-2);margin-top:var(--space-3)}
+.shopPurchaseControls label{font-size:.83rem;color:var(--color-text-muted)}
+.shopPurchaseControls select{min-height:40px;min-width:62px;padding:0 var(--space-2);
+  border:1px solid var(--color-border);border-radius:8px;
+  background:var(--color-surface);color:var(--color-text)}
+.shopPurchaseControls button{min-height:40px;padding:var(--space-2) var(--space-3)}
+.shopPurchaseControls button:disabled{cursor:not-allowed;opacity:.55}
+@media(max-width:690px){
+  .shopPriceGroup{grid-column:2;justify-items:start;text-align:left}
+  .shopPurchaseControls button{flex:1 1 100%}
+}

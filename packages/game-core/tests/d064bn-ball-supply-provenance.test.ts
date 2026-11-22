@@ -1,18 +1,14 @@
 import {describe,expect,it} from 'vitest';
 import {
   KANTO_REGIONS,D064_DRAFT_STARTER_BALLS,KANTO_REGION_WINS_CAP,
-  d064DraftBallDrop,emptyExpeditionBallProgress,expeditionRewards,
+  d064DraftBallDrop,d064DraftBallSupply,d064BattleBallRoll,
+  d064BattleBallDropRates,emptyExpeditionBallProgress,expeditionRewards,
   KANTO_BALLS,inspectKantoBallPocket
 } from '../src/index.js';
-import {d064DraftBallSupply} from '../src/capture/draftBallSupply.js';
 
-/**
- * D064BO — combate concede Ultra desde R7 (1/15 vitórias);
- * expedição concede Ultra apenas R9/R10 (1/24h elegíveis).
- * O draftBallDrop participa do writer REAL e exige regressão.
- */
-describe('D064BN — proveniência de Poké/Great/Ultra Ball',()=>{
-  it('mantém kit inicial de 12 Poké Balls e proíbe Master Ball gratuita',()=>{
+/** D064BQ: por vitória elegível, RNG reproduzível por encontro, sem marcos. */
+describe('D064BQ — proveniência e chances de Poké/Great/Ultra Ball',()=>{
+  it('mantém 12 Poké iniciais e impede Master Ball gratuita',()=>{
     expect(D064_DRAFT_STARTER_BALLS).toEqual({
       version:1,quantities:{'poke-ball':12}
     });
@@ -21,33 +17,53 @@ describe('D064BN — proveniência de Poké/Great/Ultra Ball',()=>{
     expect(KANTO_BALLS['master-ball'].conventionalShop).toBe(false);
   });
 
-  it('D064BO: Ultra em combate desde R7 e Poké/Great preservadas',()=>{
+  it('tabela de drops regional é válida e restrição da Ultra vale desde R7',()=>{
     for(const region of KANTO_REGIONS){
-      for(let wins=1;wins<=105;wins++){
-        const reward=d064DraftBallDrop(region.id,wins);
+      const expected=region.id<=3?{'poke-ball':30,'great-ball':0,'ultra-ball':0}
+        :region.id<=6?{'poke-ball':25,'great-ball':14,'ultra-ball':0}
+        :region.id<=8?{'poke-ball':18,'great-ball':14,'ultra-ball':5}
+        :{'poke-ball':18,'great-ball':14,'ultra-ball':7};
+      expect(d064BattleBallDropRates(region.id)).toEqual(expected);
+      const chance=Object.values(expected).reduce((sum,n)=>sum+n,0);
+      expect(chance).toBeLessThan(100);
+      expect(d064DraftBallSupply(region.id,100)).toEqual(expected);
+      for(let seed=0;seed<500;seed++){
+        const id='regional-v02-'+(seed+1);
+        const reward=d064DraftBallDrop(region.id,seed,id);
         expect(reward).not.toBeNull();
-        expect(reward).toEqual({
-          'poke-ball':region.id<=6&&wins%3===0?1:0,
-          'great-ball':region.id>=4&&wins%7===0?1:0,
-          'ultra-ball':region.id>=7&&wins%15===0?1:0
-        });
-      }
-      for(const wins of [0,1,2,3,7,15,30,105,999]){
-        const aggregate=d064DraftBallSupply(region.id,wins);
-        expect(aggregate).toEqual({
-          'poke-ball':region.id<=6?Math.floor(wins/3):0,
-          'great-ball':region.id>=4?Math.floor(wins/7):0,
-          'ultra-ball':region.id>=7?Math.floor(wins/15):0
-        });
+        const amount=Object.values(reward!).reduce((sum,n)=>sum+n,0);
+        expect(amount).toBeLessThanOrEqual(1);
+        expect(reward!['great-ball']).toBe(region.id<4?0:reward!['great-ball']);
+        expect(reward!['ultra-ball']).toBe(region.id<7?0:reward!['ultra-ball']);
+        expect(d064DraftBallDrop(region.id,seed,id)).toEqual(reward);
       }
     }
-    expect(d064DraftBallDrop(11,15)).toBeNull();
-    expect(d064DraftBallSupply(0,15)).toBeNull();
-    expect(d064DraftBallDrop(7,0)).toBeNull();
+  });
+
+  it('o sortudo pode achar uma bola na PRIMEIRA vitória; 15ª não garante Ultra',()=>{
+    for(const region of [1,4,7,9]){
+      const rate=d064BattleBallDropRates(region)!;
+      const sum={'poke-ball':0,'great-ball':0,'ultra-ball':0};
+      for(let i=0;i<10000;i++){
+        const reward=d064DraftBallDrop(region,i,'regional-v02-'+(i+1))!;
+        for(const ball of ['poke-ball','great-ball','ultra-ball'] as const)
+          sum[ball]+=reward[ball];
+      }
+      // A amostra seedada é estatística, não promessa para jogadores.
+      for(const ball of ['poke-ball','great-ball','ultra-ball'] as const)
+        expect(Math.abs(sum[ball]/100-rate[ball])).toBeLessThan(1.4);
+    }
+    const six=d064DraftBallDrop(7,12345,'regional-v02-15');
+    expect(six).not.toBeNull();
+    const zero=Array.from({length:50},(_,i)=>d064DraftBallDrop(7,0,'regional-v02-'+(i+1))!);
+    expect(new Set(zero.map(d=>JSON.stringify(d))).size).toBeGreaterThan(1);
+    expect(d064BattleBallRoll(7,0,'regional-v02-1')).toBe(
+      d064BattleBallRoll(7,0,'regional-v02-1'));
+    expect(d064DraftBallDrop(7,0,'replay-forged')).toBeNull();
+    expect(d064DraftBallDrop(7,-1,'regional-v02-1')).toBeNull();
+    expect(d064DraftBallDrop(11,0,'regional-v02-1')).toBeNull();
+    expect(d064DraftBallSupply(7,-1)).toBeNull();
     expect(KANTO_REGION_WINS_CAP).toBe(100000);
-    expect(d064DraftBallDrop(7,KANTO_REGION_WINS_CAP)).not.toBeNull();
-    expect(d064DraftBallDrop(7,KANTO_REGION_WINS_CAP+1)).toBeNull();
-    expect(d064DraftBallSupply(7,KANTO_REGION_WINS_CAP+1)).toBeNull();
   });
 
   it('Ultra Ball depende de 8640 ciclos elegíveis de expedição nas áreas 9/10',()=>{

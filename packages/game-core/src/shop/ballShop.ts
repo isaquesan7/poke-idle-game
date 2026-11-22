@@ -1,8 +1,8 @@
 /**
  * D064BP — catálogo e contrato PURO de compra de Pokébolas.
- * Nenhum preço foi aprovado: o jogo publicado não deve executar compras
- * até que a política versionada seja deliberadamente ativada.
- * Preços são recebidos de política confiável, NUNCA de comandos do cliente.
+ * D064BQ: preços beta V1 definidos em código confiável para checkout local.
+ * Toda cobrança deve usar o catálogo versionado e um recibo do journal;
+ * preços NUNCA são recebidos de comandos enviados pela interface.
  */
 import type {KantoBallId} from '../capture/kantoBalls.js';
 import {KANTO_BALLS} from '../capture/kantoBalls.js';
@@ -21,7 +21,7 @@ export const KANTO_BALL_SHOP_CATALOG:Readonly<Record<KantoShopBallId,KantoBallSh
   'great-ball':{id:'great-ball',name:'Great Ball',trainerUnlockLevel:20,maxPerPurchase:25},
   'ultra-ball':{id:'ultra-ball',name:'Ultra Ball',trainerUnlockLevel:55,maxPerPurchase:10}
 };
-export const KANTO_BALL_SHOP_STATUS='pricing-pending' as const;
+export const KANTO_BALL_SHOP_STATUS='open' as const;
 /** Min/Max no bolso são limites técnicos do save, não limites de compra. */
 export const KANTO_SHOP_BALL_POCKET_CAP=100000;
 
@@ -29,6 +29,18 @@ export interface KantoShopPricePolicy {
   readonly version:number;
   readonly unitPrices:Readonly<Record<KantoShopBallId,number>>;
 }
+/** Valores beta de economia local: equilibrar novamente com dados de jogadores
+ * antes da versão pública. Estas são moedas do jogo, não dinheiro real.
+ */
+export const KANTO_BALL_SHOP_PRICE_POLICY:KantoShopPricePolicy=Object.freeze({
+  version:1,
+  unitPrices:Object.freeze({
+    'poke-ball':600,
+    'great-ball':2400,
+    'ultra-ball':16000
+  })
+});
+
 export interface KantoShopPurchaseInput {
   readonly coins:number;
   readonly pocket:KantoBallPocketV1;
@@ -41,8 +53,8 @@ export type KantoShopPurchaseResult=
     readonly pocket:KantoBallPocketV1;readonly policyVersion:number}
   | {readonly status:'blocked';readonly reason:string};
 
-/** Simula uma operação única (coins e bolso), SEM gravar no save ou habilitar a loja.
- * O futuro writer deverá gerar receipt e revision num único commit CAS.
+/** Simula débito e crédito sem efeitos colaterais.
+ * APENAS rewardEvents aplica o resultado ao estado com revision + receipt.
  */
 export function quoteKantoBallShopPurchase(
   input:KantoShopPurchaseInput,policy:KantoShopPricePolicy|null

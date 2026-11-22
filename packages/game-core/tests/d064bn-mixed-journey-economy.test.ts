@@ -76,7 +76,7 @@ describe('D064BN — coortes com batalha real, captura e expedição',()=>{
           if(factor>0){
             const regionWins=(winsByRegion[region.id-1]??0)+1;
             winsByRegion[region.id-1]=regionWins;
-            const drop=d064DraftBallDrop(region.id,regionWins)!;
+            const drop=d064DraftBallDrop(region.id,seed,'regional-v02-'+(i+1))!;
             const quantities={...pocket.quantities};
             for(const ball of ['poke-ball','great-ball','ultra-ball'] as const){
               quantities[ball]=(quantities[ball]??0)+drop[ball];
