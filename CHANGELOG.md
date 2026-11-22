@@ -529,3 +529,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Testes diagnósticos de progressão e economia das expedições para níveis iniciais 1–100 e 40 resgates, com contadores persistidos de Pokébolas.
 - Documento `docs/PROGRESSION_ECONOMY_D064BK.md` registra premissas e próximos gates da futura loja.
 - Sem alterações funcionais, sem deploy confirmado; CI pendente.
+
+### D064BK — ajustes após auditoria (22/11/2026, PR #137, CI/deploy por confirmar)
+- Expedições deixam de acumular progresso de Pokébolas em ciclos cuja recompensa integral efetiva é zero após redução e arredondamento (corrige farm passivo com Pokémon no limite da área).
+- Testes de requisitos duplos treinador/Pokémon, progressão travada em R3 antes de Lv20 do treinador, 40 resgates de 8h com totais exatos e cenários de sensibilidade da loja ainda hipotéticos.
+- Relatório quantitativo e limites de decisão em `docs/PROGRESSION_ECONOMY_D064BK.md`. Não houve mudança de taxa-base, UX, IA, dados salvos ou preços de loja. A publicação depende dos testes, merge e Railway no SHA correto.
