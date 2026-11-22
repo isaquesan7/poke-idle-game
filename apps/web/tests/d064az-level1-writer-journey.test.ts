@@ -81,6 +81,15 @@ describe('D064AZ — progressão inicial real / dificuldade justa',()=>{
         expect(newGame.lastBattle.regionId).toBe(1);
         expect(newGame.lastBattle.wildLevel).toBeGreaterThanOrEqual(2);
         expect(newGame.lastBattle.wildLevel).toBeLessThanOrEqual(10);
+        const xpExpected=g.roster[0].level===1&&
+          newGame.lastBattle.outcome!=='win'?22:
+          newGame.lastBattle.outcome==='win'?20+newGame.lastBattle.wildLevel*6:0;
+        expect(newGame.lastBattle.pokemonXp).toBe(xpExpected);
+        if(g.roster[0].level===1&&newGame.lastBattle.outcome!=='win'){
+          expect(newGame.trainer.xp).toBe(g.trainer.xp);
+          expect(newGame.coins).toBe(g.coins);
+          expect(newGame.lastBattle.log.at(-1)).toContain('+22 XP');
+        }
         maxReplayLines=Math.max(maxReplayLines,newGame.lastBattle.log.length);
         if(newGame.lastBattle.outcome==='win'){
           wins++;
@@ -133,7 +142,9 @@ describe('D064AZ — progressão inicial real / dificuldade justa',()=>{
     }
     (globalThis as unknown as {console:{info:(s:string)=>void}}).console.info(
       'D064AZ_LEVEL1_WRITER_REPORT '+JSON.stringify(report));
-    expect(Object.values(report).every((r:any)=>r.wins>0&&r.firstPokemonLevel2At!==null)).toBe(true);
+    // A progressão não exige vitória inicial: 4 derrotas/empates devem
+    // ser suficientes para sair do nível 1 e abrir a expedição regional.
+    expect(Object.values(report).every((r:any)=>r.firstPokemonLevel2At!==null)).toBe(true);
   },120000);
   it('não presume evolução, pedras, time ou região 9 automaticamente após o grind',()=>{
     for(const starter of starters){
