@@ -758,3 +758,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Migration 003: token 30 minutos, uso único e SHA-256. Redefinir a senha revoga as sessões anteriores. Request de email inexistente não revela conta e recebe rate limiting por IP/email.
 - Adaptador HTTP de emails Resend com Idempotency-Key; teste unitário via fetch injetado, sem env secret no GitHub. Envio desligado por padrão, autenticação de produção bloqueada.
 - Testes PostgreSQL reais de reset e cookie revogado. Sem implantação de tela de contas e sem importação de saves de /play.
+
+
+### ONLINE-01C-3 — save inicial autoritativo (branch, CI pendente)
+- `initialAdventure.mjs` constrói perfil novo 1/4/7 lv1 só a partir de perfil autenticado + relógio do servidor. Endpoint test-only `POST /api/v1/adventure/start` aceita apenas starterId e grava save + receipt em transação PostgreSQL com unicidade por conta; dupla tentativa retorna 409 sem remuneração duplicada. Conta existente não pode sobrescrever save.
+- Testes unitários dos 3 iniciais, integração PG de rejeição de payload forjado e corrida de duas solicitações. Workflow executa `pg_dump` + `pg_restore` num segundo banco CI descartável para simular recuperação lógica, não se confunde com backup/restauração real do Railway.
+- Não habilita cadastro de produção, não conecta /play à API e não migra localStorage. Limite de nome API alinhado com /play em 24 caracteres.
