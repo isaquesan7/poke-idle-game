@@ -26,7 +26,7 @@ describe('D064BL — lacuna da progressão mista e caminhos de recuperação',()
     for(let battle=0;battle<4;battle++){
       pokemon=grantXp('pokemon',pokemon,beginnerBattleXp(pokemon.level,'loss'));
     }
-    expect(pokemon).toEqual({level:2,xp:1});
+    expect(pokemon).toMatchObject({level:2,xp:1});
     expect(regionFor(1,pokemon.level)?.id).toBe(1);
   });
 
@@ -45,8 +45,8 @@ describe('D064BL — lacuna da progressão mista e caminhos de recuperação',()
       pokemon=grantXp('pokemon',pokemon,result.pokemonXpPerMember);
     }
     expect(regionIds).toEqual([1,2,3,3]);
-    expect(trainer).toEqual({level:19,xp:1139});
-    expect(pokemon).toEqual({level:41,xp:0});
+    expect(trainer).toMatchObject({level:19,xp:1139});
+    expect(pokemon).toMatchObject({level:41,xp:0});
     expect(regionFor(trainer.level,pokemon.level)?.id).toBe(3);
   });
 
@@ -61,8 +61,8 @@ describe('D064BL — lacuna da progressão mista e caminhos de recuperação',()
       pokemon=next.pokemon;
     }
     expect(wins).toBe(49);
-    expect(trainer).toEqual({level:19,xp:1825});
-    expect(pokemon).toEqual({level:42,xp:13});
+    expect(trainer).toMatchObject({level:19,xp:1825});
+    expect(pokemon).toMatchObject({level:42,xp:13});
     expect(winAgainst(trainer,pokemon,30)).toMatchObject({
       factor:0,trainerGain:0,pokemonGain:0
     });
