@@ -58,6 +58,24 @@ describe('D064BH — cronômetro de expedição',()=>{
     expect(html).toContain('27:00:00');
     expect(html).toContain('08:00:00 / 08:00:00');
   });
+  it('D064BI: seletor possui dica, ações bloqueadas e nomes acessíveis',()=>{
+    const html=renderToStaticMarkup(<ExpeditionScreen {...base} busy />);
+    expect(html).toContain('aria-labelledby="expedition-title"');
+    expect(html).toContain('aria-describedby="expedition-region-hint"');
+    expect(html).toContain('A expedição não inicia ao mudar a seleção.');
+    expect(html).toContain('aria-busy="true"');
+    expect(html).toContain('aria-disabled="true"');
+    expect(html).toContain('aria-live="off"');
+  });
+  it('D064BI: no teto 8h avisa resgate e não anuncia próximo ciclo inexistente',()=>{
+    const html=renderToStaticMarkup(<ExpeditionScreen {...base}
+      expedition={{startedAt:started,lastClaimAt:started,teamUids:[1]}}
+      nowMs={started+8*3_600_000} pending={{cycles:2880,coins:20160,trainerXp:11520,pokemonXpPerMember:14400}} />);
+    expect(html).toContain('Limite de 8 horas de recompensas atingido');
+    expect(html).not.toContain('Próximo ciclo em');
+    expect(html).not.toContain('aria-label="Progresso para o próximo ciclo"');
+    expect(html).toContain('08:00:00');
+  });
   it('próxima perda de afinidade usa última atividade e dias já cobrados',()=>{
     const D=86_400_000;
     expect(timeUntilAffinityLoss(started,started,0)).toBe(2*D);
