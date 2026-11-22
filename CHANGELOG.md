@@ -1,5 +1,10 @@
 # D-056 — melhorias no Pokémon
 
+## D-064BA — coortes de progressão dos três iniciais (21/11/2026)
+- Diagnóstico de 36 perfis NORMAIS, 3.456 batalhas, comparando os 3 iniciais e seis sequências independentes com ou sem 8 expedições de 15 minutos de tempo simulado. Mede primeiro Nv2, Nv6 do treinador/desbloqueio R2, Nv16, evolução manual real com UID estável, vitórias e cadência por fase; progresso exclusivamente por writer.
+- Não altera a IA, atributos, XP, regiões, recompensas ou animações. Relatório em `D064BA_STARTER_COHORT_REPORT`, detalhes em `docs/STARTER_PROGRESSION_COHORTS_D064BA.md`. CI/merge/deploy pendentes.
+
+
 ## D-064AZ — progresso inicial nível 1 sem bloqueio (21/11/2026; branch)
 - Após auditoria encontrar 0/72 vitórias para Bulbasaur e Squirtle e 1/72 para Charmander, a regra de onboarding garante +22 XP apenas ao Pokémon Nv1 por derrota ou empate, via writer/replay, interrompendo no Nv2. Quatro não-vitórias bastam para Lv2 e expedição regional, sem moedas/afinidade/XP de treinador, e sem alterar o combate ou a IA. UI da primeira região explica.
 - Nova auditoria `apps/web/tests/d064az-level1-writer-journey.test.ts`: 3 iniciais nível1, 72 encontros regionais por espécie (216 no total), XP/níveis/capturas e recibos reais do writer, desbloqueio de expedição no nível2 e guardrails para região e evolução prematuras.
