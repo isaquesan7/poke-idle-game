@@ -292,3 +292,9 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 ### ONLINE-01C-1 — proteção por banco e verificação antes do login (22/11/2026)
 - Tentativas de auth precisam usar PostgreSQL atômico compartilhado entre instâncias e digests HMAC de email/IP, jamais contadores somente em memória do Node nem armazenar IP/e-mail puro no throttle. Token de verificação é aleatório, expira em 24h e persiste apenas hash; deve ser consumido uma única vez antes de login. Em CI o token pode ser exposto ao teste automatizado; jamais em produção. Sem serviço de entrega integrado ainda.
 - Até email verification por provedor externo, backups/restauração, anti-abuso e criação autoritativa de progresso, registro/login seguem bloqueados por código em produção, e o frontend / permanece uma landing informativa. Não importar saves locais.
+
+
+### ONLINE-01C-2 — recuperação de senha, e-mail transacional e save novo
+- Reset gera token 32 bytes, persiste SHA-256, expira em 30min, é uso único e revoga sessões após trocar senha. Request é indistinguível para e-mails existentes/inexistentes; limites por IP/email.
+- Envio por adapter Resend configurável e desligado por padrão, sem chaves no repositório. Login/cadastro/reset na produção permanecem bloqueados até emails verificados, backups+restore, front de conta e persistência autoritativa.
+- Não importar nem migrar saves de localStorage. /play segue laboratório e / futura conta inicia progresso novo gerado no servidor.
