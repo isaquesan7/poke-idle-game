@@ -155,6 +155,12 @@ export function resolveGymTurn(
     }
     const active=state[side].fighters[state[side].activeIndex]!;
     if(active.hp<=0)continue;
+    // Paralisia: 25% de não agir, antes de gastar SP ou executar Concentrar.
+    // Recolher não é ataque: troca continua possível com as regras normais.
+    if(active.status==='paralysis'&&roll()<.25){
+      log.push(side+' ficou paralisado e perdeu a ação.');
+      continue;
+    }
     if(chosen.action.kind==='focus'){
       const before=active.sp;
       state=focusGymSp(state,side);
