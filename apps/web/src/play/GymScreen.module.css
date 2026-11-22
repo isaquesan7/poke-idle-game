@@ -117,39 +117,33 @@
 .reserveGroup:focus,.commands:focus{outline:2px solid var(--color-primary);
   outline-offset:3px;border-radius:var(--radius-card)}
 
-/* GYM-05: efeitos derivados apenas de diferenças de estado confirmadas.
-   Imagem GIF continua montada, sem alteração de src ou key. */
-.duelArt{position:relative}
-.cueLabel{position:absolute;right:0;top:0;z-index:2;
-  padding:var(--space-1) var(--space-2);
+
+/* GYM-06: o mesmo BattleStage / BattlePlayback regional e os tokens
+   visuais existentes; nenhum segundo conjunto de efeitos de combate. */
+.duelScene{display:block;position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 20%,var(--color-navbtn-active-background-1),transparent 72%),var(--color-surface-raised);
+  box-shadow:var(--shadow-pokemon-art),inset 0 1px 0 var(--color-border);
+  border-color:var(--color-hero-border-1)}
+.duelScene::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(135deg,transparent 44%,var(--color-navbtn-active-background-1) 50%,transparent 56%);
+  opacity:.55}
+.duelScene :global([data-testid="battle-stage"]){position:relative;z-index:1;width:100%}
+.duelPokemon{width:min(270px,100%);height:210px;max-width:100%;
+  object-fit:contain;filter:var(--shadow-pokemon-art)}
+.reserveCard{box-shadow:0 5px 20px rgba(0,0,0,.12);background:var(--color-surface-raised)}
+.reserveGroup>strong{color:var(--color-gold)}
+.benchIndicator{font-size:.7rem;line-height:1.4;color:var(--color-text-muted);
   border:1px solid var(--color-border);border-radius:var(--radius-pill);
-  background:var(--color-surface);color:var(--color-text);
-  font-size:.78rem;font-weight:900;pointer-events:none;
-  animation:gymCueLabel 850ms ease-out both}
-.cueHit .pokemonArt{animation:gymCueHit 420ms ease-in-out}
-.cueHeal .pokemonArt{animation:gymCueHeal 650ms ease-out}
-.cueCharge .pokemonArt{animation:gymCueCharge 650ms ease-out}
-.cueSwitch .pokemonArt{animation:gymCueSwitch 480ms ease-out}
-@keyframes gymCueHit{
-  0%,100%{transform:translateX(0);opacity:1}
-  25%{transform:translateX(-6px);opacity:.65}
-  55%{transform:translateX(5px);opacity:.9}
-}
-@keyframes gymCueHeal{
-  0%,100%{filter:brightness(1)}
-  45%{filter:brightness(1.65)}
-}
-@keyframes gymCueCharge{
-  0%,100%{transform:scale(1)}
-  50%{transform:scale(1.07)}
-}
-@keyframes gymCueSwitch{
-  0%{transform:scale(.82);opacity:.45}
-  100%{transform:scale(1);opacity:1}
-}
-@keyframes gymCueLabel{
-  0%{opacity:0;transform:translateY(8px)}
-  22%{opacity:1;transform:translateY(0)}
-  70%{opacity:1}
-  100%{opacity:0;transform:translateY(-10px)}
+  padding:var(--space-1) var(--space-2)}
+.commands{background:var(--color-surface-raised);
+  box-shadow:0 6px 24px rgba(0,0,0,.10)}
+.commandsHeader h4 i{color:var(--color-gold);margin-right:var(--space-1)}
+.commands .actions{display:flex;flex-wrap:wrap}
+.commands .actions button{flex:1 1 190px}
+.commands button i{margin-right:var(--space-2)}
+.history{padding:0;border:none;background:transparent}
+.history :global([aria-label="Diário de combate"]){margin:0}
+@media(max-width:680px){
+  .duelPokemon{height:130px;width:min(150px,100%)}
+  .duelScene{padding:var(--space-2)}
 }
