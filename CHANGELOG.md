@@ -770,3 +770,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - `initialAdventure.mjs` constrói perfil novo 1/4/7 lv1 só a partir de perfil autenticado + relógio do servidor. Endpoint test-only `POST /api/v1/adventure/start` aceita apenas starterId e grava save + receipt em transação PostgreSQL com unicidade por conta; dupla tentativa retorna 409 sem remuneração duplicada. Conta existente não pode sobrescrever save.
 - Testes unitários dos 3 iniciais, integração PG de rejeição de payload forjado e corrida de duas solicitações. Workflow executa `pg_dump` + `pg_restore` num segundo banco CI descartável para simular recuperação lógica, não se confunde com backup/restauração real do Railway.
 - Não habilita cadastro de produção, não conecta /play à API e não migra localStorage. Limite de nome API alinhado com /play em 24 caracteres.
+
+
+### ONLINE-01C-3 — release privado confirmado
+- PR #182 MERGED main 777af6f1. CI API PG18 45083221593 SUCCESS incluindo duas criações simultâneas 201/409 e pg_dump/pg_restore para banco de teste isolado; regressão Chromium /play 45083221565 SUCCESS. Railway API privada 758a3d5c-6e97-4906-a578-90b8935461df SUCCESS, migrações sem alterações, registro desabilitado.
+- Criação do save inicial agora possui função no backend, mas só no harness test. Nenhuma conta pública ou save local foi importado, /play permanece local. Backups/PITR/restauração reais do Railway continuam pendentes, assim como email transacional real e ações do jogo autoritativas.
