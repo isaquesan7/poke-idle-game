@@ -105,6 +105,13 @@ try{
     const confirmed=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
     assert.equal(confirmed.lastBattle.captureStatus,'available');
     const stockBefore=confirmed.ballPocket.quantities['poke-ball'];
+    const stageBounds=await page.getByTestId('battle-stage').boundingBox();
+    const captureSection=page.locator('[class*="battleCapturePlacement"]');
+    const captureBounds=await captureSection.boundingBox();
+    assert.ok(stageBounds&&captureBounds&&captureBounds.y>=stageBounds.y+stageBounds.height-2,
+      'A captura deve aparecer abaixo dos dois Pokémon, sem ficar dentro das recompensas');
+    assert.equal(await page.getByRole('region',{name:'Resultado da última batalha'})
+      .getByRole('combobox',{name:'Pokébola para captura após batalha'}).count(),0);
     await page.getByRole('combobox',{name:'Pokébola para captura após batalha'}).selectOption('poke-ball');
     await page.getByRole('button',{name:/Tentar capturar \(1 tentativa\)/}).click();
     await page.waitForFunction(k=>{
