@@ -7,7 +7,7 @@ import {
   legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
   kantoMoveSpCost,kantoMovePp,
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions,
-  KANTO_REGIONS,inspectKantoBallPocket
+  KANTO_REGIONS,inspectKantoBallPocket,xpThreshold
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame,KantoBallId } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
@@ -151,6 +151,9 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   /** Apenas reprodução: não faz parte do save do jogo. */
   const [battleReveal,setBattleReveal]=useState<{key:string;visible:number}|null>(null);
   const settlingBattle=useRef<string|null>(null);
+  const [levelUpNotice,setLevelUpNotice]=useState<{
+    battleId:string;name:string;from:number;to:number
+  }|null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -283,6 +286,12 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   const focused = data?.roster.find(p => p.uid === selectedUid) ?? active;
   const pokemonManual = manualValues(focused?.manual);
   const pokemonBudget = focused ? legacyPokemonManualBudget(focused.level) : 0;
+  // XP exibido é o saldo dentro do nível atual, não o total histórico.
+  const pokemonXpMax=focused&&focused.level<100?xpThreshold('pokemon',focused.level):null;
+  const pokemonXpCurrent=focused&&pokemonXpMax!==null
+    ?Math.min(pokemonXpMax,Math.max(0,focused.xp)):0;
+  const pokemonXpPercent=pokemonXpMax===null?100:Math.min(100,
+    pokemonXpCurrent/pokemonXpMax*100);
   const levelMoves=focused?kantoLevelMoves(focused.pokemonId,focused.level):[];
   const supportMoves=focused?kantoSupportMoves(focused.pokemonId,focused.level):[];
   const currentMoveName=typeof focused?.moveName==='string'?focused.moveName:'';
@@ -387,11 +396,26 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     settlingBattle.current=pendingBattle.battleId;
     const current=readSafe();
     if(current.status==='ready'){
+      const initialLevel=lastBattle?.playerLevel;
+      const initialUid=active?.uid;
       const result=await transact(()=>updatePlaySave(window.localStorage,
         current.snapshot.revision,{type:'finish-regional-battle',
           battleId:pendingBattle.battleId}));
-      if(result?.status==='ok')
+      if(result?.status==='ok'){
+        // O anúncio existe apenas no primeiro settlement, nunca em replay.
+        try{
+          const final=JSON.parse(result.snapshot.journal.raw) as {
+            roster?:{uid:number;level:number;pokemonId:number}[]
+          };
+          const currentPokemon=final.roster?.find(p=>p.uid===initialUid);
+          if(currentPokemon&&typeof initialLevel==='number'
+            &&currentPokemon.level>initialLevel)
+            setLevelUpNotice({battleId:pendingBattle.battleId,
+              name:speciesName(currentPokemon.pokemonId),from:initialLevel,
+              to:currentPokemon.level});
+        }catch{/* nenhuma animação inventada para save inesperado */}
         setBattlePlayback(previous=>previous?{...previous,done:true}:null);
+      }
     }
     settlingBattle.current=null;
   }
@@ -619,6 +643,21 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     <div className={styles.pokemonIdentity}>
                       <span className={styles.pokemonSpeciesNumber}># {String(focused.pokemonId).padStart(3,'0')} · UID {focused.uid}</span>
                       <h2>{speciesName(focused.pokemonId)}</h2>
+                      <div className={styles.pokemonExperience} data-testid="pokemon-xp">
+                        <div className={styles.pokemonExperienceHeader}>
+                          <strong><i className="fa-solid fa-bolt" aria-hidden="true"/> EXP · Nível {focused.level}</strong>
+                          <span>{pokemonXpMax===null?'Nível máximo':
+                            pokemonXpCurrent+' / '+pokemonXpMax+' XP'}</span>
+                        </div>
+                        <div className={styles.pokemonExperienceTrack} role="progressbar"
+                          aria-label={'Experiência do Pokémon UID '+focused.uid}
+                          aria-valuemin={0} aria-valuemax={pokemonXpMax??1}
+                          aria-valuenow={pokemonXpMax===null?1:pokemonXpCurrent}>
+                          <span style={{width:pokemonXpPercent+'%'}}/>
+                        </div>
+                        <small>{pokemonXpMax===null?'Seu Pokémon alcançou o nível 100.':
+                          'Faltam '+(pokemonXpMax-pokemonXpCurrent)+' XP para o nível '+(focused.level+1)+'.'}</small>
+                      </div>
                       <div className={styles.pokemonChips}>
                         <span><i className="fa-solid fa-star" aria-hidden="true"/> Nível {focused.level}</span>
                         <span><i className="fa-solid fa-shield-heart" aria-hidden="true"/> Afinidade {focused.affinity}%</span>
@@ -1065,6 +1104,18 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     playing={battlePlaying}
                   />
                 </section>
+                {levelUpNotice?.battleId===displayedBattleId&&!battlePlaying&&
+                  <div key={levelUpNotice.battleId} className={styles.battleLevelUp}
+                    role="status" aria-live="polite" data-testid="battle-level-up">
+                    <span className={styles.battleLevelUpIcon} aria-hidden="true">
+                      <i className="fa-solid fa-star"/>
+                    </span>
+                    <div>
+                      <strong>LEVEL UP!</strong>
+                      <span>{levelUpNotice.name} avançou do nível {levelUpNotice.from}
+                        {' '}para o nível {levelUpNotice.to}!</span>
+                    </div>
+                  </div>}
                 {lastBattle && (
                   <div className={styles.twoColumn}>
                     <section className={styles.panel+' '+styles.arenaResultPanel} aria-label="Resultado da última batalha">
