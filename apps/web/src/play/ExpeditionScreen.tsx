@@ -9,6 +9,7 @@ interface RegionOption {
   readonly name:string;
   readonly trainerUnlockLevel:number;
   readonly levelMin:number;
+  readonly levelMax?:number;
   readonly unlocked:boolean;
 }
 interface Expedition {
@@ -100,7 +101,7 @@ export function ExpeditionScreen({
       <div className={styles.regionYield} aria-label="Recompensas-base por ciclo nesta região">
         <strong><i className="fa-solid fa-chart-line" aria-hidden="true"/> Por ciclo de 10 segundos</strong>
         <span>{rates.coins} moedas · {rates.trainerXp} XP treinador · {rates.pokemonXp} XP Pokémon</span>
-        <small>Faixa ideal: até o nível {((options.find(r=>r.id===effectiveRegion)?.levelMin??2)+8)+2}.
+        <small>Faixa ideal: até o nível {(options.find(r=>r.id===effectiveRegion)?.levelMax??10)+2}.
           Com nível superior, o rendimento diminui até zerar. Afinidade somente em batalhas.</small>
         {levelFactor===0&&<small role="status" className={styles.warning}>
           Seu Pokémon está acima do limite de XP desta região.
