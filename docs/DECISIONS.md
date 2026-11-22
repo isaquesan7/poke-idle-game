@@ -298,3 +298,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - Reset gera token 32 bytes, persiste SHA-256, expira em 30min, é uso único e revoga sessões após trocar senha. Request é indistinguível para e-mails existentes/inexistentes; limites por IP/email.
 - Envio por adapter Resend configurável e desligado por padrão, sem chaves no repositório. Login/cadastro/reset na produção permanecem bloqueados até emails verificados, backups+restore, front de conta e persistência autoritativa.
 - Não importar nem migrar saves de localStorage. /play segue laboratório e / futura conta inicia progresso novo gerado no servidor.
+
+
+### ONLINE-01C-3 — origem autoritativa do save inicial
+- Somente backend autenticado cria o save inicial após confirmação do e-mail e escolha legal do starterId (1/4/7). Hora, nome, XP, dinheiro, nível, Pokébolas e insígnias vêm do perfil e da política do servidor, nunca de um JSON arbitrário nem do localStorage. Transação salva snapshot e recibo único juntos; concorrência nunca cria duas aventuras.
+- O save do laboratório /play não será migrado. A criação da aventura segue indisponível em produção até conta pública, backup de Railway e ações server-side seguras. Teste de restore no CI em banco descartável não substitui restauração operacional do volume em produção.
