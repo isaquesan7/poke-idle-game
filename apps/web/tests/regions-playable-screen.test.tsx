@@ -7,7 +7,6 @@ const props={
   trainerLevel:21,leaderSpeciesId:1,leaderLevel:20,
   selectedRegionId:4,onSelectRegion:(_id:number)=>{},
   balls:{'poke-ball':12,'great-ball':1,'ultra-ball':0},
-  selectedBall:'poke-ball' as const,onSelectBall:(_ball:'poke-ball'|'great-ball'|'ultra-ball'|'master-ball'|null)=>{},
   wins:[2,3,0,7,0,0,0,0,0,0],seenIds:[1,60,79],capturedIds:[1,60],
   busy:false,onFight:(_id:number)=>{},onOpenTeam:()=>{}
 };
@@ -20,7 +19,8 @@ describe('D-064AI — tela de exploração integrada ao perfil',()=>{
     expect(markup).toContain('Batalhar em Lagos Serenos');
     expect(markup).toContain('7');
     expect(markup).toContain('Poké Ball');
-    expect(markup).toContain('12 disponível(is)');
+    expect(markup).toContain('Pokébolas disponíveis');
+    expect(markup).toContain('<b>12</b>');
     expect(markup).toContain('Desconhecido');
   });
   it('região bloqueada não permite batalha mas permanece consultável',()=>{
@@ -32,8 +32,8 @@ describe('D-064AI — tela de exploração integrada ao perfil',()=>{
   });
   it('permite lutar sem bola quando estoque está vazio',()=>{
     const html=renderToStaticMarkup(<RegionsScreen {...props}
-      selectedBall={null} balls={{'poke-ball':0}} />);
-    expect(html).toContain('Não tentar capturar');
+      balls={{'poke-ball':0}} />);
+    expect(html).toContain('Após vencer você poderá escolher uma Pokébola');
     expect(html).toContain('Batalhar em Lagos Serenos');
   });
 });
