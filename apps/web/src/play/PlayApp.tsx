@@ -447,9 +447,11 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         Math.max(0,100000-(ballQuantities['ultra-ball']??0)))
     }
   }:pending;
-  const pendingStockLimitReached=Boolean(pending?.ballDrops&&pendingClaim?.ballDrops&&
-    (['poke-ball','great-ball','ultra-ball'] as const).some(id=>
-      pending.ballDrops![id]>pendingClaim.ballDrops![id]));
+  const pendingStockLimitReached=Boolean(pending?.ballDrops&&pendingClaim?.ballDrops&&(
+    pending.ballDrops['poke-ball']>pendingClaim.ballDrops['poke-ball']||
+    pending.ballDrops['great-ball']>pendingClaim.ballDrops['great-ball']||
+    pending.ballDrops['ultra-ball']>pendingClaim.ballDrops['ultra-ball']
+  ));
   const pendingBattle=ballGame?.pendingBattle && typeof ballGame.pendingBattle==='object'
     ? ballGame.pendingBattle as {battleId:string;preview:unknown}:null;
   // Em um reload, retomar apresentação pendente antes de pagar resultados.
