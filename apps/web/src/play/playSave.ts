@@ -465,9 +465,11 @@ function postBattleCapture(journal:RewardJournal,battleId:string,ballId:KantoBal
   if(outcome.captured){
     if(!Number.isSafeInteger(game.nextUid+1))
       return {status:'blocked',reason:'UID esgotado.'};
+    const captureLevel=kantoCaptureStartingLevel(species.id);
+    const initialMove=kantoWildMoveLoadout(species.id,captureLevel,species.move)[0];
     game.roster.push({
-      uid:game.nextUid,pokemonId:species.id,level:kantoCaptureStartingLevel(species.id),xp:0,
-      manual:zeroStats(),affinity:0,moveName:species.move.name,upgrades:{},
+      uid:game.nextUid,pokemonId:species.id,level:captureLevel,xp:0,
+      manual:zeroStats(),affinity:0,moveName:initialMove?.name??species.move.name,upgrades:{},
       battleRecord:{wins:0,draws:0,losses:0}
     });
     game.nextUid++;
