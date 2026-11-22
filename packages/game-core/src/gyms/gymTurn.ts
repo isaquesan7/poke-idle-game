@@ -18,6 +18,8 @@ import {kantoMoveSpCost,KANTO_BASIC_ATTACK,KANTO_SP_BALANCE} from '../combat/kan
 import {applyGymDamage,applyGymResidual,spendGymSp,switchGymPokemon,healGymHp,focusGymSp} from './gymBattleState.js';
 import type {GymBattleState,GymSide,GymFighterState} from './gymBattleState.js';
 
+export const GYM_MAX_TURNS=120;
+
 export type GymTurnAction=
   | {readonly kind:'switch';readonly toIndex:number}
   | {readonly kind:'basic'}
@@ -75,6 +77,31 @@ function validateAction(
   }
   return {action,move,priority:move.priority};
 }
+/** Catálogo de ações efetivamente executáveis. Serve AO MESMO TEMPO
+ * aos botões do jogador e à IA; nenhuma decisão pode contornar quotas.
+ * Se qualquer ativo caiu, só há substituição obrigatória (ou aguardar).
+ */
+export function gymLegalTurnActions(
+  state:GymBattleState,side:GymSide
+):readonly GymTurnAction[]{
+  if(state.outcome!=='ongoing')return [];
+  if(state.player.needsReplacement||state.leader.needsReplacement){
+    if(!state[side].needsReplacement)return [{kind:'basic'}];
+    return state[side].fighters.flatMap((f,i)=>
+      f.hp>0&&i!==state[side].activeIndex
+        ?[{kind:'switch' as const,toIndex:i}]:[]);
+  }
+  const actor=state[side].fighters[state[side].activeIndex]!;
+  const candidates:GymTurnAction[]=[
+    {kind:'basic'}, {kind:'focus'},
+    ...(actor.combatant.moves??[actor.combatant.move]).map(move=>({
+      kind:'move' as const,moveName:move.name
+    })),
+    ...state[side].fighters.map((_,i)=>({kind:'switch' as const,toIndex:i}))
+  ];
+  return candidates.filter(action=>validateAction(state,side,action)!==null);
+}
+
 function combatantUsing(fighter:GymFighterState,move:KantoMove):Combatant{
   const {moves:_unused,...actor}=fighter.combatant;
   return {...actor,move,
@@ -323,5 +350,12 @@ export function resolveGymTurn(
       if(state.outcome==='draw')log.push('Empate: ambos os times desmaiaram.');
     }
   }
-  return {status:'applied',state:{...state,turn:state.turn+1},log,seedAfter:current};
+  const finished={...state,turn:state.turn+1};
+  // Empate técnico igual para jogador e líder. Sem bônus por HP restante
+  // e sem concessão de insígnias em combate sem vencedor.
+  if(finished.turn>=GYM_MAX_TURNS&&finished.outcome==='ongoing'){
+    log.push('Empate técnico: limite de '+GYM_MAX_TURNS+' rodadas.');
+    return {status:'applied',state:{...finished,outcome:'draw'},log,seedAfter:current};
+  }
+  return {status:'applied',state:finished,log,seedAfter:current};
 }
