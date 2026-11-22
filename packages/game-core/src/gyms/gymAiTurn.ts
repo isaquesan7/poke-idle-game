@@ -7,6 +7,7 @@ import type {GymBattleState,GymSide} from './gymBattleState.js';
 import type {GymTurnAction,GymTurnResult} from './gymTurn.js';
 import {gymLegalTurnActions,resolveGymTurn} from './gymTurn.js';
 import {gymAiDecision} from './gymTactics.js';
+import {kantoTypeMultiplier} from '../combat/kantoBattle.js';
 
 function isLegal(action:GymTurnAction,legal:readonly GymTurnAction[]):boolean{
   return legal.some(candidate=>
@@ -60,7 +61,26 @@ export function gymChooseAiAction(
     bench,consecutiveSwitches:bench.length?0:1,
     allowConcentrate:legal.some(a=>a.kind==='focus')
   });
-  const action:GymTurnAction=proposed.action==='concentrate'
+  // Troca defensiva: quando o ativo corre risco de KO, avalia reserva
+  // CONSCIENTE com HP alto e menor vulnerabilidade ao golpe atualmente
+  // conhecido do adversário. Sem prever RNG, HP futuro ou golpes ocultos.
+  // Mesma regra para o treinador e para o líder; switch consome ação.
+  const hpRatio=actor.hp/actor.combatant.stats.hp;
+  const incomingType=enemy.combatant.move.type;
+  const currentWeakness=kantoTypeMultiplier(incomingType,actor.combatant.types);
+  const defensive=party.voluntarySwitchesUsed<3&&hpRatio<=.3
+    ?bench.filter(item=>item.hp/item.combatant.stats.hp>=.65)
+      .map(item=>({
+        ...item,
+        weakness:kantoTypeMultiplier(incomingType,item.combatant.types)
+      }))
+      .filter(item=>item.weakness<currentWeakness)
+      .sort((a,b)=>a.weakness-b.weakness
+        ||b.hp/b.combatant.stats.hp-a.hp/a.combatant.stats.hp
+        ||a.index-b.index)[0]
+    :undefined;
+  const action:GymTurnAction=defensive?{kind:'switch',toIndex:defensive.index}
+    :proposed.action==='concentrate'
     ?{kind:'focus'}
     :proposed.action==='move'
       ?{kind:'move',moveName:proposed.moveName}
