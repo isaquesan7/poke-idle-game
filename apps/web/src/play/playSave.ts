@@ -50,6 +50,8 @@ export type PlayAction =
   | { readonly type:'finish-regional-battle'; readonly battleId:string }
   | { readonly type:'capture-after-battle'; readonly battleId:string; readonly ballId:KantoBallId; readonly nowMs?:number }
   | { readonly type:'skip-capture'; readonly battleId:string }
+  | { readonly type:'buy-ball';readonly purchaseId:string;
+      readonly ballId:string;readonly quantity:number }
   | { readonly type: 'evolution'; readonly uid:number; readonly targetSpeciesId:number }
   | { readonly type: 'evolution-test-kit' }
   | { readonly type: 'move'; readonly uid:number; readonly moveName:string;
@@ -591,6 +593,18 @@ export function updatePlaySave(
       : reduceLegacyPokemonTeamJson(journal.raw, action.value);
     if (result.status !== 'ok') return { status: 'blocked', reason: result.reason };
     next = { ...journal, raw: result.json };
+  } else if(action.type==='buy-ball'){
+    // Um único evento Journal cobre BOTH moedas e estoque, com recibo único.
+    // action não aceita preço, moedas, revisão do recibo nem status inventado.
+    const result=applyRewardEvent(journal,{
+      type:'shop-purchase',id:action.purchaseId,
+      expectedRevision:journal.revision,
+      ballId:action.ballId,quantity:action.quantity
+    });
+    if(result.status!=='applied')
+      return{status:'blocked',reason:result.status==='rejected'
+        ?result.reason:'Compra já processada; nenhuma cobrança adicional.'};
+    next=result.journal;
   } else if (action.type === 'trainer-invest-batch') {
     // D-050: a prévia nunca grava. Validamos TODO o lote contra o snapshot
     // atual e fazemos apenas um commit/revision. Falha = nenhum ponto aplicado.
