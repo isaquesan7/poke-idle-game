@@ -5,7 +5,7 @@
  * O catálogo de suporte, drenagem, efeitos secundários, Concentrar e duração
  * de condições exigem o próximo recorte antes dos Ginásios jogáveis.
  */
-import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
+import type {Combatant,KantoMove,KantoBattleVisualFrame} from '../combat/kantoBattle.js';
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
@@ -28,10 +28,45 @@ export type GymTurnAction=
 
 export type GymTurnResult=
   | {readonly status:'applied';readonly state:GymBattleState;
-      readonly log:readonly string[];readonly seedAfter:number}
+      readonly log:readonly string[];readonly frames:readonly KantoBattleVisualFrame[];
+      readonly seedAfter:number}
   | {readonly status:'blocked';readonly state:GymBattleState;readonly reason:string};
 
 const other=(side:GymSide):GymSide=>side==='player'?'leader':'player';
+/** O mesmo contrato de frames usado pelo BattleStage regional.
+ * Cada quadro corresponde a UMA linha do log, derivado de estados
+ * já resolvidos pelo core (sem rolls ou efeitos adicionais).
+ */
+function gymLogFrame(
+  before:GymBattleState,after:GymBattleState,line:string,
+  override:Partial<KantoBattleVisualFrame>={}
+):KantoBattleVisualFrame{
+  const previous=(side:GymSide)=>before[side].fighters[before[side].activeIndex]!;
+  const next=(side:GymSide)=>after[side].fighters[after[side].activeIndex]!;
+  const changed=(side:GymSide)=>before[side].activeIndex===after[side].activeIndex;
+  const pLost=changed('player')?Math.max(0,previous('player').hp-next('player').hp):0;
+  const lLost=changed('leader')?Math.max(0,previous('leader').hp-next('leader').hp):0;
+  const pGain=changed('player')?Math.max(0,next('player').hp-previous('player').hp):0;
+  const lGain=changed('leader')?Math.max(0,next('leader').hp-previous('leader').hp):0;
+  const pSp=changed('player')?Math.max(0,next('player').sp-previous('player').sp):0;
+  const lSp=changed('leader')?Math.max(0,next('leader').sp-previous('leader').sp):0;
+  const target=pLost?'player':lLost?'wild':pGain?'player':lGain?'wild':
+    pSp?'player':lSp?'wild':null;
+  const amount=pLost||lLost||pGain||lGain;
+  const kind=pLost||lLost?line.includes('residual')?'residual':'attack':
+    pGain||lGain?'heal':pSp||lSp?'focus':
+      line.includes('errou')?'miss':
+        line.includes('recebeu')||line.includes('confuso')
+          ||line.includes('paralisado')?'status':'info';
+  return {
+    playerHp:next('player').hp,wildHp:next('leader').hp,
+    playerSp:next('player').sp,wildSp:next('leader').sp,
+    kind,target,amount,
+    spRecovery:pSp||lSp,
+    ...override
+  };
+}
+
 const failure=(state:GymBattleState,reason:string):GymTurnResult=>
   ({status:'blocked',state,reason});
 type Validated={readonly action:GymTurnAction;readonly move:KantoMove|null;
@@ -136,6 +171,11 @@ export function resolveGymTurn(
       return failure(input,'Durante substituição obrigatória o oponente aguarda.');
     let state=input;
     const log:string[]=[];
+    const frames:KantoBattleVisualFrame[]=[];
+    let observed=input;
+    const record=(line:string,meta:Partial<KantoBattleVisualFrame>={})=>{
+      log.push(line);frames.push(gymLogFrame(observed,state,line,meta));observed=state;
+    };
     for(const side of ['player','leader'] as const){
       if(!state[side].needsReplacement)continue;
       const action=side==='player'?playerAction:leaderAction;
@@ -143,9 +183,9 @@ export function resolveGymTurn(
       const result=switchGymPokemon(state,side,action.toIndex);
       if(result.status!=='applied')return failure(input,result.reason);
       state=result.state;
-      log.push(side+' substituiu após KO, sem restaurar HP ou SP.');
+      record(side+' substituiu após KO, sem restaurar HP ou SP.');
     }
-    return {status:'applied',state,log,seedAfter:seed>>>0};
+    return {status:'applied',state,log,frames,seedAfter:seed>>>0};
   }
   let current=seed>>>0;
   const roll=()=>{
@@ -167,6 +207,11 @@ export function resolveGymTurn(
       :roll()<.5?'player':'leader';
   let state=input;
   const log:string[]=[];
+  const frames:KantoBattleVisualFrame[]=[];
+  let observed=input;
+  const record=(line:string,meta:Partial<KantoBattleVisualFrame>={})=>{
+    log.push(line);frames.push(gymLogFrame(observed,state,line,meta));observed=state;
+  };
   for(const side of [first,other(first)]){
     if(state.outcome!=='ongoing')break;
     // Depois de KO, o derrotado perde sua ação pendente nesta rodada.
@@ -176,7 +221,7 @@ export function resolveGymTurn(
       const changed=switchGymPokemon(state,side,chosen.action.toIndex);
       if(changed.status!=='applied')return failure(input,changed.reason);
       state=changed.state;
-      log.push(side+' trocou Pokémon (ação consumida), +'+changed.recoveredSp+
+      record(side+' trocou Pokémon (ação consumida), +'+changed.recoveredSp+
         ' SP no recolhido; HP preservado.');
       continue;
     }
@@ -186,15 +231,15 @@ export function resolveGymTurn(
     if(active.status==='sleep'){
       state=gymTickSleep(state,side);
       if((active.sleepActions??0)>0){
-        log.push(side+' está dormindo e perdeu a ação.');
+        record(side+' está dormindo e perdeu a ação.');
         continue;
       }
-      log.push(side+' acordou.');
+      record(side+' acordou.');
     }
     // Paralisia: 25% de não agir, antes de gastar SP ou executar Concentrar.
     // Recolher não é ataque: troca continua possível com as regras normais.
     if(active.status==='paralysis'&&roll()<.25){
-      log.push(side+' ficou paralisado e perdeu a ação.');
+      record(side+' ficou paralisado e perdeu a ação.');
       continue;
     }
     if((active.confusionTurns??0)>0){
@@ -209,14 +254,14 @@ export function resolveGymTurn(
           defense:gymDamageStat(active.combatant.stats.defense,drops.defenseDrops)
         });
         state=applyGymDamage(state,side,damage);
-        log.push(side+' se feriu na confusão: '+damage+' HP.');
+        record(side+' se feriu na confusão: '+damage+' HP.');
         continue;
       }
     }
     if(chosen.action.kind==='focus'){
       const before=active.sp;
       state=focusGymSp(state,side);
-      log.push(side+' usou Concentrar e recuperou '+
+      record(side+' usou Concentrar e recuperou '+
         (state[side].fighters[state[side].activeIndex]!.sp-before)+' SP.');
       continue;
     }
@@ -227,7 +272,7 @@ export function resolveGymTurn(
     const cost=kantoMoveSpCost(move);
     state=spendGymSp(state,side,cost);
     if(roll()*100>=move.accuracy){
-      log.push(side+' errou '+move.name+' (-'+cost+' SP).');
+      record(side+' errou '+move.name+' (-'+cost+' SP).');
       continue;
     }
     if(move.category==='status'){
@@ -236,21 +281,21 @@ export function resolveGymTurn(
       if(support.kind==='heal'){
         const healing=Math.max(1,Math.floor(active.combatant.stats.hp*.5));
         state=healGymHp(state,side,healing);
-        log.push(side+' usou '+move.name+' e recuperou HP (-'+cost+' SP).');
+        record(side+' usou '+move.name+' e recuperou HP (-'+cost+' SP).');
       }else if(kantoTypeMultiplier(move.type,target.combatant.types)===0){
-        log.push(side+' usou '+move.name+', mas o alvo é imune.');
+        record(side+' usou '+move.name+', mas o alvo é imune.');
       }else if(support.kind==='status'){
         const previous=state[defendingSide].fighters[state[defendingSide].activeIndex]!.status;
         if(support.status==='sleep'){
           if(previous===null)state=gymApplySleep(state,defendingSide,1+Math.floor(roll()*3));
         }else state=gymApplyStatus(state,defendingSide,support.status);
-        log.push(side+' usou '+move.name+(previous===null&&
+        record(side+' usou '+move.name+(previous===null&&
           state[defendingSide].fighters[state[defendingSide].activeIndex]!.status!==null
           ?' e aplicou '+support.status:': sem efeito')+'.');
       }else{
         state=gymDropStat(state,defendingSide,
           support.kind==='lower-attack'?'attackDrops':'defenseDrops');
-        log.push(side+' usou '+move.name+' e reduziu '+support.kind+'.');
+        record(side+' usou '+move.name+' e reduziu '+support.kind+'.');
       }
       continue;
     }
@@ -271,8 +316,11 @@ export function resolveGymTurn(
       const damage=kantoDamage(attacker,defender,roll(),roll(),
         active.status==='burn'&&move.category==='physical'?.5:1);
       state=applyGymDamage(state,defendingSide,damage.damage);
-      log.push(side+' usou '+move.name+' ('+hit+'/'+hits+'), causando '+
-        damage.damage+' de dano'+(hit===1?' (-'+cost+' SP)':'')+'.');
+      record(side+' usou '+move.name+' ('+hit+'/'+hits+'), causando '+
+        damage.damage+' de dano'+(hit===1?' (-'+cost+' SP)':'')+'.',{
+          moveName:move.name,moveType:move.type,critical:damage.critical,
+          effectiveness:damage.effectiveness,hitIndex:hit,hitTotal:hits
+        });
       // Twineedle: veneno é testado EM CADA impacto efetivo, com uma
       // precisão e um pagamento de SP por ação. Após KO não há efeito.
       const afterTarget=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
@@ -283,13 +331,13 @@ export function resolveGymTurn(
         state=gymApplyStatus(state,defendingSide,onHit.status);
         if(state[defendingSide].fighters[state[defendingSide].activeIndex]!.status
           ===onHit.status)
-          log.push(defendingSide+' recebeu '+onHit.status+
+          record(defendingSide+' recebeu '+onHit.status+
             ' pelo impacto '+hit+'/'+hits+' de '+move.name+'.');
       }
       if(damage.damage===0)break;
     }
     if(state[defendingSide].needsReplacement){
-      log.push(defendingSide+' sofreu KO: aguarda substituição grátis.');
+      record(defendingSide+' sofreu KO: aguarda substituição grátis.');
     }else if(state.outcome==='ongoing'){
       const effect=kantoMoveSecondaryEffect(move.name);
       if(effect?.kind==='drain'){
@@ -301,27 +349,27 @@ export function resolveGymTurn(
           Math.max(0,Math.floor(inflicted*effect.percent/100)));
         if(restored>0){
           state=healGymHp(state,side,restored);
-          log.push(side+' drenou '+restored+' HP com '+move.name+'.');
+          record(side+' drenou '+restored+' HP com '+move.name+'.');
         }
       }else if(effect?.kind==='status'&&roll()*100<effect.chance){
         const old=state[defendingSide].fighters[state[defendingSide].activeIndex]!.status;
         state=gymApplyStatus(state,defendingSide,effect.status);
         if(old===null&&state[defendingSide].fighters[
           state[defendingSide].activeIndex]!.status!==null)
-          log.push(defendingSide+' recebeu '+effect.status+' de '+move.name+'.');
+          record(defendingSide+' recebeu '+effect.status+' de '+move.name+'.');
       }else if(effect?.kind==='speed-drop'&&roll()*100<effect.chance){
         state=gymDropStat(state,defendingSide,'speedDrops');
-        log.push(defendingSide+' perdeu velocidade.');
+        record(defendingSide+' perdeu velocidade.');
       }
       const psychic=gymPsychicSecondary(move.name);
       if(psychic&&roll()*100<psychic.chance){
         if(psychic.kind==='confusion'){
           const duration=2+Math.floor(roll()*4);
           state=gymApplyConfusion(state,defendingSide,duration);
-          log.push(defendingSide+' ficou confuso por '+duration+' ações.');
+          record(defendingSide+' ficou confuso por '+duration+' ações.');
         }else{
           state=gymDropStat(state,defendingSide,'specialDefenseDrops');
-          log.push(defendingSide+' perdeu Special Defense.');
+          record(defendingSide+' perdeu Special Defense.');
         }
       }
     }
@@ -341,21 +389,21 @@ export function resolveGymTurn(
       for(const side of ['player','leader'] as const){
         if(amounts[side]>0){
           const hp=state[side].fighters[state[side].activeIndex]!.hp;
-          log.push(side+' sofreu '+Math.min(hp,amounts[side])+
+          record(side+' sofreu '+Math.min(hp,amounts[side])+
             ' dano residual ('+
             state[side].fighters[state[side].activeIndex]!.status+').');
         }
       }
       state=applyGymResidual(state,amounts);
-      if(state.outcome==='draw')log.push('Empate: ambos os times desmaiaram.');
+      if(state.outcome==='draw')record('Empate: ambos os times desmaiaram.');
     }
   }
   const finished={...state,turn:state.turn+1};
   // Empate técnico igual para jogador e líder. Sem bônus por HP restante
   // e sem concessão de insígnias em combate sem vencedor.
   if(finished.turn>=GYM_MAX_TURNS&&finished.outcome==='ongoing'){
-    log.push('Empate técnico: limite de '+GYM_MAX_TURNS+' rodadas.');
-    return {status:'applied',state:{...finished,outcome:'draw'},log,seedAfter:current};
+    record('Empate técnico: limite de '+GYM_MAX_TURNS+' rodadas.');
+    return {status:'applied',state:{...finished,outcome:'draw'},log,frames,seedAfter:current};
   }
-  return {status:'applied',state:finished,log,seedAfter:current};
+  return {status:'applied',state:finished,log,frames,seedAfter:current};
 }
