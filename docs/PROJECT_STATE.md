@@ -1284,3 +1284,11 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Railway production deploy `a924d03f-f0c6-42c3-975f-b5ff590b5aba` **SUCCESS** no SHA exato `96ab141287c46bbd48c15674c25df52864430b9d`. O push documental do registro pode gerar deploy posterior sem mudanças funcionais, verificar estado atual se necessário.
 - `ExpeditionScreen.tsx` e CSS module integrados: interface Kanto Dark, ícones, região/partner, estatísticas, cronômetro de **tempo total** `HH:MM:SS` ligado a `expedition.startedAt`, que não zera em claim/reload e passa de 24h, próximo ciclo com barra, XP/moedas até 8h por resgate mantidos. `expeditionDisplay.ts` com funções puras e teste SSR. O perfil individual também mostra contagem até próxima perda de afinidade sem mudar regras.
 - **Próxima D064BI:** acessibilidade real com teclado/leitor de tela, validação de legibilidade da expedição em tela pequena e auditoria de nuances de comportamento offline, sem alterar economia/IA ou save.
+
+## D064BI — acessibilidade e legibilidade mobile da Expedição (22/11/2026; PR)
+- Branch `feat/d064bi-expedition-accessibility-mobile` baseada na main após D064BH. **Não publicar sem gates de CI/merge/deploy.**
+- `ExpeditionScreen.tsx`: painéis identificados por `aria-labelledby`, seletor regional com dica `aria-describedby`, ações agrupadas/disabled com `aria-disabled`, painel com `aria-busy`; timer e próxima atualização configurados com `aria-live=off` para não interromper leitor de tela a cada segundo; barra inclui `aria-valuetext`.
+- Após **8h sem resgatar**, a Expedição deixa de anunciar um ciclo falso, substituindo a barra de progresso e o contador por aviso para resgatar. O total HH:MM:SS continua avançando; não há mudança no motor de economia, no teto de 8h nem no save.
+- CSS com foco teclado mais nítido, toque facilitado e tratamento de largura extra compacta, somente tokens já existentes.
+- Testes SSR `d064bh-expedition-display.test.tsx` cobrem semântica e limite; `playable-route.mjs` valida foco Tab, timer não anunciado repetidamente e painel sem overflow em tela mobile. Preservar replays, capturas, afinidade e TM09.
+- **Próxima:** CI full TypeScript/Vitest/E2E Chromium desktop/mobile/Docker; corrigir falhas antes do merge e confirmar Railway SHA. Após publicação, D064BJ pode revisar navegação por teclado no resto do jogo.
