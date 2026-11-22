@@ -664,3 +664,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - `gymTactics.ts` passa a preparar legalmente Kadabra e Alakazam, liberando a montagem dos oito elencos planejados; não altera catálogo dos combates regionais.
 - `gymEffects.ts` guarda `confusionTurns` por Pokémon, com duração de 2–5 ações próprias, pausa na reserva e 50% de chance de autoacerto; `GymEffects` passa a contemplar Special Defense.
 - `gymTurn.ts` aplica efeitos após acerto e usa o modificador de Sp.Def no dano especial. Testes `gym02c2b-psychic-sabrina.test.ts`; CI, merge e Railway pendentes.
+
+
+## GYM-02C2c — sono, Twineedle e duplo KO residual (22/11/2026; EM PR)
+- `GymFighterState.sleepActions` guarda sono por instância (1–3 ações próprias), respeitando recolhimento; `gymApplySleep/gymTickSleep` e motor de turnos resolvem sono sem custo de SP ao perder a ação.
+- Twineedle não é mais bloqueado no motor de Ginásios: precisão/SP uma vez por ação; poison 20% após cada hit com dano real, interrompendo após KO.
+- `applyGymResidual` aplica dano residual dos dois ativos de forma atômica, com resultado `draw` quando ambas as equipes completas desmaiam juntas; substituição forçada simétrica quando ambos têm reservas.
+- Vitest dedicado `gym02c2c-sleep-twineedle-residual.test.ts` inclui sono/trocas, poison por hit, empates e 12 duelos 3×3 completos; teste anterior de sono atualizado. Regiões, expeditions, recompensas, writer e UI inalterados. CI/merge/deploy a verificar.

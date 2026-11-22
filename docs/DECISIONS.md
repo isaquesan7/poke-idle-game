@@ -250,3 +250,7 @@ Manter condições e quedas de atributos no Pokémon e não no índice ativo; a 
 
 ### GYM-02C2b2 — psíquicos estritamente por snapshot FRLG (22/11/2026; EM PR)
 Não habilitar genericamente golpes com efeitos ainda não executáveis no motor regional; para Ginásios, adaptar apenas Confusion/Psybeam/Psychic de nível FireRed/LeafGreen, confirmando IDs 77/73 e chances de 10% do snapshot antes de executar. Confusão guarda duração por Pokémon e persiste na reserva, sem restaurar HP; autodano substitui ação com 50% de chance. Redução de Special Defense limitada a seis estágios. Sabrina fica com elenco legal, mas ainda não jogável até IA, estados restantes e writer/UI.
+
+
+### GYM-02C2c — duração de sono e empate residual sem privilégio (22/11/2026; EM PR)
+Duração de sono = 1–3 ações próprias como no motor regional, preservada em reserva; Twineedle = 2 hits com 20% de poison testado individualmente por impacto efetivo, cobrando uma vez SP/precisão. A resolução do residual é atômica para não favorecer a ordem dos lados: se os últimos membros caírem juntos, resultado `draw`, sem vencedor nem pagamento; se existem reservas, ambos devem substituir sem gastar ação e sem recarga de HP/SP. Limites da GYM-02B permanecem. Não ativar novas recompensas no core até writer GYM-03.

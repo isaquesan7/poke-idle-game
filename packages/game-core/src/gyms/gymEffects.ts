@@ -96,3 +96,28 @@ export function gymConfusionSelfDamage(
   return Math.max(1,Math.floor(
     ((2*stats.level/5+2)*40*stats.attack/Math.max(1,stats.defense))/50+2));
 }
+
+/** Sono do motor Kanto: 1 a 3 AÇÕES próprias perdidas, preservadas ao
+ * recolher Pokémon. O alvo acorda antes da próxima ação após chegar a zero.
+ * Um status principal já existente não pode ser sobrescrito por sono.
+ */
+export function gymApplySleep(
+  state:GymBattleState,side:GymSide,actions:number
+):GymBattleState{
+  if(!Number.isSafeInteger(actions)||actions<1||actions>3)
+    throw new RangeError('Duração de sono inválida.');
+  const actor=state[side].fighters[state[side].activeIndex]!;
+  // Não gerar sequer uma cópia de estado quando o status já está ocupado.
+  if(actor.status!==null)return state;
+  return gymReplaceFighter(state,side,old=>({
+    ...old,status:'sleep',sleepActions:actions
+  }));
+}
+export function gymTickSleep(state:GymBattleState,side:GymSide):GymBattleState{
+  return gymReplaceFighter(state,side,old=>{
+    if(old.status!=='sleep')return old;
+    const remaining=old.sleepActions??0;
+    return remaining>0?{...old,sleepActions:remaining-1}:
+      {...old,status:null,sleepActions:0};
+  });
+}

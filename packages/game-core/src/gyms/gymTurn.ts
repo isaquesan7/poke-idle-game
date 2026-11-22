@@ -8,13 +8,14 @@
 import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
-  gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage} from './gymEffects.js';
+  gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
+  gymApplySleep,gymTickSleep} from './gymEffects.js';
 import {gymPsychicSecondary} from './gymPsychicMoves.js';
 import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
 import {kantoRollHitCount} from '../combat/kantoMultiHit.js';
 import {kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import {kantoMoveSpCost,KANTO_BASIC_ATTACK,KANTO_SP_BALANCE} from '../combat/kantoSkillEnergy.js';
-import {applyGymDamage,spendGymSp,switchGymPokemon,healGymHp,focusGymSp} from './gymBattleState.js';
+import {applyGymDamage,applyGymResidual,spendGymSp,switchGymPokemon,healGymHp,focusGymSp} from './gymBattleState.js';
 import type {GymBattleState,GymSide,GymFighterState} from './gymBattleState.js';
 
 export type GymTurnAction=
@@ -66,15 +67,12 @@ function validateAction(
   const move=(active.combatant.moves??[active.combatant.move])
     .find(m=>m.name===action.moveName);
   if(!move||move.name===KANTO_BASIC_ATTACK.name
-    ||kantoPerHitSecondaryEffect(move.name)!==null
     ||kantoMoveSpCost(move)>active.sp)return null;
   if(move.category==='status'){
     const support=kantoSupportEffect(move.name);
-    if(!support||support.kind==='status'&&support.status==='sleep')return null;
+    if(!support)return null;
     if(support.kind==='heal'&&active.hp===active.combatant.stats.hp)return null;
   }
-  const effect=kantoMoveSecondaryEffect(move.name);
-  if(effect?.kind==='status'&&effect.status==='sleep')return null;
   return {action,move,priority:move.priority};
 }
 function combatantUsing(fighter:GymFighterState,move:KantoMove):Combatant{
@@ -157,6 +155,15 @@ export function resolveGymTurn(
     }
     const active=state[side].fighters[state[side].activeIndex]!;
     if(active.hp<=0)continue;
+    // Sono: 1–3 ações próprias; recolhimento congela a duração.
+    if(active.status==='sleep'){
+      state=gymTickSleep(state,side);
+      if((active.sleepActions??0)>0){
+        log.push(side+' está dormindo e perdeu a ação.');
+        continue;
+      }
+      log.push(side+' acordou.');
+    }
     // Paralisia: 25% de não agir, antes de gastar SP ou executar Concentrar.
     // Recolher não é ataque: troca continua possível com as regras normais.
     if(active.status==='paralysis'&&roll()<.25){
@@ -207,7 +214,9 @@ export function resolveGymTurn(
         log.push(side+' usou '+move.name+', mas o alvo é imune.');
       }else if(support.kind==='status'){
         const previous=state[defendingSide].fighters[state[defendingSide].activeIndex]!.status;
-        state=gymApplyStatus(state,defendingSide,support.status);
+        if(support.status==='sleep'){
+          if(previous===null)state=gymApplySleep(state,defendingSide,1+Math.floor(roll()*3));
+        }else state=gymApplyStatus(state,defendingSide,support.status);
         log.push(side+' usou '+move.name+(previous===null&&
           state[defendingSide].fighters[state[defendingSide].activeIndex]!.status!==null
           ?' e aplicou '+support.status:': sem efeito')+'.');
@@ -237,6 +246,19 @@ export function resolveGymTurn(
       state=applyGymDamage(state,defendingSide,damage.damage);
       log.push(side+' usou '+move.name+' ('+hit+'/'+hits+'), causando '+
         damage.damage+' de dano'+(hit===1?' (-'+cost+' SP)':'')+'.');
+      // Twineedle: veneno é testado EM CADA impacto efetivo, com uma
+      // precisão e um pagamento de SP por ação. Após KO não há efeito.
+      const afterTarget=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
+      const onHit=kantoPerHitSecondaryEffect(move.name);
+      if(damage.damage>0&&afterTarget.hp>0&&onHit?.kind==='status'
+        &&afterTarget.status===null
+        &&roll()*100<onHit.chance){
+        state=gymApplyStatus(state,defendingSide,onHit.status);
+        if(state[defendingSide].fighters[state[defendingSide].activeIndex]!.status
+          ===onHit.status)
+          log.push(defendingSide+' recebeu '+onHit.status+
+            ' pelo impacto '+hit+'/'+hits+' de '+move.name+'.');
+      }
       if(damage.damage===0)break;
     }
     if(state[defendingSide].needsReplacement){
@@ -277,18 +299,28 @@ export function resolveGymTurn(
       }
     }
   }
-  // Condições residuais afetam somente os Pokémon ATIVOS neste turno.
-  // Uma reserva com poison/burn mantém status, mas não recebe residual
-  // enquanto está recolhida; retorno não remove a condição.
-  if(state.outcome==='ongoing'){
-    for(const side of ['player','leader'] as const){
-      if(state.outcome!=='ongoing'||state[side].needsReplacement)continue;
+  // Resíduo de ambos os lados é calculado sobre o mesmo snapshot de HP.
+  // Dois últimos Pokémon caindo juntos => empate, sem vitória falsa.
+  // Reservas mantêm condição sem receber dano enquanto recolhidas.
+  if(state.outcome==='ongoing'&&!state.player.needsReplacement
+    &&!state.leader.needsReplacement){
+    const amount=(side:GymSide):number=>{
       const fighter=state[side].fighters[state[side].activeIndex]!;
-      if(fighter.hp<=0||(fighter.status!=='poison'&&fighter.status!=='burn'))continue;
-      const residual=Math.max(1,Math.floor(fighter.combatant.stats.hp/8));
-      state=applyGymDamage(state,side,residual);
-      log.push(side+' sofreu '+Math.min(fighter.hp,residual)+' dano residual ('+
-        fighter.status+').');
+      return fighter.status==='poison'||fighter.status==='burn'
+        ?Math.max(1,Math.floor(fighter.combatant.stats.hp/8)):0;
+    };
+    const amounts={player:amount('player'),leader:amount('leader')};
+    if(amounts.player>0||amounts.leader>0){
+      for(const side of ['player','leader'] as const){
+        if(amounts[side]>0){
+          const hp=state[side].fighters[state[side].activeIndex]!.hp;
+          log.push(side+' sofreu '+Math.min(hp,amounts[side])+
+            ' dano residual ('+
+            state[side].fighters[state[side].activeIndex]!.status+').');
+        }
+      }
+      state=applyGymResidual(state,amounts);
+      if(state.outcome==='draw')log.push('Empate: ambos os times desmaiaram.');
     }
   }
   return {status:'applied',state:{...state,turn:state.turn+1},log,seedAfter:current};
