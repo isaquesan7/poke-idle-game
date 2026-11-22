@@ -9,7 +9,7 @@ import {
 } from '@kanto/game-core';
 import type { Stat, StatValues, EquipmentSlot } from '@kanto/game-core';
 import {
-  LEGACY_ITEMS, LEGACY_BADGES, LEGACY_STARTERS, effectiveLegacyTitle
+  LEGACY_ITEMS, KANTO_GYMS, LEGACY_STARTERS, effectiveLegacyTitle
 } from '@kanto/game-core';
 import type { LegacyItem, LegacyBadge, LegacySpecies, LegacyTitle } from '@kanto/game-core';
 import type { LegacySave } from '../../storage/legacySave';
@@ -31,7 +31,7 @@ export interface TrainerViewModel {
   readonly unspent: number;
   readonly equipped: readonly LegacyItem[];
   readonly title: LegacyTitle;
-  readonly badges: readonly LegacyBadge[];
+  readonly badges: readonly (LegacyBadge)[];
   readonly capturedSpecies: number;
   readonly capturedInstances: number;
   readonly seenSpecies: number;
@@ -108,7 +108,8 @@ export function projectLegacyTrainer(
     const selectedEquipment = isRecord(trainer.equipped) ? trainer.equipped : {};
     const equipped = LEGACY_ITEMS.filter(item => selectedEquipment[item.slot] === item.id);
     const badged = new Set(save.badges);
-    const badges = LEGACY_BADGES.filter(badge => badged.has(badge.id));
+    const badges:LegacyBadge[] = KANTO_GYMS.filter(gym => badged.has(gym.id))
+      .map(gym=>({id:gym.id,name:gym.name,wins:0,stats:gym.badgeStats}));
     const wins = natural(save.wins) ? save.wins : 0;
     const seenCount = Array.isArray(save.seen) ? save.seen.length : 0;
     const title = effectiveLegacyTitle(trainer.title, wins, seenCount, save.badges.length);
