@@ -145,3 +145,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AX | 2026-11-21 | EM VALIDAÇÃO | Antes de alterar a dificuldade observada na D064AW, testar evolução/treino/revisões/recibos pelo writer v0.2 e medir intervalos reais de BattlePlayback em Chrome desktop/mobile nas velocidades 1×/2×. Distinguir perfis demo nível20 de progresso natural nível5 e duração do replay de tempo de combate. Não habilitar novos recursos nem mudar chances. |
+
+
+| D-064AY | 2026-11-21 | EM VALIDAÇÃO | O inicial de todo novo perfil normal deve começar no nível 1, não 5; o treinador continua no nível1, e o modo demonstração permanece nível20 para testes explícitos. Não modificar saves antigos nem mudar XP, raridade, IA, regiões ou captura nessa mudança. |
