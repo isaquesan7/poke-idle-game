@@ -165,6 +165,31 @@ describe('journal de eventos idempotentes v0.2 (somente RAM)',()=>{
     expect(parsed(j).trainer.title).toBe('aprendiz');
   });
 
+  it('D064BJ: Lv90 vs R1 conta o resultado visual, mas não progride histórico, XP, afinidade, moedas ou badges',()=>{
+    const src=source();
+    src.roster[0]!.level=90;
+    const before=journal(JSON.stringify(src));
+    const j=applied(before,{...noCapture('overlevel'),regionId:1,wildLevel:2});
+    const after=parsed(j);
+    expect(after.wins).toBe(0);
+    expect(after.badges).toEqual([]);
+    expect(after.coins).toBe(src.coins);
+    expect(after.trainer).toEqual(src.trainer);
+    expect(after.roster[0]?.xp).toBe(src.roster[0]?.xp);
+    expect(after.roster[0]?.affinity).toBe(src.roster[0]?.affinity);
+    expect((after.roster[0] as any).battleRecord).toEqual({wins:0,draws:0,losses:0});
+    expect(applyRewardEvent(j,{...noCapture('overlevel'),regionId:1,wildLevel:2}).status).toBe('duplicate');
+  });
+  it('D064BJ: +2 nível tem recompensa máxima e +3 tem redução em combate',()=>{
+    const src=source();src.roster[0]!.level=12;
+    const full=parsed(applied(journal(JSON.stringify(src)),{...noCapture('full'),regionId:1,wildLevel:10}));
+    expect(full.wins).toBe(1);
+    expect(full.coins).toBe(376);
+    const reduced=parsed(applied(journal(JSON.stringify({...src})),{...noCapture('reduced'),regionId:1,wildLevel:9}));
+    expect(reduced.wins).toBe(1);
+    expect(reduced.coins).toBe(321+Math.floor((25+27)*.9));
+    expect(reduced.roster[0]?.affinity).toBe(73+Math.floor(3*.9));
+  });
   it('recusa bônus e captura forjados em derrota, nível, UID e afinidade inválidos',()=>{
     const j=journal();
     rejected(j,{...battle(),outcome:'loss'});
@@ -197,8 +222,8 @@ describe('expedição: claim/stop em snapshot puro e replays protegidos',()=>{
     expect(s.trainer.xp).toBe(28);
     expect(s.roster[0]?.xp).toBe(27);
     expect(s.roster[1]?.xp).toBe(27);
-    expect(s.roster[0]?.affinity).toBe(74);
-    expect(s.roster[1]?.affinity).toBe(11);
+    expect(s.roster[0]?.affinity).toBe(73);
+    expect(s.roster[1]?.affinity).toBe(10);
     expect(s.expedition?.lastClaimAt).toBe(130000);
     expect(s.lastClaim).toEqual({
       coins:21,trainerXP:12,pokemonXP:15,cycles:3
@@ -240,12 +265,32 @@ describe('expedição: claim/stop em snapshot puro e replays protegidos',()=>{
     const s=parsed(j);
     expect(s.coins).toBe(321+20160);
     expect(s.lastClaim?.cycles).toBe(2880);
-    expect(s.roster[0]?.affinity).toBe(100);
+    expect(s.roster[0]?.affinity).toBe(99);
     expect(s.roster[0]?.level).toBe(100);
     expect(s.roster[0]?.xp).toBe(0);
     expect(s.expedition?.lastClaimAt).toBe(100000+12*3600000);
   });
 
+  it('D064BJ: resgate regional credita Pokébolas em uma transação e jamais afinidade',()=>{
+    const src=source();
+    src.roster[0]!.level=41;src.roster[1]!.level=41;
+    src.trainer.level=55;
+    (src as any).ballPocket={version:1,quantities:{'poke-ball':2,'great-ball':0,'ultra-ball':0}};
+    let j=applied(journal(JSON.stringify(src)),{...start(),regionId:5});
+    expect((parsed(j).expedition as any)?.regionId).toBe(5);
+    const afterStart=j;
+    j=applied(j,claim('r5',1,100000+8*60*60*1000));
+    const v=parsed(j) as any;
+    expect(v.roster[0].affinity).toBe(73);
+    expect(v.roster[1].affinity).toBe(10);
+    expect(v.ballPocket.quantities['poke-ball']).toBeGreaterThanOrEqual(3);
+    expect(v.ballPocket.quantities['great-ball']).toBe(1);
+    expect(v.ballPocket.quantities['ultra-ball']).toBe(0);
+    expect(v.expeditionBallProgress['great-ball']).toBeGreaterThanOrEqual(2880);
+    expect(j.receipts).toHaveLength(2);
+    expect(applyRewardEvent(j,claim('r5',1,100000+8*60*60*1000)).status).toBe('duplicate');
+    expect(parsed(afterStart).roster[0]?.affinity).toBe(73);
+  });
   it('rejeita relógio retrocedido, nenhuma expedição, fonte inconsistente e IDs ruins',()=>{
     const base=journal();
     rejected(base,claim());

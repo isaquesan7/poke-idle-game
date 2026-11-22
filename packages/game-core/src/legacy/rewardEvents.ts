@@ -13,7 +13,10 @@
 import { kantoCaptureStartingLevel } from '../catalog/kantoEvolution.js';
 import { AFFINITY_LOSS_ON_DEFEAT, AFFINITY_LOSS_ON_DRAW } from '../affinity/affinityDynamics.js';
 import { grantXp, battleTrainerXp, beginnerBattleXp } from '../progression/xp.js';
-import { expeditionRewards } from '../rewards/expedition.js';
+import {expeditionRewards,emptyExpeditionBallProgress} from '../rewards/expedition.js';
+import type {ExpeditionBallKind} from '../rewards/expedition.js';
+import {battleProgressFactor,scaledRegionalReward} from '../rewards/regionProgression.js';
+import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
 import { LEGACY_BADGES } from './catalog.js';
 import { kantoRegion } from '../map/kantoRegions.js';
 
@@ -39,6 +42,7 @@ export type RewardCommand =
     readonly outcome: 'win' | 'loss' | 'draw';
     readonly activeUid: number;
     readonly wildLevel: number;
+    readonly regionId?:number;
     readonly affinityGain?: number;
     /** Captura já resolvida (nenhuma rolagem ou sorteio dentro do reducer). */
     readonly capture?: { readonly pokemonId: number; readonly moveName?: string | null };
@@ -176,24 +180,63 @@ function claimExpedition(state: ValidState, nowMs: number, required: boolean): b
     || !natural(nowMs) || nowMs < exp.lastClaimAt) {
     throw new RangeError('Expedição ausente ou relógio retrocedeu.');
   }
-  const reward = expeditionRewards(nowMs - exp.lastClaimAt);
-  if (reward.cycles < 1) {
-    if (required) throw new RangeError('Nenhum ciclo completo para resgatar.');
+  const byUid=new Map(state.roster.map(p=>[p.uid,p]));
+  const members=(exp.teamUids as number[]).map(uid=>{
+    const p=byUid.get(uid);
+    if(!p)throw new RangeError('UID da expedição ausente.');
+    return p;
+  });
+  const regionId=exp.regionId as number|undefined;
+  const rawProgress=state.expeditionBallProgress;
+  const previous=emptyExpeditionBallProgress();
+  if(rawProgress!==undefined){
+    if(!record(rawProgress))throw new RangeError('Contador de bolas de expedição inválido.');
+    for(const kind of Object.keys(previous) as ExpeditionBallKind[]){
+      const n=rawProgress[kind]??0;
+      if(!natural(n))throw new RangeError('Contador de Pokébola inválido.');
+      previous[kind]=n;
+    }
+  }
+  const reward=expeditionRewards(nowMs-(exp.lastClaimAt as number),
+    regionId===undefined?undefined:{
+      regionId,pokemon:members.map(p=>({level:p.level,xp:p.xp})),
+      ballProgress:previous
+    });
+  if(reward.cycles<1){
+    if(required)throw new RangeError('Nenhum ciclo completo para resgatar.');
     return false;
   }
-  creditCoins(state, reward.coins);
-  creditTrainerXp(state, reward.trainerXp);
-  const byUid = new Map(state.roster.map(p => [p.uid, p]));
-  for (const uid of exp.teamUids as number[]) {
-    const p = byUid.get(uid);
-    if (!p) throw new RangeError('UID da expedição ausente.');
-    creditPokemonXp(p, reward.pokemonXpPerMember);
-    p.affinity = Math.min(100, p.affinity + reward.affinityGainPerMember);
+  // Inventário e evento num único commit: nunca duplicar bolas após reload.
+  const drops=reward.ballDrops;
+  if(drops&&Object.values(drops).some(v=>v>0)){
+    const pocket=inspectKantoBallPocket(state.ballPocket);
+    if(pocket.status==='invalid')throw new RangeError('Bolso inválido.');
+    {
+      // Em save anterior ao inventário, criar somente as bolas realmente
+      // conquistadas nesta transação, sem kit grátis retroativo.
+      const quantities=pocket.status==='valid'?{...pocket.pocket.quantities}
+        :{} as Record<ExpeditionBallKind,number>;
+      for(const kind of Object.keys(drops) as ExpeditionBallKind[]){
+        const old=quantities[kind]??0;
+        if(!natural(old)||old+drops[kind]>100000)
+          throw new RangeError('Bolso de Pokébolas cheio.');
+        quantities[kind]=old+drops[kind];
+      }
+      state.ballPocket={version:1,quantities};
+    }
+    // Save v0.1 sem bolso: não inventar kit por migração implícita.
   }
-  exp.lastClaimAt = nowMs;
-  state.lastClaim = {
-    coins: reward.coins, trainerXP: reward.trainerXp,
-    pokemonXP: reward.pokemonXpPerMember, cycles: reward.cycles
+  if(reward.ballProgress)state.expeditionBallProgress=reward.ballProgress;
+  creditCoins(state,reward.coins);
+  creditTrainerXp(state,reward.trainerXp);
+  for(let i=0;i<members.length;i++){
+    creditPokemonXp(members[i]!,reward.pokemonXpByMember?.[i]??reward.pokemonXpPerMember);
+  }
+  exp.lastClaimAt=nowMs;
+  state.lastClaim={
+    coins:reward.coins,trainerXP:reward.trainerXp,
+    pokemonXP:reward.pokemonXpPerMember,cycles:reward.cycles,
+    ...(drops?{ballDrops:drops}:{}),
   };
   return true;
 }
@@ -205,6 +248,8 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
   }
   const active = state.roster.find(p => p.uid === cmd.activeUid);
   if (!active) throw new RangeError('Pokémon ativo não pertence ao jogador.');
+  const factor=cmd.regionId===undefined?1:
+    battleProgressFactor(active.level,cmd.wildLevel);
   // D064BE: histórico da instância por UID, não da espécie. Campos ausentes
   // em capturas/saves legados começam em zero (não inventar partidas antigas).
   const historical=record(active.battleRecord)?active.battleRecord:null;
@@ -220,9 +265,9 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
   const key=cmd.outcome==='win'?'wins':cmd.outcome==='draw'?'draws':'losses';
   if(!Number.isSafeInteger(battleRecord[key]+1))
     throw new RangeError('Limite de partidas do Pokémon.');
-  battleRecord[key]++;
+  if(factor>0)battleRecord[key]++;
   active.battleRecord=battleRecord;
-  if(cmd.outcome==='draw'){
+  if(cmd.outcome==='draw'&&factor>0){
     const prior=state.draws;
     if(prior!==undefined&&!natural(prior))throw new RangeError('Empates inválidos.');
     state.draws=(prior===undefined?0:prior as number)+1;
@@ -231,8 +276,10 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
     if (cmd.capture !== undefined || cmd.affinityGain !== undefined) {
       throw new RangeError('Derrota/empate não pode receber bônus ou captura.');
     }
-    if (!Number.isSafeInteger(state.losses + 1)) throw new RangeError('Derrotas fora do limite.');
-    state.losses++;
+    if(factor>0){
+      if (!Number.isSafeInteger(state.losses+1))throw new RangeError('Derrotas fora do limite.');
+      state.losses++;
+    }
     active.affinity=Math.max(0,active.affinity-
       (cmd.outcome==='draw'?AFFINITY_LOSS_ON_DRAW:AFFINITY_LOSS_ON_DEFEAT));
     // Lv1 não possui expedição regional na primeira área e pode perder
@@ -255,12 +302,15 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
       throw new RangeError('Captura resolvida possui espécie ou golpe inválido.');
     }
   }
-  if (!Number.isSafeInteger(state.wins + 1)) throw new RangeError('Vitórias fora do limite.');
-  state.wins++;
-  creditCoins(state, 25 + cmd.wildLevel * 3);
-  creditTrainerXp(state, battleTrainerXp(cmd.wildLevel));
-  creditPokemonXp(active, 20 + cmd.wildLevel * 6);
-  active.affinity = Math.min(100, active.affinity + cmd.affinityGain);
+  if(factor>0){
+    if(!Number.isSafeInteger(state.wins+1))throw new RangeError('Vitórias fora do limite.');
+    state.wins++;
+  }
+  creditCoins(state,scaledRegionalReward(25+cmd.wildLevel*3,factor));
+  creditTrainerXp(state,scaledRegionalReward(battleTrainerXp(cmd.wildLevel),factor));
+  creditPokemonXp(active,scaledRegionalReward(20+cmd.wildLevel*6,factor));
+  active.affinity=Math.min(100,active.affinity+
+    scaledRegionalReward(cmd.affinityGain,factor));
   for (const badge of LEGACY_BADGES) {
     if (state.wins >= badge.wins && !state.badges.includes(badge.id)) {
       state.badges.push(badge.id);

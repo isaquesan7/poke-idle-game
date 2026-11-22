@@ -518,3 +518,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## 2026-11-22 — D064BI (em PR)
 - Acessibilidade Expedição: campos com descrições, estrutura navegável por teclado, foco visível, timer sem anúncios repetidos, status de espera e barra de ciclo acessível. Após atingir teto de 8h pendentes, mostra aviso de resgate em vez de prometer próximos ciclos; tempo total permanece. Refinada a legibilidade em telas pequenas. Sem alteração de XP, moedas, resgates ou save. Testes regressivos pendentes.
+
+## 2026-11-22 — D064BJ (em PR)
+- Recompensas de expedições agora aumentam gradualmente por região e são reduzidas quando o Pokémon excede o teto; 8h recalculadas ciclo a ciclo. Não há mais ganho de afinidade ocioso. Pokébolas escassas por ciclos válidos (Poké 4h, Great 8h R5+, Ultra 24h só R9/R10), com contadores transacionais persistentes entre resgates.
+- XP, moedas e afinidade das batalhas regionais dependem da diferença de nível do inimigo; a partir de +12 níveis de vantagem, progresso e contagem de histórico bloqueados. UI apresenta régua/região e resultados ajustados. Sem mudança na IA selvagem, chance de captura, níveis dos Pokémon capturados ou XP absoluto Lv100. CI e publicação pendentes.

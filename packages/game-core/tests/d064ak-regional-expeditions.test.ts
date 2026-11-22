@@ -42,8 +42,8 @@ describe('D064AK — regiões e expedições transacionais',()=>{
     expect(claim.status).toBe('applied');
     if(claim.status!=='applied')return;
     const saved=JSON.parse(claim.journal.raw);
-    expect(saved.coins).toBe(7);
-    expect(saved.roster[0].xp).toBe(5);
+    expect(saved.coins).toBe(9); // R3: 9 moedas/ciclo
+    expect(saved.roster[0].xp).toBe(7); // R3: 7 XP/ciclo
     expect(saved.roster[1].xp).toBe(0);
     expect(claim.journal.receipts).toHaveLength(2);
     const duplicate=applyRewardEvent(claim.journal,{
