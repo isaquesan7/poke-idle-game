@@ -13,6 +13,7 @@ import {
 import {throttle,requesterIp,issueVerification,consumeVerification} from './authSecurity.mjs';
 import {issuePasswordReset,consumePasswordReset} from './passwordReset.mjs';
 import {deliverAccountEmail} from './mailer.mjs';
+import {createFirstAdventure} from './initialAdventure.mjs';
 
 const port=Number(process.env.PORT??3001);
 const connectionString=process.env.DATABASE_URL;
@@ -80,7 +81,7 @@ async function accountForSession(req){
   const digest=credentialCookie(req);
   if(!digest)return null;
   const result=await pool.query(
-    `SELECT a.id,a.email,p.trainer_name FROM game_auth_sessions s
+    `SELECT a.id,a.email,a.email_verified_at,p.trainer_name FROM game_auth_sessions s
       JOIN game_accounts a ON a.id=s.account_id
       JOIN game_profiles p ON p.account_id=a.id
      WHERE s.token_sha256=$1 AND s.revoked_at IS NULL
@@ -218,6 +219,25 @@ const server=createServer(async(req,res)=>{
         [digest]);
       return json(res,200,{authenticated:false},{
         'Set-Cookie':sessionCookie('',{secure:isSecure,maxAge:0})});
+    }
+    if(pathname==='/api/v1/adventure/start'&&req.method==='POST'){
+      // Test-only rollout. NEVER accept a whole save or player-specified
+      // wallet, HP, badges, XP, trainer identity or a client clock.
+      if(!enabled)return json(res,503,{error:'Aventura online em preparação'});
+      requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)
+        return json(res,403,{error:'Verifique seu e-mail antes de jogar'});
+      const data=await readJson(req);
+      if(Object.keys(data).sort().join(',')!=='starterId')
+        return json(res,400,{error:'Envie somente o inicial selecionado'});
+      const outcome=await createFirstAdventure(pool,{
+        accountId:account.id,trainerName:account.trainer_name,
+        starterId:data.starterId,nowMs:Date.now()});
+      if(outcome.status==='exists')
+        return json(res,409,{error:'Aventura já iniciada'});
+      return json(res,201,{created:true,revision:0,starterId:data.starterId});
     }
     if(pathname==='/api/v1/save'&&req.method==='GET'){
       const account=await accountForSession(req);
