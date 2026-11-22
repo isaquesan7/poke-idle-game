@@ -633,3 +633,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Testes de oito elencos, orçamento de pontos, indisponibilidade de UIDs e ausência de mutação. **Não é ainda uma batalha 3×3 executável; não há writer, UI, insígnias, XP ou moedas.**
 
 - Durante validação, detectado bloqueio legítimo da equipe Sabrina: Kadabra/Alakazam precisam de suporte a efeitos dos golpes psíquicos (77/73); teste confirma bloqueio explícito em vez de moveset fabricado. Corrigido cálculo temporário de dano da IA para TypeScript `exactOptionalPropertyTypes`. Uso de Concentrar com SP baixo é escolha tática válida.
+
+
+## GYM-02B — HP persistente em Ginásios e SP condicionado à troca (22/11/2026; EM PR)
+- Core puro `gyms/gymBattleState.ts` mantém 3 HP/SP individuais por lado, sem restaurar HP ao trocar, ao vencer Pokémon ou ao retornar. Troca voluntária custa uma oportunidade, até 3 por equipe; apenas o Pokémon recolhido recebe até 20% SP máximo, uma única vez por confronto. KO obriga substituição gratuita sem recuperação de SP. Limites simétricos jogador/líder.
+- Vitest `gym02b-persistent-team.test.ts`: ausência de cura automática, volta à arena com HP anterior, SP sem duplicação, 3 trocas, KO sem recarga, vitória após 3 KOs, mesmas regras para ambos os lados.
+- Ainda não implementa combate por turnos 3×3, integração com UI/writer, insígnias ou recompensas; nenhum efeito nas lutas regionais. CI/merge/Railway pendentes.
