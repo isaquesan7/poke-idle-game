@@ -534,3 +534,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Expedições deixam de acumular progresso de Pokébolas em ciclos cuja recompensa integral efetiva é zero após redução e arredondamento (corrige farm passivo com Pokémon no limite da área).
 - Testes de requisitos duplos treinador/Pokémon, progressão travada em R3 antes de Lv20 do treinador, 40 resgates de 8h com totais exatos e cenários de sensibilidade da loja ainda hipotéticos.
 - Relatório quantitativo e limites de decisão em `docs/PROGRESSION_ECONOMY_D064BK.md`. Não houve mudança de taxa-base, UX, IA, dados salvos ou preços de loja. A publicação depende dos testes, merge e Railway no SHA correto.
+
+- D064BK UX: a tela de Expedição agora evidencia os próximos marcos de Poké/Great/Ultra Ball em **ciclos elegíveis** e avisa quando redução regional mais arredondamento zera o rendimento e pausa o contador de bolas. SSR e E2E do novo rótulo incluídos. Verificação CI/merge/deploy do último HEAD ainda pendente.
