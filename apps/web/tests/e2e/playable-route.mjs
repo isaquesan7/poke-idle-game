@@ -1272,12 +1272,103 @@ async function exerciseGuaranteedLevelUp(browser,label,viewport){
   console.log(label+': XP/Level Up e KO visual confirmados no final, sem antecipar ou duplicar');
 }
 
+/**
+ * GYM-04C: navegador real, cenário isolado com três UIDs de teste.
+ * O writer continua sendo a única origem de turnos e recompensas.
+ */
+async function exerciseGymDuel(browser,label,viewport){
+  const context=await browser.newContext({viewport});
+  const page=await context.newPage();
+  const errors=[];
+  page.on('pageerror',error=>errors.push(error.message));
+  try{
+    await page.goto(BASE+'/play',{waitUntil:'domcontentloaded'});
+    await page.getByLabel('Nome do treinador').fill('Teste Ginásio');
+    await page.getByRole('radio',{name:/Charmander/}).check();
+    await page.getByRole('checkbox',{name:/modo demonstração/}).check();
+    await page.getByRole('button',{name:'Começar aventura'}).click();
+    await page.getByRole('heading',{name:'Bem-vindo de volta, Teste Ginásio!'}).waitFor();
+    await page.evaluate(key=>{
+      const envelope=JSON.parse(localStorage.getItem(key));
+      const game=JSON.parse(envelope.journal.raw);
+      const starter=game.roster[0];
+      game.roster=[1,2,3].map(uid=>({...starter,uid,level:100,
+        manual:{hp:200,attack:200,defense:200,specialAttack:200,
+          specialDefense:200,speed:200}}));
+      game.nextUid=4;
+      game.team=[1,2,3];
+      envelope.journal.raw=JSON.stringify(game);
+      localStorage.setItem(key,JSON.stringify(envelope));
+    },SAVE);
+    await page.reload();
+    await page.getByRole('button',{name:'Ginásios',exact:true}).click();
+    const screen=page.getByTestId('gym-screen');
+    await screen.getByRole('heading',{name:'Ginásios Pokémon'}).waitFor();
+    const choices=screen.locator('fieldset input[type="checkbox"]');
+    assert.equal(await choices.count(),3);
+    for(let i=0;i<3;i++)await choices.nth(i).check();
+    await screen.getByRole('button',{name:'Iniciar batalha contra Brock'}).click();
+    const scene=screen.getByTestId('gym-duel-scene');
+    await scene.waitFor();
+    assert.equal(await screen.getByLabel('Progressão dos oito ginásios').count(),0,
+      'Lista de líderes deve sair da tela durante a batalha');
+    assert.equal(await scene.getByTestId('gym-active-player').count(),1);
+    assert.equal(await scene.getByTestId('gym-active-leader').count(),1);
+    assert.equal(await screen.getByLabel('Seus Pokémon reservas').locator('img').count(),2);
+    assert.equal(await screen.getByLabel('Reservas do líder').locator('img').count(),2);
+    assert.equal(await screen.getByLabel('Comandos de batalha').count(),1);
+    assert.ok(await screen.getByRole('button',{name:'Trocar',exact:true}).count()>=1);
+    const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+    assert.deepEqual(JSON.parse(before.journal.raw).badges,[]);
+    await page.reload();
+    await page.getByRole('button',{name:'Ginásios',exact:true}).click();
+    await screen.getByTestId('gym-duel-scene').waitFor();
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).revision,SAVE),
+      before.revision,'Recarregar duelo não deve conceder moedas ou gravar turnos');
+    let completed=false;
+    for(let i=0;i<125;i++){
+      const finish=screen.getByRole('button',{name:'Finalizar confronto'});
+      if(await finish.count()){completed=true;break;}
+      const basic=screen.getByRole('button',{name:'Ataque básico',exact:true});
+      if(await basic.count())await basic.click();
+      else{
+        const swap=screen.getByLabel('Seus Pokémon reservas')
+          .getByRole('button',{name:'Trocar',exact:true});
+        assert.ok(await swap.count()>0,'KO do jogador exige substituto vivo');
+        await swap.first().click();
+      }
+      const newRevision=before.revision+i+1;
+      await page.waitForFunction(({key,rev})=>
+        JSON.parse(localStorage.getItem(key))?.revision>=rev,{key:SAVE,rev:newRevision});
+    }
+    assert.equal(completed,true,'Brock deve concluir com três Pokémon de nível 100');
+    const beforeFinish=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+    assert.deepEqual(JSON.parse(beforeFinish.journal.raw).badges,[]);
+    await screen.getByRole('button',{name:'Finalizar confronto'}).click();
+    await page.waitForFunction(({key,rev})=>
+      JSON.parse(localStorage.getItem(key))?.revision===rev+1,
+      {key:SAVE,rev:beforeFinish.revision});
+    const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+    assert.deepEqual(JSON.parse(after.journal.raw).badges,['boulder']);
+    assert.equal(after.journal.receipts.length,1);
+    assert.equal(await screen.getByTestId('gym-duel-scene').count(),0);
+    assert.ok(await screen.getByLabel('Progressão dos oito ginásios').count());
+    assert.equal(await screen.getByRole('button',{name:'Finalizar confronto'}).count(),0);
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
+    assert.ok(overflow<=2,'Ginásio não pode ultrapassar largura '+label+': '+overflow);
+    assert.deepEqual(errors,[]);
+    console.log('GYM04C_BROWSER '+label+': duelo 3x3, reload, recibo e layout OK');
+  }finally{await context.close();}
+}
+
 let browser;
 try {
   await ready();
   assert.equal((await fetch(BASE+'/')).status,200,'protótipo v0.1 preservado na raiz');
   assert.equal((await fetch(BASE+'/health')).status,200);
   browser=await chromium.launch({headless:true});
+  await exerciseGymDuel(browser,'desktop',{width:1365,height:768});
+  await exerciseGymDuel(browser,'mobile',{width:390,height:844});
   await exercise(browser,'desktop',{width:1365,height:768});
   await exercise(browser,'mobile',{width:390,height:844});
   await exerciseNewMoves(browser,'desktop',{width:1365,height:768});
