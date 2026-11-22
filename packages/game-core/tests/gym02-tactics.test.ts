@@ -58,6 +58,13 @@ describe('GYM-02A — preparação, escolha e IA sem recompensa',()=>{
     });
     expect(decision.action==='move'&&decision.moveName==='thunder-shock').toBe(false);
   });
+  it('SP zerado sempre permite ataque básico gratuito, sem trap de Concentrar',()=>{
+    const actor=candidate(25,20),defender=candidate(74,20);
+    const decision=gymAiDecision({
+      actor,defender,actorHp:actor.stats.hp,actorSp:0,bench:[]
+    });
+    expect(decision.action).toBe('basic');
+  });
   it('recusa HP e SP adulterados e não gera efeitos colaterais no elenco',()=>{
     const one=candidate(1);
     const two=candidate(4);
