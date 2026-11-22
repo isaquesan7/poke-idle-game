@@ -53,3 +53,5 @@ O primeiro resgate de 8h do Bosque Inicial, Lv2/0 XP, permanece **8039 moedas / 
 - **Gate de release:** CI geral TypeScript/Vitest/Playwright desktop/mobile/Docker, revisão de diferenças de código, merge por squash, Railway deploy `SUCCESS` SHA funcional, healthcheck interno. Ajuste de loja/Pokébolas somente após nova auditoria de consumo de moedas e estoque.
 
 **Nenhuma modificação autorizada ao repositório `isaquesan7/pokedex`.**
+
+- `reward-events.test.ts`: recuperação do mesmo estado por **67 comandos de vitória no writer** (UID preservado, trainer chega ao Lv20, XP Pokémon permanece dentro do Lv41, 67 receipts, replay duplicado não paga); comprova integração com salvamento em memória sem inventar missão ou fonte de XP.
