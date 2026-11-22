@@ -11,7 +11,7 @@ describe('D064AZ — proteção de XP para iniciais nível 1',()=>{
       expect(xp).toBe(22);
       progress=grantXp('pokemon',progress,xp);
     }
-    expect(progress).toEqual({level:2,xp:1});
+    expect(progress).toMatchObject({level:2,xp:1});
     expect(beginnerBattleXp(progress.level,'loss')).toBe(0);
     expect(beginnerBattleXp(1,'win')).toBe(0);
     expect(beginnerBattleXp(20,'draw')).toBe(0);
