@@ -11,6 +11,7 @@
  * e recibo são calculados na MESMA transição imutável. Ainda não é writer.
  */
 import { kantoCaptureStartingLevel } from '../catalog/kantoEvolution.js';
+import { AFFINITY_LOSS_ON_DEFEAT, AFFINITY_LOSS_ON_DRAW } from '../affinity/affinityDynamics.js';
 import { grantXp, battleTrainerXp, beginnerBattleXp } from '../progression/xp.js';
 import { expeditionRewards } from '../rewards/expedition.js';
 import { LEGACY_BADGES } from './catalog.js';
@@ -232,6 +233,8 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
     }
     if (!Number.isSafeInteger(state.losses + 1)) throw new RangeError('Derrotas fora do limite.');
     state.losses++;
+    active.affinity=Math.max(0,active.affinity-
+      (cmd.outcome==='draw'?AFFINITY_LOSS_ON_DRAW:AFFINITY_LOSS_ON_DEFEAT));
     // Lv1 não possui expedição regional na primeira área e pode perder
     // repetidamente para selvagens Lv2+. Aprendizagem limitada evita softlock
     // sem modificar a IA adversária ou recompensar moedas/captura/treinador.
