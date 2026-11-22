@@ -1,6 +1,5 @@
 -- ONLINE-01: PostgreSQL 18, initial schema for NEW accounts only.
 -- No localStorage migration and no trust in client-provided battle rewards.
-BEGIN;
 CREATE TABLE IF NOT EXISTS game_accounts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   email text NOT NULL,
