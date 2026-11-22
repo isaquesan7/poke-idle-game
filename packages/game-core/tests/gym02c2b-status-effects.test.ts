@@ -66,7 +66,7 @@ describe('GYM-02C2b — status individual simétrico',()=>{
     expect(s.player.fighters[0]!.status).toBeNull();
   });
   it('paralisia pode impedir a ação antes de consumir SP, deterministicamente',()=>{
-    let state=equip(team(),'tackle');
+    let state:GymBattleState=equip(team(),'tackle');
     state=gymApplyStatus(state,'player','paralysis');
     const move={kind:'move',moveName:'tackle'} as const;
     const results=Array.from({length:64},(_,seed)=>resolveGymTurn(state,move,basic,seed));
