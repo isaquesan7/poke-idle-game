@@ -1332,6 +1332,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 leaderLevel={active.level}
                 leaderArt={<PokemonArt id={active.pokemonId} name={view.active.name} />}
                 pending={pending??null}
+                ballProgress={expProgress}
                 activePokemonLevel={expeditionMembers[0]?.level??active.level}
                 nowMs={now}
                 busy={busy}

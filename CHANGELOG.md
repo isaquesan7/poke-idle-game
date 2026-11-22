@@ -524,3 +524,17 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - XP, moedas e afinidade das batalhas regionais dependem da diferença de nível do inimigo; a partir de +12 níveis de vantagem, progresso e contagem de histórico bloqueados. UI apresenta régua/região e resultados ajustados. Sem mudança na IA selvagem, chance de captura, níveis dos Pokémon capturados ou XP absoluto Lv100. CI e publicação pendentes.
 
 - **D064BJ PUBLICADO (22/11/2026):** PR #136 SHA `3e62a721`, regressão `45019043101` SUCCESS, Playwright `45019043064` SUCCESS, Docker `45019043071` SUCCESS e Railway `30c73023-e94d-4c0d-8e84-be56a3c76072` SUCCESS no mesmo SHA. Escalonamento regional 7/4/5 → 16/13/14, caps de XP/afinidade/moedas/contagens por nível, XP de expedição recalculado por ciclo, sem afinidade passiva, Poké/Great/Ultra Ball raras por horas válidas. Economia idempotente e testes concluídos.
+
+### 2026-11-22 — D064BK (em branch; não publicado)
+- Testes diagnósticos de progressão e economia das expedições para níveis iniciais 1–100 e 40 resgates, com contadores persistidos de Pokébolas.
+- Documento `docs/PROGRESSION_ECONOMY_D064BK.md` registra premissas e próximos gates da futura loja.
+- Sem alterações funcionais, sem deploy confirmado; CI pendente.
+
+### D064BK — ajustes após auditoria (22/11/2026, PR #137, CI/deploy por confirmar)
+- Expedições deixam de acumular progresso de Pokébolas em ciclos cuja recompensa integral efetiva é zero após redução e arredondamento (corrige farm passivo com Pokémon no limite da área).
+- Testes de requisitos duplos treinador/Pokémon, progressão travada em R3 antes de Lv20 do treinador, 40 resgates de 8h com totais exatos e cenários de sensibilidade da loja ainda hipotéticos.
+- Relatório quantitativo e limites de decisão em `docs/PROGRESSION_ECONOMY_D064BK.md`. Não houve mudança de taxa-base, UX, IA, dados salvos ou preços de loja. A publicação depende dos testes, merge e Railway no SHA correto.
+
+- D064BK UX: a tela de Expedição agora evidencia os próximos marcos de Poké/Great/Ultra Ball em **ciclos elegíveis** e avisa quando redução regional mais arredondamento zera o rendimento e pausa o contador de bolas. SSR e E2E do novo rótulo incluídos. Verificação CI/merge/deploy do último HEAD ainda pendente.
+
+- D064BK testes adicionais: writer de resgate com rendimentos zerados preserva mochila/progresso de bolas e receipt idempotente; grupo dos próximos marcos nomeado para leitores de tela. Sem migração/schema alterados.

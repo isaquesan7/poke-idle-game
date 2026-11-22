@@ -67,8 +67,10 @@ export function expeditionRewards(elapsedMs:number,context?:ExpeditionContext):E
   let coins=0,trainerXp=0;
   for(let i=0;i<cycles;i++){
     const leaderFactor=expeditionProgressFactor(context.regionId,profiles[0]!.level);
-    coins+=scaledRegionalReward(rates.coins,leaderFactor);
-    trainerXp+=scaledRegionalReward(rates.trainerXp,leaderFactor);
+    const earnedCoins=scaledRegionalReward(rates.coins,leaderFactor);
+    const earnedTrainerXp=scaledRegionalReward(rates.trainerXp,leaderFactor);
+    coins+=earnedCoins;
+    trainerXp+=earnedTrainerXp;
     for(let index=0;index<profiles.length;index++){
       const current=profiles[index]!;
       const factor=expeditionProgressFactor(context.regionId,current.level);
@@ -76,8 +78,9 @@ export function expeditionRewards(elapsedMs:number,context?:ExpeditionContext):E
       xpByMember[index]!+=gained;
       if(gained>0)profiles[index]=grantXp('pokemon',current,gained);
     }
-    // Bolas só contam ciclos elegíveis; um Lv90 em R1 não consegue farmar.
-    if(leaderFactor>0){
+    // Se o fator não entrega nenhuma moeda/XP após arredondamento, o ciclo
+    // não deve alimentar a reposição de Pokébolas indefinidamente.
+    if(leaderFactor>0&&(earnedCoins>0||earnedTrainerXp>0)){
       const eligible:ExpeditionBallKind[]=['poke-ball'];
       if(context.regionId>=5)eligible.push('great-ball');
       if(context.regionId>=9)eligible.push('ultra-ball');
