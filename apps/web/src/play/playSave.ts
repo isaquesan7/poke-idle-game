@@ -16,7 +16,8 @@ import {
   KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson,
   kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant,
   inspectKantoBallPocket,resolveKantoCaptureAttempt,d064DraftBallDrop,
-  D064_DRAFT_STARTER_BALLS,battleTrainerXp,beginnerBattleXp,kantoCaptureStartingLevel,
+  D064_DRAFT_STARTER_BALLS,KANTO_REGION_WINS_CAP,
+  battleTrainerXp,beginnerBattleXp,kantoCaptureStartingLevel,
   battleProgressFactor,scaledRegionalReward,emptyExpeditionBallProgress,
   affinityIdlePenaltyDays
 } from '@kanto/game-core';
@@ -194,7 +195,7 @@ function playBattle(
     const winsRaw=game.regionWins;
     const regionWins=winsRaw===undefined?Array<number>(10).fill(0)
       :Array.isArray(winsRaw)&&winsRaw.length===10
-        &&winsRaw.every(value=>Number.isSafeInteger(value)&&value>=0&&value<=100000)
+        &&winsRaw.every(value=>Number.isSafeInteger(value)&&value>=0&&value<=KANTO_REGION_WINS_CAP)
         ?[...winsRaw as number[]]:null;
     if(selectedRegion&&!regionWins)
       return {status:'blocked',reason:'Histórico de vitórias regionais inválido.'};
@@ -326,12 +327,19 @@ function playBattle(
       updated.caughtSpecies=Array.from(caught);
     }
     if(selectedRegion){
-      const regionWinNumber=(regionWins![selectedRegion.id-1]??0)
-        +(result.outcome==='win'&&rewardFactor>0?1:0);
+      const priorRegionWins=regionWins![selectedRegion.id-1]??0;
+      const eligibleWin=result.outcome==='win'&&rewardFactor>0;
+      // D064BN: o limite de histórico não pode INVALIDAR o save após
+      // 100 mil vitórias (a busca por lendários pode ultrapassar isso).
+      // Ao atingir o teto, batalha/XP/moedas continuam, sem novo marco de
+      // vitória regional e sem repetir drop da última vitória.
+      const regionWinNumber=eligibleWin
+        ?Math.min(KANTO_REGION_WINS_CAP,priorRegionWins+1):priorRegionWins;
       regionWins![selectedRegion.id-1]=regionWinNumber;
-      const drop=result.outcome==='win'&&rewardFactor>0
+      const advanced=eligibleWin&&regionWinNumber>priorRegionWins;
+      const drop=advanced
         ?d064DraftBallDrop(selectedRegion.id,regionWinNumber):null;
-      if(result.outcome==='win'&&rewardFactor>0&&!drop)
+      if(advanced&&!drop)
         return{status:'blocked',reason:'Reposição regional inválida.'};
       const quantities={...nextPocket.quantities};
       if(drop)for(const ball of ['poke-ball','great-ball','ultra-ball'] as const){
