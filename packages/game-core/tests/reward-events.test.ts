@@ -155,13 +155,13 @@ describe('journal de eventos idempotentes v0.2 (somente RAM)',()=>{
     expect(applyRewardEvent(first,loss).status).toBe('duplicate');
   });
 
-  it('desbloqueia insígnias UMA vez por vitória e não duplica títulos',()=>{
+  it('vitórias regionais preservam insígnias conquistadas, sem conceder novas',()=>{
     const enriched={...source(),wins:2,badges:['boulder']};
     let j=journal(JSON.stringify(enriched));
     j=applied(j,noCapture('win-3'));
-    expect(parsed(j).badges).toEqual(['boulder','cascade']);
+    expect(parsed(j).badges).toEqual(['boulder']);
     j=applied(j,noCapture('win-4',1));
-    expect(parsed(j).badges).toEqual(['boulder','cascade']);
+    expect(parsed(j).badges).toEqual(['boulder']);
     expect(parsed(j).trainer.title).toBe('aprendiz');
   });
 

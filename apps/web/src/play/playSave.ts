@@ -10,7 +10,7 @@ import {
   applyRewardEvent, editLegacyTrainerJson, prepareRewardJournal,
   reduceLegacyPokemonTeamJson, zeroStats, LEGACY_STARTERS,
   KANTO_BATTLE_SPECIES, KANTO_BATTLE_MOVES, KANTO_WILD_POOL,
-  LEGACY_ITEMS, LEGACY_BADGES, STATS, trainerTotals, pokemonFinalStats,
+  LEGACY_ITEMS, KANTO_GYMS, STATS, trainerTotals, pokemonFinalStats,
   pokemonOwnStats, effectiveLegacyTitle, simulateKantoBattle,
   reduceLegacyPokemonMoveJson, kantoLevelMoves,kantoWildMoveLoadout,reduceKantoEvolutionJson,
   KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson,
@@ -234,7 +234,8 @@ function playBattle(
     }
     const equipped=record(trainer.equipped)?trainer.equipped:{};
     const items=LEGACY_ITEMS.filter(item=>equipped[item.slot]===item.id);
-    const badges=LEGACY_BADGES.filter(badge=>badgeIds.includes(badge.id));
+    const badges=KANTO_GYMS.filter(gym=>badgeIds.includes(gym.id))
+      .map(gym=>({id:gym.id,stats:gym.badgeStats}));
     const title=effectiveLegacyTitle(trainer.title,game.wins as number,
       game.seen.length,game.badges.length);
     const totals=trainerTotals({

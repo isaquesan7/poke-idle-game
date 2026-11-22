@@ -27,16 +27,16 @@ describe('paridade da v0.1 e game-core (fixture de save realista)', () => {
   });
 
   it('reproduz os totais do treinador da v0.1 e distribui o bônus aditivo ao Bulbasaur', () => {
-    // O index.html calcula manual + itens por slot + título + TODAS as insígnias.
+    // A projeção v0.2 aplica bônus de Ginásio; mantém manual/itens/título do save.
     // Fixture original: level21, attack manual39, gear gloves3 + ring1 2,
-    // defense gear coat3 + ring2 2 + boulder1, cap2+ título aprendiz1.
+    // defense gear coat3 + ring2 2 + Boulder4, HP cap2+título aprendiz1+Boulder2.
     const value = ready(fixture);
     expect(value.name).toBe('Save legado v0.1');
     expect(value.level).toBe(21);
     expect(value.xpNext).toBe(xpThreshold('trainer',21)); // D-064AJ: curva longa compartilhada com o core
     expect(value.unspent).toBe(1); // (21-1)*2 - 39
     expect(value.totals).toEqual({
-      hp: 3, attack: 44, defense: 6,
+      hp: 5, attack: 44, defense: 9,
       specialAttack: 4, specialDefense: 3, speed: 3
     });
     expect(value.badges.map(b => b.id)).toEqual(['boulder']);
@@ -63,9 +63,9 @@ describe('paridade da v0.1 e game-core (fixture de save realista)', () => {
     save.wins = 24;
     const rawBefore = JSON.stringify(save);
     const data = ready(save);
-    expect(data.totals.attack).toBe(48); // 40 manuais + 3 luva +2 anel +2 título +1 insígnia
-    expect(data.totals.defense).toBe(7); // 3 jaqueta +2 anel +2 insígnias
-    expect(data.totals.specialAttack).toBe(8); // 4 equipamentos+2 título+2 insígnias
+    expect(data.totals.attack).toBe(73); // 40 manual +5 equipamento +12 título +16 Ginásios
+    expect(data.totals.defense).toBe(35); // 5 equipamento +12 título +18 Ginásios
+    expect(data.totals.specialAttack).toBe(36); // 4 equipamento +12 título +20 Ginásios
     expect(data.title.id).toBe('mestre');
     expect(data.unspent).toBe(0);
     expect(JSON.stringify(save)).toBe(rawBefore);

@@ -169,16 +169,16 @@ async function exercise(browser, label, viewport) {
   await titleSelect.click();
   const choices=page.getByRole('group',{name:'Escolher título do treinador'});
   await choices.getByRole('button',{name:/Aprendiz de Kanto, bônus HP \+1/}).hover();
-  await choices.getByText('Bônus: HP +1').waitFor();
+  await choices.getByText('Bônus: HP +1',{exact:true}).waitFor();
   await page.screenshot({path:new URL('trainer-title-list-'+label+'.png',shots).pathname,fullPage:true});
   for(const title of ['Veterano da Arena','Explorador de Kanto','Mestre de Ginásios']){
     assert.equal(await choices.getByRole('button',{name:new RegExp('^'+title)}).getAttribute('aria-disabled'),'true');
   }
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
   await titleSelect.click();
-  const boulder=page.getByLabel('Rocha bloqueada. 1 vitórias. Bônus: DEF +1');
+  const boulder=page.getByLabel(/Rocha bloqueada.*Brock/);
   await boulder.focus();
-  await boulder.getByText('Bônus: DEF +1').waitFor();
+  await boulder.getByText('Bônus: HP +2 · DEF +4').waitFor();
   await page.screenshot({path:new URL('trainer-badge-tooltip-'+label+'.png',shots).pathname,fullPage:true});
   await page.evaluate(()=>{const current=document.activeElement;if(current instanceof HTMLElement)current.blur();});
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,0);
