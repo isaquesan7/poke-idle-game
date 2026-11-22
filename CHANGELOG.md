@@ -651,3 +651,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - `gymBattleState.ts` passa a guardar `focusUses`, `lastFocusTurn` por instância e `turn` global; `focusGymSp` limita Concentrar a 2 usos com intervalo mínimo de 4 turnos, sem reset por troca; `healGymHp` aplica cura apenas explícita.
 - `gymTurn.ts` aceita ação Concentrar, Recover equipado e golpes multi-hit, com custo único por ação, acerto por ação e danos por impacto; status e efeitos secundários ainda bloqueados até suporte fiel.
 - Testes `gym02c2-focus-heal-multihit.test.ts` cobrem quotas SP, cooldown que persiste após troca, ausência de cura automática, Recover por ação e golpes duplos. Sem interface, insígnias ou writer; CI/merge/deploy a confirmar.
+
+
+## GYM-02C2b1 — status, imunidade e estágios em Ginásios (22/11/2026; EM PR)
+- Criado `gyms/gymEffects.ts`: status da instância, imunidade de tipo, quedas de Attack/Defense/Speed limitadas a seis estágios. A estrutura `GymFighterState` guarda estágios por Pokémon, persistindo após troca.
+- `gyms/gymTurn.ts`: suporte de veneno/paralisia, golpes com efeito secundário permitido de poison/burn/paralysis, quedas de velocidade, debuffs, drenagem e residual por burn/poison; paralisia altera iniciativa. Golpes de sono, efeitos psíquicos não suportados e Twineedle ainda bloqueados.
+- Novos testes `gym02c2b-status-effects.test.ts` para estado individual, resistência, dano residual, estágio máximo e recusa de efeitos pendentes. Nenhuma UI, insígnia, save ou reward nesta etapa; CI/merge/deploy a verificar.
