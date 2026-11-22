@@ -741,10 +741,19 @@ async function exercise(browser, label, viewport) {
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
     {key:SAVE,revision:12+firstBattleOffset});
-  const secondBattleOffset=firstBattleOffset+1;
+  let secondBattleOffset=firstBattleOffset+1;
   const last=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.ok(last.journal.receipts.at(-1).fingerprint.includes('"activeUid":'+firstUid),
     'Arena precisa combater com o UID promovido a líder');
+  // A oferta pós-vitória bloqueia uma nova luta até ser resolvida. Como
+  // o objetivo deste trecho é testar os UIDs, dispensar sem gastar bola.
+  if(JSON.parse(last.journal.raw).lastBattle.captureStatus==='available'){
+    await page.getByRole('button',{name:'Seguir sem capturar'}).click();
+    secondBattleOffset++;
+    await page.waitForFunction(({key,revision})=>
+      JSON.parse(localStorage.getItem(key))?.revision===revision,
+      {key:SAVE,revision:12+secondBattleOffset-1});
+  }
   await page.reload();
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   assert.equal(await page.getByTestId('pokemon-uid-'+firstUid).count(),1);
