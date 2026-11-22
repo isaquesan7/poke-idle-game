@@ -318,6 +318,9 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Iniciar expedição'}).click();
   await page.getByRole('heading',{name:'Expedição em andamento'}).waitFor();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===3,SAVE);
+  await page.getByRole('timer',{name:'Tempo total da expedição'}).waitFor();
+  assert.match(await page.getByTestId('expedition-total-time').innerText(),/^\d{2,}:\d{2}:\d{2}$/);
+  await page.getByRole('progressbar',{name:'Progresso para o próximo ciclo'}).waitFor();
   // Ensaio em navegador: acelera apenas o cursor do save de teste.
   // Não existe relógio confiável nem anti-cheat nesta versão local.
   await page.evaluate(key=>{
@@ -330,6 +333,10 @@ async function exercise(browser, label, viewport) {
   },SAVE);
   await page.reload();
   await page.getByRole('button',{name:'Expedição',exact:true}).click();
+  const elapsedBeforeClaim=await page.getByTestId('expedition-total-time').innerText();
+  assert.ok(Number(elapsedBeforeClaim.slice(0,2))*3600+
+    Number(elapsedBeforeClaim.slice(3,5))*60+Number(elapsedBeforeClaim.slice(6,8))>=31,
+    'Tempo total deve incluir duração anterior ao reload');
   await page.getByRole('button',{name:'Resgatar recompensas'}).click();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===4,SAVE);
   const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
@@ -339,6 +346,9 @@ async function exercise(browser, label, viewport) {
   assert.ok(game.roster[0].xp>=15);
   assert.equal(after.revision,4); // 2 pontos, start, claim
   assert.equal(after.journal.receipts.length,2);
+  const elapsedAfterClaim=await page.getByTestId('expedition-total-time').innerText();
+  assert.ok(elapsedAfterClaim>=elapsedBeforeClaim,
+    'Resgatar recompensas não pode reiniciar cronômetro total');
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY),'LEGACY-DO-NOT-TOUCH');
 
   // Combate apenas após escolher a região; o resultado vem do motor.

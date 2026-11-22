@@ -512,3 +512,6 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Afinidade por UID com derrota −3, empate −1, vitória +2–5 preservada; se ficar 48h sem batalha, −1 no segundo dia e −1 por dia seguinte, até zero. Save guarda relógio e dias descontados, sincronizando sem duplicidade em reload. Saves sem timestamp não recebem desconto histórico presumido. Testes de writer/E2E em execução; nenhuma alteração de IA, captura/XP ou recompensas.
 
 - **D064BG publicado (22/11/2026):** PR #133 merged `4473d93a`, CI `44980487555`/`44980487554`/`44980487602` SUCCESS e Railway `341dc04b-f28c-4a82-a73d-227eeedcdaa7` SUCCESS. Fluxo regional de entrada sem encontro, combate explícito, captura junto do palco, perdas de afinidade por derrota/empate/inatividade idempotentes por UID. Sem mudanças na IA, chance de captura ou XP.
+
+## 2026-11-22 — D064BH (branch/PR)
+- Expedição Kanto redesenhada com ícones, layout responsivo, cartões de recompensa, seletor e parceiro estilizados, progresso para próximo ciclo e timer de **tempo total da expedição HH:MM:SS** (persistente desde `startedAt`, sem zerar no resgate, inclusive acima de 24h). Mantida economia e limite de 8h por resgate. Perfil de Pokémon exibe duração até a próxima perda por inatividade, sem alteração da regra. Adicionados testes Vitest e browser. Publicação pendente de CI/merge/Railway.
