@@ -8,14 +8,16 @@
 import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
 import {kantoDamage} from '../combat/kantoBattle.js';
 import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
-import {KANTO_MULTI_HIT_MOVES} from '../combat/kantoMultiHit.js';
-import {kantoMoveSpCost,KANTO_BASIC_ATTACK} from '../combat/kantoSkillEnergy.js';
-import {applyGymDamage,spendGymSp,switchGymPokemon} from './gymBattleState.js';
+import {kantoRollHitCount} from '../combat/kantoMultiHit.js';
+import {kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
+import {kantoMoveSpCost,KANTO_BASIC_ATTACK,KANTO_SP_BALANCE} from '../combat/kantoSkillEnergy.js';
+import {applyGymDamage,spendGymSp,switchGymPokemon,healGymHp,focusGymSp} from './gymBattleState.js';
 import type {GymBattleState,GymSide,GymFighterState} from './gymBattleState.js';
 
 export type GymTurnAction=
   | {readonly kind:'switch';readonly toIndex:number}
   | {readonly kind:'basic'}
+  | {readonly kind:'focus'}
   | {readonly kind:'move';readonly moveName:string};
 
 export type GymTurnResult=
@@ -51,11 +53,18 @@ function validateAction(
   if(!active||active.hp<=0)return null;
   if(action.kind==='basic')
     return {action,move:KANTO_BASIC_ATTACK,priority:KANTO_BASIC_ATTACK.priority};
+  if(action.kind==='focus'){
+    if(active.sp===active.maxSp
+      ||active.focusUses>=KANTO_SP_BALANCE.maxFocusUses
+      ||state.turn-active.lastFocusTurn<KANTO_SP_BALANCE.focusCooldownTurns)return null;
+    return {action,move:null,priority:0};
+  }
   if(action.kind!=='move'||typeof action.moveName!=='string')return null;
   const move=(active.combatant.moves??[active.combatant.move])
     .find(m=>m.name===action.moveName);
-  if(!move||move.category==='status'||move.name===KANTO_BASIC_ATTACK.name
-    ||Object.hasOwn(KANTO_MULTI_HIT_MOVES,move.name)
+  if(!move||move.name===KANTO_BASIC_ATTACK.name
+    ||(move.category==='status'&&kantoSupportEffect(move.name)?.kind!=='heal')
+    ||(move.category==='status'&&active.hp===active.combatant.stats.hp)
     ||kantoMoveSecondaryEffect(move.name)!==null
     ||kantoPerHitSecondaryEffect(move.name)!==null
     ||kantoMoveSpCost(move)>active.sp)return null;
@@ -134,6 +143,13 @@ export function resolveGymTurn(
     }
     const active=state[side].fighters[state[side].activeIndex]!;
     if(active.hp<=0)continue;
+    if(chosen.action.kind==='focus'){
+      const before=active.sp;
+      state=focusGymSp(state,side);
+      log.push(side+' usou Concentrar e recuperou '+
+        (state[side].fighters[state[side].activeIndex]!.sp-before)+' SP.');
+      continue;
+    }
     const defendingSide=other(side);
     if(state[defendingSide].needsReplacement)break;
     const target=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
@@ -144,15 +160,28 @@ export function resolveGymTurn(
       log.push(side+' errou '+move.name+' (-'+cost+' SP).');
       continue;
     }
+    if(move.category==='status'){
+      const healing=Math.max(1,Math.floor(active.combatant.stats.hp*.5));
+      state=healGymHp(state,side,healing);
+      log.push(side+' usou '+move.name+' e recuperou HP (-'+cost+' SP).');
+      continue;
+    }
     const attacker=combatantUsing(active,move);
-    const damage=kantoDamage(attacker,target.combatant,roll(),roll(),
-      active.status==='burn'&&move.category==='physical'?.5:1);
-    state=applyGymDamage(state,defendingSide,damage.damage);
-    log.push(side+' usou '+move.name+', causando '+damage.damage+
-      ' de dano (-'+cost+' SP).');
+    const hits=kantoRollHitCount(move.name,roll);
+    for(let hit=1;hit<=hits;hit++){
+      if(state[defendingSide].needsReplacement||state.outcome!=='ongoing')break;
+      const actual=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
+      if(actual.hp===0)break;
+      const damage=kantoDamage(attacker,actual.combatant,roll(),roll(),
+        active.status==='burn'&&move.category==='physical'?.5:1);
+      state=applyGymDamage(state,defendingSide,damage.damage);
+      log.push(side+' usou '+move.name+' ('+hit+'/'+hits+'), causando '+
+        damage.damage+' de dano'+(hit===1?' (-'+cost+' SP)':'')+'.');
+      if(damage.damage===0)break;
+    }
     if(state[defendingSide].needsReplacement){
       log.push(defendingSide+' sofreu KO: aguarda substituição grátis.');
     }
   }
-  return {status:'applied',state,log,seedAfter:current};
+  return {status:'applied',state:{...state,turn:state.turn+1},log,seedAfter:current};
 }
