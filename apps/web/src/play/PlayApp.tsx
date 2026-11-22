@@ -383,8 +383,19 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   }));
   const expeditionSelected=expeditionOptions.find(option=>option.region.id===expeditionArea);
   const expeditionAllowed=expeditionSelected?.unlocked??false;
-  const pending = expedition
-    ? expeditionRewards(Math.max(0, now - expedition.lastClaimAt)) : null;
+  const expBallProgress=ballGame?.expeditionBallProgress;
+  const expProgress=expBallProgress&&typeof expBallProgress==='object'
+    ?expBallProgress as Record<'poke-ball'|'great-ball'|'ultra-ball',number>:undefined;
+  const expeditionMembers=expedition?.teamUids?.map(uid=>data?.roster.find(p=>p.uid===uid))
+    .filter((p):p is NonNullable<typeof p>=>Boolean(p))??[];
+  const pending=expedition
+    ? expeditionRewards(Math.max(0,now-expedition.lastClaimAt),
+      expedition.regionId&&expeditionMembers.length>0
+        ?{regionId:expedition.regionId,
+          pokemon:expeditionMembers.map(p=>({level:p.level,xp:p.xp})),
+          ballProgress:expProgress}
+        :undefined)
+    :null;
   const pendingBattle=ballGame?.pendingBattle && typeof ballGame.pendingBattle==='object'
     ? ballGame.pendingBattle as {battleId:string;preview:unknown}:null;
   // Em um reload, retomar apresentação pendente antes de pagar resultados.
@@ -414,6 +425,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         captured:boolean;affinityGain:number|null;log:string[];
         captureStatus?:'available'|'unavailable'|'caught'|'escaped'|'skipped';
         captureBallId?:KantoBallId|null;capturedStartingLevel?:number;
+        rewardFactor?:number;
         rewardCoins:number;trainerXp:number;pokemonXp:number;
         playerRemainingHp:number;wildRemainingHp:number
       }
@@ -1257,6 +1269,12 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                           <i className="fa-solid fa-heart-crack" aria-hidden="true"/>
                           Afinidade do Pokémon: {lastBattle.outcome==='draw'?'−1':'−3'} ponto(s) neste combate.
                         </p>}
+                      {lastBattle.rewardFactor===0&&
+                        <p role="status" className={styles.affinityLossNotice}>
+                          Este Pokémon está muito acima do nível da região.
+                          O encontro não concede XP, moedas, afinidade ou progresso no histórico.
+                          Explore uma região mais avançada.
+                        </p>}
                       {lastBattle.outcome === 'win' && (
                         <div className={styles.battleRewards} aria-label="Recompensas recebidas">
                           <div><small>Moedas</small><strong>+{lastBattle.rewardCoins}</strong></div>
@@ -1306,6 +1324,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 leaderLevel={active.level}
                 leaderArt={<PokemonArt id={active.pokemonId} name={view.active.name} />}
                 pending={pending??null}
+                activePokemonLevel={expeditionMembers[0]?.level??active.level}
                 nowMs={now}
                 busy={busy}
                 onStart={()=>dispatch({type:'start-expedition',regionId:expeditionArea,nowMs:Date.now()})}
