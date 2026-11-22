@@ -3,6 +3,7 @@
  * ONLINE_REGISTRATION_ENABLED=true. Nunca importa saves locais.
  */
 import {createServer} from 'node:http';
+import {createHash} from 'node:crypto';
 import pg from 'pg';
 import {
   normalizeEmail,validatePassword,validateTrainerName,
@@ -161,7 +162,7 @@ const server=createServer(async(req,res)=>{
         identifier:cleanEmail,limit:3}))return;
       const token=await issuePasswordReset(pool,cleanEmail);
       if(token)await deliver({to:cleanEmail,purpose:'reset',token,
-        idempotencyKey:'reset/'+token.slice(0,28)});
+        idempotencyKey:'reset/'+createHash('sha256').update(token).digest('hex').slice(0,32)});
       // No email-account enumeration. Tokens returned ONLY in test harness
       // when mail adapter is disabled, never in any production response.
       return json(res,200,{accepted:true,
