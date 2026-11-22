@@ -548,3 +548,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Não altera gameplay, IA, economia, desbloqueio, save ou release; documenta cenários ideais de recuperação e necessidade de testar o motor de combate de verdade.
 
 - D064BL: amostra adicional de 120 combates determinísticos com motor real, starters evoluídos e rivais da R3; diagnóstico de viabilidade de vitórias, sem alterar IA nem resultados. Ajustados asserts de XP para incluir implicitamente metadata `gainedLevels`; CI do HEAD novo pendente.
+
+- D064BL adicional: teste de sensibilidade R1–R10 compara gates de treinador atuais com hipótese de recuperação (SOMENTE em teste). Cenário alternativo desbloqueia R10 mas antecipa Pokémon Lv100 para 32–80h de expedição, dependendo da cadência de resgate. Nenhum requisito real foi alterado. CI anterior sucesso geral/Docker, novo HEAD exige validação.
