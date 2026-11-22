@@ -63,7 +63,7 @@ Os níveis acima são **novos valores propostos**, não níveis originais. Objet
 | Vulcão | +8 Attack, +6 SpAttack | 2.500 | 35.000 |
 | Terra | +10 HP, +8 Attack, +8 Defense, +8 SpDefense | 4.000 | 60.000 |
 
-Total: +40 HP, +30 Attack, +26 Defense, +25 SpAttack, +12 SpDefense, +12 Speed? **Não usar esta linha sem recalcular:** somar pelo código/teste de economia antes de publicar. Valores de XP/moedas são candidatos até cruzar com curva real do `game-core`; EXP do treinador por nível pode tornar as quantias acima pequenas ou grandes. XP de Pokémon dos ginásios deve vir de fórmula de combate proporcional a participação/cap, sem valores fixos adicionais até o benchmark.
+Soma dos bônus propostos após as oito insígnias: **+20 HP, +16 Attack, +18 Defense, +20 SpAttack, +13 SpDefense, +10 Speed** (97 pontos cumulativos). Confirmar no core e testar antes de publicar. Valores de XP/moedas são candidatos até cruzar com curva real do `game-core`; EXP do treinador por nível pode tornar as quantias acima pequenas ou grandes. XP de Pokémon dos ginásios deve vir de fórmula de combate proporcional a participação/cap, sem valores fixos adicionais até o benchmark.
 
 **Título "Mestre de Ginásios" (proposta):** ativável só com 8 receipts válidos, um título ativo por vez, +12 em cada um dos seis atributos do treinador; efeito **não adicional se título desativado**. É exclusivo e permanente no inventário, sem multiplicadores de XP/moedas/captura e sem desbloquear Master Ball automaticamente. Comparar com títulos já existentes para não criar escolha trivial e inflação de status.
 
