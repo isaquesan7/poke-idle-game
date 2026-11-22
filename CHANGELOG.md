@@ -501,3 +501,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Melhorias visuais de seletores e estoque, botões e mensagens responsivos. Revisão CI/deploy ainda pendente.
 
 - D064BE — validação funcional confirmada no HEAD `be8b7d1e...`: `44974994526` regressão SUCCESS, `44974994537` Playwright desktop/mobile SUCCESS e `44974994525` Docker SUCCESS. Confrontos postergam créditos até finalizar apresentação; uma tentativa de captura após vitória; histórico UID por Pokémon e seleção estilizada. Release condicionado a merge e Railway SHA exato.
+
+## 2026-11-21 — D064BF (em validação no branch)
+- Perfil Pokémon com barra de XP real, nível, XP restante e estado de nível 100; regra de captura alterada para piso evolutivo da espécie (Ponyta nível 1, Rapidash nível 40; Mew/Mewtwo nível 1), independente do encontro. Capturas passadas não são modificadas.
+- Arena com indicação visual de nocaute (cinza, só no frame de HP zero) e celebração de Level Up **após confirmação** da batalha. Sem mudanças em probabilidades, recompensas ou IA selvagem. Adicionados testes de progressão/captura e regressão desktop/mobile. Publicação condicionada à CI e Railway.
