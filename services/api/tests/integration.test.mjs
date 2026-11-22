@@ -91,3 +91,31 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
     await pool.end();
   }
 });
+
+test('production stays registration-disabled even with the feature flag misconfigured',async()=>{
+  const base='http://127.0.0.1:43143';
+  const child=spawn(process.execPath,['src/server.mjs'],{
+    cwd:new URL('../',import.meta.url).pathname,
+    env:{...process.env,PORT:'43143',NODE_ENV:'production',
+      ONLINE_REGISTRATION_ENABLED:'true'},
+    stdio:'ignore'
+  });
+  try{
+    let status=null;
+    for(let i=0;i<50;i++){
+      try{
+        const response=await fetch(base+'/api/v1/status');
+        if(response.status===200){status=await response.json();break;}
+      }catch{}
+      await new Promise(done=>setTimeout(done,80));
+    }
+    assert.ok(status,'API process must start');
+    assert.equal(status.registrationEnabled,false);
+    const registration=await json(base,'/api/v1/auth/register','POST',{
+      email:'should-never-register@example.test',
+      trainerName:'Unsafe',
+      password:'never-used-passphrase-123'
+    });
+    assert.equal(registration.status,503);
+  }finally{child.kill('SIGTERM');}
+});
