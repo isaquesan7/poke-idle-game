@@ -1147,6 +1147,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         ' Vitórias concedem experiência, moedas e afinidade ao final do combate.'}
                     </p>
                   </div>
+                  <div className={styles.battleArenaColumn}>
                   <BattleStage
                     player={{
                       name:lastBattle?.playerName??view.active.name,
@@ -1211,6 +1212,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         :'Nenhuma captura nesta batalha.'}</p>}
 
                     </div>}
+                  </div>
                 </section>
                 {levelUpNotice?.battleId===displayedBattleId&&!battlePlaying&&
                   <div key={levelUpNotice.battleId} className={styles.battleLevelUp}
