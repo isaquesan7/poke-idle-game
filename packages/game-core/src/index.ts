@@ -168,3 +168,7 @@ export type {GymEffects,GymStage} from './gyms/gymEffects.js';
 export {gymPsychicSecondary,gymPsychicLevelMoves} from './gyms/gymPsychicMoves.js';
 export type {GymPsychicMove,GymPsychicSecondary} from './gyms/gymPsychicMoves.js';
 export {gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage} from './gyms/gymEffects.js';
+
+// GYM-02C2c: sono individual e KO residual atômico, inclusive empate 3×3.
+export {gymApplySleep,gymTickSleep} from './gyms/gymEffects.js';
+export {applyGymResidual} from './gyms/gymBattleState.js';
