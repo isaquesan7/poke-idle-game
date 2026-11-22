@@ -16,7 +16,7 @@ import {
   KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson,
   kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant,
   inspectKantoBallPocket,resolveKantoCaptureAttempt,d064DraftBallDrop,
-  D064_DRAFT_STARTER_BALLS,battleTrainerXp,beginnerBattleXp
+  D064_DRAFT_STARTER_BALLS,battleTrainerXp,beginnerBattleXp,kantoCaptureStartingLevel
 } from '@kanto/game-core';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant,
@@ -466,7 +466,7 @@ function postBattleCapture(journal:RewardJournal,battleId:string,ballId:KantoBal
     if(!Number.isSafeInteger(game.nextUid+1))
       return {status:'blocked',reason:'UID esgotado.'};
     game.roster.push({
-      uid:game.nextUid,pokemonId:species.id,level:battle.wildLevel,xp:0,
+      uid:game.nextUid,pokemonId:species.id,level:kantoCaptureStartingLevel(species.id),xp:0,
       manual:zeroStats(),affinity:0,moveName:species.move.name,upgrades:{},
       battleRecord:{wins:0,draws:0,losses:0}
     });
