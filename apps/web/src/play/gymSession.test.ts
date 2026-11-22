@@ -3,7 +3,7 @@ import {
   createPlaySave,readPlaySave,updatePlaySave,PLAY_SAVE_KEY
 } from './playSave';
 import type {PlayStorage} from './playSave';
-import {replayGymSession} from './gymSession';
+import {replayGymSession,replayGymSessionTrace} from './gymSession';
 import type {GymSessionV1} from './gymSession';
 import {gymLegalTurnActions} from '@kanto/game-core';
 type Progress=Record<string,any>;
@@ -56,6 +56,15 @@ describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
     const replay=replayGymSession(b.game,stored);
     expect(stored.actions).toEqual([{kind:'basic'}]);
     expect(replay.turn).toBe(1);
+    const trace=replayGymSessionTrace(b.game,stored);
+    expect(trace.state).toEqual(replay);
+    expect(trace.rounds).toHaveLength(1);
+    expect(trace.rounds[0]!.turn).toBe(1);
+    expect(trace.rounds[0]!.lines.length).toBeGreaterThan(0);
+    const rawBefore=x.map.get(PLAY_SAVE_KEY);
+    expect(replayGymSessionTrace(b.game,stored)).toEqual(trace);
+    expect(x.map.get(PLAY_SAVE_KEY)).toBe(rawBefore);
+
     expect(b.snapshot.revision).toBe(2);
     expect(b.game.badges).toEqual([]);
     expect(b.game.coins).toBe(a.game.coins);
