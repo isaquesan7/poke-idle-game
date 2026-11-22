@@ -1,6 +1,6 @@
 # ONLINE-01 — Fundamento de contas e persistência
 
-**Status:** estrutura inicial; **a autenticação não está liberada para jogadores**. O PostgreSQL foi criado no projeto Railway `kanto-idle-lab`; não registrar credenciais ou URL do banco neste repositório.
+**Status:** API e schema ONLINE-01B operacionais em serviço privado Railway; **a autenticação pública não está liberada para jogadores**. O PostgreSQL foi criado no projeto Railway `kanto-idle-lab`; não registrar credenciais ou URL do banco neste repositório.
 
 ## Decisões de produto
 - A rota `/` deixa de executar v0.1 e prepara o futuro cadastro/login.
@@ -9,7 +9,7 @@
 - Quando o cadastro for lançado, o treinador começa uma aventura nova, gerada pelo **servidor**; progresso do navegador jamais é prova de saldo, XP, captura ou insígnia.
 
 ## Backend (isolado do frontend)
-- `services/api` não é workspace do build Vite/Docker atual. Não existe endpoint público de conta em `kanto-idle-web` nesta fase.
+- `services/api` não é workspace do Vite/Docker web. A API já tem imagem Docker própria e serviço Railway **sem domínio público**, sem proxy no `kanto-idle-web`.
 - `services/api/sql/001_online_foundation.sql`: contas, hashes de senha, sessões (somente hash do token), perfis, saves versionados e recibos idempotentes.
 - `services/api/src/auth.mjs`: validação, scrypt com salt aleatório, comparação `timingSafeEqual`, token de sessão aleatório e cookie `__Host-` HttpOnly/SameSite.
 - `services/api/src/server.mjs`: protótipo de API Node HTTP com PostgreSQL `pg` e registro **desabilitado por padrão**. Rotas: `GET /health`, `GET /api/v1/status`, `GET /api/v1/me`, `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `GET /api/v1/save`. **Não existe gravação client-side de saves.**
@@ -32,4 +32,4 @@ PORT=3001
 NODE_ENV=development
 ```
 
-A migration está pronta em `services/api/src/migrate.mjs`, mas **não foi executada no banco**. A API **não foi implantada** nem conectada ao site nesta etapa; o banco permanece sem contas. A instalação das dependências exige lockfile/CI de produção. Não expor variáveis privadas nem credenciais em documentação, prints ou logs.
+A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway em 22/11/2026, confirmada pelos logs do pre-deploy do serviço privado. A API foi implantada com healthcheck SUCCESS e **não foi conectada ao site nem exposta publicamente**; o cadastro permanece DESABILITADO inclusive quando flag=true em `NODE_ENV=production`. Lockfile e CI de integração PostgreSQL/Docker confirmados. Backups agendados/restauração, rate limiting, verificação de e-mail e writer autoritativo continuam pendentes. Nunca expor variáveis privadas ou credenciais.
