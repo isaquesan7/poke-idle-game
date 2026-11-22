@@ -712,3 +712,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Após GYM-04D, replay do Ginásio calcula deltas reais de HP, SP, entrada e KO para cada ação. Em cada novo turno confirmado, a UI exibe breve impacto/cura/recarga/entrada usando CSS, mantendo os GIFs ativos montados; abrir sessão após reload não dispara efeitos falsos.
 - Animações FULL em todos dispositivos, preservando escolha de produto D042. Nenhuma mudança no motor, ações, seed, writer, recompensas ou persistência.
 - Vitest confere dados de delta e E2E no desktop/mobile verifica cue apenas após ação, imagens GIF com identidade preservada e ausência de cue ao recarregar. CI, merge e deploy ainda pendentes.
+
+
+## 2026-11-22 — GYM-06 (em PR; ainda NÃO publicada)
+- Nova experiência dos Ginásios 3×3 reusa diretamente `BattleStage` e `BattlePlayback` das regiões, inclusive nocaute, barras de HP/SP, diário e seus controles. Removidas as animações CSS GYM-05 duplicadas. Arena e reservas receberam sombra, brilho e ícones dentro da paleta Kanto Dark.
+- Os três Pokémon do jogador batalham pela mesma IA legal do líder. Ambas podem trocar defensivamente em HP crítico, respeitando três trocas voluntárias por lado, recuperação SP limitada e KO sem cura. Iniciar desafio ativa a IA automaticamente; há pausa/retomada, sem ações manuais.
+- Sessão conserva seed/transcript, writer CAS/idempotente e avaliação de recompensas somente na vitória; projeções before/after por turno sustentam o palco comum. Novos testes simétricos no core e jornada Chromium desktop/mobile usam IA, diário, reload e recibo único. CI/PR/merge/deploy a confirmar.
