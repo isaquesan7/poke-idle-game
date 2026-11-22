@@ -314,6 +314,27 @@ describe('expedição: claim/stop em snapshot puro e replays protegidos',()=>{
     expect(applyRewardEvent(j,claim('zero-pay-r3',1,100000+8*60*60*1000)).status)
       .toBe('duplicate');
   });
+  it('D064BM: writer real recupera save legado Lv19/P41 sem xp grátis ou overlevel',()=>{
+    const src=source();
+    src.trainer.level=19;
+    src.trainer.xp=1139;
+    src.roster[0]!.level=41;
+    src.roster[0]!.xp=12;
+    let j=journal(JSON.stringify(src));
+    for(let i=0;i<67;i++){
+      j=applied(j,{...noCapture('d064bm-r3-win-'+i,i),
+        wildLevel:30,regionId:3});
+    }
+    const updated=parsed(j) as any;
+    expect(updated.trainer).toMatchObject({level:20,xp:8});
+    expect(updated.roster[0]).toMatchObject({level:41,xp:1352});
+    expect(updated.roster[0].battleRecord).toMatchObject({wins:67});
+    expect(updated.wins).toBe(67);
+    expect(updated.roster[0].affinity).toBe(73);
+    expect(j.receipts).toHaveLength(67);
+    expect(applyRewardEvent(j,{...noCapture('d064bm-r3-win-66',66),
+      wildLevel:30,regionId:3}).status).toBe('duplicate');
+  });
   it('rejeita relógio retrocedido, nenhuma expedição, fonte inconsistente e IDs ruins',()=>{
     const base=journal();
     rejected(base,claim());

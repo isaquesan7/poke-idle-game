@@ -49,7 +49,7 @@ function expeditionOnlyClaims(count:number,startingPokemonLevel=2){
   }
   return {trainer,pokemon,progress,coins,drops,rows};
 }
-describe('D064BK — caminho real de desbloqueio e orçamento da loja (diagnóstico)',()=>{
+describe('D064BM — caminho regional sem softlock e orçamento conservador',()=>{
   it('inicial Lv1 ainda precisa chegar ao Lv2 antes de desbloquear a expedição',()=>{
     expect(accessibleRegion(1,1)).toBeUndefined();
     expect(accessibleRegion(1,2)?.id).toBe(1);
@@ -73,25 +73,27 @@ describe('D064BK — caminho real de desbloqueio e orçamento da loja (diagnóst
     expect(reward.ballProgress).toEqual(before);
     expect(reward.ballDrops).toEqual(emptyExpeditionBallProgress());
   });
-  it('simula 40 resgates reais de 8h e identifica corretamente o ponto de dependência de batalhas',()=>{
+  it('D064BM: 40 resgates de 8h não prendem treinador e líder nas primeiras regiões',()=>{
     const result=expeditionOnlyClaims(40);
     expect(result.rows).toHaveLength(40);
-    expect(result.rows.slice(0,3).map(r=>r.regionId)).toEqual([1,2,3]);
-    expect(result.rows[2]).toMatchObject({trainerLevel:19,pokemonLevel:40});
-    expect(result.rows[3]).toMatchObject({trainerLevel:19,pokemonLevel:41});
-    expect(result.rows.slice(0,4).map(r=>r.coins)).toEqual([8039,8772,10654,203]);
-    for(const row of result.rows.slice(4)){
-      expect(row).toMatchObject({regionId:3,trainerLevel:19,pokemonLevel:41,
-        coins:0,trainerXp:0,pokemonXp:0,pokeballs:0,greatballs:0,ultraballs:0});
-    }
-    expect(result.trainer.level).toBe(19);
-    expect(result.pokemon.level).toBe(41);
-    expect(result.drops['great-ball']).toBe(0);
-    expect(result.drops['ultra-ball']).toBe(0);
-    expect(result.coins).toBe(27668);
-    expect(result.drops).toEqual({'poke-ball':5,'great-ball':0,'ultra-ball':0});
-    // A trava na jornada SOMENTE com expedições é deliberadamente
-    // observada, não resolvida com XP grátis. Batalhas permanecem disponíveis.
+    expect(result.rows.slice(0,4).map(r=>r.regionId)).toEqual([1,2,3,4]);
+    expect(result.rows.slice(0,4).map(r=>r.coins)).toEqual([8039,10628,19634,28585]);
+    expect(result.rows[2]).toMatchObject({trainerLevel:22,pokemonLevel:37});
+    expect(result.rows[3]).toMatchObject({trainerLevel:28,pokemonLevel:43});
+    expect(result.rows.every(row=>row.coins>0&&row.trainerXp>0&&row.pokemonXp>0))
+      .toBe(true);
+    expect(result.rows.some(row=>row.regionId===9)).toBe(true);
+    expect(result.trainer.level).toBe(83);
+    expect(result.pokemon.level).toBe(90);
+    expect(result.coins).toBe(1054319);
+    expect(result.drops).toEqual({
+      'poke-ball':79,'great-ball':35,'ultra-ball':0
+    });
+    expect(result.progress).toEqual({
+      'poke-ball':114691,'great-ball':100800,'ultra-ball':2880
+    });
+    // A expedição continua respeitando raridade: ainda nenhuma Ultra Ball
+    // após um único resgate de 8h na R9.
   });
   it('simula poder de compra hipotético em vez de adicionar preços/loja ao jogo',()=>{
     const {coins}=expeditionOnlyClaims(4);

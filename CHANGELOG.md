@@ -550,3 +550,13 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - D064BL: amostra adicional de 120 combates determinísticos com motor real, starters evoluídos e rivais da R3; diagnóstico de viabilidade de vitórias, sem alterar IA nem resultados. Ajustados asserts de XP para incluir implicitamente metadata `gainedLevels`; CI do HEAD novo pendente.
 
 - D064BL adicional: teste de sensibilidade R1–R10 compara gates de treinador atuais com hipótese de recuperação (SOMENTE em teste). Cenário alternativo desbloqueia R10 mas antecipa Pokémon Lv100 para 32–80h de expedição, dependendo da cadência de resgate. Nenhum requisito real foi alterado. CI anterior sucesso geral/Docker, novo HEAD exige validação.
+
+### D064BL — publicação do diagnóstico (22/11/2026)
+- PR #138 integrada em main SHA `0cc799a1c59b94256abe31aa93b0ff2d102e2a2f`; CI geral `45023267167` e Docker `45023267171` SUCCESS no HEAD `34a987fa`. Railway deployment `fe12885f-f80a-4328-b270-5cf19c73d14f` SUCCESS no merge, sem alterar gameplay. Evidência de softlock da curva antiga e risco de aceleramento caso apenas baixassem os gates de treinador.
+
+### D064BM — correção sistêmica do XP Pokémon (22/11/2026; BRANCH, pendente de release)
+- A partir do nível 21, Pokémon passa a exigir `65+22L+7×max(0,L−20)²` XP para subir, mantendo níveis1–20 idênticos. A curva do treinador, ganhos regionais, IA, limite Nv100, afinidade, rareza/ciclos de Pokébolas, captura, saves e desbloqueios do treinador permanecem intactos.
+- Cenários determinísticos com resgates 5m/2h/8h passam por todas 10 regiões sem softlock, com alvo de Pokémon100 em 399–440h e treinador100 em 433–472h de ciclos elegíveis; nenhuma XP/grant retroativa. Relatório `docs/POKEMON_XP_CURVE_D064BM.md`.
+- Ampliados testes para compatibilidade de saves antigos, recuperação de treinador Lv19/Pokémon Lv41 e novos totais de 40 claims/loja, sem definir preços. CI/merge/deploy **ainda não verificados para D064BM**.
+
+- Novo teste de integração com writer real verifica que 67 vitórias regionais elegíveis recuperam treinador Lv19/Pokémon Lv41 sem reprocessar o mesmo receipt, sem XP de captura ou afinidade gratuita.
