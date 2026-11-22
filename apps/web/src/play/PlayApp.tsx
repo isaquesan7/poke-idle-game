@@ -58,6 +58,15 @@ function effectLabel(name:string):string|null {
     effect.status==='burn'?'queimadura':effect.status==='poison'?'envenenamento':'paralisia'
   );
 }
+/** Histórico por UID com fallback 0 para partidas anteriores a D064BE. */
+function pokemonBattleRecord(value:unknown):{wins:number;draws:number;losses:number}{
+  const v=value && typeof value==='object'?value as Record<string,unknown>:{};
+  const r=v.battleRecord && typeof v.battleRecord==='object'
+    ?v.battleRecord as Record<string,unknown>:{};
+  const read=(key:'wins'|'draws'|'losses')=>
+    typeof r[key]==='number'&&Number.isSafeInteger(r[key])&&r[key]>=0?r[key] as number:0;
+  return {wins:read('wins'),draws:read('draws'),losses:read('losses')};
+}
 function focusedSpeciesFallback(speciesId:number|undefined) {
   return speciesId?KANTO_BATTLE_SPECIES[speciesId]?.move:undefined;
 }
@@ -369,13 +378,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   },[tab,save.status==='ready'?save.snapshot.revision:0]);
   const displayedBattleId=lastBattle?.battleId??'legacy-battle';
   const battlePlaying=Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
-  const currentRecord=active && typeof active==='object' && 'battleRecord' in active
-    && active.battleRecord && typeof active.battleRecord==='object'
-    ? active.battleRecord as {wins?:number;draws?:number;losses?:number}:null;
-  const activeRecord={
-    wins:currentRecord?.wins??0,draws:currentRecord?.draws??0,
-    losses:currentRecord?.losses??0
-  };
+  const activeRecord=pokemonBattleRecord(active);
   async function finishPlayback():Promise<void>{
     if(!pendingBattle||settlingBattle.current===pendingBattle.battleId){
       if(!pendingBattle)setBattlePlayback(previous=>previous?{...previous,done:true}:null);
@@ -622,9 +625,9 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         <span><i className="fa-solid fa-users" aria-hidden="true"/> {data.team[0]===focused.uid?'Líder da equipe':data.team.includes(focused.uid)?'Na equipe':'Na coleção'}</span>
                       </div>
                       <div className={styles.pokemonBattleHistory} aria-label="Histórico individual deste Pokémon">
-                        <span><i className="fa-solid fa-trophy" aria-hidden="true"/> {('battleRecord' in focused && focused.battleRecord?.wins)||0} vitórias</span>
-                        <span><i className="fa-solid fa-handshake" aria-hidden="true"/> {('battleRecord' in focused && focused.battleRecord?.draws)||0} empates</span>
-                        <span><i className="fa-solid fa-shield-halved" aria-hidden="true"/> {('battleRecord' in focused && focused.battleRecord?.losses)||0} derrotas</span>
+                        <span><i className="fa-solid fa-trophy" aria-hidden="true"/> {pokemonBattleRecord(focused)["wins"]} vitórias</span>
+                        <span><i className="fa-solid fa-handshake" aria-hidden="true"/> {pokemonBattleRecord(focused)["draws"]} empates</span>
+                        <span><i className="fa-solid fa-shield-halved" aria-hidden="true"/> {pokemonBattleRecord(focused)["losses"]} derrotas</span>
                       </div>
                       <div className={styles.pokemonAffinity}>
                         <div><strong>Vínculo com o treinador</strong><span>{focused.affinity}%</span></div>
@@ -972,8 +975,6 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 selectedRegionId={regionalArea}
                 onSelectRegion={setRegionalArea}
                 balls={ballQuantities}
-                selectedBall={captureBall}
-                onSelectBall={setCaptureBall}
                 wins={Array.isArray(ballGame?.regionWins)
                   ?(ballGame.regionWins as number[]):[]}
                 seenIds={seenDexIds}
