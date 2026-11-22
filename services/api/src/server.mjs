@@ -9,6 +9,7 @@ import {
   hashPassword,verifyPassword,newSessionToken,tokenDigest,
   sessionCookie,parseSessionCookie
 } from './auth.mjs';
+import {throttle,requesterIp,issueVerification,consumeVerification} from './authSecurity.mjs';
 
 const port=Number(process.env.PORT??3001);
 const connectionString=process.env.DATABASE_URL;
@@ -22,6 +23,16 @@ const pool=new pg.Pool({connectionString,max:12,connectionTimeoutMillis:5000,
 const enabled=process.env.NODE_ENV==='test' &&
   process.env.ONLINE_REGISTRATION_ENABLED==='true';
 const isSecure=process.env.NODE_ENV==='production';
+const throttleSecret=process.env.AUTH_RATE_LIMIT_SECRET;
+if(enabled&&(!throttleSecret||throttleSecret.length<32))
+  throw new Error('AUTH_RATE_LIMIT_SECRET precisa ter ao menos 32 caracteres');
+async function enforceThrottle(req,res,{scope,identifier,limit}){
+  const quota=await throttle(pool,{scope,identifier,limit,secret:throttleSecret});
+  if(quota.allowed)return true;
+  json(res,429,{error:'Muitas tentativas. Tente novamente mais tarde.'},
+    {'Retry-After':'900'});
+  return false;
+}
 const json=(res,status,body,headers={})=>{
   res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',
     'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});
@@ -88,9 +99,14 @@ const server=createServer(async(req,res)=>{
       requireSameOrigin(req);
       const {email,password,trainerName}=await readJson(req);
       const cleanEmail=normalizeEmail(email),cleanName=validateTrainerName(trainerName);
-      const hash=await hashPassword(validatePassword(password));
+      validatePassword(password);
+      if(!await enforceThrottle(req,res,{scope:'register-ip',
+        identifier:requesterIp(req),limit:10}))return;
+      if(!await enforceThrottle(req,res,{scope:'register-email',
+        identifier:cleanEmail,limit:4}))return;
+      const hash=await hashPassword(password);
       const client=await pool.connect();
-      let userId;
+      let userId,verification;
       try{
         await client.query('BEGIN');
         const account=await client.query(
@@ -100,10 +116,23 @@ const server=createServer(async(req,res)=>{
         await client.query(
           'INSERT INTO game_profiles(account_id,trainer_name) VALUES($1,$2)',
           [userId,cleanName]);
+        verification=await issueVerification(client,userId);
         await client.query('COMMIT');
       }catch(e){await client.query('ROLLBACK');throw e;}
       finally{client.release();}
-      return json(res,201,{id:userId,trainerName:cleanName});
+      // Test harness only. No production route can issue/return a token until
+      // trusted email delivery, rate limits and an onboarding flow exist.
+      return json(res,201,{id:userId,trainerName:cleanName,
+        verificationToken:verification});
+    }
+    if(pathname==='/api/v1/auth/verify'&&req.method==='POST'){
+      requireSameOrigin(req);
+      if(!await enforceThrottle(req,res,{scope:'verify-ip',
+        identifier:requesterIp(req),limit:20}))return;
+      const {token}=await readJson(req);
+      const valid=await consumeVerification(pool,token);
+      return valid?json(res,200,{verified:true}):
+        json(res,400,{error:'Link de verificação inválido ou expirado.'});
     }
     if(pathname==='/api/v1/auth/login'&&req.method==='POST'){
       requireSameOrigin(req);
@@ -111,12 +140,18 @@ const server=createServer(async(req,res)=>{
       const cleanEmail=normalizeEmail(email);
       if(typeof password!=='string'||password.length>128)
         return json(res,401,{error:'Credenciais inválidas'});
+      if(!await enforceThrottle(req,res,{scope:'login-ip',
+        identifier:requesterIp(req),limit:30}))return;
+      if(!await enforceThrottle(req,res,{scope:'login-email',
+        identifier:cleanEmail,limit:6}))return;
       const users=await pool.query(
-        'SELECT id,password_hash FROM game_accounts WHERE email=$1 AND disabled_at IS NULL',
+        'SELECT id,password_hash,email_verified_at FROM game_accounts WHERE email=$1 AND disabled_at IS NULL',
         [cleanEmail]);
       const user=users.rows[0];
       if(!user||!await verifyPassword(password,user.password_hash))
         return json(res,401,{error:'Credenciais inválidas'});
+      if(!user.email_verified_at)
+        return json(res,403,{error:'Verifique seu e-mail antes de entrar.'});
       const token=newSessionToken();
       await pool.query(
         `INSERT INTO game_auth_sessions(account_id,token_sha256,expires_at)
