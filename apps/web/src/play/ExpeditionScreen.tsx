@@ -176,7 +176,7 @@ export function ExpeditionScreen({
           {effectiveRegion>=5&&<span>Great Ball <b>+{pending?.ballDrops?.['great-ball']??0}</b></span>}
           {effectiveRegion>=9&&<span>Ultra Ball <b>+{pending?.ballDrops?.['ultra-ball']??0}</b></span>}
         </div>
-        {progress&&<div aria-label="Próximos marcos de Pokébolas">
+        {progress&&<div role="group" aria-label="Próximos marcos de Pokébolas">
           <small>{noCycleYield?'Contadores pausados nesta região':'Ciclos elegíveis para as próximas Pokébolas'}</small>
           <div className={styles.ballPills}>
             {availableBallKinds.map(kind=>{
