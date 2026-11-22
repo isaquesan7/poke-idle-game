@@ -747,3 +747,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - SQL 002: contadores PostgreSQL de tentativas e tokens de verificação de e-mail com hash, executados pelo mesmo migrator atomicamente com checksum/ledger. Rate limiting distribuído para login, cadastro e verificação usando UPSERT e HMAC para identificadores de IP/e-mail.
 - Em CI somente, registro entrega token de teste de uso único (não há entrega de e-mail ainda); login exige `email_verified_at`; reuso do token falha e excesso de login produz 429. Produção continua **hard-locked**, sem registro/login aberto e sem persistência originada do cliente.
 - CI Postgres18 expandida com cenários de verificação, replay de token e bloqueio distribuído, mantendo root / e /play inalterados. Backups/PITR e envio real de e-mail são gates futuros; não há migração de saves locais.
+
+### ONLINE-01C-1 — release privado confirmado (22/11/2026)
+- PR #177 MERGED por squash em `4420fd4d29cd90241380fb39f9d1132eaf002cbb`; HEAD da PR `0da69e50baf2c75e4e1d1a4f3e655e7ee06c5915`. CI específica API/PostgreSQL18 `45079651579` e regressão web completa `45079651455`: ambas **SUCCESS**.
+- Railway serviço privado `kanto-idle-api` deployment `e84f5562-ebb4-4068-bdc3-c39761cc1276` **SUCCESS** no mesmo commit. Logs de predeploy: `migration já aplicada: 001_online_foundation.sql` e `migration aplicada: 002_auth_limits_verification.sql`; runtime `registro desabilitado` na porta 8080. Web e Postgres também SUCCESS.
+- A schema passa a conter `game_auth_throttles` (contadores atômicos por digest) e `game_email_verifications` (tokens únicos com hash). Verificação real por e-mail e backups/restore seguem **não confirmados**; cadastro de produção permanece bloqueado; `/play` local e sem importação de saves.
