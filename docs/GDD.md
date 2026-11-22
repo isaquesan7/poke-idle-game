@@ -328,3 +328,11 @@ A equipe de Ginásio é uma lista ordenada de exatamente três UIDs distintos ex
 
 
 **Gate de disponibilidade de golpes:** Kadabra/Alakazam (Ginásio Sabrina) atualmente não possuem ataque equipável no recorte executável FRLG; `confusion`, `psybeam` e `psychic` dependem dos efeitos secundários de confusão/redução de Special Defense (effectId 77/73), ainda não implementados. Não instalar golpe fictício ou bônus invisível; permitir preparação do ginásio apenas depois de expandir motor e testes de status. A IA com 0 SP pode escolher Ataque Básico gratuito OU Concentrar, desde que respeite limites táticos.
+
+
+### GYM-02B — persistência de HP e recuperação limitada de SP por troca (22/11/2026)
+**Regra expressa do usuário:** em batalhas de Ginásio 3×3, **HP não é restaurado automaticamente após nocautear um adversário, ao recolher um Pokémon nem ao retorná-lo**; a mesma regra vale para jogador e Líder. HP, SP, estado e ID são da instância durante todo o confronto, inclusive reservas. Golpes de autocura legalmente equipados, como Recover, são uma ação explícita diferente de troca e respeitam o SP/regras do motor.
+
+**Política de balanceamento beta implementada no núcleo puro GYM-02B:** até **3 trocas voluntárias por lado** no confronto (custam uma ação quando o motor de turnos for conectado); cada Pokémon pode receber **uma recuperação de SP ao ser recolhido voluntariamente**, equivalente a **20% do SP máximo arredondado para baixo** e limitada ao SP faltante. A oportunidade é consumida mesmo se SP já estiver cheio. Troca obrigatória após KO não consome o limite de 3 trocas e **nunca restaura SP**, porque o derrotado não pode ser recolhido para explorar o bônus. Trocas para Pokémon com 0 HP são proibidas; após KO é obrigatório escolher outro vivo e não é permitido atacar enquanto isso não acontecer. Os dois lados têm os mesmos limites. O sistema de Concentrar permanece separado (custos/intervalos existentes quando for integrado ao combate 3×3).
+
+Módulo `gyms/gymBattleState.ts` implementa criação de estado, dano, gasto de SP e trocas imutáveis, com testes específicos. **Ainda não há resolvedor completo de turnos 3×3, integração com a IA, interface, persistência de save ou concessão de insígnias.** As constantes são beta, reavaliar com simulações antes do lançamento.

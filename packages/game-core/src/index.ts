@@ -145,3 +145,9 @@ export type {KantoGymId,KantoGymPokemon,KantoGymDefinition} from './gyms/kantoGy
 export {selectGymTeam,gymTrainerPoints,gymLegalMoves,prepareGymOpponent,gymAiDecision}
   from './gyms/gymTactics.js';
 export type {GymTeamSlot,GymAiDecision,GymPreparedOpponent} from './gyms/gymTactics.js';
+
+// GYM-02B: estado local de equipes, dano, gasto de SP e trocas limitadas.
+export {GYM_SWITCH_RULES,createGymBattleState,applyGymDamage,spendGymSp,
+  switchGymPokemon,gymTeamIsDefeated} from './gyms/gymBattleState.js';
+export type {GymSide,GymFighterState,GymSideState,GymBattleState,GymStateResult}
+  from './gyms/gymBattleState.js';
