@@ -30,7 +30,10 @@ function write(store:MemoryStorage,action:Parameters<typeof updatePlaySave>[2]){
   expect(result.status).toBe('ok');
   const after=read(store);
   expect(after.revision).toBe(before.revision+1);
-  expect(after.journal.revision).toBe(before.journal.revision+1);
+  // Evolução altera o snapshot v0.2, mas não emite reward receipt.
+  const isReward=['regional-battle','battle','start-expedition',
+    'claim-expedition','stop-expedition'].includes(action.type);
+  expect(after.journal.revision).toBe(before.journal.revision+(isReward?1:0));
   expect(after.journal.receipts).toHaveLength(after.journal.revision);
   return after;
 }
