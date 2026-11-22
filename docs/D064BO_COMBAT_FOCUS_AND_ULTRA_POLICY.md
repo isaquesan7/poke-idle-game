@@ -1,6 +1,6 @@
 # D064BO — correção da Ultra Ball de combate e UX do campo de batalha (22/11/2026)
 
-**Status:** alteração em branch, aguarda testes CI, integração e Railway. Registro de decisão explícita do usuário que prevalece sobre a interpretação errada da D064BN. Nenhum preço ou writer de loja foi habilitado.
+**Status:** **PUBLICADA EM PRODUÇÃO** pela PR #143, merge squash `230c78b8312593ba1eae7820e2fc40cafde127f2`. HEAD testado `04ba433caf31911f641922449530e8e0f702224c` com GitHub Actions geral `45028737965`, Playwright isolado desktop/mobile `45028737971` e Docker `45028738017` **SUCCESS**. Railway deployment `7a144fd5-b4b0-4ebc-ab1a-e0b16a03d536` **SUCCESS** no SHA funcional exato; healthcheck **interno** `/health` aprovado e serviço online (1 réplica, 0 crashes). GET externo público `/play` não verificado diretamente. Nenhum preço ou writer de loja foi habilitado.
 
 ## Uma regra diferente para cada modo
 
