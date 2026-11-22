@@ -246,3 +246,7 @@ Manter quotas e cooldown de Concentrar independentes para cada um dos seis Poké
 
 ### GYM-02C2b1 — status persistentes por UID, sem reset em troca (22/11/2026; EM PR)
 Manter condições e quedas de atributos no Pokémon e não no índice ativo; a troca não remove status nem cura HP, e o dano residual por poison/burn corre somente enquanto o Pokémon está em campo. Utilizar o motor de efeitos conhecidos para poison, burn, paralysis, drops e drenagem com mesma regra para líder/jogador e RNG determinístico. Para efeitos ainda ausentes (sono, confusão, Psychic e poison por impacto), negar movimento até a implementação completa; não fingir efeitos de dano puro. Nenhuma mudança no motor regional, writer ou na obtenção de insígnias nesta fase.
+
+
+### GYM-02C2b2 — psíquicos estritamente por snapshot FRLG (22/11/2026; EM PR)
+Não habilitar genericamente golpes com efeitos ainda não executáveis no motor regional; para Ginásios, adaptar apenas Confusion/Psybeam/Psychic de nível FireRed/LeafGreen, confirmando IDs 77/73 e chances de 10% do snapshot antes de executar. Confusão guarda duração por Pokémon e persiste na reserva, sem restaurar HP; autodano substitui ação com 50% de chance. Redução de Special Defense limitada a seis estágios. Sabrina fica com elenco legal, mas ainda não jogável até IA, estados restantes e writer/UI.
