@@ -327,11 +327,11 @@ function playBattle(
     }
     if(selectedRegion){
       const regionWinNumber=(regionWins![selectedRegion.id-1]??0)
-        +(result.outcome==='win'?1:0);
+        +(result.outcome==='win'&&rewardFactor>0?1:0);
       regionWins![selectedRegion.id-1]=regionWinNumber;
-      const drop=result.outcome==='win'
+      const drop=result.outcome==='win'&&rewardFactor>0
         ?d064DraftBallDrop(selectedRegion.id,regionWinNumber):null;
-      if(result.outcome==='win'&&!drop)
+      if(result.outcome==='win'&&rewardFactor>0&&!drop)
         return{status:'blocked',reason:'Reposição regional inválida.'};
       const quantities={...nextPocket.quantities};
       if(drop)for(const ball of ['poke-ball','great-ball','ultra-ball'] as const){
