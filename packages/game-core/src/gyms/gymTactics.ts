@@ -78,7 +78,7 @@ export function gymLegalMoves(speciesId:number,level:number):readonly KantoMove[
     options.push(move);
     if(options.length===4)break;
   }
-  if(!options.length)throw new RangeError('Espécie sem golpe executável: não equipar substituto fictício.');
+  if(!options.length)throw new RangeError('Espécie '+speciesId+' nível '+level+' sem golpe executável: ampliar motor antes de liberar ginásio.');
   return options;
 }
 
