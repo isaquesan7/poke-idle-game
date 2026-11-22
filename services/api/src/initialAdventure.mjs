@@ -3,8 +3,6 @@
  * NOT copied from localStorage or arbitrary client JSON.
  * Future gameplay actions must be validated server-side before writing.
  */
-import {randomUUID} from 'node:crypto';
-
 const STATS=['hp','attack','defense','specialAttack','specialDefense','speed'];
 export const STARTER_SPECIES=Object.freeze([1,4,7]);
 const blankStats=()=>Object.fromEntries(STATS.map(key=>[key,0]));
