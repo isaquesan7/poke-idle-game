@@ -181,7 +181,7 @@ export function ExpeditionScreen({
           <div className={styles.ballPills}>
             {availableBallKinds.map(kind=>{
               const next=nextBallCycles(kind);
-              return next===null?null:<span key={kind}>{ballLabels[kind]}: <b>{next} ciclos</b></span>;
+              return next===null?null:<span key={kind}>{ballLabels[kind]}: <b>{next} {next===1?'ciclo':'ciclos'}</b></span>;
             })}
           </div>
         </div>}
