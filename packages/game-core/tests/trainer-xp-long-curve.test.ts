@@ -16,8 +16,13 @@ describe('D-064AJ — progressão longa do treinador',()=>{
     expect(xpThreshold('trainer',95)).toBeGreaterThan(xpThreshold('trainer',82));
     expect(grantXp('trainer',{level:100,xp:0},battleTrainerXp(100)).level).toBe(100);
   });
-  it('não altera curva de XP dos Pokémon nem permite XP inválido',()=>{
-    expect(xpThreshold('pokemon',55)).toBe(65+55*22);
+  it('D064BM: preserva Pokémon Lv1–20 e introduz curva tardia sem alterar treinador',()=>{
+    for(let level=1;level<=20;level++)
+      expect(xpThreshold('pokemon',level)).toBe(65+level*22);
+    expect(xpThreshold('pokemon',21)).toBe(65+21*22+7);
+    expect(xpThreshold('pokemon',55)).toBe(65+55*22+7*35*35);
+    expect(xpThreshold('pokemon',100)).toBe(65+100*22+7*80*80);
+    expect(xpThreshold('trainer',55)).toBe(12653);
     expect(()=>battleTrainerXp(-1)).toThrow();
     expect(()=>battleTrainerXp(101)).toThrow();
     expect(()=>battleTrainerXp(64.5)).toThrow();
