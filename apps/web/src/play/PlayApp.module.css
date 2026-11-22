@@ -1065,3 +1065,32 @@
 .affinityLossNotice i{color:var(--color-danger);}
 @media(max-width:1100px){.battleArenaColumn{width:100%;}}
 @media(max-width:640px){.battleCapturePlacement .captureDecision{padding:14px}.battleCapturePlacement .arenaStyledSelect{max-width:100%}}
+
+/* D064BP: vitrine informativa — sem controles de compra antes de preços aprovados. */
+.shopPreview{display:grid;gap:var(--space-4);max-width:1050px;}
+.shopPreview h2{margin:0;}
+.shopPreview>p{margin:0;color:var(--color-text-muted);line-height:1.6;}
+.shopSummary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3);}
+.shopSummary>div{display:grid;gap:var(--space-2);padding:var(--space-4);
+  border-radius:var(--radius-card);background:var(--color-surface-raised);border:1px solid var(--color-border)}
+.shopSummary small{color:var(--color-text-muted);}
+.shopSummary strong{color:var(--color-gold);font-size:clamp(.9rem,2.2vw,1.2rem);}
+.shopItems{display:grid;gap:var(--space-3);}
+.shopItem{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;
+  min-width:0;gap:var(--space-3);padding:var(--space-4);
+  border:1px solid var(--color-border);border-radius:var(--radius-card);
+  background:var(--color-surface-raised)}
+.shopItem h3{margin:0 0 var(--space-1);font-size:1.05rem;}
+.shopItem p{margin:0 0 var(--space-1);font-size:.85rem;color:var(--color-text-muted);}
+.shopItem small{color:var(--color-text-muted);}
+.shopIcon{display:grid;place-items:center;height:44px;width:44px;
+  border:2px solid var(--color-primary);color:var(--color-primary);border-radius:50%;}
+.shopPricePending{color:var(--color-gold);font-size:.82rem;white-space:nowrap;}
+.shopPolicyNote{padding:var(--space-3);background:var(--color-surface);
+  border-radius:var(--radius-card);border:1px solid var(--color-border);}
+@media(max-width:690px){
+  .shopSummary{grid-template-columns:minmax(0,1fr);}
+  .shopItem{grid-template-columns:36px minmax(0,1fr);gap:var(--space-2)}
+  .shopIcon{width:36px;height:36px;}
+  .shopPricePending{grid-column:2;white-space:normal;}
+}
