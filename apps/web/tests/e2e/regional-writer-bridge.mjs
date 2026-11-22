@@ -208,6 +208,53 @@ try{
       return Boolean(btn&&!btn.disabled&&document.activeElement===btn);
     });
     await levelUp.waitFor({state:'detached',timeout:5000});
+    // D064BQ: checkout REAL no navegador após batalha, desktop/mobile.
+    // A moeda/nivel são injetados APENAS nesta fixture, não no jogo publicado.
+    await page.evaluate(k=>{
+      const snapshot=JSON.parse(localStorage.getItem(k));
+      const game=JSON.parse(snapshot.journal.raw);
+      game.coins=25000;
+      game.trainer.level=55;
+      snapshot.journal.raw=JSON.stringify(game);
+      localStorage.setItem(k,JSON.stringify(snapshot));
+    },key);
+    await page.reload();
+    await page.getByRole('button',{name:'Loja',exact:true}).click();
+    const shop=page.getByTestId('shop-preview');
+    await shop.waitFor();
+    assert.equal(await shop.getByTestId('shop-buy-ultra-ball').isDisabled(),false);
+    const prior=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+    const bagBefore=JSON.parse(prior.journal.raw).ballPocket.quantities;
+    await shop.getByTestId('shop-buy-ultra-ball').click();
+    await page.waitForFunction(({k,rev})=>
+      JSON.parse(localStorage.getItem(k))?.revision===rev+1,
+      {k:key,rev:prior.revision});
+    const bought=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+    const boughtGame=JSON.parse(bought.journal.raw);
+    assert.equal(boughtGame.coins,9000);
+    assert.equal(boughtGame.ballPocket.quantities['ultra-ball'],
+      (bagBefore['ultra-ball']??0)+1);
+    assert.equal(bought.journal.receipts.length,prior.journal.receipts.length+1);
+    assert.match(bought.journal.receipts.at(-1).id,/^shop-v1-/);
+    assert.equal(boughtGame.lastShopPurchase.cost,16000);
+    assert.equal(await shop.getByTestId('shop-buy-ultra-ball').isDisabled(),true);
+    await shop.getByRole('combobox',{name:'Quantidade de Poké Ball'}).selectOption('5');
+    await shop.getByTestId('shop-buy-poke-ball').click();
+    await page.waitForFunction(({k,rev})=>
+      JSON.parse(localStorage.getItem(k))?.revision===rev+1,
+      {k:key,rev:bought.revision});
+    const second=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+    const secondGame=JSON.parse(second.journal.raw);
+    assert.equal(secondGame.coins,6000);
+    assert.equal(secondGame.ballPocket.quantities['poke-ball'],
+      (bagBefore['poke-ball']??0)+5);
+    assert.equal(second.journal.receipts.length,bought.journal.receipts.length+1);
+    const savedShop=await page.evaluate(k=>localStorage.getItem(k),key);
+    await page.reload();
+    assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),savedShop,
+      'reload da loja não duplica cobrança ou entrega de bola');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,
+      'loja não cria scroll horizontal no celular');
     assert.deepEqual(errors,[]);
     await context.close();
   }
