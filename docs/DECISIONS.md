@@ -282,3 +282,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 ### ONLINE-01 — contas novas, sem migração; raiz reservada (22/11/2026)
 - Revoga manutenção do protótipo v0.1 em `/`: passa a landing de cadastro/login, inicialmente com CTA para `/play`; não servir os HTML/CSS/JS v0.1 nem copiá-los para runtime. `/play` permanece laboratório enquanto não existir save autoritativo.
 - **Não importar saves locais nem oferecer migração automática/manual**. Futuras contas recebem estado inicial novo criado no servidor. O banco PostgreSQL e API ficam isolados da UI até identidade, rate limiting, verificação de e-mail, migrações versionadas, proxies de mesma origem, transações idempotentes e autorização auditada. Nenhuma rota pública pode aceitar saldos/XP/insígnias informados pelo cliente. A criação de contas não é considerada lançada pela mera criação do banco.
+
+
+### ONLINE-01B — API isolada, registro bloqueado na produção até antifraude e verificação de e-mail (22/11/2026)
+- PostgreSQL como fonte da verdade, migration sob transação explícita + checksum; lockfile da API independente do frontend. Cadastro/login de integração em CI são exercitados com `NODE_ENV=test`, enquanto serviços reais com `NODE_ENV=production` **não podem ativar contas** por apenas definir flag. O backend pode ser publicado internamente para ensaiar banco/schema, sem domínio ou botão de registro.
+- Não permitir importação de localStorage, PUT livre de JSON, recompensas declaradas pelo navegador nem migração de saves de teste. O passo seguinte deve implementar ativação de usuário após verificação de e-mail, rate limit e progresso calculado no servidor antes da primeira conta real.
