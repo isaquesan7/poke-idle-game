@@ -557,7 +557,7 @@ async function exercise(browser, label, viewport) {
   // Em encontros curtos pode ocorrer apenas ataque pago do selvagem:
   // nesse caso projetamos o mesmo custo num frame sintético do parceiro
   // SOMENTE para testar o playback, nunca o combate ou o save do jogador.
-  const focusFixture=structuredClone(fought);
+  const focusFixture=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   const focusGame=JSON.parse(focusFixture.journal.raw);
   const recorded=focusGame.lastBattle;
   const playerSkillIndex=recorded.frames.findIndex(frame=>
