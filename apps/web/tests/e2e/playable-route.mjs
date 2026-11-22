@@ -336,7 +336,7 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('timer',{name:'Tempo total da expedição'}).waitFor();
   assert.match(await page.getByTestId('expedition-total-time').innerText(),/^\d{2,}:\d{2}:\d{2}$/);
   await page.getByRole('progressbar',{name:'Progresso para o próximo ciclo'}).waitFor();
-  const ballMilestones=page.getByLabel('Próximos marcos de Pokébolas');
+  const ballMilestones=page.getByRole('group',{name:'Próximos marcos de Pokébolas'});
   await ballMilestones.waitFor();
   assert.match(await ballMilestones.innerText(),/Poké Ball:\s*\d+ ciclos?/,
     'o jogador deve enxergar o progresso restante de Pokébolas em ciclos elegíveis');
