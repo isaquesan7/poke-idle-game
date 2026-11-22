@@ -16,7 +16,8 @@ import {
   KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson,
   kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant,
   inspectKantoBallPocket,resolveKantoCaptureAttempt,d064DraftBallDrop,
-  D064_DRAFT_STARTER_BALLS,battleTrainerXp,beginnerBattleXp,kantoCaptureStartingLevel
+  D064_DRAFT_STARTER_BALLS,battleTrainerXp,beginnerBattleXp,kantoCaptureStartingLevel,
+  affinityIdlePenaltyDays
 } from '@kanto/game-core';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant,
@@ -42,9 +43,10 @@ export type PlayAction =
   | { readonly type: 'pokemon-invest-batch'; readonly uid:number; readonly increments: Readonly<Partial<Record<keyof StatValues,number>>> }
   | { readonly type: 'battle'; readonly seed: number }
   | { readonly type: 'regional-battle'; readonly seed:number; readonly regionId:number; readonly ballId?:KantoBallId|null }
-  | { readonly type:'start-regional-battle'; readonly seed:number; readonly regionId:number }
+  | { readonly type:'start-regional-battle'; readonly seed:number; readonly regionId:number; readonly nowMs?:number }
+  | { readonly type:'affinity-tick'; readonly nowMs:number }
   | { readonly type:'finish-regional-battle'; readonly battleId:string }
-  | { readonly type:'capture-after-battle'; readonly battleId:string; readonly ballId:KantoBallId }
+  | { readonly type:'capture-after-battle'; readonly battleId:string; readonly ballId:KantoBallId; readonly nowMs?:number }
   | { readonly type:'skip-capture'; readonly battleId:string }
   | { readonly type: 'evolution'; readonly uid:number; readonly targetSpeciesId:number }
   | { readonly type: 'evolution-test-kit' }
@@ -134,7 +136,7 @@ export function createPlaySave(
       uid: 1, pokemonId: starterId, level: demo ? 20 : 1,
       xp: 0, manual: zeroStats(), affinity: demo ? 70 : 0,
       moveName: starterId === 4 ? 'scratch' : 'tackle', upgrades: {},
-      battleRecord:{wins:0,draws:0,losses:0}
+      battleRecord:{wins:0,draws:0,losses:0},affinityLastUsedAt:nowMs,affinityIdleDaysApplied:0
     }],
     team: [1], nextUid: 2, expedition: null, lastClaim: null,
     ballPocket: D064_DRAFT_STARTER_BALLS, regionWins: Array(10).fill(0)
@@ -376,12 +378,54 @@ function playBattle(
   }
 }
 
+/** Aplica no máximo o desconto devido por UID. Saves sem timestamp são
+ * inicializados na primeira sincronização, sem inferir dias anteriores.
+ * Backward clock nunca recupera afinidade nem aplica desconto negativo.
+ */
+function settleAffinityIdle(game:Record<string,unknown>,nowMs:number):boolean{
+  if(!goodNumber(nowMs)||!Array.isArray(game.roster))
+    throw new RangeError('Relógio ou coleção inválidos.');
+  let changed=false;
+  for(const value of game.roster){
+    if(!record(value)||!goodNumber(value.affinity)||value.affinity>100)
+      throw new RangeError('Afinidade inválida.');
+    if(value.affinityLastUsedAt===undefined){
+      value.affinityLastUsedAt=nowMs;
+      value.affinityIdleDaysApplied=0;
+      changed=true;
+      continue;
+    }
+    if(!goodNumber(value.affinityLastUsedAt)
+      ||!goodNumber(value.affinityIdleDaysApplied??0))
+      throw new RangeError('Histórico de afinidade inválido.');
+    const applied=value.affinityIdleDaysApplied as number;
+    const elapsed=affinityIdlePenaltyDays(value.affinityLastUsedAt as number,nowMs);
+    const missing=Math.max(0,elapsed-applied);
+    if(missing>0){
+      value.affinity=Math.max(0,(value.affinity as number)-missing);
+      value.affinityIdleDaysApplied=elapsed;
+      changed=true;
+    }
+  }
+  return changed;
+}
+function stampBattleAffinity(game:Record<string,unknown>,uid:number,nowMs:number):void{
+  if(!Array.isArray(game.roster)||!goodNumber(nowMs))return;
+  const pokemon=game.roster.find(p=>record(p)&&p.uid===uid);
+  if(record(pokemon)){
+    // Mesmo com relógio voltando, não estender retroativamente afinidade.
+    const previous=goodNumber(pokemon.affinityLastUsedAt)?pokemon.affinityLastUsedAt:0;
+    pokemon.affinityLastUsedAt=Math.max(previous,nowMs);
+    pokemon.affinityIdleDaysApplied=0;
+  }
+}
+
 /**
  * D064BE: o combate é calculado de maneira determinística, mas as recompensas
  * só são concedidas quando a reprodução termina. O pending fica no próprio
  * save para sobreviver a reload/navegação, sem pagamento duplicado.
  */
-function stagedRegionalBattle(journal:RewardJournal,seed:number,regionId:number,battleId:string):
+function stagedRegionalBattle(journal:RewardJournal,seed:number,regionId:number,battleId:string,nowMs?:number):
   {status:'ok';journal:RewardJournal}|{status:'blocked';reason:string}{
   let game:Record<string,unknown>;
   try{game=JSON.parse(journal.raw) as Record<string,unknown>;}catch{
@@ -390,14 +434,20 @@ function stagedRegionalBattle(journal:RewardJournal,seed:number,regionId:number,
   if(game.pendingBattle)return {status:'blocked',reason:'Finalize o combate pendente.'};
   if(record(game.lastBattle)&&game.lastBattle.captureStatus==='available')
     return {status:'blocked',reason:'Escolha capturar ou seguir antes de lutar novamente.'};
-  const simulated=playBattle(journal,seed,battleId,regionId,null);
+  if(nowMs!==undefined){
+    try{settleAffinityIdle(game,nowMs);}catch{
+      return {status:'blocked',reason:'Não foi possível sincronizar a afinidade.'};
+    }
+  }
+  const based={...journal,raw:JSON.stringify(game)};
+  const simulated=playBattle(based,seed,battleId,regionId,null);
   if(simulated.status!=='ok')return simulated;
   let advanced:Record<string,unknown>;
   try{advanced=JSON.parse(simulated.journal.raw) as Record<string,unknown>;}catch{
     return {status:'blocked',reason:'Resultado inválido.'};
   }
   game.pendingBattle={
-    battleId,seed,regionId,preview:advanced.lastBattle
+    battleId,seed,regionId,startedAt:nowMs,preview:advanced.lastBattle
   };
   return {status:'ok',journal:{...journal,raw:JSON.stringify(game)}};
 }
@@ -423,11 +473,13 @@ function finalizeRegionalBattle(journal:RewardJournal,battleId:string):
     return {status:'blocked',reason:'Resultado divergente; progresso preservado.'};
   updated.lastBattle.captureStatus=updated.lastBattle.outcome==='win'?'available':'unavailable';
   updated.lastBattle.captureSeed=pending.seed;
+  if(goodNumber(pending.startedAt)&&record(pending.preview))
+    stampBattleAffinity(updated,pending.preview.activeUid as number,pending.startedAt);
   return {status:'ok',journal:{...outcome.journal,raw:JSON.stringify(updated)}};
 }
 
 /** Uma escolha pós-combate; id do encontro é obrigatório e replay não reabre oferta. */
-function postBattleCapture(journal:RewardJournal,battleId:string,ballId:KantoBallId|null):
+function postBattleCapture(journal:RewardJournal,battleId:string,ballId:KantoBallId|null,nowMs?:number):
   {status:'ok';journal:RewardJournal}|{status:'blocked';reason:string}{
   let game:Record<string,unknown>;
   try{game=JSON.parse(journal.raw) as Record<string,unknown>;}catch{
@@ -470,7 +522,8 @@ function postBattleCapture(journal:RewardJournal,battleId:string,ballId:KantoBal
     game.roster.push({
       uid:game.nextUid,pokemonId:species.id,level:captureLevel,xp:0,
       manual:zeroStats(),affinity:0,moveName:initialMove?.name??species.move.name,upgrades:{},
-      battleRecord:{wins:0,draws:0,losses:0}
+      battleRecord:{wins:0,draws:0,losses:0},
+      ...(nowMs!==undefined&&goodNumber(nowMs)?{affinityLastUsedAt:nowMs,affinityIdleDaysApplied:0}:{})
     });
     game.nextUid++;
     const caught=new Set<number>(Array.isArray(game.caughtSpecies)
@@ -594,9 +647,16 @@ export function updatePlaySave(
         : {type:'grant-test-kit'});
     if(result.status!=='ok')return{status:'blocked',reason:result.reason};
     next={...journal,raw:result.json};
+  } else if(action.type==='affinity-tick'){
+    if(!goodNumber(action.nowMs))return {status:'blocked',reason:'Data inválida.'};
+    try{
+      if(!settleAffinityIdle(current,action.nowMs))
+        return {status:'blocked',reason:'Afinidade já está atualizada.'};
+    }catch{return {status:'blocked',reason:'Histórico de afinidade inválido.'};}
+    next={...journal,raw:JSON.stringify(current)};
   } else if (action.type === 'start-regional-battle') {
     const result=stagedRegionalBattle(journal,action.seed,action.regionId,
-      'regional-v02-'+(previous.snapshot.revision+1));
+      'regional-v02-'+(previous.snapshot.revision+1),action.nowMs);
     if(result.status==='blocked')return result;
     next=result.journal;
   } else if (action.type === 'finish-regional-battle') {
@@ -605,7 +665,8 @@ export function updatePlaySave(
     next=result.journal;
   } else if (action.type === 'capture-after-battle'||action.type==='skip-capture') {
     const result=postBattleCapture(journal,action.battleId,
-      action.type==='skip-capture'?null:action.ballId);
+      action.type==='skip-capture'?null:action.ballId,
+      action.type==='capture-after-battle'?action.nowMs:undefined);
     if(result.status==='blocked')return result;
     next=result.journal;
   } else if (action.type === 'battle'||action.type === 'regional-battle') {
