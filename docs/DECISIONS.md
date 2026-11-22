@@ -238,3 +238,7 @@ A pedido do usuário, HP não é restaurado por KO, troca ou retorno em Ginásio
 
 ### GYM-02C1 — fatia vertical segura do motor de turnos (22/11/2026, EM PR)
 Construir primeiro transição pura determinística de ataque direto/troca e KO sobre `gymBattleState.ts`, sem reaproveitar três duelos 1×1 que resetariam HP/SP. Troca consome ação e possui prioridade 6; adversário pode atingir o novo Pokémon; troca obrigatória entre turnos não custa ação nem recupera SP. Sem status/support/Concentrar/multi-hit neste recorte; comandos de habilidades não implementadas são recusados, nunca simulados de maneira falsa. Nenhuma mudança no writer e nenhuma insígnia é concedida. Conectar IA e expandir todas as mecânicas antes de habilitar ginásios.
+
+
+### GYM-02C2a — Focus por instância e Recover explícito (22/11/2026, EM PR)
+Manter quotas e cooldown de Concentrar independentes para cada um dos seis Pokémon da batalha 3×3 (máximo 2, intervalo >=4 rodadas globais), conservando contador ao recolher. O bônus de retirada continua separado, limitado e simétrico. Recover só cura pelo gasto legal de SP na ação; recolher e nocautear nunca curam HP. Resolver hits individuais com uma única rolagem de precisão/SP, sem fingir executar efeitos secundários ainda não implementados. Não liberar Ginásios até suportar os efeitos de status e a IA efetiva.

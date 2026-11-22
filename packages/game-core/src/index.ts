@@ -155,3 +155,6 @@ export type {GymSide,GymFighterState,GymSideState,GymBattleState,GymStateResult}
 // GYM-02C1: rodada determinística com ataques diretos e trocas; sem suporte/rewards.
 export {resolveGymTurn} from './gyms/gymTurn.js';
 export type {GymTurnAction,GymTurnResult} from './gyms/gymTurn.js';
+
+// GYM-02C2: cura ativa e Concentrar com orçamento individual no 3x3.
+export {healGymHp,focusGymSp} from './gyms/gymBattleState.js';

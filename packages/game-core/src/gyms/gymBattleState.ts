@@ -9,7 +9,7 @@
  */
 import type {Combatant} from '../combat/kantoBattle.js';
 import type {KantoBattleStatus} from '../combat/kantoStatusEffects.js';
-import {kantoMaxSp} from '../combat/kantoSkillEnergy.js';
+import {kantoMaxSp,kantoFocusRecovery,KANTO_SP_BALANCE} from '../combat/kantoSkillEnergy.js';
 
 export const GYM_SWITCH_RULES=Object.freeze({
   maxVoluntarySwitchesPerSide:3,
@@ -26,6 +26,8 @@ export interface GymFighterState {
   readonly maxSp:number;
   readonly status:KantoBattleStatus|null;
   readonly retreatRecoveriesUsed:number;
+  readonly focusUses:number;
+  readonly lastFocusTurn:number;
 }
 export interface GymSideState {
   readonly fighters:readonly [GymFighterState,GymFighterState,GymFighterState];
@@ -38,6 +40,7 @@ export interface GymBattleState {
   readonly player:GymSideState;
   readonly leader:GymSideState;
   readonly outcome:'ongoing'|'player-win'|'leader-win';
+  readonly turn:number;
 }
 export type GymStateResult=
   | {readonly status:'applied';readonly state:GymBattleState;
@@ -64,7 +67,7 @@ export function createGymBattleState(
       throw new RangeError('Combatente inválido.');
     const maxSp=kantoMaxSp(combatant.level,combatant.speciesId);
     return {combatant,uid,hp:combatant.stats.hp,maxSp,sp:maxSp,
-      status:null,retreatRecoveriesUsed:0};
+      status:null,retreatRecoveriesUsed:0,focusUses:0,lastFocusTurn:-100};
   };
   const p=player.map(p=>fighter(p.combatant,p.uid)) as
     unknown as [GymFighterState,GymFighterState,GymFighterState];
@@ -73,7 +76,7 @@ export function createGymBattleState(
   return {
     player:{fighters:p,activeIndex:0,voluntarySwitchesUsed:0,needsReplacement:false},
     leader:{fighters:l,activeIndex:0,voluntarySwitchesUsed:0,needsReplacement:false},
-    outcome:'ongoing'
+    outcome:'ongoing',turn:0
   };
 }
 function blocked(state:GymBattleState,reason:string):GymStateResult{
@@ -97,7 +100,10 @@ function checkFighter(f:GymFighterState):void{
   if(!f||!Number.isSafeInteger(f.hp)||f.hp<0||f.hp>f.combatant.stats.hp
     ||!Number.isSafeInteger(f.sp)||f.sp<0||f.sp>f.maxSp
     ||!Number.isSafeInteger(f.retreatRecoveriesUsed)||f.retreatRecoveriesUsed<0
-    ||f.retreatRecoveriesUsed>GYM_SWITCH_RULES.maxRetreatRecoveryPerPokemon)
+    ||f.retreatRecoveriesUsed>GYM_SWITCH_RULES.maxRetreatRecoveryPerPokemon
+    ||!Number.isSafeInteger(f.focusUses)||f.focusUses<0
+    ||f.focusUses>KANTO_SP_BALANCE.maxFocusUses
+    ||!Number.isSafeInteger(f.lastFocusTurn))
     throw new RangeError('Estado individual inválido.');
 }
 /**
@@ -194,4 +200,40 @@ export function switchGymPokemon(
  */
 export function gymTeamIsDefeated(state:GymBattleState,side:GymSide):boolean{
   return state[side].fighters.every(f=>f.hp===0);
+}
+
+/** Cura EXPLÍCITA por golpe legal, jamais efeito de troca/KO. */
+export function healGymHp(state:GymBattleState,side:GymSide,amount:number):GymBattleState{
+  if(state.outcome!=='ongoing'||!Number.isSafeInteger(amount)||amount<0)
+    throw new RangeError('Cura inválida.');
+  const party=state[side];
+  if(party.needsReplacement)throw new RangeError('Substituição pendente.');
+  const active=party.fighters[party.activeIndex]!;
+  checkFighter(active);
+  if(active.hp===0)throw new RangeError('Pokémon derrotado.');
+  const healed=Math.min(active.combatant.stats.hp,active.hp+amount);
+  return replaceSide(state,side,updateFighter(party,party.activeIndex,{
+    ...active,hp:healed
+  }));
+}
+
+/** Concentrar: até 2 vezes por instância, intervalo >=4 turnos GLOBAIS.
+ * Retirar e retornar não reinicia contador/cooldown. Recuperação de troca
+ * não consome Concentrar, porque tem sua própria quota de recolhimento.
+ */
+export function focusGymSp(state:GymBattleState,side:GymSide):GymBattleState{
+  if(state.outcome!=='ongoing')throw new RangeError('Confronto concluído.');
+  const party=state[side];
+  if(party.needsReplacement)throw new RangeError('Substituição pendente.');
+  const active=party.fighters[party.activeIndex]!;
+  checkFighter(active);
+  if(active.hp===0||active.sp===active.maxSp
+    ||active.focusUses>=KANTO_SP_BALANCE.maxFocusUses
+    ||state.turn-active.lastFocusTurn<KANTO_SP_BALANCE.focusCooldownTurns)
+    throw new RangeError('Concentrar indisponível ou intervalo insuficiente.');
+  const recovered=kantoFocusRecovery(active.maxSp,active.sp);
+  return replaceSide(state,side,updateFighter(party,party.activeIndex,{
+    ...active,sp:active.sp+recovered,focusUses:active.focusUses+1,
+    lastFocusTurn:state.turn
+  }));
 }
