@@ -490,3 +490,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## 2026-11-21 — D064BC (teste em branch; sem gameplay)
 - Coortes com movesets ofensivos aprendidos legalmente em FRLG pelo writer e equipes montadas apenas com capturas efetivas; política comparativa de líder único e rotação fixa, 2.592 encontros determinísticos, métricas de vitória/receipts/UID e perfil. Nenhum catálogo, IA, XP, raridade, captura, save, UI ou sprites foi alterado. CI, relatório final e deploy pendentes.
+
+- D064BC: primeiros 2.592 encontros writer passaram na CI; metodologia de seleção de golpes refinada para evitar alternância artificial; relatório final condicionado à nova CI. Nenhuma mudança de gameplay.
