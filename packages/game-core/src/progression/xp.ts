@@ -34,3 +34,15 @@ export function battleTrainerXp(wildLevel:number):number {
   }
   return 50+3*wildLevel;
 }
+
+
+/** D064AZ: aprendizagem de um Pokémon recém-iniciado após derrota/empate.
+ * Até alcançar o nível 2, quatro batalhas sem vitória são suficientes
+ * para acumular 88 XP (limiar do Lv1: 87); depois é sempre zero.
+ * Nunca concede XP de treinador, moedas, afinidade ou captura.
+ */
+export function beginnerBattleXp(pokemonLevel:number,outcome:'win'|'loss'|'draw'):number {
+  if(!Number.isSafeInteger(pokemonLevel)||pokemonLevel<1||pokemonLevel>100)
+    throw new RangeError('Nível do Pokémon inválido para aprendizagem inicial.');
+  return pokemonLevel===1&&outcome!=='win'?22:0;
+}
