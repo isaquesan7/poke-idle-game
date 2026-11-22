@@ -45,3 +45,61 @@
 @media(max-width:1100px){.gymList{grid-template-columns:repeat(2,minmax(0,1fr))}.choices{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:680px){.intro{flex-direction:column}.gymList{grid-template-columns:repeat(2,minmax(0,1fr))}.choices{grid-template-columns:1fr}.battleTeams{grid-template-columns:1fr}.panel{padding:var(--space-4)}.current{display:none}}
 @media(prefers-reduced-motion:reduce){.screen *{scroll-behavior:auto}}
+
+/* GYM-04C: cenário central de batalha no padrão do combate regional,
+   sem alterar o motor determinístico, o HP ou o SP. */
+.duelScene{display:grid;grid-template-columns:minmax(0,1fr) 50px minmax(0,1fr);
+  align-items:center;gap:var(--space-3);padding:var(--space-5);
+  border:1px solid var(--color-border);border-radius:var(--radius-panel);
+  background:var(--color-surface-raised);min-width:0}
+.duelist{display:flex;align-items:center;flex-direction:column;
+  gap:var(--space-2);text-align:center;min-width:0}
+.duelist>strong{font-size:1.08rem;overflow-wrap:anywhere}
+.duelist small,.role{color:var(--color-text-muted)}
+.role{font-size:.72rem;font-weight:800;letter-spacing:.08em}
+.duelArt{display:grid;place-items:center;min-height:170px;width:100%}
+.duelArt .pokemonArt{width:min(100%,175px);height:170px;object-fit:contain;
+  filter:drop-shadow(0 8px 12px rgba(0,0,0,.2))}
+.vs{font-size:1.35rem;font-weight:900;text-align:center;color:var(--color-gold)}
+.meters{display:grid;gap:var(--space-3);width:100%;max-width:260px}
+.meters label{display:grid;grid-template-columns:auto 1fr;align-items:center;
+  gap:var(--space-1);font-size:.83rem;text-align:left}
+.meters label strong{text-align:right;font-variant-numeric:tabular-nums}
+.meters progress{grid-column:1/-1;width:100%;height:11px;accent-color:var(--color-progress-hp-background-2)}
+.meters label:last-child progress{accent-color:var(--color-primary)}
+.benchColumns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  align-items:start;gap:var(--space-4);margin-top:var(--space-4)}
+.reserveGroup{display:grid;gap:var(--space-3);min-width:0}
+.reserveCards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
+.reserveCard{display:flex;align-items:center;flex-direction:column;
+  text-align:center;gap:var(--space-2);min-width:0;padding:var(--space-3);
+  border:1px solid var(--color-border);border-radius:var(--radius-card);
+  background:var(--color-surface-raised)}
+.reserveCard>.pokemonArt{width:64px;height:64px}
+.reserveInfo{width:100%;display:grid;gap:var(--space-1);min-width:0}
+.reserveInfo strong{font-size:.84rem;overflow-wrap:anywhere}
+.reserveInfo small{color:var(--color-text-muted)}
+.reserveInfo label{display:grid;text-align:left;gap:2px;font-size:.74rem}
+.reserveInfo progress{height:7px;width:100%;accent-color:var(--color-primary)}
+.switchButton{padding:var(--space-2);min-height:40px;width:100%;font-weight:800;
+  border:1px solid var(--color-primary);border-radius:var(--radius-control);
+  color:var(--color-text);background:var(--color-navbtn-active-background-1);cursor:pointer}
+.switchButton:disabled{opacity:.5;cursor:not-allowed}
+.commands{display:grid;gap:var(--space-3);margin-top:var(--space-5);
+  padding:var(--space-4);border:1px solid var(--color-border);
+  border-radius:var(--radius-panel)}
+.commandsHeader h4{margin:0 0 var(--space-2)}
+.commandsHeader small{color:var(--color-text-muted);line-height:1.5}
+.commands .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2)}
+.commands .actions>button{min-width:0;text-align:center;overflow-wrap:anywhere}
+.switchButton:focus-visible{outline:2px solid var(--color-primary);outline-offset:3px}
+@media(max-width:680px){
+  .duelScene{grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);gap:var(--space-1);padding:var(--space-3)}
+  .duelArt{min-height:105px}.duelArt .pokemonArt{height:105px;width:min(100%,110px)}
+  .duelist>strong{font-size:.85rem}.role{font-size:.62rem}
+  .vs{font-size:.9rem}
+  .meters label{font-size:.71rem}
+  .benchColumns{grid-template-columns:1fr}
+  .reserveCards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .commands{padding:var(--space-3)}
+}

@@ -695,3 +695,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Nova aba `Ginásios` em `PlayApp` com oito desafios sequenciais, líder/cidade/bônus, escolha de três Pokémon distintos, estado 3×3, HP/SP, troca, Concentrar, golpes legais, finalização e abandono confirmado.
 - `GymScreen.tsx` reproduz histórico do `gymSession` para exibir turno e resultado, sem transferir HP/dano ou recompensa ao writer; `GymScreen.module.css` aplica responsividade e rótulos acessíveis. `PlayApp` impede navegação indevida e não sincroniza afinidade durante uma sessão.
 - Teste Playwright `playable-route.mjs`: aba Ginásios acessível desktop/mobile, próximo líder Brock, Misty bloqueada, seleção insuficiente não inicia nem muta save. Os testes GYM-03B seguem cobrindo sequência real e recibo. CI/merge/deploy pendentes.
+
+## 2026-11-22 — GYM-04C: reformulação visual da batalha (em PR)
+- Depois de iniciar o Ginásio, a lista de líderes sai de cena e abre um painel de duelo dedicado, inspirado na Arena regional: um Pokémon ativo por lado, GIF maior, HP/SP, status e VS.
+- Os dois reservas de cada lado aparecem abaixo em mini-cartões com HP/SP próprios. Os Pokémon do jogador oferecem Trocar quando a ação é legal (inclusive substituição forçada); habilidades e Concentrar ficam em bloco separado.
+- Nenhuma alteração no motor de combate, na IA, no writer, no RNG, no limite de trocas, nas insígnias ou nas recompensas. Desktop/mobile responsivos. CI e deploy pendentes.
+
+- GYM-04C: ensaio E2E adicional com trio de teste, recarga de duelo, combate completo Brock e recibo único de insígnia em desktop/mobile (resultado CI ainda pendente).

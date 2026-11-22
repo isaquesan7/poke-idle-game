@@ -63,34 +63,60 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   const starting=selected.length===3&&!session;
   const actions=state&&state.outcome==='ongoing'
     ?gymLegalTurnActions(state,'player'):[];
-  const member=(uid:number)=>data.roster.find(p=>p.uid===uid);
-  const renderSide=(side:'player'|'leader')=>{
+  const renderActive=(side:'player'|'leader')=>{
     if(!state)return null;
-    const fighters=state[side].fighters;
     const party=state[side];
-    return <div className={styles.team}>
-      <h3>{side==='player'?'Sua equipe':'Equipe do líder'}</h3>
-      {fighters.map((fighter,index)=>
-        <div key={index} className={index===party.activeIndex?styles.active:styles.fighter}>
-          {art(fighter.combatant.speciesId,fighter.combatant.name)}
-          <div className={styles.fighterInfo}>
-            <strong>{fighter.combatant.name} · Nv. {fighter.combatant.level}</strong>
-            <span>{fighter.hp===0?'Derrotado':status(fighter)}</span>
-            <label>HP {fighter.hp}/{fighter.combatant.stats.hp}
-              <progress value={fighter.hp} max={fighter.combatant.stats.hp}/>
-            </label>
-            <label>SP {fighter.sp}/{fighter.maxSp}
-              <progress value={fighter.sp} max={fighter.maxSp}/>
-            </label>
-          </div>
-          {index===party.activeIndex&&<span className={styles.current}>Em campo</span>}
-        </div>
-      )}
-      <small>Trocas voluntárias: {party.voluntarySwitchesUsed}/3</small>
+    const active=party.fighters[party.activeIndex]!;
+    const maxHp=active.combatant.stats.hp;
+    return <div className={styles.duelist} data-testid={'gym-active-'+side}
+      aria-label={side==='player'?'Seu Pokémon em campo':'Pokémon do líder em campo'}>
+      <span className={styles.role}>{side==='player'?'SEU PARCEIRO':'POKÉMON DE '+(gym?.leader??'LÍDER').toUpperCase()}</span>
+      <div className={styles.duelArt}>{art(active.combatant.speciesId,active.combatant.name)}</div>
+      <strong>{active.combatant.name} · Nv. {active.combatant.level}</strong>
+      <small>{active.hp===0?'Nocauteado':status(active)}</small>
+      <div className={styles.meters}>
+        <label>HP <strong>{active.hp} / {maxHp}</strong>
+          <progress aria-label={'HP '+active.combatant.name}
+            value={active.hp} max={maxHp}/></label>
+        <label>SP <strong>{active.sp} / {active.maxSp}</strong>
+          <progress aria-label={'SP '+active.combatant.name}
+            value={active.sp} max={active.maxSp}/></label>
+      </div>
+    </div>;
+  };
+  const renderReserve=(side:'player'|'leader')=>{
+    if(!state)return null;
+    const party=state[side];
+    const switchActions=actions.filter((action):action is Extract<GymTurnAction,{kind:'switch'}>=>
+      action.kind==='switch');
+    return <div className={styles.reserveGroup}
+      aria-label={side==='player'?'Seus Pokémon reservas':'Reservas do líder'}>
+      <strong>{side==='player'?'Suas reservas':'Reservas de '+(gym?.leader??'líder')}</strong>
+      <div className={styles.reserveCards}>
+        {party.fighters.map((fighter,index)=>{
+          if(index===party.activeIndex)return null;
+          const switchAction=switchActions.find(action=>action.toIndex===index);
+          return <div key={index} className={styles.reserveCard}>
+            {art(fighter.combatant.speciesId,fighter.combatant.name)}
+            <div className={styles.reserveInfo}>
+              <strong>{fighter.combatant.name}</strong>
+              <small>Nv. {fighter.combatant.level} · {fighter.hp===0?'KO':status(fighter)}</small>
+              <label>HP {fighter.hp}/{fighter.combatant.stats.hp}
+                <progress value={fighter.hp} max={fighter.combatant.stats.hp}/></label>
+              <label>SP {fighter.sp}/{fighter.maxSp}
+                <progress value={fighter.sp} max={fighter.maxSp}/></label>
+            </div>
+            {side==='player'&&<button type="button" className={styles.switchButton}
+              disabled={busy||!switchAction} onClick={()=>{
+                if(switchAction)onAction({type:'gym-turn',sessionId:session!.id,action:switchAction});
+              }}>{fighter.hp===0?'Nocauteado':switchAction?'Trocar':'Indisponível'}</button>}
+          </div>;
+        })}
+      </div>
     </div>;
   };
   return <section className={styles.screen} data-testid="gym-screen">
-    <div className={styles.intro}>
+    {!session&&<div className={styles.intro}>
       <div>
         <p className={styles.kicker}>DESAFIO OFICIAL · KANTO</p>
         <h2>Ginásios Pokémon</h2>
@@ -99,8 +125,8 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
           concede a insígnia.</p>
       </div>
       <strong className={styles.progress}>{earned.size}/8 insígnias</strong>
-    </div>
-    <div className={styles.gymList} aria-label="Progressão dos oito ginásios">
+    </div>}
+    {!session&&<div className={styles.gymList} aria-label="Progressão dos oito ginásios">
       {KANTO_GYMS.map(g=>{
         const won=earned.has(g.id),current=g.id===gym?.id;
         return <article key={g.id} className={current?styles.gymCurrent:styles.gymCard}
@@ -114,7 +140,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
             'Conquiste as anteriores'}</small>
         </article>;
       })}
-    </div>
+    </div>}
     {!session&&!gym&&<div className={styles.panel} role="status">
       <h3>Todas as insígnias conquistadas!</h3>
       <p>Você venceu os oito líderes de Kanto. O título Mestre de Ginásios
@@ -168,24 +194,37 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
             state.outcome==='player-win'?'Vitória!':
             state.outcome==='leader-win'?'Sua equipe foi derrotada':'Empate'}
         </p>
-        <div className={styles.battleTeams}>
-          {renderSide('player')}
-          {renderSide('leader')}
+        <div className={styles.duelScene} role="region" aria-label="Arena de batalha do Ginásio"
+          data-testid="gym-duel-scene">
+          {renderActive('player')}
+          <span className={styles.vs} aria-hidden="true">VS</span>
+          {renderActive('leader')}
         </div>
-        {state.outcome==='ongoing'&&<div className={styles.actions}
-          aria-label="Ações de batalha">
-          {actions.map((action,i)=>{
-            const label=action.kind==='basic'?'Ataque básico':
-              action.kind==='focus'?'Concentrar':
-              action.kind==='move'?action.moveName:
-              'Trocar para '+state!.player.fighters[action.toIndex]!.combatant.name+
-                ' (slot '+(action.toIndex+1)+')';
-            return <button type="button" className={styles.secondary}
-              key={action.kind+('-'+i)} disabled={busy}
-              onClick={()=>onAction({type:'gym-turn',sessionId:session.id,action})}>
-              {label}
-            </button>;
-          })}
+        <div className={styles.benchColumns}>
+          {renderReserve('player')}
+          {renderReserve('leader')}
+        </div>
+        {state.outcome==='ongoing'&&<div className={styles.commands}
+          aria-label="Comandos de batalha">
+          <div className={styles.commandsHeader}>
+            <h4>{state.player.needsReplacement?'Escolha um Pokémon para substituir':
+              'Escolha sua habilidade'}</h4>
+            <small>Trocas voluntárias: {state.player.voluntarySwitchesUsed}/3 ·
+              Ao recolher, HP é preservado e o SP recupera somente dentro do limite.</small>
+          </div>
+          <div className={styles.actions} aria-label="Habilidades disponíveis">
+            {actions.filter(action=>action.kind!=='switch').map((action,i)=>{
+              const label=action.kind==='basic'?'Ataque básico':
+                action.kind==='focus'?'Concentrar':action.kind==='move'?action.moveName:'';
+              return <button type="button" className={styles.secondary} key={action.kind+'-'+i}
+                disabled={busy} onClick={()=>onAction({type:'gym-turn',sessionId:session.id,action})}>
+                {label}
+              </button>;
+            })}
+            {state.player.needsReplacement&&<p className={styles.hint}>
+              Selecione uma das reservas acima. A substituição após KO não consome rodada.
+            </p>}
+          </div>
         </div>}
         {state.outcome!=='ongoing'&&<div role="status" className={styles.result}>
           <h3>{state.outcome==='player-win'?'Você venceu '+gym?.leader+'!':
