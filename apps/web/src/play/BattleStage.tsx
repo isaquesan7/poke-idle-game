@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import type { KantoBattleVisualFrame } from '@kanto/game-core';
 import styles from './PlayApp.module.css';
 
@@ -19,6 +19,10 @@ interface BattleStageProps {
   /** Identifica uma nova linha do replay; a animação nunca tem RNG próprio. */
   readonly cue:string;
   readonly playing:boolean;
+  /** Foco programático no palco ao iniciar/entrar em um encontro. */
+  readonly stageRef?:Ref<HTMLDivElement>;
+  /** Efeito visual breve somente depois do writer confirmar o novo nível. */
+  readonly levelUp?:boolean;
 }
 type Side='player'|'wild';
 
@@ -82,11 +86,11 @@ function SkillMeter({side,sp,max,focusRecovery}:{
 }
 
 /** Somente as alterações já reveladas pelo log acionam efeito visual. */
-function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
+function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp}:{
   readonly side:Side;readonly fighter:FighterPanel;
   readonly frame:KantoBattleVisualFrame|null;
   readonly maxHp:number|null;readonly maxSp:number|null;
-  readonly cue:string;readonly playing:boolean
+  readonly cue:string;readonly playing:boolean;readonly levelUp:boolean
 }) {
   const targeted=playing&&frame?.target===side;
   const hit=targeted&&(frame.kind==='attack'||frame.kind==='residual')&&frame.amount>0;
@@ -128,6 +132,9 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
       <div className={styles.battleSpriteStage}>
         <div className={knockedOut?styles.battleSpriteFainted:animateClass} ref={animatedSprite}
           data-testid={'battle-visual-'+side} data-fainted={knockedOut?'true':'false'}>{fighter.art}</div>
+        {side==='player'&&levelUp&&<span
+          className={styles.battleLevelUpBurst} role="status" aria-live="polite"
+          data-testid="battle-level-up">LEVEL UP!</span>}
         {knockedOut&&<span className={styles.battleFaintedLabel} role="status"
           data-testid={'battle-fainted-'+side}>Nocauteado</span>}
         {(hit||heal)&&<span key={cue+'-impact-'+side}
@@ -165,14 +172,15 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
  * Saves anteriores sem trilha são exibidos sem barra/efeitos falsificados.
  */
 export function BattleStage({player,wild,frame,playerMaxHp,wildMaxHp,
-  playerMaxSp,wildMaxSp,cue,playing}:BattleStageProps) {
+  playerMaxSp,wildMaxSp,cue,playing,stageRef,levelUp=false}:BattleStageProps) {
   return (
-    <div className={styles.battleScene} data-testid="battle-stage">
+    <div className={styles.battleScene} data-testid="battle-stage"
+      ref={stageRef} tabIndex={-1} role="region" aria-label="Área do combate">
       <Fighter side="player" fighter={player} frame={frame} maxHp={playerMaxHp}
-        maxSp={playerMaxSp} cue={cue} playing={playing}/>
+        maxSp={playerMaxSp} cue={cue} playing={playing} levelUp={levelUp}/>
       <span className={styles.vs}>VS</span>
       {wild&&<Fighter side="wild" fighter={wild} frame={frame} maxHp={wildMaxHp}
-        maxSp={wildMaxSp} cue={cue} playing={playing}/>}
+        maxSp={wildMaxSp} cue={cue} playing={playing} levelUp={false}/>}
       {!wild&&<div className={styles.battleFighter}>
         <span className={styles.unknownEnemy}>?</span>
         <strong>Encontro surpresa</strong><small>Pokémon selvagem</small>
