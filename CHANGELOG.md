@@ -515,3 +515,6 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## 2026-11-22 — D064BH (branch/PR)
 - Expedição Kanto redesenhada com ícones, layout responsivo, cartões de recompensa, seletor e parceiro estilizados, progresso para próximo ciclo e timer de **tempo total da expedição HH:MM:SS** (persistente desde `startedAt`, sem zerar no resgate, inclusive acima de 24h). Mantida economia e limite de 8h por resgate. Perfil de Pokémon exibe duração até a próxima perda por inatividade, sem alteração da regra. Adicionados testes Vitest e browser. Publicação pendente de CI/merge/Railway.
+
+## 2026-11-22 — D064BI (em PR)
+- Acessibilidade Expedição: campos com descrições, estrutura navegável por teclado, foco visível, timer sem anúncios repetidos, status de espera e barra de ciclo acessível. Após atingir teto de 8h pendentes, mostra aviso de resgate em vez de prometer próximos ciclos; tempo total permanece. Refinada a legibilidade em telas pequenas. Sem alteração de XP, moedas, resgates ou save. Testes regressivos pendentes.
