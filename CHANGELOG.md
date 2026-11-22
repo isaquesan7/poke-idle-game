@@ -712,3 +712,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Após GYM-04D, replay do Ginásio calcula deltas reais de HP, SP, entrada e KO para cada ação. Em cada novo turno confirmado, a UI exibe breve impacto/cura/recarga/entrada usando CSS, mantendo os GIFs ativos montados; abrir sessão após reload não dispara efeitos falsos.
 - Animações FULL em todos dispositivos, preservando escolha de produto D042. Nenhuma mudança no motor, ações, seed, writer, recompensas ou persistência.
 - Vitest confere dados de delta e E2E no desktop/mobile verifica cue apenas após ação, imagens GIF com identidade preservada e ausência de cue ao recarregar. CI, merge e deploy ainda pendentes.
+
+### GYM-05 — release confirmado (22/11/2026)
+- PR #170 integrada por squash na `main` em `3354003837c6ad7fb3ded63fbf82be4402943aef`; CI geral `45061281240`, Playwright `45061281272` e Docker `45061281339` terminaram em SUCCESS para HEAD `f06fdc3d354214db5358bf2fccc7c5cdce5aa6a5`.
+- Railway deployment `37b29459-3294-4e4a-902f-2a7906049ddc` SUCCESS no SHA exato; runtime Node escuta porta 8080. GET público `/play` não foi verificado diretamente nesta sessão.
