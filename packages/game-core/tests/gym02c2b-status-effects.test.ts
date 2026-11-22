@@ -89,11 +89,17 @@ describe('GYM-02C2b — status individual simétrico',()=>{
     expect(s.leader.fighters[0]!.sp).toBe(initial.sp);
     expect(gymDamageStat(90,6)).toBe(22);
   });
-  it('golpes com sono ou efeito por impacto ainda bloqueados sem gastar SP',()=>{
+  it('sono com efeito válido é executado; movimentos não equipados são rejeitados',()=>{
     const s=equip(team(),'sleep-powder');
     const r=resolveGymTurn(s,{kind:'move',moveName:'sleep-powder'},basic,1);
-    expect(r.status).toBe('blocked');
-    expect(r.state).toBe(s);
+    expect(r.status).toBe('applied');
+    if(r.status==='applied'){
+      expect(r.state.leader.fighters[0]!.status).toBe('sleep');
+      expect(r.state.leader.fighters[0]!.sleepActions).toBeGreaterThanOrEqual(1);
+    }
+    const denied=resolveGymTurn(s,{kind:'move',moveName:'twineedle'},basic,1);
+    expect(denied.status).toBe('blocked');
+    expect(denied.state).toBe(s);
   });
   it('queimadura do ativo gera dano residual; reservas não perdem HP sozinhas',()=>{
     let s=team();
