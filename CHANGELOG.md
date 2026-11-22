@@ -702,3 +702,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Nenhuma alteração no motor de combate, na IA, no writer, no RNG, no limite de trocas, nas insígnias ou nas recompensas. Desktop/mobile responsivos. CI e deploy pendentes.
 
 - GYM-04C: ensaio E2E adicional com trio de teste, recarga de duelo, combate completo Brock e recibo único de insígnia em desktop/mobile (resultado CI ainda pendente).
+
+## 2026-11-22 — GYM-04D (branch dependente de GYM-04C)
+- Integra o diário de eventos determinísticos da GYM-04B com a nova arena da GYM-04C: últimas oito ações reexecutadas pelo motor, sem alterar recompensas, RNG nem save.
+- Foco após ação retorna aos comandos ou às reservas após KO; ao término, ao botão Finalizar. Mantém a navegação em tela própria com ativos e reservas compactas.
+- Teste Vitest do trace preservado de GYM-04B. CI e merge pendentes; PR dependente, sem deploy.
