@@ -148,3 +148,9 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AY | 2026-11-21 | EM VALIDAÇÃO | O inicial de todo novo perfil normal deve começar no nível 1, não 5; o treinador continua no nível1, e o modo demonstração permanece nível20 para testes explícitos. Não modificar saves antigos nem mudar XP, raridade, IA, regiões ou captura nessa mudança. |
+
+
+| D-064AZ | 2026-11-21 | DIAGNÓSTICO EM VALIDAÇÃO | Testar a jornada real de 3 iniciais nível1 através de 216 batalhas com writer regional, expedição apenas após Nv2 e capturas sem grants. Derrotas não concedem XP, primeira região tem Nv2–10; medir risco de bloqueio/frustração antes de mudar XP ou IA. Não alterar balanceamento sem dados. |
+
+
+| D-064AZ-FIX | 2026-11-21 | EM VALIDAÇÃO | Regressão real 3×72 batalhas de starter Lv1: Bulbasaur e Squirtle 0 vitórias, Charmander 1 e nenhum Lv2; progressão podia travar antes de expedições. Aprovar hipótese de onboarding restrita a derrotas/empates enquanto ativo Lv1 (+22 XP só Pokémon via writer/replay, 4 resultados sem vitória → Lv2), sem mudar IA, força, trainer XP, moedas, captura ou vitórias. Testar invariantes e documentar antes de publicar. |

@@ -1,5 +1,11 @@
 # D-056 — melhorias no Pokémon
 
+## D-064AZ — progresso inicial nível 1 sem bloqueio (21/11/2026; branch)
+- Após auditoria encontrar 0/72 vitórias para Bulbasaur e Squirtle e 1/72 para Charmander, a regra de onboarding garante +22 XP apenas ao Pokémon Nv1 por derrota ou empate, via writer/replay, interrompendo no Nv2. Quatro não-vitórias bastam para Lv2 e expedição regional, sem moedas/afinidade/XP de treinador, e sem alterar o combate ou a IA. UI da primeira região explica.
+- Nova auditoria `apps/web/tests/d064az-level1-writer-journey.test.ts`: 3 iniciais nível1, 72 encontros regionais por espécie (216 no total), XP/níveis/capturas e recibos reais do writer, desbloqueio de expedição no nível2 e guardrails para região e evolução prematuras.
+- Documentação `docs/LEVEL1_PROGRESSION_D064AZ.md`. Somente testes e docs: não muda gameplay, IA, XP, raridades, captura ou saves. Relatório numérico em `D064AZ_LEVEL1_WRITER_REPORT` no CI: todos alcançaram Nv2 na tentativa 4 e liberaram expedição; Bulbasaur 15/72 vitórias, Charmander 35/72, Squirtle 17/72 nas jornadas determinísticas. Nenhum ajuste na IA ou nos stats dos iniciais.
+
+
 ## D-064AY — Pokémon inicial nível 1 (21/11/2026)
 - Novo perfil normal: Bulbasaur, Charmander e Squirtle iniciam no **nível 1**, XP0, UID1. Treinador continua nível1. O modo demonstração (apenas testes) permanece Pokémon nível20 e treinador nível21.
 - Somente novos perfis são afetados; saves existentes, XP/recompensas, regiões, IA, captura, raridades e TM09 não foram alterados. Testes cobrem os três iniciais, persistência e bloqueio de evolução prematura. CI/merge/Railway são gates antes da publicação.

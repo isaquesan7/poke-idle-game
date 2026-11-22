@@ -245,3 +245,7 @@ Selvagens recebem até 3 golpes de dano desbloqueados mais recentes da espécie/
 
 ### D-064AY — inicial nível 1 (21/11/2026)
 Todo novo treinador em modo normal recebe um único inicial escolhido entre Bulbasaur, Charmander e Squirtle, **nível 1**, XP 0, UID 1, sem afinidade inicial; o treinador também começa no nível 1. Demo explicitamente opcional para teste mantém inicial nível20 e treinador nível21. Não migrar/rebaixar Pokémon ou perfis criados previamente. Reavaliar progressão natural a partir do nível 1, sem alterar IA, XP, captura ou regras de região automaticamente.
+
+
+### D-064AZ — aprendizagem de iniciante após derrota/empate (21/11/2026; branch)
+Para eliminar o bloqueio mensurado com os três iniciais Lv1, cada batalha sem vitória enquanto o Pokémon estiver no nível 1 concede **22 XP para o Pokémon ativo**, uma única vez no mesmo recibo transacional da derrota/empate; o treinador não recebe XP e não se concedem moedas, afinidade, captura ou itens. Quatro tentativas malsucedidas alcançam o nível2 (threshold 87). Após nível2 não existe XP de derrota. A região1 informa a regra; a IA de combate e as recompensas de vitória permanecem intactas.

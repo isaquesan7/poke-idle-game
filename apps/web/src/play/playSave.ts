@@ -16,7 +16,7 @@ import {
   KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson,
   kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant,
   inspectKantoBallPocket,resolveKantoCaptureAttempt,d064DraftBallDrop,
-  D064_DRAFT_STARTER_BALLS,battleTrainerXp
+  D064_DRAFT_STARTER_BALLS,battleTrainerXp,beginnerBattleXp
 } from '@kanto/game-core';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant,
@@ -347,6 +347,12 @@ function playBattle(
       const lastFrame=battleFrames.at(-1);
       if(lastFrame)battleFrames.push({...lastFrame,kind:'info',target:null,amount:0});
     }
+    const earlyLossXp=beginnerBattleXp(active.level as number,result.outcome);
+    if(earlyLossXp>0){
+      battleLog.push('Aprendizado inicial: +'+earlyLossXp+' XP para seu Pokémon após o combate.');
+      const lastFrame=battleFrames.at(-1);
+      if(lastFrame)battleFrames.push({...lastFrame,kind:'info',target:null,amount:0});
+    }
     updated.lastBattle={
       ...result,captured,log:battleLog,frames:battleFrames,
       ...(selectedRegion?{
@@ -357,7 +363,7 @@ function playBattle(
       wildName:enemy.name,wildLevel,
       rewardCoins:result.outcome==='win'?25+wildLevel*3:0,
       trainerXp:result.outcome==='win'?battleTrainerXp(wildLevel):0,
-      pokemonXp:result.outcome==='win'?20+wildLevel*6:0
+      pokemonXp:result.outcome==='win'?20+wildLevel*6:earlyLossXp
     };
     return {status:'ok',journal:{...applied.journal,raw:JSON.stringify(updated)}};
   } catch {
