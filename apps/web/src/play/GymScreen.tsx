@@ -15,6 +15,7 @@ import {replayGymSessionTrace} from './gymSession';
 import type {GymSessionV1,GymReplayRound} from './gymSession';
 import {BattleStage} from './BattleStage';
 import {BattlePlayback} from './BattlePlayback';
+import {gymNarratedLog} from './gymLogText';
 import styles from './GymScreen.module.css';
 
 type Props={
@@ -82,9 +83,9 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   const actionCount=session?.actions.length??0;
   const lastRound=history.at(-1);
   const priorLines=history.slice(0,-1).reduce((total,round)=>total+round.lines.length,0);
-  const fullLog=history.flatMap(round=>round.lines.map(line=>
-    'T'+round.turn+' '+line.replace(/^player\\b/,'Seu Pokémon')
-      .replace(/^leader\\b/,'Líder')));
+  const trainerName=data.name?.trim()||'Treinador';
+  const leaderName=gym?.leader??'Líder';
+  const fullLog=gymNarratedLog(history,trainerName,leaderName);
   const donePresentation=presented>=actionCount;
   // O primeiro turno é decidido pela mesma IA dos líderes. A cada
   // gravação o replay reconstruído é a fonte de verdade antes da ação
@@ -142,8 +143,16 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
       <div className={styles.reserveCards}>
         {party.fighters.map((fighter,index)=>{
           if(index===party.activeIndex)return null;
-          return <div key={index} className={styles.reserveCard}>
-            {art(fighter.combatant.speciesId,fighter.combatant.name)}
+          return <div key={index} className={fighter.hp===0
+            ?styles.reserveCard+' '+styles.reserveFainted:styles.reserveCard}
+            data-testid={'gym-reserve-'+side+'-'+index}
+            data-fainted={fighter.hp===0?'true':'false'}>
+            <div className={styles.reserveSprite}>
+              {art(fighter.combatant.speciesId,fighter.combatant.name)}
+              {fighter.hp===0&&<span className={styles.reserveKoTag}>
+                <i className="fa-solid fa-circle-xmark" aria-hidden="true"/> Nocauteado
+              </span>}
+            </div>
             <div className={styles.reserveInfo}>
               <strong>{fighter.combatant.name}</strong>
               <small>Nv. {fighter.combatant.level} · {fighter.hp===0?'KO':status(fighter)}</small>
@@ -231,7 +240,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
     {session&&<section className={styles.panel} ref={detailsRef}
       tabIndex={-1} aria-label="Batalha de Ginásio em andamento">
       <p className={styles.kicker}>BATALHA 3 × 3 · {gym?.name.toUpperCase()??session.gymId}</p>
-      <h3>{gym?.leader??'Líder'} vs. seu time</h3>
+      <h3>{leaderName} <span aria-hidden="true">×</span> {trainerName}</h3>
       {invalid?<p role="alert">Sessão inválida: {invalid}.
         Nenhum prêmio foi concedido.</p>:state&&<>
         <p className={styles.round} aria-live="polite" aria-atomic="true">
