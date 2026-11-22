@@ -1,7 +1,8 @@
 import {describe,it,expect} from 'vitest';
 import {KANTO_GYMS} from '../src/gyms/kantoGyms.js';
 import {prepareGymOpponent} from '../src/gyms/gymTactics.js';
-import {createGymBattleState,applyGymDamage,switchGymPokemon} from '../src/gyms/gymBattleState.js';
+import {createGymBattleState,switchGymPokemon} from '../src/gyms/gymBattleState.js';
+import type {GymBattleState} from '../src/gyms/gymBattleState.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat} from '../src/gyms/gymEffects.js';
 import {resolveGymTurn} from '../src/gyms/gymTurn.js';
 import {KANTO_BATTLE_MOVES} from '../src/combat/kantoBattle.js';
@@ -55,7 +56,7 @@ describe('GYM-02C2b — status individual simétrico',()=>{
     const mon=state.player.fighters[0]!;
     const fire={...mon,combatant:{...mon.combatant,types:['fire']}};
     const poison={...mon,combatant:{...mon.combatant,types:['poison']}};
-    let s={...state,player:{...state.player,fighters:[fire,mon,mon] as [
+    let s:GymBattleState={...state,player:{...state.player,fighters:[fire,mon,mon] as [
       typeof mon,typeof mon,typeof mon]}};
     s=gymApplyStatus(s,'player','burn');
     expect(s.player.fighters[0]!.status).toBeNull();
