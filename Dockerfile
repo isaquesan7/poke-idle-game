@@ -20,9 +20,7 @@ WORKDIR /app
 
 COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/server.mjs ./server.mjs
-COPY --from=build --chown=node:node /app/index.html ./index.html
-COPY --from=build --chown=node:node /app/styles ./styles
-COPY --from=build --chown=node:node /app/scripts/pokemon-sprites.js ./scripts/pokemon-sprites.js
+COPY --from=build --chown=node:node /app/landing.html ./landing.html
 COPY --from=build --chown=node:node /app/assets/pokemon-gifs ./assets/pokemon-gifs
 COPY --from=build --chown=node:node /app/apps/web/dist ./apps/web/dist
 
