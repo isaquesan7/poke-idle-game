@@ -20,6 +20,7 @@ WORKDIR /app
 
 COPY --from=build --chown=node:node /app/package.json ./package.json
 COPY --from=build --chown=node:node /app/server.mjs ./server.mjs
+COPY --from=build --chown=node:node /app/online-api-proxy.mjs ./online-api-proxy.mjs
 COPY --from=build --chown=node:node /app/landing.html ./landing.html
 COPY --from=build --chown=node:node /app/assets/pokemon-gifs ./assets/pokemon-gifs
 COPY --from=build --chown=node:node /app/apps/web/dist ./apps/web/dist
