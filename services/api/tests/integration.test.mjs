@@ -118,6 +118,31 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       [register.data.id]);
     assert.deepEqual(receipts.rows,[{action_id:'adventure:create:v1',
       kind:'adventure-initialization'}]);
+    // Two concurrent starts from the SAME authenticated account must commit
+    // one save/receipt only. Different starter requests cannot overwrite it.
+    const another={email:'concurrency-'+process.pid+'@example.test',
+      password:'another unique strong password 2026',trainerName:'Corrida CI'};
+    const created=await json(origin,'/api/v1/auth/register','POST',another);
+    assert.equal(created.status,201);
+    assert.equal((await json(origin,'/api/v1/auth/verify','POST',
+      {token:created.data.verificationToken})).status,200);
+    const otherLogin=await json(origin,'/api/v1/auth/login','POST',
+      {email:another.email,password:another.password});
+    const otherCookie=otherLogin.headers.get('set-cookie').split(';')[0];
+    const outcomes=await Promise.all([1,7].map(starterId=>
+      json(origin,'/api/v1/adventure/start','POST',{starterId},
+        {Cookie:otherCookie})));
+    assert.deepEqual(outcomes.map(o=>o.status).sort(),[201,409]);
+    const parallelRows=await pool.query(
+      'SELECT state FROM game_saves WHERE account_id=$1',[created.data.id]);
+    assert.equal(parallelRows.rowCount,1);
+    assert.ok([1,7].includes(JSON.parse(parallelRows.rows[0].state.journal.raw)
+      .roster[0].pokemonId));
+    const parallelReceipt=await pool.query(
+      'SELECT count(*)::int AS total FROM game_action_receipts WHERE account_id=$1',
+      [created.data.id]);
+    assert.equal(parallelReceipt.rows[0].total,1);
+
     const sessions=await pool.query(
       'SELECT octet_length(token_sha256) AS bytes FROM game_auth_sessions WHERE account_id=$1',
       [register.data.id]);
