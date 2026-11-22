@@ -21,6 +21,8 @@ import {
   battleProgressFactor,scaledRegionalReward,emptyExpeditionBallProgress,
   affinityIdlePenaltyDays
 } from '@kanto/game-core';
+import {runGymSessionCommand} from './gymSession';
+import type {GymSessionCommand} from './gymSession';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant,
   KantoBallId, KantoBallPocketV1
@@ -39,6 +41,7 @@ export type PlayRead =
   | { readonly status: 'absent' | 'invalid' | 'unavailable' };
 
 export type PlayAction =
+  | GymSessionCommand
   | { readonly type: 'trainer'; readonly value: TrainerDraftAction }
   | { readonly type: 'pokemon'; readonly value: LegacyPokemonTeamAction }
   | { readonly type: 'trainer-invest-batch'; readonly increments: Readonly<Partial<Record<keyof StatValues, number>>> }
@@ -588,8 +591,17 @@ export function updatePlaySave(
   }
   if(current.pendingBattle&&action.type!=='finish-regional-battle')
     return {status:'blocked',reason:'Conclua o replay antes de continuar.'};
+  const gymAction=action.type==='gym-start'||action.type==='gym-turn'
+    ||action.type==='gym-finish'||action.type==='gym-abandon';
+  if(current.gymSession&&!gymAction)
+    return {status:'blocked',reason:'Conclua ou abandone o Ginásio antes de modificar o progresso.'};
   let next: RewardJournal;
-  if (action.type === 'trainer' || action.type === 'pokemon') {
+  if(gymAction){
+    const result=runGymSessionCommand(journal,
+      action as GymSessionCommand,previous.snapshot.revision+1);
+    if(result.status!=='ok')return{status:'blocked',reason:result.reason};
+    next=result.journal;
+  } else if (action.type === 'trainer' || action.type === 'pokemon') {
     const result = action.type === 'trainer'
       ? editLegacyTrainerJson(journal.raw, action.value)
       : reduceLegacyPokemonTeamJson(journal.raw, action.value);
