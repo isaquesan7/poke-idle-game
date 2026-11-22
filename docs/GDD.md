@@ -257,3 +257,9 @@ Para eliminar o bloqueio mensurado com os três iniciais Lv1, cada batalha sem v
 - Por exclusividade das 151 espécies, Rattata #19 passa a R3 e Meowth #52 a R4, ocupando os lugares anteriores de Psyduck/Poliwag, respectivamente.
 - Permanecem fixos tipos canônicos, stats, golpes legais FRLG, IA simétrica, níveis regionais, travas, raridade, bolas, captura e XP. Não há vantagem ou peso secreto definido pelo inicial.
 - Balanceamento **não validado** até comparar coortes de writer e encontros; nenhuma meta forçada de 50% de vitórias.
+
+### D064BE — histórico por Pokémon, resultado após batalha e captura de uma tentativa (21/11/2026; PR)
+- Cada instância de Pokémon possui `battleRecord` por UID, com vitórias, empates e derrotas. Evoluir preserva o UID e o histórico. Dados anteriores sem o campo começam em 0 individual; não inferir participação em registros globais.
+- Batalha regional iniciada pelo jogador grava um encontro pendente, exibe golpes turno a turno e **só no final** registra recompensas e evolução de nível; após interrupção da página, retomar o encontro pendente. Não permitir pagamentos repetidos nem outras alterações enquanto pendente.
+- Depois de vitória regional, oferecer opção de Poké Ball, Great Ball ou Ultra Ball (dependendo de estoque), ou sair sem tentar. Máximo de uma tentativa por batalha; o sorteio, chance e cobrança são únicos e irreversíveis no writer. Lendários só Ultra Ball. Capturas são feitas para a coleção, sem conceder outra vitória.
+- Regiões mostram estoque como informação antes de iniciar; não há seleção ou consumo de bola antecipado.
