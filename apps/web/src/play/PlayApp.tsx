@@ -501,7 +501,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
           {(['overview','trainer','pokemon','collection','pokedex','regions','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
-              onClick={() => { if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
+              onClick={() => { if(pendingBattle){setTab('battle');setFeedback('Conclua o combate em andamento antes de navegar.');return;} if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
@@ -992,7 +992,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 <section className={styles.battleIntro}>
                   <div>
                     <button type="button" className={styles.secondary}
-                      onClick={()=>{setBattlePlayback(null);setTab('regions');window.scrollTo(0,0);}}>
+                      onClick={()=>{if(pendingBattle){setFeedback('Conclua o combate antes de sair.');return;}setBattlePlayback(null);setTab('regions');window.scrollTo(0,0);}}>
                       <i className="fa-solid fa-arrow-left" aria-hidden="true"/> Voltar às regiões
                     </button>
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · {battleRegion.name.toUpperCase()}</div>
@@ -1007,7 +1007,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         <strong>{speciesName(active.pokemonId)}</strong>
                         <span>UID #{active.uid} · Nível {active.level}</span>
                       </div>
-                      <button type="button" className={styles.secondary} onClick={()=>setTab('collection')}>
+                      <button type="button" className={styles.secondary} disabled={Boolean(pendingBattle)}
+                        onClick={()=>setTab('collection')}>
                         <i className="fa-solid fa-users" aria-hidden="true"/> Equipe {data.team.length}/3
                       </button>
                     </div>
