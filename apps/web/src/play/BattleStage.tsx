@@ -105,6 +105,10 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
     :effective>=2?'SUPER EFETIVO!'
       :effective===0?'IMUNE'
         :effective<1?'RESISTIDO':'';
+  // Somente o HP do frame já exibido determina o desmaio.
+  // Sem frame válido não inventar KO para saves antigos.
+  const knockedOut=frame!==null
+    &&(side==='player'?frame.playerHp===0:frame.wildHp===0);
   const sp=side==='player'?frame?.playerSp:frame?.wildSp;
   const animatedSprite=useRef<HTMLDivElement|null>(null);
 
@@ -112,18 +116,20 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing}:{
     // D-041: reinicia só a animação CSS do impacto. Remontar o palco
     // reiniciava também o GIF do Pokémon a cada linha do diário (900 ms).
     // O elemento <img> permanece o MESMO ao avançar e reassistir.
-    if(!playing||(!hit&&!heal&&!status&&!focus))return;
+    if(!playing||knockedOut||(!hit&&!heal&&!status&&!focus))return;
     for(const animation of animatedSprite.current?.getAnimations({subtree:false})??[]){
       animation.cancel();
       animation.play();
     }
-  },[cue,playing,hit,heal,status,focus]);
+  },[cue,playing,hit,heal,status,focus,knockedOut]);
 
   return (
     <div className={styles.battleFighter} data-testid={'battle-fighter-'+side}>
       <div className={styles.battleSpriteStage}>
-        <div className={animateClass} ref={animatedSprite}
-          data-testid={'battle-visual-'+side}>{fighter.art}</div>
+        <div className={knockedOut?styles.battleSpriteFainted:animateClass} ref={animatedSprite}
+          data-testid={'battle-visual-'+side} data-fainted={knockedOut?'true':'false'}>{fighter.art}</div>
+        {knockedOut&&<span className={styles.battleFaintedLabel} role="status"
+          data-testid={'battle-fainted-'+side}>Nocauteado</span>}
         {(hit||heal)&&<span key={cue+'-impact-'+side}
           className={heal?styles.battleFloatHeal:styles.battleFloatDamage}
           data-testid={'battle-impact-'+side} aria-hidden="true">
