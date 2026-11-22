@@ -610,3 +610,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Corrige bloqueio total de expedição com mochila de Pokébolas lotada: agora satura o tipo em100k, entrega moedas/XP normalmente e avança o cursor; `lastClaim.ballDrops` e prévia mostram só unidades realmente recebidas, com aviso no UI mobile/desktop.
 - Adiciona teste longitudinal sintético de 1.000 vitórias por faixa (R1/4/7/9/10) cruzando drops RNG, 8h de expedição, preços beta, compra e captura real, garantindo contabilidade e sem vender essa amostra como telemetria. Testa captura rara única no writer e bolso inválido bloqueado sem perda de save.
 - Exibe taxas regionais no catálogo Loja com tabela acessível, extraída da mesma função de drop do core. **Sem alterar os percentuais 30 /25+14 /18+14+5 /18+14+7, preços 600/2400/16000 ou regras de Ultra em expedição R9/R10**. CI/merge/Railway pendentes.
+
+### D064BR — release confirmado (22/11/2026)
+- PR #149 `7054c3790800ee4e71c2ee597ca9a576e5f9c90c` merged squash; HEAD CI geral `45037200926`, Playwright `45037200948`, Docker `45037200949` todos SUCCESS. Railway deployment `5f3bc6d4-a8ea-470e-b4bc-89a98ae3c6be` SUCCESS SHA exato, `/health` interno OK, 1 réplica running e 0 crashes.
+- Mochila no limite100k não recusa mais todo o resgate de expedição: moedas/XP e cursor mantidos, drops reais saturados e aviso/preview corrigidos. Testes de captura lendária sem repetição, auditoria sintética de moeda/bola/loja/captura e chances transparentes no UI. As porcentagens de bola, economia de expedição e preços beta continuam intactos.
