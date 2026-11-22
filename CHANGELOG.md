@@ -614,3 +614,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D064BR — release confirmado (22/11/2026)
 - PR #149 `7054c3790800ee4e71c2ee597ca9a576e5f9c90c` merged squash; HEAD CI geral `45037200926`, Playwright `45037200948`, Docker `45037200949` todos SUCCESS. Railway deployment `5f3bc6d4-a8ea-470e-b4bc-89a98ae3c6be` SUCCESS SHA exato, `/health` interno OK, 1 réplica running e 0 crashes.
 - Mochila no limite100k não recusa mais todo o resgate de expedição: moedas/XP e cursor mantidos, drops reais saturados e aviso/preview corrigidos. Testes de captura lendária sem repetição, auditoria sintética de moeda/bola/loja/captura e chances transparentes no UI. As porcentagens de bola, economia de expedição e preços beta continuam intactos.
+
+
+## 2026-11-22 — D064BS: projeto de ginásios (documentação)
+- Registrada proposta em `docs/D064BS_GYM_PROPOSAL.md`: oito líderes Kanto, batalhas 3×3, IA tática, requisitos de mudança de origem das insígnias, XP de expedição somente ao líder, economia, migração segura e fases de implementação.
+- **Somente planejamento**, sem alteração de runtime ou deploy confirmado.
