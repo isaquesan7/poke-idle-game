@@ -49,3 +49,9 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - mailer.mjs: adaptador Resend via POST HTTPS autenticado, Idempotency-Key e envio em texto plano, usando exclusivamente RESEND_API_KEY e MAIL_FROM em ambiente privado. ACCOUNT_MAIL_MODE=off por padrão; sem domínio remetente verificado ou credenciais, nenhum e-mail real é enviado. As páginas /verify-email e /reset-password ainda precisam ser criadas.
 - Em produção a autenticação continua bloqueada por código; tokens são retornados no corpo apenas no harness de testes sem envio de e-mail, jamais em produção.
 - Não habilitar contas antes de backup/PITR com teste de restauração isolada, entrega real verificada, recuperação de erros e primeiro save autoritativo. /play segue local, sem migração de saves.
+
+
+## ONLINE-01C-3 — criação transacional da primeira aventura (somente CI)
+- POST /api/v1/adventure/start valida sessão, e-mail verificado, origin e um único campo starterId (1, 4 ou 7). O servidor gera nome do perfil, relógio e política inicial Kanto nível 1; rejeita recompensas fornecidas pelo navegador.
+- INSERT de game_saves e game_action_receipts no mesmo BEGIN/COMMIT; ON CONFLICT(account_id) DO NOTHING previne replays e duas abas criando aventuras simultaneamente. GET /api/v1/save permanece somente leitura. Escrita posterior de progresso (batalhas, capturas etc.) ainda NÃO foi implementada no backend.
+- O CI cria duas contas de teste, valida a unicidade e executa backup/restore em banco PostgreSQL de teste isolado. Isso não comprova backup agendado ou PITR na instância Railway de produção. Sem importação local; /play não foi modificado.
