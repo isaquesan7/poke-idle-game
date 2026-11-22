@@ -106,8 +106,12 @@ export function gymApplySleep(
 ):GymBattleState{
   if(!Number.isSafeInteger(actions)||actions<1||actions>3)
     throw new RangeError('Duração de sono inválida.');
-  return gymReplaceFighter(state,side,old=>old.status!==null?old:
-    {...old,status:'sleep',sleepActions:actions});
+  const actor=state[side].fighters[state[side].activeIndex]!;
+  // Não gerar sequer uma cópia de estado quando o status já está ocupado.
+  if(actor.status!==null)return state;
+  return gymReplaceFighter(state,side,old=>({
+    ...old,status:'sleep',sleepActions:actions
+  }));
 }
 export function gymTickSleep(state:GymBattleState,side:GymSide):GymBattleState{
   return gymReplaceFighter(state,side,old=>{
