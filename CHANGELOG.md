@@ -677,3 +677,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - `gymTurn.ts` disponibiliza `gymLegalTurnActions` como fonte única para jogador e IA, sem contornar SP, cooldown, equipagem ou quota de troca. Confrontos restantes na rodada 120 terminam em `draw`; substituições obrigatórias não avançam o turno.
 - `gymAiTurn.ts`: adaptador determinístico do `gymAiDecision`, filtrando golpes e reservas para ações legais, respeitando Concentrar e escolhendo substituição pós-KO pelo percentual de HP da reserva, sem RNG futuro; `resolveGymAiTurn` executa ação do treinador contra a IA.
 - 32 confrontos completos com seeds fixas entre equipes dos oito líderes, verificação de legalidade e budgets, replay idêntico, troca forçada e empate técnico em `gym02d-ai-turn-policy.test.ts`. Sem writer, badges, UI nem mudança no motor regional. CI/merge/Railway a verificar.
+
+
+## GYM-03A — base atômica para recompensas dos oito Ginásios (22/11/2026, EM PR)
+- `legacy/rewardEvents.ts` ganha `gym-victory` com idempotência e revisão do `RewardJournal`: valida sequência, UID/propriedade da equipe, vitória e KO dos três oponentes oficiais; moedas/XP do catálogo e insígnia em um único receipt. Replay não duplica prêmio.
+- A concessão automática de badges por vitórias nas regiões/selvagens foi removida. `LEGACY_TITLES.mestre` tem +12 em HP, Attack, Defense, Sp.Atk, Sp.Def, Speed; projeção do treinador, combate e painel de Insígnias usam agora `KANTO_GYMS.badgeStats` e mostram líderes/desbloqueio por Ginásio.
+- `gym03a-badge-reward-journal.test.ts` cobre sequenciamento, idempotência, adulterações, oito recompensas e 24 vitórias regionais sem insígnia. **Não ativado no PlayAction nem na UI de Ginásios** até um writer que gere estado de batalha e prova local a partir de comandos de turno; não é antifraude de servidor. CI/merge/deploy pendentes.
