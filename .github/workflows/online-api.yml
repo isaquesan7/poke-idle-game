@@ -1,0 +1,56 @@
+name: ONLINE-01B — API PostgreSQL isolada
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/api/**'
+      - '.github/workflows/online-api.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  api-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kanto_ci
+          POSTGRES_PASSWORD: ci_only_not_production
+          POSTGRES_DB: kanto_ci
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U kanto_ci -d kanto_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://kanto_ci:ci_only_not_production@127.0.0.1:55432/kanto_ci
+      APP_ORIGIN: http://127.0.0.1:43142
+      ONLINE_REGISTRATION_ENABLED: 'true'
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Generate API lock for initial bootstrap
+        run: |
+          npm install --prefix services/api --package-lock-only --ignore-scripts --no-audit --no-fund
+          echo 'ONLINE01B_LOCK_BEGIN'
+          base64 -w0 services/api/package-lock.json
+          echo
+          echo 'ONLINE01B_LOCK_END'
+      - name: Validate npm lock & code
+        run: |
+          npm ci --prefix services/api --ignore-scripts --no-audit --no-fund
+          npm run check --prefix services/api
+          npm run test --prefix services/api
+      - name: Apply and replay transactional migration
+        run: |
+          npm run db:migrate --prefix services/api
+          npm run db:migrate --prefix services/api
+      - name: HTTP authentication and save isolation
+        run: npm run test:integration --prefix services/api
