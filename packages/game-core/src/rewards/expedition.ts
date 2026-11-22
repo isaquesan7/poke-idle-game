@@ -72,7 +72,7 @@ export function expeditionRewards(elapsedMs:number,context?:ExpeditionContext):E
     for(let index=0;index<profiles.length;index++){
       const current=profiles[index]!;
       const factor=expeditionProgressFactor(context.regionId,current.level);
-      const gained=scaledRegionalReward(rates.pokemonXp,factor);
+      const gained=current.level===100?0:scaledRegionalReward(rates.pokemonXp,factor);
       xpByMember[index]!+=gained;
       if(gained>0)profiles[index]=grantXp('pokemon',current,gained);
     }
