@@ -146,26 +146,68 @@ function buildStart(game:Entry,session:GymSessionV1):GymBattleState{
  * seed seguinte = seedAfter do resolvedor; a troca pós-KO não inventa
  * rolagens e não avança o contador de rodada.
  */
+/** Variações observadas no estado de cada ação, não novos ataques/rolls. */
+export interface GymVisualDelta {
+  readonly playerLostHp:boolean;
+  readonly leaderLostHp:boolean;
+  readonly playerGainedHp:boolean;
+  readonly leaderGainedHp:boolean;
+  readonly playerGainedSp:boolean;
+  readonly leaderGainedSp:boolean;
+  readonly playerSwitched:boolean;
+  readonly leaderSwitched:boolean;
+  readonly playerKo:boolean;
+  readonly leaderKo:boolean;
+}
+export interface GymReplayRound {
+  readonly turn:number;
+  readonly lines:readonly string[];
+  readonly visual:GymVisualDelta;
+}
 export interface GymReplayTrace {
   readonly state:GymBattleState;
   /** Log calculado novamente pelo motor, nunca aceito do cliente. */
-  readonly rounds:readonly {readonly turn:number;readonly lines:readonly string[]}[];
+  readonly rounds:readonly GymReplayRound[];
+}
+function gymRoundVisual(before:GymBattleState,after:GymBattleState):GymVisualDelta{
+  const side=(name:'player'|'leader')=>{
+    const b=before[name],a=after[name];
+    // Comparar a mesma instância ativa ANTES do turno: troca não é dano.
+    const previous=b.fighters[b.activeIndex]!;
+    const current=a.fighters[b.activeIndex]!;
+    return {
+      lostHp:current.hp<previous.hp,
+      gainedHp:current.hp>previous.hp,
+      gainedSp:current.sp>previous.sp,
+      switched:a.activeIndex!==b.activeIndex,
+      ko:previous.hp>0&&current.hp===0
+    };
+  };
+  const p=side('player'),l=side('leader');
+  return {
+    playerLostHp:p.lostHp,leaderLostHp:l.lostHp,
+    playerGainedHp:p.gainedHp,leaderGainedHp:l.gainedHp,
+    playerGainedSp:p.gainedSp,leaderGainedSp:l.gainedSp,
+    playerSwitched:p.switched,leaderSwitched:l.switched,
+    playerKo:p.ko,leaderKo:l.ko
+  };
 }
 /** Replay único: o histórico visível é derivado do motor/seed persistidos,
  * sem criar rolls, turnos ou mutações adicionais no save. */
 export function replayGymSessionTrace(game:Entry,session:GymSessionV1):GymReplayTrace{
   let state=buildStart(game,session);
   let seed=session.seed;
-  const rounds:{turn:number;lines:readonly string[]}[]=[];
+  const rounds:GymReplayRound[]=[];
   for(const action of session.actions){
     if(state.outcome!=='ongoing')
       throw new RangeError('Transcript contém ações após a conclusão.');
     const result=resolveGymAiTurn(state,action,seed);
     if(result.status!=='applied')
       throw new RangeError('Transcript de Ginásio contém ação ilegal.');
+    const visual=gymRoundVisual(state,result.state);
     state=result.state;
     seed=result.seedAfter;
-    rounds.push({turn:state.turn,lines:result.log});
+    rounds.push({turn:state.turn,lines:result.log,visual});
   }
   return {state,rounds};
 }

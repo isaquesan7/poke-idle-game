@@ -61,6 +61,12 @@ describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
     expect(trace.rounds).toHaveLength(1);
     expect(trace.rounds[0]!.turn).toBe(1);
     expect(trace.rounds[0]!.lines.length).toBeGreaterThan(0);
+    const visual=trace.rounds[0]!.visual;
+    expect(Object.values(visual).every(value=>typeof value==='boolean')).toBe(true);
+    expect(visual.playerLostHp||visual.leaderLostHp
+      ||visual.playerGainedSp||visual.leaderGainedSp
+      ||visual.playerSwitched||visual.leaderSwitched).toBe(true);
+
     const rawBefore=x.map.get(PLAY_SAVE_KEY);
     expect(replayGymSessionTrace(b.game,stored)).toEqual(trace);
     expect(x.map.get(PLAY_SAVE_KEY)).toBe(rawBefore);
