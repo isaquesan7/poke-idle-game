@@ -9,6 +9,8 @@ interface BattlePlaybackProps {
   readonly onFinished: () => void;
   /** Informar apenas o índice visível: não modifica nem recalcula o combate. */
   readonly onProgress?: (visible:number) => void;
+  /** Ginásios reutilizam o diário inteiro, mas só revelam linhas novas. */
+  readonly initialVisible?:number;
 }
 
 const fmt=(ms:number):string=>{
@@ -24,8 +26,10 @@ const fmt=(ms:number):string=>{
  * Não emite comandos, não altera RNG, save, recompensas, UIDs ou recibos.
  * Unmount/troca de aba cancela os timers sem perder a batalha salva.
  */
-export function BattlePlayback({log,turns,playing,onFinished,onProgress}:BattlePlaybackProps) {
-  const [visible,setVisible]=useState(()=>playing?Math.min(log.length,1):log.length);
+export function BattlePlayback({log,turns,playing,onFinished,onProgress,
+  initialVisible=0}:BattlePlaybackProps) {
+  const [visible,setVisible]=useState(()=>playing
+    ?Math.min(log.length,Math.max(0,Math.floor(initialVisible))+1):log.length);
   const [speed,setSpeed]=useState<1|2>(1);
   const [paused,setPaused]=useState(false);
   const [assistive,setAssistive]=useState(false);

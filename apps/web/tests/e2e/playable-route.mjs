@@ -1289,110 +1289,91 @@ async function exerciseGymDuel(browser,label,viewport){
     await page.getByRole('button',{name:'Começar aventura'}).click();
     await page.getByRole('heading',{name:'Bem-vindo de volta, Teste Ginásio!'}).waitFor();
     await page.evaluate(key=>{
-      const envelope=JSON.parse(localStorage.getItem(key));
-      const game=JSON.parse(envelope.journal.raw);
+      const env=JSON.parse(localStorage.getItem(key));
+      const game=JSON.parse(env.journal.raw);
       const starter=game.roster[0];
       game.roster=[1,2,3].map(uid=>({...starter,uid,level:100,
         manual:{hp:200,attack:200,defense:200,specialAttack:200,
           specialDefense:200,speed:200}}));
-      game.nextUid=4;
-      game.team=[1,2,3];
-      envelope.journal.raw=JSON.stringify(game);
-      localStorage.setItem(key,JSON.stringify(envelope));
+      game.nextUid=4;game.team=[1,2,3];
+      env.journal.raw=JSON.stringify(game);
+      localStorage.setItem(key,JSON.stringify(env));
     },SAVE);
     await page.reload();
     await page.getByRole('button',{name:'Ginásios',exact:true}).click();
     const screen=page.getByTestId('gym-screen');
-    await screen.getByRole('heading',{name:'Ginásios Pokémon'}).waitFor();
     const choices=screen.locator('fieldset input[type="checkbox"]');
     assert.equal(await choices.count(),3);
     for(let i=0;i<3;i++)await choices.nth(i).check();
     await screen.getByRole('button',{name:'Iniciar batalha contra Brock'}).click();
-    const scene=screen.getByTestId('gym-duel-scene');
-    await scene.waitFor();
-    assert.equal(await screen.getByLabel('Progressão dos oito ginásios').count(),0,
-      'Lista de líderes deve sair da tela durante a batalha');
-    assert.equal(await scene.getByTestId('gym-active-player').count(),1);
-    assert.equal(await scene.getByTestId('gym-active-leader').count(),1);
+    await screen.getByTestId('gym-duel-scene').waitFor();
+    await screen.getByRole('button',{name:'Pausar após a rodada'}).click();
+    const stage=screen.getByTestId('battle-stage');
+    assert.equal(await stage.count(),1,'Ginásio deve reutilizar BattleStage regional');
+    assert.equal(await stage.getByTestId('battle-fighter-player').count(),1);
+    assert.equal(await stage.getByTestId('battle-fighter-wild').count(),1);
+    assert.equal(await screen.getByLabel('Progressão dos oito ginásios').count(),0);
     assert.equal(await screen.getByLabel('Seus Pokémon reservas').locator('img').count(),2);
     assert.equal(await screen.getByLabel('Reservas do líder').locator('img').count(),2);
-    assert.equal(await screen.getByLabel('Comandos de batalha').count(),1);
-    assert.ok(await screen.getByRole('button',{name:'Trocar',exact:true}).count()>=1);
-    const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
-    assert.deepEqual(JSON.parse(before.journal.raw).badges,[]);
+    assert.equal(await screen.getByRole('button',{name:'Trocar',exact:true}).count(),0,
+      'Troca agora é decisão da IA, não lista de botões');
+    const paused=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
     await page.reload();
     await page.getByRole('button',{name:'Ginásios',exact:true}).click();
-    await screen.getByTestId('gym-duel-scene').waitFor();
-    assert.equal(await screen.locator('[data-testid^="gym-cue-"]').count(),0,
-      'Recarregar sessão não pode simular novo dano nem nova recuperação');
-    await page.evaluate(()=>{
-      window.__gymPlayerGif=document.querySelector('[data-testid="gym-sprite-player"] img');
-      window.__gymLeaderGif=document.querySelector('[data-testid="gym-sprite-leader"] img');
-    });
+    await stage.waitFor();
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).revision,SAVE),
-      before.revision,'Recarregar duelo não deve conceder moedas ou gravar turnos');
-    let completed=false;
-    for(let i=0;i<125;i++){
-      const finish=screen.getByRole('button',{name:'Finalizar confronto'});
-      if(await finish.count()){completed=true;break;}
-      const basic=screen.getByRole('button',{name:'Ataque básico',exact:true});
-      if(await basic.count())await basic.click();
-      else{
-        const swap=screen.getByLabel('Seus Pokémon reservas')
-          .getByRole('button',{name:'Trocar',exact:true});
-        assert.ok(await swap.count()>0,'KO do jogador exige substituto vivo');
-        await swap.first().click();
+      paused.revision,'Reload não pode executar rodada ou pagar prêmio');
+    assert.equal(await screen.getByTestId('battle-impact-player').count(),0);
+    assert.equal(await screen.getByTestId('battle-impact-wild').count(),0);
+    await screen.getByRole('button',{name:'Continuar batalha automática'}).click();
+    let lastRevision=paused.revision,completed=false,priorLogEntries=0;
+    for(let i=0;i<140;i++){
+      await page.waitForFunction(({key,rev})=>{
+        const next=JSON.parse(localStorage.getItem(key));
+        return next?.revision>rev;
+      },{key:SAVE,rev:lastRevision},{timeout:18000});
+      const now=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+      lastRevision=now.revision;
+      if(await screen.getByRole('button',{name:'Finalizar confronto'}).count()){
+        completed=true;break;
       }
-      const newRevision=before.revision+i+1;
-      await page.waitForFunction(({key,rev})=>
-        JSON.parse(localStorage.getItem(key))?.revision>=rev,{key:SAVE,rev:newRevision});
+      const diary=screen.getByTestId('gym-battle-history');
+      await diary.waitFor();
+      assert.equal(await diary.getByTestId('battle-log').count(),1,
+        'Ginásio deve usar exatamente o diário regional');
+      const entries=await diary.getByTestId('battle-log').locator('li').count();
+      assert.ok(entries>=priorLogEntries,
+        'Histórico do Ginásio deve ser acumulativo como o regional');
+      priorLogEntries=entries;
+      const skip=diary.getByRole('button',{name:'Pular apresentação'});
+      if(await skip.count()&&await skip.isEnabled())await skip.click();
+      if(await screen.getByRole('button',{name:'Finalizar confronto'}).count()){
+        completed=true;break;
+      }
       if(i===0){
-        const history=screen.getByTestId('gym-battle-history');
-        await history.waitFor();
-        await page.waitForFunction(()=>
-          document.querySelector('[data-testid="gym-cue-player"]')||
-          document.querySelector('[data-testid="gym-cue-leader"]'));
-        assert.equal(await page.evaluate(()=>
-          window.__gymPlayerGif===document.querySelector('[data-testid="gym-sprite-player"] img')),true,
-          'Impacto não pode desmontar o GIF ativo do jogador');
-        assert.equal(await page.evaluate(()=>
-          window.__gymLeaderGif===document.querySelector('[data-testid="gym-sprite-leader"] img')),true,
-          'Impacto não pode desmontar o GIF ativo do líder');
-        assert.ok(await history.locator('ol > li').count()>0,
-          'Diário deve apresentar eventos reais após a primeira rodada');
-        await page.waitForFunction(()=>{
-          const current=document.activeElement;
-          return current?.getAttribute('aria-label')==='Comandos de batalha'
-            ||current?.getAttribute('aria-label')==='Seus Pokémon reservas'
-            ||current?.textContent?.includes('Finalizar confronto');
-        });
-        const revisionBeforeRead=await page.evaluate(key=>
-          JSON.parse(localStorage.getItem(key)).revision,SAVE);
-        await history.locator('ol').innerText();
-        assert.equal(await page.evaluate(key=>
-          JSON.parse(localStorage.getItem(key)).revision,SAVE),revisionBeforeRead,
-          'Consultar diário visual não pode escrever no save');
-        await page.screenshot({path:new URL('gym-duel-'+label+'.png',shots).pathname,
+        assert.ok(await diary.getByRole('button',{name:'Reassistir à batalha'}).count()===0);
+        assert.ok(await stage.getByTestId('battle-hp-player-value').count()>0);
+        await page.screenshot({path:new URL('gym-shared-'+label+'.png',shots).pathname,
           fullPage:true});
       }
     }
-    assert.equal(completed,true,'Brock deve concluir com três Pokémon de nível 100');
-    const beforeFinish=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
-    assert.deepEqual(JSON.parse(beforeFinish.journal.raw).badges,[]);
+    assert.equal(completed,true,'IA deve concluir o desafio Brock');
+    await stage.getByTestId('battle-fainted-wild').waitFor({timeout:5000});
+    assert.equal(await stage.getByTestId('battle-fainted-wild').count(),1,
+      'Nocaute do líder deve usar o mesmo efeito regional');
+    const pre=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+    assert.deepEqual(JSON.parse(pre.journal.raw).badges,[]);
     await screen.getByRole('button',{name:'Finalizar confronto'}).click();
     await page.waitForFunction(({key,rev})=>
       JSON.parse(localStorage.getItem(key))?.revision===rev+1,
-      {key:SAVE,rev:beforeFinish.revision});
-    const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
-    assert.deepEqual(JSON.parse(after.journal.raw).badges,['boulder']);
-    assert.equal(after.journal.receipts.length,1);
-    assert.equal(await screen.getByTestId('gym-duel-scene').count(),0);
-    assert.ok(await screen.getByLabel('Progressão dos oito ginásios').count());
-    assert.equal(await screen.getByRole('button',{name:'Finalizar confronto'}).count(),0);
+      {key:SAVE,rev:pre.revision});
+    const end=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+    assert.deepEqual(JSON.parse(end.journal.raw).badges,['boulder']);
+    assert.equal(end.journal.receipts.length,1);
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
-    assert.ok(overflow<=2,'Ginásio não pode ultrapassar largura '+label+': '+overflow);
+    assert.ok(overflow<=2,'Ginásio precisa caber em '+label+': '+overflow);
     assert.deepEqual(errors,[]);
-    console.log('GYM04C_BROWSER '+label+': duelo 3x3, reload, recibo e layout OK');
+    console.log('GYM06_REGIONAL_AI '+label+': palco e diário compartilhados, IA autônoma, receipt único');
   }finally{await context.close();}
 }
 

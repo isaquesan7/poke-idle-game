@@ -23,6 +23,8 @@ interface BattleStageProps {
   readonly stageRef?:Ref<HTMLDivElement>;
   /** Efeito visual breve somente depois do writer confirmar o novo nível. */
   readonly levelUp?:boolean;
+  /** Rótulo contextual: selvagem na região, adversário oficial no Ginásio. */
+  readonly opponentLabel?:string;
 }
 type Side='player'|'wild';
 
@@ -34,8 +36,8 @@ const TYPE_COLORS:Readonly<Record<string,string>>={
 };
 
 /** Mostra o HP exato do registro exibido; não lê nem modifica o save. */
-function HealthMeter({side,hp,max}:{
-  readonly side:Side;readonly hp:number;readonly max:number
+function HealthMeter({side,hp,max,opponentLabel}:{
+  readonly side:Side;readonly hp:number;readonly max:number;readonly opponentLabel:string
 }) {
   const safeHp=Math.max(0,Math.min(max,hp));
   const percent=Math.max(0,Math.min(100,safeHp/max*100));
@@ -46,7 +48,7 @@ function HealthMeter({side,hp,max}:{
         <strong data-testid={'battle-hp-'+side+'-value'}>{safeHp} / {max}</strong>
       </div>
       <div className={styles.battleHealthTrack} role="progressbar"
-        aria-label={side==='player'?'HP do parceiro':'HP do Pokémon selvagem'}
+        aria-label={side==='player'?'HP do parceiro':'HP '+opponentLabel}
         aria-valuemin={0} aria-valuemax={max} aria-valuenow={safeHp}>
         <span className={styles.battleHealthFill} style={{width:percent+'%'}} />
       </div>
@@ -55,9 +57,9 @@ function HealthMeter({side,hp,max}:{
 }
 
 /** SP só aparece quando o combate original salvou ambos os valores exatos. */
-function SkillMeter({side,sp,max,focusRecovery}:{
+function SkillMeter({side,sp,max,focusRecovery,opponentLabel}:{
   readonly side:Side;readonly sp:number;readonly max:number;
-  readonly focusRecovery:number;
+  readonly focusRecovery:number;readonly opponentLabel:string;
 }) {
   const safeSp=Math.max(0,Math.min(max,sp));
   const percent=Math.max(0,Math.min(100,safeSp/max*100));
@@ -70,7 +72,7 @@ function SkillMeter({side,sp,max,focusRecovery}:{
         <strong data-testid={'battle-sp-'+side+'-value'}>{safeSp} / {max}</strong>
       </div>
       <div className={styles.battleSpTrack} role="progressbar"
-        aria-label={side==='player'?'SP do parceiro':'SP do Pokémon selvagem'}
+        aria-label={side==='player'?'SP do parceiro':'SP '+opponentLabel}
         aria-valuemin={0} aria-valuemax={max} aria-valuenow={safeSp}>
         <span className={styles.battleSpFill} style={{width:percent+'%'}} />
       </div>
@@ -86,11 +88,12 @@ function SkillMeter({side,sp,max,focusRecovery}:{
 }
 
 /** Somente as alterações já reveladas pelo log acionam efeito visual. */
-function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp}:{
+function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLabel}:{
   readonly side:Side;readonly fighter:FighterPanel;
   readonly frame:KantoBattleVisualFrame|null;
   readonly maxHp:number|null;readonly maxSp:number|null;
-  readonly cue:string;readonly playing:boolean;readonly levelUp:boolean
+  readonly cue:string;readonly playing:boolean;readonly levelUp:boolean;
+  readonly opponentLabel:string
 }) {
   const targeted=playing&&frame?.target===side;
   const hit=targeted&&(frame.kind==='attack'||frame.kind==='residual')&&frame.amount>0;
@@ -154,14 +157,14 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp}:{
         </span>}
       </div>
       <strong>{fighter.name} · Nv. {fighter.level}</strong>
-      <small>{side==='player'?'Seu parceiro':'Pokémon selvagem'}</small>
+      <small>{side==='player'?'Seu parceiro':opponentLabel}</small>
       {frame&&maxHp!==null&&maxHp>0&&(
-        <HealthMeter side={side} hp={side==='player'?frame.playerHp:frame.wildHp} max={maxHp} />
+        <HealthMeter side={side} hp={side==='player'?frame.playerHp:frame.wildHp} max={maxHp} opponentLabel={opponentLabel} />
       )}
       {typeof sp==='number'&&Number.isSafeInteger(sp)&&maxSp!==null&&maxSp>0
         &&sp>=0&&sp<=maxSp&&(
           <SkillMeter side={side} sp={sp} max={maxSp}
-            focusRecovery={focus?(frame.spRecovery??0):0}/>
+            focusRecovery={focus?(frame.spRecovery??0):0} opponentLabel={opponentLabel}/>
         )}
     </div>
   );
@@ -172,15 +175,16 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp}:{
  * Saves anteriores sem trilha são exibidos sem barra/efeitos falsificados.
  */
 export function BattleStage({player,wild,frame,playerMaxHp,wildMaxHp,
-  playerMaxSp,wildMaxSp,cue,playing,stageRef,levelUp=false}:BattleStageProps) {
+  playerMaxSp,wildMaxSp,cue,playing,stageRef,levelUp=false,
+  opponentLabel='Pokémon selvagem'}:BattleStageProps) {
   return (
     <div className={styles.battleScene} data-testid="battle-stage"
       ref={stageRef} tabIndex={-1} role="region" aria-label="Área do combate">
       <Fighter side="player" fighter={player} frame={frame} maxHp={playerMaxHp}
-        maxSp={playerMaxSp} cue={cue} playing={playing} levelUp={levelUp}/>
+        maxSp={playerMaxSp} cue={cue} playing={playing} levelUp={levelUp} opponentLabel={opponentLabel}/>
       <span className={styles.vs}>VS</span>
       {wild&&<Fighter side="wild" fighter={wild} frame={frame} maxHp={wildMaxHp}
-        maxSp={wildMaxSp} cue={cue} playing={playing} levelUp={false}/>}
+        maxSp={wildMaxSp} cue={cue} playing={playing} levelUp={false} opponentLabel={opponentLabel}/>}
       {!wild&&<div className={styles.battleFighter}>
         <span className={styles.unknownEnemy}>?</span>
         <strong>Encontro surpresa</strong><small>Pokémon selvagem</small>

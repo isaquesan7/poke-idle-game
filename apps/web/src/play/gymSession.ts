@@ -163,6 +163,11 @@ export interface GymReplayRound {
   readonly turn:number;
   readonly lines:readonly string[];
   readonly visual:GymVisualDelta;
+  /** Snapshots somente leitura para alimentar o MESMO palco regional. */
+  readonly before:GymBattleState;
+  readonly after:GymBattleState;
+  readonly frames:readonly import('@kanto/game-core').KantoBattleVisualFrame[];
+  readonly snapshots:readonly GymBattleState[];
 }
 export interface GymReplayTrace {
   readonly state:GymBattleState;
@@ -204,10 +209,12 @@ export function replayGymSessionTrace(game:Entry,session:GymSessionV1):GymReplay
     const result=resolveGymAiTurn(state,action,seed);
     if(result.status!=='applied')
       throw new RangeError('Transcript de Ginásio contém ação ilegal.');
+    const before=state;
     const visual=gymRoundVisual(state,result.state);
     state=result.state;
     seed=result.seedAfter;
-    rounds.push({turn:state.turn,lines:result.log,visual});
+    rounds.push({turn:state.turn,lines:result.log,visual,before,after:state,
+      frames:result.frames,snapshots:result.snapshots});
   }
   return {state,rounds};
 }

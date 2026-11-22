@@ -61,6 +61,14 @@ describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
     expect(trace.rounds).toHaveLength(1);
     expect(trace.rounds[0]!.turn).toBe(1);
     expect(trace.rounds[0]!.lines.length).toBeGreaterThan(0);
+    expect(trace.rounds[0]!.frames).toHaveLength(trace.rounds[0]!.lines.length);
+    expect(trace.rounds[0]!.snapshots).toHaveLength(trace.rounds[0]!.lines.length);
+    const firstFrame=trace.rounds[0]!.frames[0]!;
+    const firstSnapshot=trace.rounds[0]!.snapshots[0]!;
+    expect(firstFrame.playerHp).toBe(firstSnapshot.player.fighters[
+      firstSnapshot.player.activeIndex]!.hp);
+    expect(firstFrame.wildHp).toBe(firstSnapshot.leader.fighters[
+      firstSnapshot.leader.activeIndex]!.hp);
     const visual=trace.rounds[0]!.visual;
     expect(Object.values(visual).every(value=>typeof value==='boolean')).toBe(true);
     expect(visual.playerLostHp||visual.leaderLostHp
