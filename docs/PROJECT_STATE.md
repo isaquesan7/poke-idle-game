@@ -1535,3 +1535,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Verificar:** CI TypeScript/Vitest/E2E desktop/mobile, revisão visual de luta com três UIDs e abertura/recarga, PR merge e Railway antes de chamar publicado. Próximo: reforçar diário visual/impactos na cena e regressão E2E completa de Ginásio; revisão NVDA/VoiceOver manual pendente.
 
 - GYM-04C ganhou teste de aceitação em Chromium `exerciseGymDuel` dentro de `playable-route.mjs`: instancia equipe de três UIDs de teste no save alfa, inicia Brock pelos botões, valida palco com 2 ativos e 4 reservas, recarga sem gravar save, joga até o final com a UI, finaliza e exige só um receipt/insígnia, sem overflow no desktop/mobile. Confirmar execução de CI específica do HEAD antes de integrar.
+
+
+## GYM-04D — integração segura do diário na nova arena (22/11/2026; BRANCH DEPENDENTE)
+- Branch `feat/gym04d-scene-diary-focus` nasce de `feat/gym04c-duel-scene-layout` (GYM-04C), não de main. Evita conflito com a PR #166 GYM-04B independente, cujo código do replay/log foi portado para `gymSession.ts` e teste. `GymScreen` preserva palco active VS active, reservas e habilidades separados, acrescenta diário últimas oito ações e foco contextual: comandos normais, reservas em KO forçado e botão finalizar quando concluído.
+- Mudança é apresentação e rastreamento determinístico derivado da seed e das ações já registradas; nenhum novo RNG, HP/SP, writer, bônus, recompensa ou badge. Dependência de merge: GYM-04C primeiro, GYM-04D depois. GYM-04B original não deve ser integrada por cima do layout novo sem reconciliação.
+- Aguardar CI completa do head final, testes no navegador/desktop/mobile e Railway após eventual merge. Próximo teste humano NVDA/VoiceOver e revisão dos efeitos/animadores de cada evento, sem mudar mecânicas do jogo.
