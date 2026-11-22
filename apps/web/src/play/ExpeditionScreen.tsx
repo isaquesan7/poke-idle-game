@@ -1,6 +1,7 @@
 import {useEffect,useRef} from 'react';
 import type {ReactNode} from 'react';
-import {EXPEDITION_CYCLE_MS,expeditionRegionRates,expeditionProgressFactor} from '@kanto/game-core';
+import {EXPEDITION_CYCLE_MS,EXPEDITION_BALL_PERIODS,expeditionRegionRates,expeditionProgressFactor,scaledRegionalReward} from '@kanto/game-core';
+import type {ExpeditionBallKind} from '@kanto/game-core';
 import {expeditionElapsedMs,formatExpeditionDuration} from './expeditionDisplay';
 import styles from './ExpeditionScreen.module.css';
 
@@ -18,7 +19,9 @@ interface Expedition {
   readonly regionId?:number;
   readonly teamUids?:readonly number[];
 }
+type BallProgress=Readonly<Partial<Record<ExpeditionBallKind,number>>>;
 interface Pending {
+  readonly ballProgress?:BallProgress;
   readonly cycles:number;
   readonly coins:number;
   readonly trainerXp:number;
@@ -35,6 +38,7 @@ interface Props {
   readonly leaderLevel:number;
   readonly leaderArt:ReactNode;
   readonly pending:Pending|null;
+  readonly ballProgress?:BallProgress|undefined;
   readonly activePokemonLevel:number;
   readonly nowMs:number;
   readonly busy:boolean;
@@ -51,7 +55,7 @@ const rewards=[
 
 export function ExpeditionScreen({
   expedition,regionName,options,selectedRegionId,onSelectRegion,
-  leaderName,leaderLevel,leaderArt,pending,activePokemonLevel,nowMs,busy,onStart,onClaim,onStop
+  leaderName,leaderLevel,leaderArt,pending,ballProgress,activePokemonLevel,nowMs,busy,onStart,onClaim,onStop
 }:Props){
   const active=Boolean(expedition);
   // Ao trocar de fase, manter o foco na ação útil; não roubar foco na
@@ -66,6 +70,20 @@ export function ExpeditionScreen({
   const effectiveRegion=expedition?.regionId??selectedRegionId;
   const rates=expeditionRegionRates(effectiveRegion);
   const levelFactor=expeditionProgressFactor(effectiveRegion,activePokemonLevel);
+  const noCycleYield=[rates.coins,rates.trainerXp,rates.pokemonXp]
+    .every(value=>scaledRegionalReward(value,levelFactor)===0);
+  const progress=pending?.ballProgress??ballProgress;
+  const nextBallCycles=(kind:ExpeditionBallKind):number|null=>{
+    const count=progress?.[kind];
+    if(typeof count!=='number'||!Number.isSafeInteger(count)||count<0)return null;
+    return EXPEDITION_BALL_PERIODS[kind]-(count%EXPEDITION_BALL_PERIODS[kind]);
+  };
+  const availableBallKinds:ExpeditionBallKind[]=['poke-ball'];
+  if(effectiveRegion>=5)availableBallKinds.push('great-ball');
+  if(effectiveRegion>=9)availableBallKinds.push('ultra-ball');
+  const ballLabels:Record<ExpeditionBallKind,string>={
+    'poke-ball':'Poké Ball','great-ball':'Great Ball','ultra-ball':'Ultra Ball'
+  };
   const selected=options.find(option=>option.id===selectedRegionId);
   const allowed=Boolean(selected?.unlocked);
   const totalElapsed=expedition?expeditionElapsedMs(expedition.startedAt,nowMs):0;
@@ -103,9 +121,9 @@ export function ExpeditionScreen({
         <span>{rates.coins} moedas · {rates.trainerXp} XP treinador · {rates.pokemonXp} XP Pokémon</span>
         <small>Faixa ideal: até o nível {(options.find(r=>r.id===effectiveRegion)?.levelMax??10)+2}.
           Com nível superior, o rendimento diminui até zerar. Afinidade somente em batalhas.</small>
-        {levelFactor===0&&<small role="status" className={styles.warning}>
-          Seu Pokémon está acima do limite de XP desta região.
-          Escolha uma região mais avançada para voltar a evoluir.
+        {noCycleYield&&<small role="status" className={styles.warning}>
+          Esta região não gera moedas nem XP por ciclo para o Pokémon atual.
+          O progresso de Pokébolas também fica pausado. Escolha uma região mais avançada.
         </small>}
       </div>
       <div className={styles.partner}>
@@ -158,6 +176,15 @@ export function ExpeditionScreen({
           {effectiveRegion>=5&&<span>Great Ball <b>+{pending?.ballDrops?.['great-ball']??0}</b></span>}
           {effectiveRegion>=9&&<span>Ultra Ball <b>+{pending?.ballDrops?.['ultra-ball']??0}</b></span>}
         </div>
+        {progress&&<div aria-label="Próximos marcos de Pokébolas">
+          <small>{noCycleYield?'Contadores pausados nesta região':'Ciclos elegíveis para as próximas Pokébolas'}</small>
+          <div className={styles.ballPills}>
+            {availableBallKinds.map(kind=>{
+              const next=nextBallCycles(kind);
+              return next===null?null:<span key={kind}>{ballLabels[kind]}: <b>{next} ciclos</b></span>;
+            })}
+          </div>
+        </div>}
         <small>Poké Ball: uma por 4h de ciclos elegíveis. Great Ball: uma por 8h
           (áreas 5–10). Ultra Ball: uma por 24h (somente Pico Dracônico e Santuário Lendário).
           O progresso continua entre resgates e só avança quando a região concede recompensas.</small>
