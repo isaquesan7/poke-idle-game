@@ -1,6 +1,6 @@
 # D064BP — fundação da loja e ciclo fechado de foco do combate (22/11/2026)
 
-**Status:** em PR; CI, merge e Railway pendentes. Esta fase prepara o catálogo e a validação de compra sem **ativar preços ou cobranças** que não foram aprovados. Separadamente, aplica a correção imediata solicitada para o foco depois do combate e da Pokébola.
+**Status:** **PUBLICADA EM PRODUÇÃO** pela PR #145 (merge squash `2fd92cabf543a7bb226b6f538f16b90c6dfbae4f`). HEAD final `28954addd5efbdcec36cf07497fa62ed961b165a` validado em GitHub Actions: regressão geral `45031998462`, Playwright isolado desktop/mobile `45031998427` e Docker `45031998410` todos **SUCCESS**. Railway deployment `c4f31170-a222-4f9a-b7cc-0a0c58178ccf` **SUCCESS** no SHA exato, healthcheck **interno** `/health` aprovado, serviço online com 1 réplica e 0 crashes. GET HTTP público externo `/play` não foi testado diretamente. Esta fase prepara o catálogo e a validação de compra sem **ativar preços ou cobranças** que não foram aprovados. Separadamente, aplica a correção imediata solicitada para o foco depois do combate e da Pokébola.
 
 ## Fluxo de batalha e captura — decisão explícita
 
