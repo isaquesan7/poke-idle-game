@@ -1323,6 +1323,12 @@ async function exerciseGymDuel(browser,label,viewport){
     await page.reload();
     await page.getByRole('button',{name:'Ginásios',exact:true}).click();
     await screen.getByTestId('gym-duel-scene').waitFor();
+    assert.equal(await screen.locator('[data-testid^="gym-cue-"]').count(),0,
+      'Recarregar sessão não pode simular novo dano nem nova recuperação');
+    await page.evaluate(()=>{
+      window.__gymPlayerGif=document.querySelector('[data-testid="gym-sprite-player"] img');
+      window.__gymLeaderGif=document.querySelector('[data-testid="gym-sprite-leader"] img');
+    });
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).revision,SAVE),
       before.revision,'Recarregar duelo não deve conceder moedas ou gravar turnos');
     let completed=false;
@@ -1343,6 +1349,15 @@ async function exerciseGymDuel(browser,label,viewport){
       if(i===0){
         const history=screen.getByTestId('gym-battle-history');
         await history.waitFor();
+        await page.waitForFunction(()=>
+          document.querySelector('[data-testid="gym-cue-player"]')||
+          document.querySelector('[data-testid="gym-cue-leader"]'));
+        assert.equal(await page.evaluate(()=>
+          window.__gymPlayerGif===document.querySelector('[data-testid="gym-sprite-player"] img')),true,
+          'Impacto não pode desmontar o GIF ativo do jogador');
+        assert.equal(await page.evaluate(()=>
+          window.__gymLeaderGif===document.querySelector('[data-testid="gym-sprite-leader"] img')),true,
+          'Impacto não pode desmontar o GIF ativo do líder');
         assert.ok(await history.locator('ol > li').count()>0,
           'Diário deve apresentar eventos reais após a primeira rodada');
         await page.waitForFunction(()=>{
