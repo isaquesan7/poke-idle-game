@@ -18,7 +18,8 @@ import type {ExpeditionBallKind} from '../rewards/expedition.js';
 import {battleProgressFactor,scaledRegionalReward} from '../rewards/regionProgression.js';
 import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
 import {KANTO_BALL_SHOP_PRICE_POLICY,quoteKantoBallShopPurchase} from '../shop/ballShop.js';
-import { LEGACY_BADGES } from './catalog.js';
+import {KANTO_GYMS,kantoNextGym} from '../gyms/kantoGyms.js';
+import type {GymBattleState} from '../gyms/gymBattleState.js';
 import { kantoRegion } from '../map/kantoRegions.js';
 
 type Entry = Record<string, unknown>;
@@ -48,6 +49,9 @@ export type RewardCommand =
     /** Captura já resolvida (nenhuma rolagem ou sorteio dentro do reducer). */
     readonly capture?: { readonly pokemonId: number; readonly moveName?: string | null };
   })
+  | (CommandBase & {readonly type:'gym-victory';readonly gymId:string;
+      /** Estado final calculado pelo motor. NÃO constitui prova antifraude. */
+      readonly battle:GymBattleState })
   | (CommandBase & { readonly type:'shop-purchase';readonly ballId:string;
       readonly quantity:number })
   | (CommandBase & { readonly type: 'start-expedition'; readonly nowMs: number; readonly regionId?: number })
@@ -316,11 +320,8 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
   creditPokemonXp(active,scaledRegionalReward(20+cmd.wildLevel*6,factor));
   active.affinity=Math.min(100,active.affinity+
     scaledRegionalReward(cmd.affinityGain,factor));
-  for (const badge of LEGACY_BADGES) {
-    if (state.wins >= badge.wins && !state.badges.includes(badge.id)) {
-      state.badges.push(badge.id);
-    }
-  }
+  // GYM-03A: vitórias regionais NUNCA concedem insígnias.
+  // Somente um 'gym-victory' validado pode alterar state.badges.
   if (cmd.capture) {
     if (!Number.isSafeInteger(state.nextUid + 1)) throw new RangeError('UID esgotado.');
     const p: ProgressPokemon = {
@@ -334,6 +335,62 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
     state.nextUid++;
     state.roster.push(p);
   }
+}
+
+/**
+ * GYM-03A: recebimento de uma vitória de Ginásio já RESOLVIDA.
+ *
+ * O writer valida formato, sequenciamento, UIDs e elenco canônico do líder.
+ * Não aceita moedas, XP, bônus ou título vindos da UI. A prova de vitória
+ * neste estágio é um objeto local: não é seguro contra cliente adulterado.
+ * Por isso NÃO conectar o comando diretamente ao botão do navegador;
+ * GYM-04 precisará de sessão/seed/replay sob controle do writer.
+ */
+function resolvedGymVictory(
+  state:ValidState,cmd:Extract<RewardCommand,{type:'gym-victory'}>
+):void{
+  const gym=kantoNextGym(state.badges);
+  if(!gym||cmd.gymId!==gym.id)
+    throw new RangeError('Ginásio já vencido, fora de ordem ou inválido.');
+  const battle=cmd.battle;
+  if(!record(battle)||battle.outcome!=='player-win'
+    ||!Number.isSafeInteger(battle.turn)||battle.turn<1||battle.turn>120
+    ||!record(battle.player)||!record(battle.leader)
+    ||!Array.isArray(battle.player.fighters)||!Array.isArray(battle.leader.fighters)
+    ||battle.player.fighters.length!==3||battle.leader.fighters.length!==3)
+    throw new RangeError('Confronto 3×3 sem vitória validável.');
+  const player=battle.player.fighters as unknown[];
+  const leader=battle.leader.fighters as unknown[];
+  if(!leader.every((f,i)=>record(f)&&f.hp===0
+    &&record(f.combatant)
+    &&f.combatant.speciesId===gym.team[i]?.speciesId
+    &&f.combatant.level===gym.team[i]?.level)
+    ||!player.some(f=>record(f)&&positive(f.hp))
+    ||player.some(f=>!record(f)||!positive(f.uid)
+      ||!record(f.combatant)||!natural(f.hp)||!natural(f.sp)))
+    throw new RangeError('Elenco ou nocaute do líder inconsistente.');
+  const owned=new Map(state.roster.map(p=>[p.uid,p]));
+  const eligible=new Set<number>();
+  for(const f of player){
+    if(!record(f)||!positive(f.uid)||eligible.has(f.uid))
+      throw new RangeError('UID de Ginásio duplicado.');
+    const p=owned.get(f.uid);
+    const combatant=f.combatant as Entry;
+    if(!p||p.pokemonId!==combatant.speciesId||p.level!==combatant.level)
+      throw new RangeError('Equipe de Ginásio não pertence ao jogador.');
+    eligible.add(f.uid);
+  }
+  if(!natural(state.coins)||!Number.isSafeInteger(state.coins+gym.coins))
+    throw new RangeError('Moedas de Ginásio fora do limite.');
+  // Todas as alterações são no candidato em memória. O recibo é
+  // acrescentado por applyRewardEvent na MESMA transição.
+  creditCoins(state,gym.coins);
+  creditTrainerXp(state,gym.trainerXp);
+  state.badges=[...state.badges,gym.id];
+  state.lastGymVictory={
+    gymId:gym.id,eventId:cmd.id,coins:gym.coins,trainerXp:gym.trainerXp,
+    badgeStats:gym.badgeStats,turn:battle.turn
+  };
 }
 
 /**
@@ -373,6 +430,9 @@ export function applyRewardEvent(journal: RewardJournal, cmd: RewardCommand): Re
     switch (cmd.type) {
       case 'battle-result':
         resolvedBattle(state, cmd);
+        break;
+      case 'gym-victory':
+        resolvedGymVictory(state,cmd);
         break;
       case 'shop-purchase': {
         // Preço e desbloqueio derivados do estado do save e do catálogo do CORE,
