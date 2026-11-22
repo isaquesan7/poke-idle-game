@@ -125,7 +125,7 @@ describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
       gymId:'boulder',eventId:id,coins:1500,trainerXp:120
     });
     expect(after.snapshot.journal.receipts).toHaveLength(1);
-    expect(after.snapshot.journal.receipts[0].id).toBe(id);
+    expect(after.snapshot.journal.receipts[0]!.id).toBe(id);
     expect(after.game.gymSession).toBeUndefined();
     const frozen=x.map.get(PLAY_SAVE_KEY);
     expect(dispatch(x,{type:'gym-finish',sessionId:id}).status).toBe('blocked');
