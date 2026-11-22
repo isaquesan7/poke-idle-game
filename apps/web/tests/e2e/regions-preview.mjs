@@ -62,6 +62,8 @@ try{
     await page.getByRole('radio',{name:/Bulbasaur/}).check();
     await page.getByRole('checkbox',{name:/modo demonstração/}).check();
     await page.getByRole('button',{name:'Começar aventura'}).click();
+    await page.getByRole('heading',{name:/Bem-vindo de volta/}).waitFor();
+    await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===0,key);
     // D064BP: vitrine exibe mochila e desbloqueios sem preço/compra falsa.
     const shopBefore=await page.evaluate(k=>localStorage.getItem(k),key);
     await page.getByRole('button',{name:'Loja',exact:true}).click();
