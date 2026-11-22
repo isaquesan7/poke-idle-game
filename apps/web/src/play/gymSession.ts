@@ -80,15 +80,17 @@ function buildStart(game:Entry,session:GymSessionV1):GymBattleState{
   if(!gym||gym.id!==session.gymId)
     throw new RangeError('Ginásio não é o próximo desafio.');
   const trainer=game.trainer;
+  const trainerManual=trainer.manual as Entry;
+  const earnedBadges=game.badges as string[];
   const manual={} as StatValues;
   for(const stat of STATS){
-    const n=trainer.manual[stat]??0;
+    const n=trainerManual[stat]??0;
     if(!nat(n)||n>40)throw new RangeError('Pontos de treinador inválidos.');
     manual[stat]=n;
   }
   const equipped=rec(trainer.equipped)?trainer.equipped:{};
   const gear=LEGACY_ITEMS.filter(item=>equipped[item.slot]===item.id);
-  const badges=KANTO_GYMS.filter(item=>game.badges.includes(item.id))
+  const badges=KANTO_GYMS.filter(item=>earnedBadges.includes(item.id))
     .map(item=>({id:item.id,stats:item.badgeStats}));
   const title=effectiveLegacyTitle(trainer.title,game.wins as number,
     game.seen.length,game.badges.length);
