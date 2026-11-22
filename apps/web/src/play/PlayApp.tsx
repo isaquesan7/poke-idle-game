@@ -377,7 +377,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     if(tab==='battle')window.scrollTo(0,0);
   },[tab,save.status==='ready'?save.snapshot.revision:0]);
   const displayedBattleId=lastBattle?.battleId??'legacy-battle';
-  const battlePlaying=Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
+  const battlePlaying=Boolean(pendingBattle)||Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
   const activeRecord=pokemonBattleRecord(active);
   async function finishPlayback():Promise<void>{
     if(!pendingBattle||settlingBattle.current===pendingBattle.battleId){
