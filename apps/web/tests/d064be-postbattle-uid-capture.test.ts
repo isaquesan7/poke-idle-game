@@ -21,9 +21,9 @@ function game(s:Storage):any{return JSON.parse(snapshot(s).journal.raw);}
 function action(s:Storage,value:Parameters<typeof updatePlaySave>[2]){
   return updatePlaySave(s,snapshot(s).revision,value);
 }
-function normal(starter=4){
+function normal(starter=4,demo=false){
   const s=new Storage();
-  expect(createPlaySave(s,'D064BE',starter,1000,false).status).toBe('ok');
+  expect(createPlaySave(s,'D064BE',starter,1000,demo).status).toBe('ok');
   return s;
 }
 describe('D064BE — batalha pendente, recompensa e captura',()=>{
@@ -77,7 +77,7 @@ describe('D064BE — batalha pendente, recompensa e captura',()=>{
   it('não cobra bola nem duplica captura antes do resultado; vitória oferece no máximo uma escolha',()=>{
     let used=0;
     for(let seed=0;seed<256;seed++){
-      const s=normal(4);
+      const s=normal(4,true);
       if(action(s,{type:'start-regional-battle',seed,regionId:1}).status!=='ok')continue;
       const id=game(s).pendingBattle.battleId;
       expect(action(s,{type:'finish-regional-battle',battleId:id}).status).toBe('ok');
@@ -109,7 +109,7 @@ describe('D064BE — batalha pendente, recompensa e captura',()=>{
   it('permite dispensar uma vitória sem gastar bola nem ganhar prêmio adicional',()=>{
     let skipped=false;
     for(let seed=0;seed<256;seed++){
-      const s=normal();
+      const s=normal(4,true);
       expect(action(s,{type:'start-regional-battle',regionId:1,seed}).status).toBe('ok');
       const id=game(s).pendingBattle.battleId;
       expect(action(s,{type:'finish-regional-battle',battleId:id}).status).toBe('ok');
