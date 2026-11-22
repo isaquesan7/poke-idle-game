@@ -9,9 +9,7 @@ import pg from 'pg';
 if(!process.env.DATABASE_URL)throw new Error('DATABASE_URL ausente.');
 const client=new pg.Client({connectionString:process.env.DATABASE_URL,
   connectionTimeoutMillis:5000});
-const file='001_online_foundation.sql';
-const sql=await readFile(new URL('../sql/'+file,import.meta.url),'utf8');
-const checksum=createHash('sha256').update(sql).digest('hex');
+const migrations=['001_online_foundation.sql','002_auth_limits_verification.sql'];
 await client.connect();
 try{
   await client.query('BEGIN');
@@ -21,18 +19,22 @@ try{
     name text PRIMARY KEY,
     checksum char(64) NOT NULL,
     applied_at timestamptz NOT NULL DEFAULT now())`);
-  const applied=await client.query(
-    'SELECT checksum FROM game_schema_migrations WHERE name=$1 FOR UPDATE',[file]);
-  if(applied.rowCount){
-    if(applied.rows[0].checksum!==checksum)
-      throw new Error('Migration alterada após aplicação: '+file);
-    console.log('ONLINE-01 migration já aplicada: '+file);
-  }else{
-    await client.query(sql);
-    await client.query(
-      'INSERT INTO game_schema_migrations(name,checksum) VALUES($1,$2)',
-      [file,checksum]);
-    console.log('ONLINE-01 migration aplicada: '+file);
+  for(const file of migrations){
+    const sql=await readFile(new URL('../sql/'+file,import.meta.url),'utf8');
+    const checksum=createHash('sha256').update(sql).digest('hex');
+    const applied=await client.query(
+      'SELECT checksum FROM game_schema_migrations WHERE name=$1 FOR UPDATE',[file]);
+    if(applied.rowCount){
+      if(applied.rows[0].checksum!==checksum)
+        throw new Error('Migration alterada após aplicação: '+file);
+      console.log('ONLINE-01 migration já aplicada: '+file);
+    }else{
+      await client.query(sql);
+      await client.query(
+        'INSERT INTO game_schema_migrations(name,checksum) VALUES($1,$2)',
+        [file,checksum]);
+      console.log('ONLINE-01 migration aplicada: '+file);
+    }
   }
   await client.query('COMMIT');
 }catch(error){

@@ -46,6 +46,16 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
     assert.equal(register.status,201);
     assert.ok(register.data.id);
     assert.equal(register.data.trainerName,user.trainerName);
+    assert.match(register.data.verificationToken,/^[A-Za-z0-9_-]{43}$/);
+    const unverified=await json(origin,'/api/v1/auth/login','POST',
+      {email,password:user.password});
+    assert.equal(unverified.status,403,'login antes de verificar e-mail deve ser negado');
+    const verification=await json(origin,'/api/v1/auth/verify','POST',
+      {token:register.data.verificationToken});
+    assert.equal(verification.status,200);
+    const replayVerification=await json(origin,'/api/v1/auth/verify','POST',
+      {token:register.data.verificationToken});
+    assert.equal(replayVerification.status,400,'token deve ser uso único');
     assert.equal((await json(origin,'/api/v1/auth/register','POST',user)).status,
       409,'email único');
     const denied=await json(origin,'/api/v1/auth/login','POST',
@@ -85,11 +95,49 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {Cookie:sessionCookie})).status,401);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,1,'migration applied exactly once');
+    assert.equal(migrations.rows.length,2,'both migrations applied exactly once');
+    const verified=await pool.query(
+      'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
+    assert.ok(verified.rows[0].email_verified_at);
   }finally{
     child.kill('SIGTERM');
     await pool.end();
   }
+});
+
+test('rate limiting persists across requests and rejects repeated login attempts',async()=>{
+  const base='http://127.0.0.1:43144';
+  const child=spawn(process.execPath,['src/server.mjs'],{
+    cwd:new URL('../',import.meta.url).pathname,
+    env:{...process.env,PORT:'43144',NODE_ENV:'test',
+      ONLINE_REGISTRATION_ENABLED:'true'},
+    stdio:'ignore'
+  });
+  try{
+    let ready=false;
+    for(let i=0;i<80;i++){
+      try{if((await json(base,'/health')).status===200){ready=true;break;}}
+      catch{}
+      await new Promise(done=>setTimeout(done,70));
+    }
+    assert.equal(ready,true);
+    const email='rate-ci-'+process.pid+'@example.test';
+    const responses=[];
+    for(let i=0;i<8;i++){
+      const reply=await json(base,'/api/v1/auth/login','POST',
+        {email,password:'invalid pass'});
+      responses.push(reply.status);
+    }
+    assert.ok(responses.slice(0,6).every(code=>code===401));
+    assert.ok(responses.slice(6).every(code=>code===429));
+    const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+    try{
+      const tracked=await pool.query(`SELECT scope,attempts
+        FROM game_auth_throttles WHERE scope='login-email' ORDER BY attempts DESC LIMIT 1`);
+      assert.ok(tracked.rowCount>0);
+      assert.ok(tracked.rows[0].attempts>=8);
+    }finally{await pool.end();}
+  }finally{child.kill('SIGTERM');}
 });
 
 test('production stays registration-disabled even with the feature flag misconfigured',async()=>{

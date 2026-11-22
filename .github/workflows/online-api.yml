@@ -31,6 +31,7 @@ jobs:
       APP_ORIGIN: http://127.0.0.1:43142
       ONLINE_REGISTRATION_ENABLED: 'true'
       NODE_ENV: test
+      AUTH_RATE_LIMIT_SECRET: 'ci-only-security-pepper-never-used-in-railway-2026'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
