@@ -1,4 +1,4 @@
-name: Regressão v0.1 e Foundation v0.2
+name: Regressão ONLINE-01 e Foundation v0.2
 
 on:
   push:
@@ -6,7 +6,8 @@ on:
     paths:
       - 'apps/**'
       - 'packages/**'
-      - 'index.html'
+      - 'landing.html'
+      - 'services/**'
       - 'server.mjs'
       - 'scripts/**'
       - 'styles/**'
@@ -34,7 +35,7 @@ jobs:
           cache: npm
       - name: Instalar dependências reproduzíveis do monorepo
         run: npm ci
-      - name: TypeScript, regras, storage, build React, legacy e GIFs
+      - name: TypeScript, regras, storage, build React, API foundation e GIFs
         run: |
           npm run typecheck:core
           npm run test:core
@@ -52,8 +53,6 @@ jobs:
           npm install --global npm@11
           npm install --no-save --package-lock=false playwright@1.56.1
           npx playwright install --with-deps chromium
-      - name: E2E do jogo v0.1
-        run: node tests/e2e/browser-smoke.mjs
       - name: E2E da prévia React
         run: node apps/web/tests/e2e/react-preview.mjs
       - name: E2E rascunho versionado v0.2
@@ -72,7 +71,6 @@ jobs:
         with:
           name: full-regression-screenshots
           path: |
-            artifacts/browser/*.png
             artifacts/react-preview/*.png
             artifacts/draft-preview/*.png
             artifacts/playable/*.png
