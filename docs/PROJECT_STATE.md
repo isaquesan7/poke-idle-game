@@ -1294,3 +1294,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Próxima:** CI full TypeScript/Vitest/E2E Chromium desktop/mobile/Docker; corrigir falhas antes do merge e confirmar Railway SHA. Após publicação, D064BJ pode revisar navegação por teclado no resto do jogo.
 
 - Refinamento D064BI de foco: `ExpeditionScreen` foca o heading `tabIndex=-1` somente quando a fase `ativa/inativa` muda. Assim iniciar/encerrar preserva contexto para teclado/leitor de tela mesmo quando o botão de resgate está desabilitado; não rouba foco a cada segundo. E2E valida transição.
+
+### D064BI — RELEASE CONFIRMADO (22/11/2026)
+- PR #135 merged por squash `2fbb1525726b7171a5a633f6e01ffa458bb35261`. HEAD testado `bde50a7602059379bf0e53946716a3ed753b07a4`: GitHub Actions **SUCCESS**: regressão geral `45013816429`, Playwright desktop/mobile `45013816380`, Docker `45013816341`.
+- Railway production deployment `dac52e95-398a-4ed3-aba3-2167e29cef5d` **SUCCESS** no commit funcional exato `2fbb1525726b7171a5a633f6e01ffa458bb35261`. Commits documentais posteriores podem disparar novo SHA/deploy, verificar se necessário.
+- Melhorias publicadas: região da expedição com descrição vinculada ao select, painéis `aria-labelledby`, estados de espera `aria-busy`, ações e progressbar acessíveis, timer `aria-live=off` para não interromper NVDA/VoiceOver a cada segundo, foco no título ao iniciar/encerrar, layout responsivo inclusive telas 320px e foco visível. Após 8h sem resgate a tela indica o teto em vez de apresentar ciclo que não geraria recompensa. Nenhuma alteração no limite, moedas, XP, writer, save ou afinidade.
+- **Próxima D064BJ:** revisar manualmente leitores de tela e teclado no restante da interface, acessibilidade do replay de batalha e previsibilidade de foco nos modais; sem alterar regras de combate.
