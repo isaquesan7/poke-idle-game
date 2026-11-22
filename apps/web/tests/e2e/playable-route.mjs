@@ -740,7 +740,7 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Pular apresentação'}).click();
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
-    {key:SAVE,revision:12+secondBattleOffset});
+    {key:SAVE,revision:12+firstBattleOffset});
   const secondBattleOffset=firstBattleOffset+1;
   const last=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.ok(last.journal.receipts.at(-1).fingerprint.includes('"activeUid":'+firstUid),
