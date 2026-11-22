@@ -98,10 +98,10 @@ describe('XP e recompensas idle v0.1 — sem state externo', () => {
     expect(expeditionRewards(10000)).toEqual({
       cycles: 1, coins: 7, trainerXp: 4, pokemonXpPerMember: 5, affinityGainPerMember: 0
     });
-    expect(expeditionRewards(30000).affinityGainPerMember).toBe(1);
+    expect(expeditionRewards(30000).affinityGainPerMember).toBe(0); // só batalhas
     expect(expeditionRewards(9 * 3600 * 1000)).toEqual({
       cycles: 2880, coins: 20160, trainerXp: 11520,
-      pokemonXpPerMember: 14400, affinityGainPerMember: 960
+      pokemonXpPerMember: 14400, affinityGainPerMember: 0
     });
   });
 });
