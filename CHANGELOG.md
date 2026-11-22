@@ -707,3 +707,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Diário de combate mostra últimas oito ações calculadas do transcript/seed pelo mesmo motor, sem gravar estado extra.
 - Foco retorna às habilidades após ação normal, às reservas após KO e ao botão Finalizar ao terminar.
 - Preserva integralmente layout GYM-04C da main, sem alterar regras, recompensas ou limites. Teste de trace determinístico, sem mutação de storage. CI/merge/Railway desta etapa pendentes.
+
+## 2026-11-22 — GYM-05: efeitos visuais sem RNG novo (em branch)
+- Após GYM-04D, replay do Ginásio calcula deltas reais de HP, SP, entrada e KO para cada ação. Em cada novo turno confirmado, a UI exibe breve impacto/cura/recarga/entrada usando CSS, mantendo os GIFs ativos montados; abrir sessão após reload não dispara efeitos falsos.
+- Animações FULL em todos dispositivos, preservando escolha de produto D042. Nenhuma mudança no motor, ações, seed, writer, recompensas ou persistência.
+- Vitest confere dados de delta e E2E no desktop/mobile verifica cue apenas após ação, imagens GIF com identidade preservada e ausência de cue ao recarregar. CI, merge e deploy ainda pendentes.
