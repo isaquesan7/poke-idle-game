@@ -72,3 +72,16 @@ Nunca modificar `isaquesan7/pokedex` sem autorização.
 O writer regional já validava `regionWins[i] <= 100000` ao abrir uma batalha, mas incrementava a contagem **sem saturá-la**. Uma vitória elegível com contador 100.000 produzia `100001` no save; o combate seguinte passava a falhar com `Histórico de vitórias regionais inválido`, apesar de o jogador estar numa área válida. Num cenário simplificado de busca de Mewtwo (chance combinada 1/71.485 por encontro vencedor, tentativas com Ultra sempre possíveis) a probabilidade de ainda faltar a captura após 100 mil encontros vencedores é cerca de **24,7%**. Portanto o defeito é material para a Pokédex completa.
 
 **Correção:** constante única `KANTO_REGION_WINS_CAP=100000` no core; o writer para de aumentar o contador no teto, **mas permite batalha, XP e moedas conforme anti-farm**. Não repete premiações de Poké/Great nos resgates adicionais em que o contador fica saturado, e não concede Ultra. Testes do core rejeitam input acima do limite e teste do writer executa **duas vitórias consecutivas partindo de 100.000**, com save válido e recibos independentes. O histórico global de vitórias continua seguindo o fator regional já vigente; o teto é apenas de `regionWins[i]`. Não se faz reparo automático de snapshots antigos já corrompidos; se existir algum save histórico com contador acima de 100.000, investigar com backup antes de migração explícita.
+
+## Resultados da amostra mista — CI intermediário
+A versão anterior da PR (HEAD `c9ec35d5`) passou em GitHub Actions regressão geral `45025778157` e Docker `45025778106`, ambas **SUCCESS**; esses resultados NÃO substituem CI do novo HEAD após a correção do contador de 100.000 vitórias. A coleta `D064BN_MIXED_ECONOMY_REPORT` saiu do teste real `d064bn-mixed-journey-economy.test.ts`, com 60 confrontos determinísticos + quatro expedições de 2h por inicial:
+
+| Inicial (sem evoluir) | Vitórias / Derrotas / Empates | Tentativas / Capturas | Espécies únicas no fim | Moedas totais | Moedas de batalha | Moedas de expedição | Poké Balls restantes |
+|---|---|---|---:|---:|---:|---:|---:|
+| Bulbasaur | 21 / 39 / 0 | 15 / 10 | 11 | 24.244 | 1.659 | 22.585 | 5 |
+| Charmander | 30 / 29 / 1 | 18 / 17 | 18 | 24.295 | 2.103 | 22.192 | 5 |
+| Squirtle | 31 / 29 / 0 | 23 / 12 | 13 | 24.493 | 2.467 | 22.026 | 1 |
+
+As três amostras chegam à R3 em treinador Nv19 e líder Nv33–34, com zero Great/Ultra, pois R4–R10 não foram alcançadas. **91–93% das moedas** vêm das 8h acumuladas de expedição, e a estratégia de tentar capturar apenas espécies novas gastou entre 15 e 23 Poké Balls; a reposição por vitórias/expedições manteve o estoque não negativo, mas o caso Squirtle terminou com só 1 bola. Estes resultados evidenciam que preços iniciais precisam considerar **moedas de expedição e consumo de bolas juntos**, não apenas lucro por vitória.
+
+A amostra é propositalmente limitada: os Pokémon nunca evoluem nem recebem pontos manuais, atributos do treinador, insígnias ou títulos; semente e oportunidade de captura são controladas pelo teste. Portanto **não é comparação de balanceamento definitivo de iniciais, nem taxa de captura prevista para usuários**. Reexecutar após mexer em IA, movesets ou progressão.
