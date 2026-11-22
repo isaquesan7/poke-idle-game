@@ -5,6 +5,7 @@
  */
 import type { StatBonus, StatValues } from '../stats/types.js';
 import type { EquipmentSlot } from '../stats/trainer.js';
+import {KANTO_GYM_MASTER_TITLE_STATS} from '../gyms/kantoGyms.js';
 
 export interface LegacyItem {
   readonly id: string;
@@ -58,7 +59,7 @@ export const LEGACY_TITLES: readonly LegacyTitle[] = [
   { id: 'aprendiz', name: 'Aprendiz de Kanto', stats: { hp: 1 } },
   { id: 'veterano', name: 'Veterano da Arena', stats: { attack: 2 } },
   { id: 'explorador', name: 'Explorador de Kanto', stats: { speed: 2 } },
-  { id: 'mestre', name: 'Mestre de Ginásios', stats: { attack: 2, specialAttack: 2 } }
+  { id: 'mestre', name: 'Mestre de Ginásios', stats: KANTO_GYM_MASTER_TITLE_STATS }
 ];
 
 /** Regras originais de desbloqueio; compartilhadas entre projeção e writer. */
