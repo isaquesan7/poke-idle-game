@@ -9,7 +9,7 @@ import {
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions,
   KANTO_REGIONS,inspectKantoBallPocket,xpThreshold,affinityIdlePenaltyDays
 } from '@kanto/game-core';
-import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame,KantoBallId } from '@kanto/game-core';
+import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame,KantoBallId,KantoShopBallId } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
 import { parseLegacySave } from '../storage/legacySave';
 import {
@@ -251,6 +251,23 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     void transact(() => updatePlaySave(window.localStorage, expected, action));
   }
 
+  /** D064BQ: id de requisição único + revisão esperada.
+   * O writer recalcula o preço, debita moedas e credita bolas em UM receipt.
+   */
+  async function buyBall(ballId:KantoShopBallId,quantity:number):Promise<void>{
+    if(save.status!=='ready'||busy)return;
+    const revision=save.snapshot.revision;
+    const requestId='shop-v1-'+window.crypto.randomUUID();
+    const outcome=await transact(()=>updatePlaySave(window.localStorage,revision,{
+      type:'buy-ball',purchaseId:requestId,ballId,quantity
+    }));
+    if(outcome?.status==='ok'){
+      const label=ballId==='poke-ball'?'Poké Ball':ballId==='great-ball'?'Great Ball':'Ultra Ball';
+      setFeedback('Compra confirmada: +'+quantity+' '+label+
+        (quantity>1?'s':'')+'. Moedas e mochila atualizadas juntas.');
+    }
+  }
+
   /** D050: confirmação única para os pontos mostrados na prévia. */
   async function investTrainerBatch(increments:Partial<Record<Stat,number>>,revision:number):Promise<boolean>{
     if(save.status!=='ready'||save.snapshot.revision!==revision)return false;
@@ -446,6 +463,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         captured:boolean;affinityGain:number|null;log:string[];
         captureStatus?:'available'|'unavailable'|'caught'|'escaped'|'skipped';
         captureBallId?:KantoBallId|null;capturedStartingLevel?:number;
+        ballDrops?:Readonly<Partial<Record<'poke-ball'|'great-ball'|'ultra-ball',number>>>;
         rewardFactor?:number;
         rewardCoins:number;trainerXp:number;pokemonXp:number;
         playerRemainingHp:number;wildRemainingHp:number
@@ -1312,6 +1330,12 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                           <div><small>XP treinador</small><strong>+{lastBattle.trainerXp}</strong></div>
                           <div><small>XP Pokémon</small><strong>+{lastBattle.pokemonXp}</strong></div>
                           <div><small>Afinidade</small><strong>+{lastBattle.affinityGain}</strong></div>
+                          <div data-testid="battle-ball-drop"><small>Drop aleatório</small>
+                            <strong>{(['poke-ball','great-ball','ultra-ball'] as const)
+                              .filter(id=>(lastBattle.ballDrops?.[id]??0)>0)
+                              .map(id=>id==='poke-ball'?'Poké Ball':id==='great-ball'?'Great Ball':'Ultra Ball')
+                              .join(', ')||'Nenhum nesta vitória'}</strong>
+                          </div>
                         </div>
                       )}
                       <button type="button" className={styles.secondary}
@@ -1342,7 +1366,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
               </>
             )}
             {tab === 'shop' && <BallShopPreview coins={data.coins}
-              trainerLevel={view.level} quantities={ballQuantities}/>} 
+              trainerLevel={view.level} quantities={ballQuantities}
+              busy={busy} onBuy={(ballId,quantity)=>void buyBall(ballId,quantity)}/>} 
             {tab === 'expedition' && (
               <ExpeditionScreen
                 expedition={expedition??null}
