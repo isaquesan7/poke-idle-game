@@ -65,7 +65,7 @@ describe('D064AZ — progressão inicial real / dificuldade justa',()=>{
         const g=game(store);
         const action=act(store,{
           type:'regional-battle',regionId:1,seed:seed(species,i),
-          ballId:'poke-ball'
+          ballId:(g.ballPocket?.quantities?.['poke-ball']??0)>0?'poke-ball':null
         });
         expect(action.status).toBe('ok');
         expect(snapshot(store).revision).toBe(old.revision+1);
