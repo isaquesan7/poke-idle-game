@@ -377,7 +377,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         wildName:string;wildLevel:number;turns:number;
         captured:boolean;affinityGain:number|null;log:string[];
         captureStatus?:'available'|'unavailable'|'caught'|'escaped'|'skipped';
-        captureBallId?:KantoBallId|null;
+        captureBallId?:KantoBallId|null;capturedStartingLevel?:number;
         rewardCoins:number;trainerXp:number;pokemonXp:number;
         playerRemainingHp:number;wildRemainingHp:number
       }
@@ -1169,7 +1169,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                           </button>
                         </div>
                       ) : <p>{lastBattle.captured
-                        ? 'Captura realizada! O Pokémon foi adicionado à coleção.'
+                        ? 'Captura realizada! O Pokémon entrou na coleção no nível '
+                          +(lastBattle.capturedStartingLevel??'inicial')+'.'
                         :lastBattle.captureStatus==='escaped'?'O Pokémon escapou da tentativa.'
                         :lastBattle.captureStatus==='skipped'?'Você decidiu não tentar capturar.'
                         :'Nenhuma captura nesta batalha.'}</p>}
