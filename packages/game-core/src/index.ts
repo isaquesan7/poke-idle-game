@@ -163,3 +163,8 @@ export {healGymHp,focusGymSp} from './gyms/gymBattleState.js';
 export {gymStatusAllowed,gymApplyStatus,gymDropStat,gymDamageStat,
   GYM_EMPTY_EFFECTS} from './gyms/gymEffects.js';
 export type {GymEffects,GymStage} from './gyms/gymEffects.js';
+
+// GYM-02C2b2: dados psíquicos FRLG e confusão individual (somente Ginásios).
+export {gymPsychicSecondary,gymPsychicLevelMoves} from './gyms/gymPsychicMoves.js';
+export type {GymPsychicMove,GymPsychicSecondary} from './gyms/gymPsychicMoves.js';
+export {gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage} from './gyms/gymEffects.js';
