@@ -645,3 +645,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Novo resolvedor puro `gyms/gymTurn.ts`: ações ofensivas equipadas, básico grátis e troca de membros, com iniciativa por prioridade/velocidade/seed, custo de SP, dano existente, HP individual persistente e KO com substituição obrigatória sem turno grátis.
 - Testes `gym02c-turns.test.ts` verificam troca consumindo ação, alvo recém-entrado recebendo dano, SP sem reset, recusa de movimentos inválidos, substituição forçada e determinismo.
 - **Ainda NÃO há combate completo 3×3**: efeitos de suporte/status/secundários, multi-hit, Concentrar, integração IA, UI/save e recompensas pendentes; nenhuma alteração em regiões/capturas/insígnias.
+
+
+## GYM-02C2a — Focus, cura ativa e multi-hit (22/11/2026, EM PR)
+- `gymBattleState.ts` passa a guardar `focusUses`, `lastFocusTurn` por instância e `turn` global; `focusGymSp` limita Concentrar a 2 usos com intervalo mínimo de 4 turnos, sem reset por troca; `healGymHp` aplica cura apenas explícita.
+- `gymTurn.ts` aceita ação Concentrar, Recover equipado e golpes multi-hit, com custo único por ação, acerto por ação e danos por impacto; status e efeitos secundários ainda bloqueados até suporte fiel.
+- Testes `gym02c2-focus-heal-multihit.test.ts` cobrem quotas SP, cooldown que persiste após troca, ausência de cura automática, Recover por ação e golpes duplos. Sem interface, insígnias ou writer; CI/merge/deploy a confirmar.
