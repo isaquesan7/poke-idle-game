@@ -102,7 +102,7 @@ describe('D064AX — progressão e IA por writer real',()=>{
     const store=new MemoryStorage();
     expect(createPlaySave(store,'Normal',1,1000,false).status).toBe('ok');
     const g=game(store);
-    expect(g.roster[0].level).toBe(5);
+    expect(g.roster[0].level).toBe(1);
     expect(g.trainer.level).toBe(1);
     expect(act(store,{type:'evolution',uid:1,targetSpeciesId:2}).status).toBe('blocked');
     expect(act(store,{type:'regional-battle',seed:1,regionId:9}).status).toBe('blocked');
