@@ -1,6 +1,6 @@
 # D064BQ — drops aleatórios por vitória e checkout da loja (22/11/2026)
 
-**Status:** implementação na branch `feat/d064bq-random-ball-drops-and-shop-checkout`, aguardando CI/PR/merge/deploy.
+**Status:** **PUBLICADA EM PRODUÇÃO** pela PR #147, merge squash `337ce1cbd1ca44021e92370f325ef0615f2c2b53`, HEAD testado `57280d0a4bab43cbde1bf308a8c7171111925dfe`. GitHub Actions geral `45034879515`, Playwright isolado desktop/mobile `45034879419`, Docker `45034879435` **SUCCESS**. Railway deployment `856530c2-8c30-4c82-9098-49adccb7e188` **SUCCESS** no commit funcional exato, `/health` **interno** aprovado e serviço online (1 réplica running, 0 crashes). O GET HTTP externo `/play` não foi verificado diretamente. A primeira CI anterior falhou em duas expectativas de teste porque o writer removia o campo transitório `battleBallDrops` antes de preencher `lastBattle.ballDrops`; corrigido no HEAD final sem reroll de recompensa.
 
 ## Decisão explícita que substitui marcos fixos de vitória
 
