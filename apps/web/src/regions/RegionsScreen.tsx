@@ -10,8 +10,6 @@ interface Props{
   readonly selectedRegionId:number;
   readonly onSelectRegion:(id:number)=>void;
   readonly balls:BallStock;
-  readonly selectedBall:KantoBallId|null;
-  readonly onSelectBall:(ball:KantoBallId|null)=>void;
   readonly wins:readonly number[];
   readonly seenIds:readonly number[];
   readonly capturedIds:readonly number[];
@@ -30,14 +28,13 @@ const ballLabels=[
 /** D-064AI: visualiza o save real, mas não o modifica; batalhar delega ao writer da Arena. */
 export function RegionsScreen({
   trainerLevel,leaderSpeciesId,leaderLevel,selectedRegionId,onSelectRegion,balls,
-  selectedBall,onSelectBall,wins,seenIds,capturedIds,busy,onFight,onOpenTeam,
+  wins,seenIds,capturedIds,busy,onFight,onOpenTeam,
   lastBattleRegionId,onReplayBattle
 }:Props){
   const selected=KANTO_REGIONS.find(region=>region.id===selectedRegionId)??KANTO_REGIONS[0]!;
   const unlocked=trainerLevel>=selected.trainerUnlockLevel;
   const seen=new Set(seenIds);
   const caught=new Set(capturedIds);
-  const available=selectedBall===null||(balls[selectedBall]??0)>0;
   const discovered=selected.speciesIds.filter(id=>seen.has(id)).length;
   const caughtHere=selected.speciesIds.filter(id=>caught.has(id)).length;
   return <div className={styles.screen}>
@@ -119,18 +116,18 @@ export function RegionsScreen({
             <button type="button" className={styles.link} onClick={onOpenTeam}>Alterar equipe</button>
           </div>
         </div>
-        <label className={styles.ball}>
-          <strong>Pokébola após a vitória</strong>
-          <select aria-label="Pokébola para captura regional" value={selectedBall??'none'}
-            onChange={event=>onSelectBall(event.target.value==='none'?null:event.target.value as KantoBallId)}>
-            <option value="none">Não tentar capturar</option>
-            {ballLabels.map(ball=><option key={ball.id} value={ball.id} disabled={(balls[ball.id]??0)<1}>
-              {ball.name} · {balls[ball.id]??0} disponível(is)
-            </option>)}
-          </select>
-        </label>
+        <div className={styles.ballStock} aria-label="Seu estoque para capturar depois do combate">
+          <strong><i className="fa-solid fa-baseball" aria-hidden="true"/> Pokébolas disponíveis</strong>
+          <div className={styles.ballStockItems}>
+            {ballLabels.map(ball=><span key={ball.id} className={styles.ballStockItem}>
+              <i className="fa-solid fa-circle-dot" aria-hidden="true"/>
+              {ball.name} <b>{balls[ball.id]??0}</b>
+            </span>)}
+          </div>
+          <small>Após vencer você poderá escolher uma Pokébola ou deixar o Pokémon ir. Uma tentativa por batalha.</small>
+        </div>
         <button type="button" className={styles.fight}
-          disabled={!unlocked||busy||!available}
+          disabled={!unlocked||busy}
           onClick={()=>onFight(selected.id)}>
           <i className="fa-solid fa-khanda" aria-hidden="true"/> Batalhar em {selected.name}
         </button>
@@ -139,10 +136,9 @@ export function RegionsScreen({
             Rever último combate nesta região
           </button>}
         {!unlocked&&<p className={styles.notice} role="status">Alcance o nível {selected.trainerUnlockLevel} de treinador para lutar nesta região.</p>}
-        {!available&&<p className={styles.notice} role="status">Sem estoque dessa Pokébola. Escolha outra ou lute sem tentar capturar.</p>}
         {selected.id===1&&leaderLevel===1&&
           <p className={styles.notice}>Primeiros passos: mesmo se não vencer, seu Pokémon ganha 22 XP de aprendizado até alcançar o nível 2. O treinador só ganha XP nas vitórias ou expedições.</p>}
-        <p className={styles.notice}>O combate abre a tela da região com animações e diário turno a turno. Pokébolas só são gastas numa tentativa após a vitória. Lendários exigem Ultra Ball.</p>
+        <p className={styles.notice}>O combate abre a tela da região com animações e diário turno a turno. Depois da vitória é você quem decide se deseja capturar o adversário; apenas uma tentativa por combate. Lendários exigem Ultra Ball.</p>
       </section>
     </section>
   </div>;
