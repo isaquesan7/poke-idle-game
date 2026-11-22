@@ -27,6 +27,33 @@ function act(store:MemoryStorage,action:Parameters<typeof updatePlaySave>[2]){
 const seed=(starter:number,i:number)=>
   (Math.imul(starter+1,0x9e3779b9)^Math.imul(i+1,0x85ebca6b))>>>0;
 
+describe('D064AY — nível inicial real',()=>{
+  it.each([1,4,7])('inicial #%i começa no nível 1 no modo normal',starter=>{
+    const store=new MemoryStorage();
+    const created=createPlaySave(store,'Novo treinador',starter,1000,false);
+    expect(created.status).toBe('ok');
+    const first=game(store);
+    expect(first.trainer.level).toBe(1);
+    expect(first.roster).toHaveLength(1);
+    expect(first.roster[0]).toMatchObject({
+      uid:1,pokemonId:starter,level:1,xp:0,affinity:0
+    });
+    expect(first.team).toEqual([1]);
+    expect(version(store)).toBe(0);
+    // Salvar o perfil não deve ser confundido com migrar jogadores antigos.
+    expect(readPlaySave(store).status).toBe('ready');
+    expect(act(store,{type:'evolution',uid:1,targetSpeciesId:
+      starter===1?2:starter===4?5:8}).status).toBe('blocked');
+    expect(version(store)).toBe(0);
+  });
+  it('modo demonstração permanece explicitamente no nível 20',()=>{
+    const store=new MemoryStorage();
+    expect(createPlaySave(store,'Teste rápido',7,1000,true).status).toBe('ok');
+    expect(game(store).roster[0].level).toBe(20);
+    expect(game(store).trainer.level).toBe(21);
+  });
+});
+
 describe('D064AX — progressão e IA por writer real',()=>{
   it.each([[1,2],[4,5],[7,8]] as const)(
     'starter %i: evolução válida sem criar UID ou XP, treinamento e encontros com recibo',
