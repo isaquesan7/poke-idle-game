@@ -3,7 +3,7 @@
  * Nunca fornece HP/SP/outcome/recompensas. O estado exibido é replayado
  * pelo motor a partir do transcript persistido (inclusive após reload).
  */
-import {useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import {
   KANTO_GYMS,kantoNextGym,gymChooseAiAction,
   KANTO_BATTLE_SPECIES
@@ -50,6 +50,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   const lastSent=useRef<string|null>(null);
   const [automatic,setAutomatic]=useState(false);
   const [presented,setPresented]=useState(0);
+  const [progress,setProgress]=useState({key:'',visible:0});
   const session=readSession(game.gymSession);
   const gym=session?KANTO_GYMS.find(g=>g.id===session.gymId):
     kantoNextGym(data.badges);
@@ -95,36 +96,36 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   },[automatic,session?.id,actionCount,busy,donePresentation,revision]);
   const earned=new Set(data.badges);
   const starting=selected.length===3&&!session;
-  const player=state?.player.fighters[state.player.activeIndex];
-  const leader=state?.leader.fighters[state.leader.activeIndex];
-  const visual=lastRound?.visual;
-  const hitSide=visual?.playerLostHp?'player':
-    visual?.leaderLostHp?'wild':null;
-  const healSide=visual?.playerGainedHp?'player':
-    visual?.leaderGainedHp?'wild':null;
-  const focusSide=visual?.playerGainedSp?'player':
-    visual?.leaderGainedSp?'wild':null;
-  const frame:KantoBattleVisualFrame|null=player&&leader?{
-    kind:hitSide?'attack':healSide?'heal':focusSide?'focus':'info',
-    target:hitSide??healSide??focusSide,
-    amount:hitSide==='player'&&lastRound?Math.max(0,
-      lastRound.before.player.fighters[lastRound.before.player.activeIndex]!.hp-
-      lastRound.after.player.fighters[lastRound.before.player.activeIndex]!.hp):
-      hitSide==='wild'&&lastRound?Math.max(0,
-        lastRound.before.leader.fighters[lastRound.before.leader.activeIndex]!.hp-
-        lastRound.after.leader.fighters[lastRound.before.leader.activeIndex]!.hp):0,
-    playerHp:player.hp,wildHp:leader.hp,
-    playerSp:player.sp,wildSp:leader.sp,
-    spRecovery:focusSide==='player'&&lastRound
-      ?Math.max(0,player.sp-lastRound.before.player.fighters[
-        lastRound.before.player.activeIndex]!.sp):
-      focusSide==='wild'&&lastRound?Math.max(0,leader.sp-
-        lastRound.before.leader.fighters[lastRound.before.leader.activeIndex]!.sp):0
-  }:null;
+  const roundKey=(session?.id??'')+':'+actionCount;
+  // Callback estável: BattlePlayback emite índice apenas quando progride,
+  // evitando loops e sem produzir nenhuma gravação no save.
+  const onProgress=useCallback((visible:number)=>{
+    setProgress(previous=>previous.key===roundKey&&previous.visible===visible
+      ?previous:{key:roundKey,visible});
+  },[roundKey]);
+  const visible=progress.key===roundKey?progress.visible:0;
+  const displayState=lastRound&&!donePresentation
+    ?visible>0?lastRound.snapshots[Math.min(visible,lastRound.snapshots.length)-1]
+      ??lastRound.before:lastRound.before
+    :state;
+  const player=displayState?.player.fighters[displayState.player.activeIndex];
+  const leader=displayState?.leader.fighters[displayState.leader.activeIndex];
+  const latestFrame=lastRound
+    ?lastRound.frames.at(donePresentation?-1:Math.max(0,visible-1))
+    :null;
+  // Antes da primeira linha não antecipamos dano/KO da rodada.
+  // O palco regional lê exatamente o mesmo frame e índice do diário.
+  const frame:KantoBattleVisualFrame|null=player&&leader?(
+    lastRound&&visible>0?latestFrame??null:
+    lastRound&&donePresentation?latestFrame??null:{
+      kind:'intro',target:null,amount:0,playerHp:player.hp,
+      wildHp:leader.hp,playerSp:player.sp,wildSp:leader.sp
+    }
+  ):null;
   const showingRound=Boolean(automatic&&lastRound&&!donePresentation);
   const renderReserve=(side:'player'|'leader')=>{
-    if(!state)return null;
-    const party=state[side];
+    if(!displayState)return null;
+    const party=displayState[side];
     return <div className={styles.reserveGroup}
       aria-label={side==='player'?'Seus Pokémon reservas':'Reservas do líder'}>
       <strong>{side==='player'?'Suas reservas':'Reservas de '+(gym?.leader??'líder')}</strong>
@@ -241,7 +242,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
             frame={frame} playerMaxHp={player.combatant.stats.hp}
             wildMaxHp={leader.combatant.stats.hp}
             playerMaxSp={player.maxSp} wildMaxSp={leader.maxSp}
-            cue={session.id+':'+actionCount} playing={showingRound}
+            cue={roundKey+':'+visible} playing={showingRound}
             opponentLabel={'Pokémon de '+(gym?.leader??'líder')}/>}
         </div>
         <div className={styles.benchColumns}>
@@ -276,7 +277,8 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
               .replace(/^player\\b/,'Seu Pokémon')
               .replace(/^leader\\b/,'Líder'))}
             turns={Math.max(1,state.turn)}
-            playing={!donePresentation} onFinished={()=>setPresented(actionCount)}/>
+            playing={!donePresentation} onProgress={onProgress}
+            onFinished={()=>setPresented(actionCount)}/>
         </section>}
         {state.outcome!=='ongoing'&&!donePresentation&&
           <p role="status" className={styles.hint}>
