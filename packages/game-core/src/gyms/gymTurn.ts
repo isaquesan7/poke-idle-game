@@ -6,7 +6,8 @@
  * de condições exigem o próximo recorte antes dos Ginásios jogáveis.
  */
 import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
-import {kantoDamage} from '../combat/kantoBattle.js';
+import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
+import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS} from './gymEffects.js';
 import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
 import {kantoRollHitCount} from '../combat/kantoMultiHit.js';
 import {kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
@@ -63,11 +64,15 @@ function validateAction(
   const move=(active.combatant.moves??[active.combatant.move])
     .find(m=>m.name===action.moveName);
   if(!move||move.name===KANTO_BASIC_ATTACK.name
-    ||(move.category==='status'&&kantoSupportEffect(move.name)?.kind!=='heal')
-    ||(move.category==='status'&&active.hp===active.combatant.stats.hp)
-    ||kantoMoveSecondaryEffect(move.name)!==null
     ||kantoPerHitSecondaryEffect(move.name)!==null
     ||kantoMoveSpCost(move)>active.sp)return null;
+  if(move.category==='status'){
+    const support=kantoSupportEffect(move.name);
+    if(!support||support.kind==='status'&&support.status==='sleep')return null;
+    if(support.kind==='heal'&&active.hp===active.combatant.stats.hp)return null;
+  }
+  const effect=kantoMoveSecondaryEffect(move.name);
+  if(effect?.kind==='status'&&effect.status==='sleep')return null;
   return {action,move,priority:move.priority};
 }
 function combatantUsing(fighter:GymFighterState,move:KantoMove):Combatant{
@@ -120,8 +125,15 @@ export function resolveGymTurn(
     current=(Math.imul(1664525,current)+1013904223)>>>0;
     return current/0x100000000;
   };
-  const pSpeed=input.player.fighters[input.player.activeIndex]!.combatant.stats.speed;
-  const lSpeed=input.leader.fighters[input.leader.activeIndex]!.combatant.stats.speed;
+  const speedOf=(side:GymSide)=>{
+    const f=input[side].fighters[input[side].activeIndex]!;
+    const raw=f.status==='paralysis'
+      ?Math.max(1,Math.floor(f.combatant.stats.speed/4))
+      :f.combatant.stats.speed;
+    return gymDamageStat(raw,(f.effects??GYM_EMPTY_EFFECTS).speedDrops);
+  };
+  const pSpeed=speedOf('player');
+  const lSpeed=speedOf('leader');
   const first:GymSide= p.priority!==l.priority
     ?p.priority>l.priority?'player':'leader'
     :pSpeed!==lSpeed?pSpeed>lSpeed?'player':'leader'
@@ -143,6 +155,12 @@ export function resolveGymTurn(
     }
     const active=state[side].fighters[state[side].activeIndex]!;
     if(active.hp<=0)continue;
+    // Paralisia: 25% de não agir, antes de gastar SP ou executar Concentrar.
+    // Recolher não é ataque: troca continua possível com as regras normais.
+    if(active.status==='paralysis'&&roll()<.25){
+      log.push(side+' ficou paralisado e perdeu a ação.');
+      continue;
+    }
     if(chosen.action.kind==='focus'){
       const before=active.sp;
       state=focusGymSp(state,side);
@@ -161,18 +179,40 @@ export function resolveGymTurn(
       continue;
     }
     if(move.category==='status'){
-      const healing=Math.max(1,Math.floor(active.combatant.stats.hp*.5));
-      state=healGymHp(state,side,healing);
-      log.push(side+' usou '+move.name+' e recuperou HP (-'+cost+' SP).');
+      const support=kantoSupportEffect(move.name);
+      if(!support)throw new RangeError('Suporte não resolvido.');
+      if(support.kind==='heal'){
+        const healing=Math.max(1,Math.floor(active.combatant.stats.hp*.5));
+        state=healGymHp(state,side,healing);
+        log.push(side+' usou '+move.name+' e recuperou HP (-'+cost+' SP).');
+      }else if(kantoTypeMultiplier(move.type,target.combatant.types)===0){
+        log.push(side+' usou '+move.name+', mas o alvo é imune.');
+      }else if(support.kind==='status'){
+        const previous=state[defendingSide].fighters[state[defendingSide].activeIndex]!.status;
+        state=gymApplyStatus(state,defendingSide,support.status);
+        log.push(side+' usou '+move.name+(previous===null&&
+          state[defendingSide].fighters[state[defendingSide].activeIndex]!.status!==null
+          ?' e aplicou '+support.status:': sem efeito')+'.');
+      }else{
+        state=gymDropStat(state,defendingSide,
+          support.kind==='lower-attack'?'attackDrops':'defenseDrops');
+        log.push(side+' usou '+move.name+' e reduziu '+support.kind+'.');
+      }
       continue;
     }
-    const attacker=combatantUsing(active,move);
+    const ownDrops=active.effects??GYM_EMPTY_EFFECTS;
+    const foeDrops=target.effects??GYM_EMPTY_EFFECTS;
+    const cleanAttacker=combatantUsing(active,move);
+    const attacker={...cleanAttacker,stats:{...cleanAttacker.stats,
+      attack:gymDamageStat(cleanAttacker.stats.attack,ownDrops.attackDrops)}};
+    const defender={...target.combatant,stats:{...target.combatant.stats,
+      defense:gymDamageStat(target.combatant.stats.defense,foeDrops.defenseDrops)}};
     const hits=kantoRollHitCount(move.name,roll);
     for(let hit=1;hit<=hits;hit++){
       if(state[defendingSide].needsReplacement||state.outcome!=='ongoing')break;
       const actual=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
       if(actual.hp===0)break;
-      const damage=kantoDamage(attacker,actual.combatant,roll(),roll(),
+      const damage=kantoDamage(attacker,defender,roll(),roll(),
         active.status==='burn'&&move.category==='physical'?.5:1);
       state=applyGymDamage(state,defendingSide,damage.damage);
       log.push(side+' usou '+move.name+' ('+hit+'/'+hits+'), causando '+
@@ -181,6 +221,43 @@ export function resolveGymTurn(
     }
     if(state[defendingSide].needsReplacement){
       log.push(defendingSide+' sofreu KO: aguarda substituição grátis.');
+    }else if(state.outcome==='ongoing'){
+      const effect=kantoMoveSecondaryEffect(move.name);
+      if(effect?.kind==='drain'){
+        const afterHp=state[defendingSide].fighters[state[defendingSide].activeIndex]!.hp;
+        const inflicted=target.hp-afterHp;
+        const restored=Math.min(
+          state[side].fighters[state[side].activeIndex]!.combatant.stats.hp-
+          state[side].fighters[state[side].activeIndex]!.hp,
+          Math.max(0,Math.floor(inflicted*effect.percent/100)));
+        if(restored>0){
+          state=healGymHp(state,side,restored);
+          log.push(side+' drenou '+restored+' HP com '+move.name+'.');
+        }
+      }else if(effect?.kind==='status'&&roll()*100<effect.chance){
+        const old=state[defendingSide].fighters[state[defendingSide].activeIndex]!.status;
+        state=gymApplyStatus(state,defendingSide,effect.status);
+        if(old===null&&state[defendingSide].fighters[
+          state[defendingSide].activeIndex]!.status!==null)
+          log.push(defendingSide+' recebeu '+effect.status+' de '+move.name+'.');
+      }else if(effect?.kind==='speed-drop'&&roll()*100<effect.chance){
+        state=gymDropStat(state,defendingSide,'speedDrops');
+        log.push(defendingSide+' perdeu velocidade.');
+      }
+    }
+  }
+  // Condições residuais afetam somente os Pokémon ATIVOS neste turno.
+  // Uma reserva com poison/burn mantém status, mas não recebe residual
+  // enquanto está recolhida; retorno não remove a condição.
+  if(state.outcome==='ongoing'){
+    for(const side of ['player','leader'] as const){
+      if(state.outcome!=='ongoing'||state[side].needsReplacement)continue;
+      const fighter=state[side].fighters[state[side].activeIndex]!;
+      if(fighter.hp<=0||(fighter.status!=='poison'&&fighter.status!=='burn'))continue;
+      const residual=Math.max(1,Math.floor(fighter.combatant.stats.hp/8));
+      state=applyGymDamage(state,side,residual);
+      log.push(side+' sofreu '+Math.min(fighter.hp,residual)+' dano residual ('+
+        fighter.status+').');
     }
   }
   return {status:'applied',state:{...state,turn:state.turn+1},log,seedAfter:current};

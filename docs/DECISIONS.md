@@ -242,3 +242,7 @@ Construir primeiro transição pura determinística de ataque direto/troca e KO 
 
 ### GYM-02C2a — Focus por instância e Recover explícito (22/11/2026, EM PR)
 Manter quotas e cooldown de Concentrar independentes para cada um dos seis Pokémon da batalha 3×3 (máximo 2, intervalo >=4 rodadas globais), conservando contador ao recolher. O bônus de retirada continua separado, limitado e simétrico. Recover só cura pelo gasto legal de SP na ação; recolher e nocautear nunca curam HP. Resolver hits individuais com uma única rolagem de precisão/SP, sem fingir executar efeitos secundários ainda não implementados. Não liberar Ginásios até suportar os efeitos de status e a IA efetiva.
+
+
+### GYM-02C2b1 — status persistentes por UID, sem reset em troca (22/11/2026; EM PR)
+Manter condições e quedas de atributos no Pokémon e não no índice ativo; a troca não remove status nem cura HP, e o dano residual por poison/burn corre somente enquanto o Pokémon está em campo. Utilizar o motor de efeitos conhecidos para poison, burn, paralysis, drops e drenagem com mesma regra para líder/jogador e RNG determinístico. Para efeitos ainda ausentes (sono, confusão, Psychic e poison por impacto), negar movimento até a implementação completa; não fingir efeitos de dano puro. Nenhuma mudança no motor regional, writer ou na obtenção de insígnias nesta fase.
