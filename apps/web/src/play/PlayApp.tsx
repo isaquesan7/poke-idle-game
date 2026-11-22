@@ -291,6 +291,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   // XP exibido é o saldo dentro do nível atual, não o total histórico.
   const pokemonXpMax=focused&&focused.level<100?xpThreshold('pokemon',focused.level):null;
   const pokemonXpCurrent=focused&&pokemonXpMax!==null
+    &&typeof focused.xp==='number'&&Number.isSafeInteger(focused.xp)
     ?Math.min(pokemonXpMax,Math.max(0,focused.xp)):0;
   const pokemonXpPercent=pokemonXpMax===null?100:Math.min(100,
     pokemonXpCurrent/pokemonXpMax*100);
