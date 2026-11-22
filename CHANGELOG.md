@@ -731,3 +731,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - PR #173 squash-mergida na main `3b4fd73d5bf1e9916da64e90ed844ab0e7a2a797`. HEAD de código `ebf8712b31db7153cf8aee0d428bdf107a73a1ac`: CI geral `45076485548`, Playwright `45076485510`, Docker `45076485516` e audit `45076485574` todas **SUCCESS**.
 - Railway `kanto-idle-web` deployment `5cdd9baf-5add-4a8c-90b5-773b89b513aa` **SUCCESS** no SHA exato, runtime Node ouvindo na porta 8080, sem staged pending; Docker smoke validou `/` landing, v0.1 410, `/play`, GIFs/JS/CSS. GET público externo não foi validado diretamente.
 - PostgreSQL Railway serviço Postgres também SUCCESS e volume persistente anexado. **Banco NÃO recebeu a migration SQL; API está inativa e não existe conta/save online.** Continua proibida importação de saves locais.
+
+## ONLINE-01B — API isolada e banco testado (22/11/2026; em PR #175)
+- Migração SQL 001 corrigida para **não abrir transação dentro da transação do runner**; `migrate.mjs` aplica DDL com advisory lock, checksum imutável e journal de migrações, repetição idempotente.
+- Novo `services/api/package-lock.json` gerado e verificado pelo GitHub Actions usando npm, fixando `pg@8.23.1`; API possui Dockerfile próprio Node 22 Alpine, rootless, sem Vite/React, GIFs, código ou saves do cliente. Workflow específico testa npm ci, auth/scrypt, Postgres 18 real, migration 2 vezes, HTTP login/logout, CSRF/origin, no-save-import e imagem API isolada.
+- Guarda de segurança: registro/login **só podem ser habilitados em NODE_ENV=test** nesta etapa, mesmo se ONLINE_REGISTRATION_ENABLED=true em produção. Autenticação pública não disponível; não foram criados jogadores reais nem ativado PUT arbitrário de save.
+- Deploy API, migração no Railway e backup ainda requerem confirmação; o banco e web existentes não foram alterados por esta branch. Nenhum save local será migrado.
