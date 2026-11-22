@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {
   KANTO_BALL_SHOP_CATALOG,KANTO_BALL_SHOP_PRICE_POLICY,
-  KANTO_SHOP_BALL_POCKET_CAP
+  KANTO_SHOP_BALL_POCKET_CAP,d064BattleBallDropRates
 } from '@kanto/game-core';
 import type {KantoBallId,KantoShopBallId} from '@kanto/game-core';
 import styles from './PlayApp.module.css';
@@ -80,6 +80,34 @@ export function BallShopPreview({
           </article>;
         })}
       </div>
+      <section className={styles.shopOdds} aria-label="Chances de encontrar Pokébolas">
+        <h3>Chances de encontrar Pokébolas</h3>
+        <p>Após cada vitória com recompensa válida, você pode encontrar
+          <strong> até uma Pokébola</strong>, ou nenhuma. Não existe vitória
+          que garanta um item.</p>
+        <div className={styles.shopOddsScroll}>
+          <table data-testid="shop-drop-chances">
+            <thead><tr>
+              <th scope="col">Regiões</th>
+              <th scope="col">Poké Ball</th>
+              <th scope="col">Great Ball</th>
+              <th scope="col">Ultra Ball</th>
+            </tr></thead>
+            <tbody>
+              {[{id:1,region:'1–3'},{id:4,region:'4–6'},
+                {id:7,region:'7–8'},{id:9,region:'9–10'}].map(group=>{
+                const rates=d064BattleBallDropRates(group.id)!;
+                return <tr key={group.id}>
+                  <th scope="row">{group.region}</th>
+                  <td>{rates['poke-ball']}%</td>
+                  <td>{rates['great-ball']}%</td>
+                  <td>{rates['ultra-ball']}%</td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
       <p className={styles.shopPolicyNote}>
         As Pokébolas também são encontradas aleatoriamente após vitórias
         regionais. Ultra Ball: em batalhas desde a região 7; nas expedições,

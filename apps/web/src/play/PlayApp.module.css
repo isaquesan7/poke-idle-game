@@ -1111,3 +1111,20 @@
   .shopPriceGroup{grid-column:2;justify-items:start;text-align:left}
   .shopPurchaseControls button{flex:1 1 100%}
 }
+
+/* D064BR — tabela legível e acessível das probabilidades regionais. */
+.shopOdds{display:grid;gap:var(--space-3);min-width:0}
+.shopOdds h3{font-size:1.05rem;margin:0}
+.shopOdds p{margin:0;color:var(--color-text-muted);line-height:1.5}
+.shopOddsScroll{max-width:100%;overflow-x:auto;border:1px solid var(--color-border);
+  border-radius:var(--radius-card)}
+.shopOdds table{border-collapse:collapse;min-width:315px;width:100%;
+  text-align:center;font-variant-numeric:tabular-nums}
+.shopOdds th,.shopOdds td{padding:var(--space-3) var(--space-2);
+  border-bottom:1px solid var(--color-border);font-size:.84rem}
+.shopOdds th:first-child{text-align:left;white-space:nowrap}
+.shopOdds tbody tr:last-child th,.shopOdds tbody tr:last-child td{border-bottom:none}
+.shopOdds thead{background:var(--color-surface-raised)}
+@media(max-width:690px){
+  .shopOdds th,.shopOdds td{padding:var(--space-2) var(--space-1);font-size:.75rem}
+}

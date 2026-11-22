@@ -81,6 +81,13 @@ try{
       'saldo de 200 moedas deve impedir compra de Poké Ball 600');
     assert.equal(await shop.getByTestId('shop-buy-great-ball').isDisabled(),true);
     assert.equal(await shop.getByTestId('shop-buy-ultra-ball').isDisabled(),true);
+    // A chance exibida vem da mesma função de drop que o writer usa.
+    const odds=shop.getByTestId('shop-drop-chances');
+    await odds.waitFor();
+    assert.deepEqual(await odds.locator('tbody tr').allTextContents(),[
+      '1–330%0%0%','4–625%14%0%','7–818%14%5%','9–1018%14%7%'
+    ]);
+    assert.equal(await shop.getByText(/Não existe vitória/).count(),1);
     assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),shopBefore);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
     await page.screenshot({path:new URL('shop-'+device+'.png',folder).pathname,fullPage:true});
