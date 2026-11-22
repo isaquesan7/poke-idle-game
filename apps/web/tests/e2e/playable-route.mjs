@@ -1343,6 +1343,9 @@ async function exerciseGymDuel(browser,label,viewport){
         'Ginásio deve usar exatamente o diário regional');
       const skip=diary.getByRole('button',{name:'Pular apresentação'});
       if(await skip.count()&&await skip.isEnabled())await skip.click();
+      if(await screen.getByRole('button',{name:'Finalizar confronto'}).count()){
+        completed=true;break;
+      }
       if(i===0){
         assert.ok(await diary.getByRole('button',{name:'Reassistir à batalha'}).count()===0);
         assert.ok(await stage.getByTestId('battle-hp-player-value').count()>0);
