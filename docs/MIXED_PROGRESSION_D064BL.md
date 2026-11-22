@@ -28,3 +28,6 @@ O inicial começa no Lv1. O sistema `beginnerBattleXp` concede 22 XP Pokémon po
 - Construir uma matriz de jornadas com vitórias probabilísticas **usando o motor de combate real** (seeds fixas, equipes legítimas) em diferentes iniciais, tempo de expedição e captura/reserva; registrar p50/p95 e taxa de bloqueio.
 - Decidir regra anti-softlock com aprovação e regressões, e só então alterar desbloqueios/ganhos. Loja futura precisa respeitar estoque escasso e economia real.
 - NVDA/VoiceOver manual ainda pendente; sem backend, toda persistência é local. `isaquesan7/pokedex` não é modificado.
+
+## Amostra complementar do motor de combate
+O teste `d064bl-real-battle-sample.test.ts` percorre 3 espécies evoluídas (#003, #006, #009) no Lv41, 5 selvagens reais da R3 Lv30 e 8 seeds fixas, executando 120 batalhas com o motor `simulateKantoBattle`. O objetivo é medir distribuição de vitórias/derrotas/empates e turnos com movimentos padrão. Não equipara um starter sem evolução ao Pokémon do cenário, nem simula pontos manuais, títulos, equipamento, afinidade, lista completa de golpes ou captura; portanto é um **controle mecânico limitado**, não previsão de sucesso do jogador ou verificação de 49 vitórias consecutivas.
