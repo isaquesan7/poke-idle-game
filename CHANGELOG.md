@@ -683,3 +683,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - `legacy/rewardEvents.ts` ganha `gym-victory` com idempotência e revisão do `RewardJournal`: valida sequência, UID/propriedade da equipe, vitória e KO dos três oponentes oficiais; moedas/XP do catálogo e insígnia em um único receipt. Replay não duplica prêmio.
 - A concessão automática de badges por vitórias nas regiões/selvagens foi removida. `LEGACY_TITLES.mestre` tem +12 em HP, Attack, Defense, Sp.Atk, Sp.Def, Speed; projeção do treinador, combate e painel de Insígnias usam agora `KANTO_GYMS.badgeStats` e mostram líderes/desbloqueio por Ginásio.
 - `gym03a-badge-reward-journal.test.ts` cobre sequenciamento, idempotência, adulterações, oito recompensas e 24 vitórias regionais sem insígnia. **Não ativado no PlayAction nem na UI de Ginásios** até um writer que gere estado de batalha e prova local a partir de comandos de turno; não é antifraude de servidor. CI/merge/deploy pendentes.
+
+
+## GYM-03B — sessão versionada, ações reproduzíveis e recompensa única (22/11/2026, EM PR)
+- `apps/web/src/play/gymSession.ts` reconstrói equipe de UIDs próprios a partir do save, bônus de treinador e moves equipados, IA/seed inicial, reproduz transcript completo e valida cada ação de turno. Comandos `gym-start/turn/finish/abandon` persistidos no próprio snapshot v0.2; não aceitam estado ou resultado do navegador.
+- `updatePlaySave` preserva controle de revisão/CAS e bloqueia todas as ações não-Ginásio enquanto uma sessão estiver ativa; vitória efetivamente simulada chama `gym-victory` do GYM-03A com recibo no mesmo commit final, com sessão removida. Abandono/empate/derrota não concedem badges nem dinheiro.
+- `gymSession.test.ts` cobre equipe inválida, sessão exclusiva, mutação paralela negada, persistência por reload, transcript adulterado, derrota/abandono e recompensa única após 3×3. **Sem UI de Ginásio e sem backend/antifraude remoto.** CI, merge e Railway a verificar.
