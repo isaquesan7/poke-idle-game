@@ -7,7 +7,7 @@ import {
   legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
   kantoMoveSpCost,kantoMovePp,
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions,
-  KANTO_REGIONS,inspectKantoBallPocket,xpThreshold
+  KANTO_REGIONS,inspectKantoBallPocket,xpThreshold,affinityIdlePenaltyDays
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame,KantoBallId } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
@@ -133,6 +133,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   const [save, setSave] = useState<PlayRead>(readSafe);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [regionalArea, setRegionalArea] = useState(1);
+  const [arenaEncounterId,setArenaEncounterId]=useState<string|null>(null);
   const [expeditionArea, setExpeditionArea] = useState(1);
   const [captureBall,setCaptureBall] = useState<KantoBallId|null>('poke-ball');
   const [name, setName] = useState('');
@@ -196,6 +197,34 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     } finally { setBusy(false); }
   }
 
+  // D064BG: no máximo um commit quando a afinidade efetivamente muda
+  // (ou quando um save legado ganha sua âncora inicial). Sem cron jobs de
+  // servidor; a reavaliação acontece ao abrir o jogo e periodicamente.
+  useEffect(()=>{
+    if(save.status!=='ready'||busy)return;
+    const snapshot=save.snapshot;
+    let game:Record<string,unknown>;
+    try{game=JSON.parse(snapshot.journal.raw) as Record<string,unknown>;}
+    catch{return;}
+    if(game.pendingBattle||!Array.isArray(game.roster))return;
+    const needsSync=game.roster.some(item=>{
+      if(!item||typeof item!=='object')return false;
+      const p=item as Record<string,unknown>;
+      if(typeof p.affinityLastUsedAt!=='number')return true;
+      if(typeof p.affinity!=='number'||p.affinity<=0)return false;
+      if(typeof p.affinityIdleDaysApplied!=='number')return true;
+      try{return affinityIdlePenaltyDays(p.affinityLastUsedAt,now)>p.affinityIdleDaysApplied;}
+      catch{return false;}
+    });
+    if(!needsSync)return;
+    // Não gerar mensagem de erro se outra aba salvar primeiro.
+    const run=()=>updatePlaySave(window.localStorage,snapshot.revision,
+      {type:'affinity-tick',nowMs:Date.now()});
+    void (navigator.locks?.request
+      ?navigator.locks.request(PLAY_LOCK_NAME,{mode:'exclusive'},run)
+      :Promise.resolve(run())).then(()=>setSave(readSafe())).catch(()=>{});
+  },[save.status==='ready'?save.snapshot.revision:-1,Math.floor(now/60000),busy]);
+
   function newGame() {
     void transact(() => createPlaySave(window.localStorage, name, starter, Date.now(), demo));
   }
@@ -237,9 +266,11 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     // D064BE: primeiro registrar somente a batalha pendente; XP, vitória,
     // níveis e bolas permanecem intactos até o fim do diário.
     void transact(()=>updatePlaySave(window.localStorage,expected,
-      {type:'start-regional-battle',regionId,seed}))
+      {type:'start-regional-battle',regionId,seed,nowMs:Date.now()}))
       .then(result=>{
         if(result?.status==='ok'){
+          setRegionalArea(regionId);
+          setArenaEncounterId('regional-v02-'+result.snapshot.revision);
           setTab('battle');
           setBattlePlayback({id:'regional-v02-'+result.snapshot.revision,seq:(battlePlayback?.seq??0)+1,done:false});
           window.requestAnimationFrame(()=>window.scrollTo(0,0));
@@ -262,6 +293,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     }
     setSave(readSafe());
     setBattlePlayback(null);
+    setArenaEncounterId(null);
     setLevelUpNotice(null);
     setTab('overview');
     setSelectedUid(null);
@@ -358,11 +390,12 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   useEffect(()=>{
     if(pendingBattle?.battleId && battlePlayback?.id!==pendingBattle.battleId){
       setTab('battle');
+      setArenaEncounterId(pendingBattle.battleId);
       setBattlePlayback({id:pendingBattle.battleId,seq:0,done:false});
     }
   },[pendingBattle?.battleId]);
   const lastBattleRaw = pendingBattle?.preview??data?.lastBattle;
-  const lastBattle=lastBattleRaw && typeof lastBattleRaw==='object'
+  const lastBattlePersisted=lastBattleRaw && typeof lastBattleRaw==='object'
     && 'outcome' in lastBattleRaw && 'wildSpeciesId' in lastBattleRaw
     && 'log' in lastBattleRaw && Array.isArray(lastBattleRaw.log)
     ? lastBattleRaw as {
@@ -383,6 +416,10 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         playerRemainingHp:number;wildRemainingHp:number
       }
     : null;
+  // Entrada vazia: o registro anterior continua salvo, mas não é
+  // reaproveitado como adversário antes de iniciar um novo encontro.
+  const lastBattle=tab==='battle'&&!pendingBattle
+    &&arenaEncounterId!==lastBattlePersisted?.battleId?null:lastBattlePersisted;
   const battleRegion=KANTO_REGIONS.find(region=>region.id===lastBattle?.regionId)
     ??KANTO_REGIONS.find(region=>region.id===regionalArea)??KANTO_REGIONS[0]!;
   useLayoutEffect(()=>{
@@ -424,7 +461,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   }
   function captureAfterBattle(ballId:KantoBallId|null):void{
     if(save.status!=='ready'||!lastBattle?.battleId||battlePlaying)return;
-    dispatch(ballId?{type:'capture-after-battle',battleId:lastBattle.battleId,ballId}
+    dispatch(ballId?{type:'capture-after-battle',battleId:lastBattle.battleId,ballId,nowMs:Date.now()}
       :{type:'skip-capture',battleId:lastBattle.battleId});
   }
   const playbackKey=displayedBattleId+':'+(battlePlayback?.seq??0);
@@ -678,6 +715,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                           <span style={{width:focused.affinity+'%'}}/>
                         </div>
                         <small>Transferência de atributos: {(affinityRate(focused.affinity)*100).toFixed(1)}%</small>
+                        <small>Vitórias aumentam a afinidade; derrotas reduzem 3 pontos e empates reduzem 1. Após 48h sem batalhar, diminui 1 ponto por dia até zero.</small>
                       </div>
                       <p className={styles.pokemonRole}>{data.team[0]===focused.uid?'Lidera as batalhas regionais.'
                         :data.team.includes(focused.uid)?'Está na equipe, podendo ser escolhido como líder.':'Está na coleção, fora da equipe ativa.'}</p>
@@ -1022,10 +1060,29 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 seenIds={seenDexIds}
                 capturedIds={caughtDexIds}
                 busy={busy||battlePlaying}
-                onFight={fight}
+                onEnterRegion={regionId=>{
+                  if(busy||pendingBattle)return;
+                  if(lastBattlePersisted?.captureStatus==='available'){
+                    setFeedback('Resolva a captura pendente antes de entrar em outra região.');
+                    setArenaEncounterId(lastBattlePersisted.battleId??null);
+                    setRegionalArea(lastBattlePersisted.regionId??regionId);
+                    setBattlePlayback(null);
+                    setTab('battle');
+                    return;
+                  }
+                  setRegionalArea(regionId);
+                  setArenaEncounterId(null);
+                  setLevelUpNotice(null);
+                  setBattlePlayback(null);
+                  setTab('battle');
+                  window.scrollTo(0,0);
+                }}
                 onOpenTeam={()=>setTab('collection')}
                 lastBattleRegionId={lastBattle?.regionId}
-                onReplayBattle={()=>{setBattlePlayback(null);setTab('battle');}}
+                onReplayBattle={()=>{
+                  if(lastBattlePersisted?.battleId)setArenaEncounterId(lastBattlePersisted.battleId);
+                  setBattlePlayback(null);setTab('battle');
+                }}
               />
             )}
 
@@ -1062,7 +1119,12 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     <div style={{display:'grid',gap:'var(--space-3)',padding:'var(--space-4)',background:'var(--color-surface-raised)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-card)'}}>
                       <label htmlFor="region-arena-select" className={styles.arenaSelectLabel}><i className="fa-solid fa-map-location-dot" aria-hidden="true"/> Explorar região de Kanto</label>
                       <select id="region-arena-select" aria-label="Região para batalha"
-                        value={regionalArea} onChange={event=>setRegionalArea(Number(event.target.value))}
+                        disabled={Boolean(pendingBattle)||lastBattle?.captureStatus==='available'}
+                        value={regionalArea} onChange={event=>{
+                          setRegionalArea(Number(event.target.value));
+                          setArenaEncounterId(null);
+                          setBattlePlayback(null);
+                        }}
                         className={styles.arenaStyledSelect}>
                         {KANTO_REGIONS.map(region=><option key={region.id} value={region.id}
                           disabled={view.level<region.trainerUnlockLevel}>
@@ -1085,6 +1147,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         ' Vitórias concedem experiência, moedas e afinidade ao final do combate.'}
                     </p>
                   </div>
+                  <div className={styles.battleArenaColumn}>
                   <BattleStage
                     player={{
                       name:lastBattle?.playerName??view.active.name,
@@ -1106,41 +1169,13 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     cue={playbackKey+':'+revealedLines}
                     playing={battlePlaying}
                   />
-                </section>
-                {levelUpNotice?.battleId===displayedBattleId&&!battlePlaying&&
-                  <div key={levelUpNotice.battleId} className={styles.battleLevelUp}
-                    role="status" aria-live="polite" data-testid="battle-level-up">
-                    <span className={styles.battleLevelUpIcon} aria-hidden="true">
-                      <i className="fa-solid fa-star"/>
-                    </span>
-                    <div>
-                      <strong>LEVEL UP!</strong>
-                      <span>{levelUpNotice.name} avançou do nível {levelUpNotice.from}
-                        {' '}para o nível {levelUpNotice.to}!</span>
-                    </div>
+                  {!lastBattle&&<div className={styles.arenaWaiting} role="status">
+                    <i className="fa-solid fa-question" aria-hidden="true"/>
+                    <strong>Quem aparecerá nesta região?</strong>
+                    <span>Use o botão Batalhar na região para encontrar um Pokémon selvagem.</span>
                   </div>}
-                {lastBattle && (
-                  <div className={styles.twoColumn}>
-                    <section className={styles.panel+' '+styles.arenaResultPanel} aria-label="Resultado da última batalha">
-                      <div className={styles.kicker}><i className="fa-solid fa-flag-checkered" aria-hidden="true"/> ÚLTIMO COMBATE{lastBattle.regionName?' · '+lastBattle.regionName:''}</div>
-                      {battlePlaying ? <>
-                        <h2>Batalha em andamento…</h2>
-                        <p>As ações aparecem ataque por ataque, acompanhadas por um cronômetro.</p>
-                        <p>Os resultados e prêmios serão revelados após a apresentação.</p>
-                      </> : <>
-                      <h2 className={lastBattle.outcome==='win'?styles.arenaWin:styles.arenaOutcome}>{lastBattle.outcome === 'win' ? 'Vitória!' : lastBattle.outcome === 'draw' ? 'Empate' : 'Derrota'}</h2>
-                      <p>{lastBattle.wildName} · {lastBattle.turns} turno(s) · HP restante {lastBattle.playerRemainingHp}</p>
-                      {(lastBattle.playerStatus||lastBattle.wildStatus)&&
-                        <p>Condições ao fim do encontro: parceiro {lastBattle.playerStatus??'normal'} ·
-                          selvagem {lastBattle.wildStatus??'normal'}. Reiniciadas na próxima batalha.</p>}
-                      {lastBattle.outcome === 'win' && (
-                        <div className={styles.battleRewards} aria-label="Recompensas recebidas">
-                          <div><small>Moedas</small><strong>+{lastBattle.rewardCoins}</strong></div>
-                          <div><small>XP treinador</small><strong>+{lastBattle.trainerXp}</strong></div>
-                          <div><small>XP Pokémon</small><strong>+{lastBattle.pokemonXp}</strong></div>
-                          <div><small>Afinidade</small><strong>+{lastBattle.affinityGain}</strong></div>
-                        </div>
-                      )}
+                  {!battlePlaying&&lastBattle&&['available','caught','escaped','skipped'].includes(lastBattle.captureStatus??'')&&
+                    <div className={styles.battleCapturePlacement}>
                       {lastBattle.captureStatus==='available' ? (
                         <div className={styles.captureDecision} aria-label="Decisão de captura após a batalha">
                           <h3><i className="fa-solid fa-baseball" aria-hidden="true"/> Tentar capturar {lastBattle.wildName}?</h3>
@@ -1175,6 +1210,49 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         :lastBattle.captureStatus==='escaped'?'O Pokémon escapou da tentativa.'
                         :lastBattle.captureStatus==='skipped'?'Você decidiu não tentar capturar.'
                         :'Nenhuma captura nesta batalha.'}</p>}
+
+                    </div>}
+                  </div>
+                </section>
+                {levelUpNotice?.battleId===displayedBattleId&&!battlePlaying&&
+                  <div key={levelUpNotice.battleId} className={styles.battleLevelUp}
+                    role="status" aria-live="polite" data-testid="battle-level-up">
+                    <span className={styles.battleLevelUpIcon} aria-hidden="true">
+                      <i className="fa-solid fa-star"/>
+                    </span>
+                    <div>
+                      <strong>LEVEL UP!</strong>
+                      <span>{levelUpNotice.name} avançou do nível {levelUpNotice.from}
+                        {' '}para o nível {levelUpNotice.to}!</span>
+                    </div>
+                  </div>}
+                {lastBattle && (
+                  <div className={styles.twoColumn}>
+                    <section className={styles.panel+' '+styles.arenaResultPanel} aria-label="Resultado da última batalha">
+                      <div className={styles.kicker}><i className="fa-solid fa-flag-checkered" aria-hidden="true"/> ÚLTIMO COMBATE{lastBattle.regionName?' · '+lastBattle.regionName:''}</div>
+                      {battlePlaying ? <>
+                        <h2>Batalha em andamento…</h2>
+                        <p>As ações aparecem ataque por ataque, acompanhadas por um cronômetro.</p>
+                        <p>Os resultados e prêmios serão revelados após a apresentação.</p>
+                      </> : <>
+                      <h2 className={lastBattle.outcome==='win'?styles.arenaWin:styles.arenaOutcome}>{lastBattle.outcome === 'win' ? 'Vitória!' : lastBattle.outcome === 'draw' ? 'Empate' : 'Derrota'}</h2>
+                      <p>{lastBattle.wildName} · {lastBattle.turns} turno(s) · HP restante {lastBattle.playerRemainingHp}</p>
+                      {(lastBattle.playerStatus||lastBattle.wildStatus)&&
+                        <p>Condições ao fim do encontro: parceiro {lastBattle.playerStatus??'normal'} ·
+                          selvagem {lastBattle.wildStatus??'normal'}. Reiniciadas na próxima batalha.</p>}
+                      {lastBattle.outcome!=='win'&&
+                        <p className={styles.affinityLossNotice} role="status">
+                          <i className="fa-solid fa-heart-crack" aria-hidden="true"/>
+                          Afinidade do Pokémon: {lastBattle.outcome==='draw'?'−1':'−3'} ponto(s) neste combate.
+                        </p>}
+                      {lastBattle.outcome === 'win' && (
+                        <div className={styles.battleRewards} aria-label="Recompensas recebidas">
+                          <div><small>Moedas</small><strong>+{lastBattle.rewardCoins}</strong></div>
+                          <div><small>XP treinador</small><strong>+{lastBattle.trainerXp}</strong></div>
+                          <div><small>XP Pokémon</small><strong>+{lastBattle.pokemonXp}</strong></div>
+                          <div><small>Afinidade</small><strong>+{lastBattle.affinityGain}</strong></div>
+                        </div>
+                      )}
                       <button type="button" className={styles.secondary}
                         onClick={()=>{setLevelUpNotice(null);setBattlePlayback({id:displayedBattleId,seq:(battlePlayback?.seq??0)+1,done:false});}}>
                         Reassistir à batalha</button>

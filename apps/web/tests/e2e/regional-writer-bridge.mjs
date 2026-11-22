@@ -36,12 +36,16 @@ try{
     const region=page.getByRole('region',{name:'Escolha de região'});
     await region.waitFor();
     await region.getByRole('button',{name:/ÁREA 05/}).click();
-    assert.equal(await page.getByRole('button',{name:/Batalhar em Planícies Elétricas/}).isDisabled(),true,
+    assert.equal(await page.getByRole('button',{name:/Entrar na região/}).isDisabled(),true,
       'Região 5 deve estar bloqueada para treinador nível 21');
     await region.getByRole('button',{name:/ÁREA 04/}).click();
     const before=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
-    await page.getByRole('button',{name:/Batalhar em Lagos Serenos/}).click();
+    await page.getByRole('button',{name:/Entrar na região/}).click();
     await page.getByRole('heading',{name:'Batalha nos Lagos Serenos'}).waitFor();
+    const entered=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+    assert.deepEqual(entered,before,'entrar na região não deve iniciar batalha');
+    assert.equal(await page.getByText('Encontro surpresa').count(),1);
+    await page.getByRole('button',{name:'Batalhar na região'}).click();
     await page.waitForFunction(()=>scrollY===0);
     await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===1,key);
     const staged=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
@@ -90,8 +94,13 @@ try{
         }
       });
     });
-    await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+    await page.getByRole('button',{name:/Entrar na região/}).click();
     await page.getByRole('heading',{name:'Batalha no Bosque Inicial'}).waitFor();
+    await page.getByRole('button',{name:'Batalhar na região'}).click();
+    await page.waitForFunction(k=>{
+      const snapshot=JSON.parse(localStorage.getItem(k));
+      return Boolean(snapshot&&JSON.parse(snapshot.journal.raw).pendingBattle);
+    },key);
     const pending=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw).pendingBattle,key);
     assert.ok(pending,'o segundo encontro ainda não pagou recompensas');
     assert.equal(pending.preview.wildSpeciesId,54,'seed fixa seleciona Psyduck');
@@ -100,6 +109,13 @@ try{
     const confirmed=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
     assert.equal(confirmed.lastBattle.captureStatus,'available');
     const stockBefore=confirmed.ballPocket.quantities['poke-ball'];
+    const stageBounds=await page.getByTestId('battle-stage').boundingBox();
+    const captureSection=page.locator('[class*="battleCapturePlacement"]');
+    const captureBounds=await captureSection.boundingBox();
+    assert.ok(stageBounds&&captureBounds&&captureBounds.y>=stageBounds.y+stageBounds.height-2,
+      'A captura deve aparecer abaixo dos dois Pokémon, sem ficar dentro das recompensas');
+    assert.equal(await page.getByRole('region',{name:'Resultado da última batalha'})
+      .getByRole('combobox',{name:'Pokébola para captura após batalha'}).count(),0);
     await page.getByRole('combobox',{name:'Pokébola para captura após batalha'}).selectOption('poke-ball');
     await page.getByRole('button',{name:/Tentar capturar \(1 tentativa\)/}).click();
     await page.waitForFunction(k=>{

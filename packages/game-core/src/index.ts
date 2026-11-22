@@ -4,6 +4,7 @@ export { trainerTotals, canInvestTrainerPoint, MANUAL_TRAINER_CAP } from './stat
 export type { EquipmentSlot, EquippedBonus, BadgeBonus, TrainerSources } from './stats/trainer.js';
 export { pokemonOwnStats, pokemonFinalStats } from './stats/pokemon.js';
 export { clampAffinity, affinityRate, trainerContribution } from './affinity/affinity.js';
+export { affinityIdlePenaltyDays, affinityAfterInactivity, AFFINITY_IDLE_DAY_MS, AFFINITY_IDLE_GRACE_DAYS, AFFINITY_LOSS_ON_DEFEAT, AFFINITY_LOSS_ON_DRAW } from './affinity/affinityDynamics.js';
 export { xpThreshold, grantXp, battleTrainerXp, beginnerBattleXp } from './progression/xp.js';
 export type { ProgressionKind, LevelProgress, XpResult } from './progression/xp.js';
 export { expeditionRewards, EXPEDITION_CYCLE_MS, MAX_EXPEDITION_CYCLES } from './rewards/expedition.js';

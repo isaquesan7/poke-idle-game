@@ -505,3 +505,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ## 2026-11-21 — D064BF (em validação no branch)
 - Perfil Pokémon com barra de XP real, nível, XP restante e estado de nível 100; regra de captura alterada para piso evolutivo da espécie (Ponyta nível 1, Rapidash nível 40; Mew/Mewtwo nível 1), independente do encontro. Capturas passadas não são modificadas.
 - Arena com indicação visual de nocaute (cinza, só no frame de HP zero) e celebração de Level Up **após confirmação** da batalha. Sem mudanças em probabilidades, recompensas ou IA selvagem. Adicionados testes de progressão/captura e regressão desktop/mobile. Publicação condicionada à CI e Railway.
+
+## 2026-11-22 — D064BG (em branch, CI pendente)
+- Exploração com fluxo separado de seleção → Entrar na região (sem encontro) → Batalhar na região (sorteio real), botão de entrada no próprio cartão escolhido para facilitar uso no celular; arena sem adversário mostra ?.
+- Captura pós-vitória movida para imediatamente debaixo dos combatentes, sem misturar com a seção de recompensas. Uma tentativa e chances anteriores mantidas.
+- Afinidade por UID com derrota −3, empate −1, vitória +2–5 preservada; se ficar 48h sem batalha, −1 no segundo dia e −1 por dia seguinte, até zero. Save guarda relógio e dias descontados, sincronizando sem duplicidade em reload. Saves sem timestamp não recebem desconto histórico presumido. Testes de writer/E2E em execução; nenhuma alteração de IA, captura/XP ou recompensas.

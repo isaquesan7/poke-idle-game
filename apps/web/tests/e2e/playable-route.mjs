@@ -345,7 +345,8 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Regiões',exact:true}).click();
   await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
-  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.getByRole('heading',{name:'Batalha no Bosque Inicial'}).waitFor();
   // D-063: a visão inicial da Arena apresenta líder, indicadores e ação
   // principal; as informações do motor não devem poluir a tela do jogador.
@@ -760,7 +761,8 @@ async function exercise(browser, label, viewport) {
   assert.equal(teamGame.roster.find(p=>p.uid===firstUid).manual.speed,0);
 
   await page.getByRole('button',{name:'Regiões',exact:true}).click();
-  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.getByLabel('Líder do combate').getByText('UID #'+firstUid,{exact:false}).waitFor();
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
@@ -898,7 +900,8 @@ async function exercise(browser, label, viewport) {
       }
     });
   });
-  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key))?.revision===revision,
     {key:SAVE,revision:18+secondBattleOffset});
   const multi=await page.evaluate(key=>{
@@ -1075,7 +1078,8 @@ async function exerciseNewMoves(browser,label,viewport){
     });
   });
   const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
-  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.waitForFunction(({key,before})=>
     JSON.parse(localStorage.getItem(key))?.revision>before,
     {key:SAVE,before:before.revision});
@@ -1192,7 +1196,8 @@ async function exerciseGuaranteedLevelUp(browser,label,viewport){
       }
     });
   });
-  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
   const staged=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);
   assert.equal(staged.roster[0].level,before.level);

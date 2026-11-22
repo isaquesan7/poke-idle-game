@@ -40,14 +40,14 @@ try{
     await page.getByRole('button',{name:'Regiões',exact:true}).click();
     await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
     const grid=page.getByRole('region',{name:'Escolha de região'});
-    assert.equal(await grid.getByRole('button').count(),10);
+    assert.equal(await grid.getByRole('button',{name:/ÁREA \d+/}).count(),10);
     await grid.getByRole('button',{name:/ÁREA 09/}).click();
     await page.getByRole('heading',{name:'Pico Dracônico'}).waitFor();
-    assert.equal(await page.getByRole('button',{name:/Batalhar em Pico Dracônico/}).isDisabled(),true);
+    assert.equal(await page.getByRole('button',{name:/Entrar na região/}).isDisabled(),true);
     await grid.getByRole('button',{name:/ÁREA 04/}).focus();
     await page.keyboard.press('Enter');
     await page.getByRole('heading',{name:'Lagos Serenos'}).waitFor();
-    assert.equal(await page.getByRole('button',{name:/Batalhar em Lagos Serenos/}).isDisabled(),false);
+    assert.equal(await page.getByRole('button',{name:/Entrar na região/}).isDisabled(),false);
     const selected=grid.getByRole('button',{name:/ÁREA 04/});
     assert.equal(await selected.getAttribute('aria-pressed'),'true');
     const before=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
@@ -56,8 +56,13 @@ try{
     await grid.getByRole('button',{name:/ÁREA 04/}).click();
     const consulted=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     assert.deepEqual(consulted,before);
-    await page.getByRole('button',{name:/Batalhar em Lagos Serenos/}).click();
+    await page.getByRole('button',{name:/Entrar na região/}).click();
     await page.getByRole('heading',{name:'Batalha nos Lagos Serenos'}).waitFor();
+    assert.equal(await page.getByTestId('battle-stage').getByText('Encontro surpresa').count(),1);
+    assert.equal(await page.getByRole('heading',{name:'Batalha em andamento…'}).count(),0);
+    assert.deepEqual(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key),consulted,
+      'entrar na região não pode sortear adversário nem alterar save');
+    await page.getByRole('button',{name:'Batalhar na região'}).click();
     await page.waitForFunction(()=>scrollY===0);
     assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
     await page.getByRole('heading',{name:'Pokémon encontrados nesta área'}).waitFor();
@@ -106,8 +111,9 @@ try{
     await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
     const coastal=page.getByRole('region',{name:'Escolha de região'});
     await coastal.getByRole('button',{name:/ÁREA 07/}).click();
-    await page.getByRole('button',{name:/Batalhar em Costa Oceânica/}).click();
+    await page.getByRole('button',{name:/Entrar na região/}).click();
     await page.getByRole('heading',{name:'Batalha na Costa Oceânica'}).waitFor();
+    await page.getByRole('button',{name:'Batalhar na região'}).click();
     await page.waitForFunction(()=>window.scrollY===0);
     await page.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key))?.revision===revision,
       {key,revision:after.revision+1});

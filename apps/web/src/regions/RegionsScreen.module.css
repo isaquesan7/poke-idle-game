@@ -54,3 +54,20 @@
 .ballStockItem b{color:var(--color-text);font-variant-numeric:tabular-nums;}
 .ballStock small{color:var(--color-text-muted);line-height:1.5;}
 @media(max-width:580px){.ballStockItems{grid-template-columns:1fr;}.ballStockItem{justify-content:space-between;}}
+
+/* D064BG — botão de entrada imediatamente após escolher uma área; sem scroll
+   por todo o catálogo até a antiga CTA inferior. */
+.regionEntry{display:flex;justify-content:space-between;align-items:center;gap:var(--space-4);flex-wrap:wrap;padding:var(--space-4);border:1px solid var(--color-primary);border-radius:var(--radius-panel);background:var(--color-surface-raised);}
+.regionEntry>div{display:grid;gap:var(--space-2);flex:1;min-width:min(230px,100%);}
+.regionEntry strong{display:flex;align-items:center;gap:10px;font-size:1.04rem;}
+.regionEntry strong i{color:var(--color-primary);}
+.regionEntry small{font-size:.82rem;color:var(--color-text-muted);line-height:1.5;}
+.regionEntry .fight{grid-column:auto;min-width:min(220px,100%);}
+@media(max-width:640px){.regionEntry{display:grid;grid-template-columns:minmax(0,1fr)}.regionEntry .fight{width:100%}}
+
+/* A entrada acompanha exatamente o cartão selecionado, sem exigir rolagem. */
+.regionSlot{display:grid;align-content:start;gap:8px;min-width:0;}
+.regionSlot>.region,.regionSlot>.regionActive{width:100%;height:100%;}
+.regionInlineEnter{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:44px;padding:9px;border:1px solid var(--color-primary);border-radius:var(--radius-control);background:var(--color-primary);color:var(--color-bg);font:inherit;font-size:.83rem;font-weight:850;cursor:pointer;}
+.regionInlineEnter:disabled{opacity:.45;cursor:not-allowed;}
+.regionInlineEnter:focus-visible{outline:2px solid var(--color-text);outline-offset:3px;}
