@@ -47,12 +47,14 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   const reserveRef=useRef<HTMLDivElement|null>(null);
   const finishRef=useRef<HTMLButtonElement|null>(null);
   const previousSession=useRef<string|null>(null);
+  const lastCueActions=useRef<{id:string;count:number}|null>(null);
+  const [cue,setCue]=useState<{id:string;count:number}|null>(null);
   const session=readSession(game.gymSession);
   const gym=session?KANTO_GYMS.find(g=>g.id===session.gymId):
     kantoNextGym(data.badges);
   let state:GymBattleState|null=null;
   let invalid='';
-  let history:readonly {readonly turn:number;readonly lines:readonly string[]}[]=[];
+  let history:readonly import('./gymSession').GymReplayRound[]=[];
   if(session){
     try{
       const trace=replayGymSessionTrace(game,session);
@@ -75,6 +77,19 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   },[session?.id,revision]);
   useEffect(()=>{setConfirmAbandon(false);},[session?.id]);
 
+  // O efeito aparece somente para uma NOVA ação confirmada no writer.
+  // Recarregar /play não reencena dano nem recria os elementos GIF.
+  const actionCount=session?.actions.length??0;
+  useEffect(()=>{
+    if(!session){lastCueActions.current=null;setCue(null);return;}
+    const previous=lastCueActions.current;
+    lastCueActions.current={id:session.id,count:actionCount};
+    if(previous?.id===session.id&&actionCount>previous.count)
+      setCue({id:session.id,count:actionCount});
+    else if(previous?.id!==session.id)setCue(null);
+  },[session?.id,actionCount]);
+  const activeCue=session&&cue?.id===session.id&&cue.count===actionCount
+    ?history.at(-1)?.visual:null;
   const earned=new Set(data.badges);
   const starting=selected.length===3&&!session;
   const actions=state&&state.outcome==='ongoing'
@@ -84,10 +99,25 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
     const party=state[side];
     const active=party.fighters[party.activeIndex]!;
     const maxHp=active.combatant.stats.hp;
+    const impacted=side==='player'?activeCue?.playerLostHp:activeCue?.leaderLostHp;
+    const recovered=side==='player'?activeCue?.playerGainedHp:activeCue?.leaderGainedHp;
+    const charged=side==='player'?activeCue?.playerGainedSp:activeCue?.leaderGainedSp;
+    const switched=side==='player'?activeCue?.playerSwitched:activeCue?.leaderSwitched;
+    const knocked=side==='player'?activeCue?.playerKo:activeCue?.leaderKo;
+    const cueLabel=knocked?'NOCAUTE':impacted?'DANO':recovered?'CURA':
+      switched?'ENTROU':charged?'SP +':null;
+    const cueClass=impacted?styles.cueHit:recovered?styles.cueHeal:
+      switched?styles.cueSwitch:charged?styles.cueCharge:'';
     return <div className={styles.duelist} data-testid={'gym-active-'+side}
       aria-label={side==='player'?'Seu Pokémon em campo':'Pokémon do líder em campo'}>
       <span className={styles.role}>{side==='player'?'SEU PARCEIRO':'POKÉMON DE '+(gym?.leader??'LÍDER').toUpperCase()}</span>
-      <div className={styles.duelArt}>{art(active.combatant.speciesId,active.combatant.name)}</div>
+      <div className={styles.duelArt+' '+(activeCue?cueClass:'')}
+        data-testid={'gym-sprite-'+side}>
+        {art(active.combatant.speciesId,active.combatant.name)}
+        {cueLabel&&<span key={session?.id+'-'+actionCount+'-'+side}
+          className={styles.cueLabel} data-testid={'gym-cue-'+side}
+          aria-hidden="true">{cueLabel}</span>}
+      </div>
       <strong>{active.combatant.name} · Nv. {active.combatant.level}</strong>
       <small>{active.hp===0?'Nocauteado':status(active)}</small>
       <div className={styles.meters}>
