@@ -329,28 +329,30 @@ function playBattle(
     if(selectedRegion){
       const priorRegionWins=regionWins![selectedRegion.id-1]??0;
       const eligibleWin=result.outcome==='win'&&rewardFactor>0;
-      // D064BN: o limite de histórico não pode INVALIDAR o save após
-      // 100 mil vitórias (a busca por lendários pode ultrapassar isso).
-      // Ao atingir o teto, batalha/XP/moedas continuam, sem novo marco de
-      // vitória regional e sem repetir drop da última vitória.
+      // D064BQ: o contador histórico satura em 100k, MAS o farm aleatório
+      // continua em cada vitória remunerada. Não há marcos fixos nem reroll
+      // por playback: mesmo seed + battleId do journal = mesmo resultado.
       const regionWinNumber=eligibleWin
         ?Math.min(KANTO_REGION_WINS_CAP,priorRegionWins+1):priorRegionWins;
       regionWins![selectedRegion.id-1]=regionWinNumber;
-      const advanced=eligibleWin&&regionWinNumber>priorRegionWins;
-      const drop=advanced
-        ?d064DraftBallDrop(selectedRegion.id,regionWinNumber):null;
-      if(advanced&&!drop)
-        return{status:'blocked',reason:'Reposição regional inválida.'};
+      const drop=eligibleWin
+        ?d064DraftBallDrop(selectedRegion.id,seed,eventId):null;
+      if(eligibleWin&&!drop)
+        return{status:'blocked',reason:'Sorteio regional inválido.'};
       const quantities={...nextPocket.quantities};
+      const credited={'poke-ball':0,'great-ball':0,'ultra-ball':0};
       if(drop)for(const ball of ['poke-ball','great-ball','ultra-ball'] as const){
-        const amount=(quantities[ball]??0)+drop[ball];
-        if(!Number.isSafeInteger(amount)||amount>100000)
-          return{status:'blocked',reason:'Limite de Pokébolas atingido.'};
+        const before=quantities[ball]??0;
+        // Limite da mochila não pode impedir batalha ou travar progresso.
+        const amount=Math.min(100000,before+drop[ball]);
+        credited[ball]=amount-before;
         quantities[ball]=amount;
       }
       updated.ballPocket={version:1,quantities};
       updated.regionWins=regionWins;
+      updated.battleBallDrops=credited;
     }
+    delete updated.battleBallDrops;
     // O motor da Arena inclui captura automática no log, mas a captura
     // regional agora possui um sorteio independente. Sempre remover
     // a mensagem antiga e adicionar a verdade do novo lançamento.
@@ -373,6 +375,9 @@ function playBattle(
     }
     updated.lastBattle={
       ...result,captured,log:battleLog,frames:battleFrames,
+      ...(selectedRegion?{ballDrops:updated.battleBallDrops??{
+        'poke-ball':0,'great-ball':0,'ultra-ball':0
+      }}:{}),
       ...(selectedRegion?{
         regionId:selectedRegion.id,regionName:selectedRegion.name,
         captureBallId:usedBallId
