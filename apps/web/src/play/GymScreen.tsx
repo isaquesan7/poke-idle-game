@@ -34,7 +34,7 @@ function readSession(value:unknown):GymSessionV1|null{
 }
 function art(id:number,alt:string,large=false){
   return <img src={'/assets/pokemon-gifs/poke_'+id+'.gif'} alt={alt}
-    loading="eager" className={large?styles.duelPokemon:styles.pokemonArt}/>;
+    loading={large?'eager':'lazy'} className={large?styles.duelPokemon:styles.pokemonArt}/>;
 }
 function status(value:GymBattleState['player']['fighters'][number]):string{
   const conditions=[value.status,value.confusionTurns?'confuso':null]
