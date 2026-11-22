@@ -221,6 +221,20 @@ async function exercise(browser, label, viewport) {
   const pokemonProfile=page.locator('[class*="pokemonWorkspace"]');
   await pokemonProfile.getByRole('img',{name:/charmander/i}).waitFor();
   await page.getByRole('progressbar',{name:'Afinidade do Pokémon'}).waitFor();
+  const starterXp=await page.evaluate(key=>{
+    const game=JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw);
+    return game.roster.find(p=>p.uid===1);
+  },SAVE);
+  const starterXpMax=starterXp.level>=100?1:65+starterXp.level*22;
+  const pokemonXpBar=page.getByRole('progressbar',{name:'Experiência do Pokémon UID 1'});
+  await pokemonXpBar.waitFor();
+  assert.equal(await pokemonXpBar.getAttribute('aria-valuemax'),String(starterXpMax));
+  assert.equal(await pokemonXpBar.getAttribute('aria-valuenow'),
+    String(starterXp.level>=100?1:starterXp.xp));
+  if(starterXp.level<100)
+    await page.getByText('Faltam '+(starterXpMax-starterXp.xp)+' XP para o nível '+(starterXp.level+1)+'.').waitFor();
+  assert.equal(await page.getByTestId('pokemon-xp').count(),1,
+    'Perfil do Pokémon deve mostrar XP individual sem modificar save');
   const pokemonTabs=pokemonProfile.getByRole('navigation',{name:'Seções do Pokémon'});
   assert.equal(await pokemonTabs.getByRole('button').count(),3);
   assert.equal(await pokemonTabs.getByRole('button',{name:'Perfil'}).getAttribute('aria-current'),'page');
@@ -493,6 +507,23 @@ async function exercise(browser, label, viewport) {
   assert.equal(confirmed.journal.revision,3,'um recibo único no fim do replay');
   assert.equal(confirmedGame.wins+confirmedGame.losses,1);
   assert.ok(confirmedGame.seen.includes(visual.wildSpeciesId));
+  // D064BF: KO fica cinza e claramente indicado apenas quando o HP revelado é zero.
+  for(const side of ['player','wild']){
+    const finalHp=side==='player'?visual.playerRemainingHp:visual.wildRemainingHp;
+    const fighter=page.getByTestId('battle-visual-'+side);
+    assert.equal(await fighter.getAttribute('data-fainted'),finalHp===0?'true':'false');
+    assert.equal(await page.getByTestId('battle-fainted-'+side).count(),finalHp===0?1:0);
+  }
+  // O Level Up é exclusivamente efeito da confirmação — não um prêmio no replay.
+  const settledActive=confirmedGame.roster.find(p=>p.uid===1);
+  if(settledActive&&settledActive.level>visual.playerLevel){
+    await page.getByTestId('battle-level-up').waitFor();
+    await page.getByText(/LEVEL UP!/).waitFor();
+    assert.ok((await page.getByTestId('battle-level-up').innerText()).includes(
+      'nível '+settledActive.level));
+  }else{
+    assert.equal(await page.getByTestId('battle-level-up').count(),0);
+  }
   if(confirmedGame.lastBattle.captureStatus==='available'){
     await page.getByRole('button',{name:'Seguir sem capturar'}).click();
     afterFirstBattleRevision++;
