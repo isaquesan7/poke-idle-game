@@ -287,3 +287,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 ### ONLINE-01B — API isolada, registro bloqueado na produção até antifraude e verificação de e-mail (22/11/2026)
 - PostgreSQL como fonte da verdade, migration sob transação explícita + checksum; lockfile da API independente do frontend. Cadastro/login de integração em CI são exercitados com `NODE_ENV=test`, enquanto serviços reais com `NODE_ENV=production` **não podem ativar contas** por apenas definir flag. O backend pode ser publicado internamente para ensaiar banco/schema, sem domínio ou botão de registro.
 - Não permitir importação de localStorage, PUT livre de JSON, recompensas declaradas pelo navegador nem migração de saves de teste. O passo seguinte deve implementar ativação de usuário após verificação de e-mail, rate limit e progresso calculado no servidor antes da primeira conta real.
+
+
+### ONLINE-01C-1 — proteção por banco e verificação antes do login (22/11/2026)
+- Tentativas de auth precisam usar PostgreSQL atômico compartilhado entre instâncias e digests HMAC de email/IP, jamais contadores somente em memória do Node nem armazenar IP/e-mail puro no throttle. Token de verificação é aleatório, expira em 24h e persiste apenas hash; deve ser consumido uma única vez antes de login. Em CI o token pode ser exposto ao teste automatizado; jamais em produção. Sem serviço de entrega integrado ainda.
+- Até email verification por provedor externo, backups/restauração, anti-abuso e criação autoritativa de progresso, registro/login seguem bloqueados por código em produção, e o frontend / permanece uma landing informativa. Não importar saves locais.
