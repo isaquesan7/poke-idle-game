@@ -17,7 +17,7 @@ function store(){
  * abaixo ocorre apenas na memória do teste, nunca no jogo publicado.
  */
 describe('D064BN — reposição de bolas no writer jogável',()=>{
-  it('15ª vitória regional em R7 nunca fabrica Ultra Ball e mantém crédito normal',()=>{
+  it('15ª vitória regional em R7 concede uma Ultra Ball com recibo único',()=>{
     const storage=store();
     const initial=createPlaySave(storage,'Auditoria Ultra',7,100_000);
     expect(initial.status).toBe('ok');
@@ -46,7 +46,7 @@ describe('D064BN — reposição de bolas no writer jogável',()=>{
     expect(saved.regionWins[6]).toBe(15);
     expect(saved.wins).toBe(1);
     expect(saved.ballPocket.quantities).toMatchObject({
-      'poke-ball':12,'great-ball':0,'ultra-ball':0
+      'poke-ball':12,'great-ball':0,'ultra-ball':1
     });
     expect(saved.coins).toBeGreaterThan(game.coins);
     expect(result.snapshot.journal.receipts).toHaveLength(1);
