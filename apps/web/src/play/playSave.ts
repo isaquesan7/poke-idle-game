@@ -354,6 +354,7 @@ function playBattle(
       updated.regionWins=regionWins;
       updated.battleBallDrops=credited;
     }
+    const creditedBattleBallDrops=updated.battleBallDrops;
     delete updated.battleBallDrops;
     // O motor da Arena inclui captura automática no log, mas a captura
     // regional agora possui um sorteio independente. Sempre remover
@@ -377,7 +378,7 @@ function playBattle(
     }
     updated.lastBattle={
       ...result,captured,log:battleLog,frames:battleFrames,
-      ...(selectedRegion?{ballDrops:updated.battleBallDrops??{
+      ...(selectedRegion?{ballDrops:creditedBattleBallDrops??{
         'poke-ball':0,'great-ball':0,'ultra-ball':0
       }}:{}),
       ...(selectedRegion?{
