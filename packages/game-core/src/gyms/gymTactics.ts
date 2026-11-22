@@ -10,6 +10,7 @@ import {kantoMaxSp,kantoMoveSpCost,KANTO_BASIC_ATTACK} from '../combat/kantoSkil
 import {kantoLevelMoves} from '../catalog/kantoLevelMoves.js';
 import {kantoSupportMoves,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import {kantoSpecies} from '../catalog/kantoSpecies.js';
+import {gymPsychicLevelMoves} from './gymPsychicMoves.js';
 import {pokemonOwnStats} from '../stats/pokemon.js';
 import {STATS,zeroStats} from '../stats/types.js';
 import type {Stat,StatValues} from '../stats/types.js';
@@ -68,6 +69,7 @@ export function gymLegalMoves(speciesId:number,level:number):readonly KantoMove[
   if(!kantoSpecies(speciesId)||!Number.isSafeInteger(level)||level<1||level>100)
     throw new RangeError('Espécie/nível inválido.');
   const candidates=[...kantoLevelMoves(speciesId,level),
+    ...gymPsychicLevelMoves(speciesId,level),
     ...kantoSupportMoves(speciesId,level)]
     .sort((a,b)=>b.learnedAt-a.learnedAt||a.move.name.localeCompare(b.move.name));
   const seen=new Set<string>();
