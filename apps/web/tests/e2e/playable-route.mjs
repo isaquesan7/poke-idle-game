@@ -315,12 +315,26 @@ async function exercise(browser, label, viewport) {
   assert.equal(JSON.parse(snapshot.journal.raw).roster[0].manual.defense,1);
 
   await page.getByRole('button',{name:'Expedição',exact:true}).click();
+  const expeditionSelect=page.getByRole('combobox',{name:'Região para expedição'});
+  await expeditionSelect.waitFor();
+  assert.equal(await expeditionSelect.getAttribute('aria-describedby'),'expedition-region-hint');
+  await expeditionSelect.focus();
+  await page.keyboard.press('Tab');
+  assert.equal(await page.getByRole('button',{name:'Iniciar expedição'}).evaluate(node=>node===document.activeElement),
+    true,'teclado deve alcançar Iniciar expedição após seletor regional');
+  assert.ok(await page.getByRole('timer',{name:'Tempo total da expedição'}).count());
   await page.getByRole('button',{name:'Iniciar expedição'}).click();
   await page.getByRole('heading',{name:'Expedição em andamento'}).waitFor();
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===3,SAVE);
   await page.getByRole('timer',{name:'Tempo total da expedição'}).waitFor();
   assert.match(await page.getByTestId('expedition-total-time').innerText(),/^\d{2,}:\d{2}:\d{2}$/);
   await page.getByRole('progressbar',{name:'Progresso para o próximo ciclo'}).waitFor();
+  const timerLive=await page.getByRole('timer',{name:'Tempo total da expedição'}).getAttribute('aria-live');
+  assert.equal(timerLive,'off','atualizações por segundo não devem interromper leitores de tela');
+  const expeditionWidth=await page.getByRole('region',{name:'Expedição em andamento'}).evaluate(
+    node=>({right:node.getBoundingClientRect().right,width:window.innerWidth}));
+  assert.ok(expeditionWidth.right<=expeditionWidth.width+2,
+    'painel de expedição não deve causar overflow horizontal no mobile');
   // Ensaio em navegador: acelera apenas o cursor do save de teste.
   // Não existe relógio confiável nem anti-cheat nesta versão local.
   await page.evaluate(key=>{
