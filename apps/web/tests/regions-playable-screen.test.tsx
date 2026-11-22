@@ -8,7 +8,7 @@ const props={
   selectedRegionId:4,onSelectRegion:(_id:number)=>{},
   balls:{'poke-ball':12,'great-ball':1,'ultra-ball':0},
   wins:[2,3,0,7,0,0,0,0,0,0],seenIds:[1,60,79],capturedIds:[1,60],
-  busy:false,onFight:(_id:number)=>{},onOpenTeam:()=>{}
+  busy:false,onEnterRegion:(_id:number)=>{},onOpenTeam:()=>{}
 };
 describe('D-064AI — tela de exploração integrada ao perfil',()=>{
   it('exibe as dez regiões e os 151 Pokémon por catálogo sem duplicação',()=>{
@@ -16,7 +16,7 @@ describe('D-064AI — tela de exploração integrada ao perfil',()=>{
     expect(new Set(KANTO_REGIONS.flatMap(r=>r.speciesIds)).size).toBe(151);
     const markup=renderToStaticMarkup(<RegionsScreen {...props}/>);
     for(const region of KANTO_REGIONS)expect(markup).toContain(region.name);
-    expect(markup).toContain('Batalhar em Lagos Serenos');
+    expect(markup).toContain('Entrar na região');
     expect(markup).toContain('7');
     expect(markup).toContain('Poké Ball');
     expect(markup).toContain('Pokébolas disponíveis');
@@ -26,7 +26,7 @@ describe('D-064AI — tela de exploração integrada ao perfil',()=>{
   it('região bloqueada não permite batalha mas permanece consultável',()=>{
     const html=renderToStaticMarkup(<RegionsScreen {...props}
       trainerLevel={21} selectedRegionId={9}/>);
-    expect(html).toContain('Batalhar em Pico Dracônico');
+    expect(html).toContain('Entrar na região');
     expect(html).toContain('Desbloqueia no nível 82');
     expect(html).toMatch(/disabled=""/);
   });
@@ -34,6 +34,6 @@ describe('D-064AI — tela de exploração integrada ao perfil',()=>{
     const html=renderToStaticMarkup(<RegionsScreen {...props}
       balls={{'poke-ball':0}} />);
     expect(html).toContain('Após vencer você poderá escolher uma Pokébola');
-    expect(html).toContain('Batalhar em Lagos Serenos');
+    expect(html).toContain('Entrar na região');
   });
 });
