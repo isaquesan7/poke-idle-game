@@ -14,7 +14,7 @@ interface Props{
   readonly seenIds:readonly number[];
   readonly capturedIds:readonly number[];
   readonly busy:boolean;
-  readonly onFight:(regionId:number)=>void;
+  readonly onEnterRegion:(regionId:number)=>void;
   readonly onOpenTeam:()=>void;
   readonly lastBattleRegionId?:number|undefined;
   readonly onReplayBattle?:()=>void;
@@ -28,7 +28,7 @@ const ballLabels=[
 /** D-064AI: visualiza o save real, mas não o modifica; batalhar delega ao writer da Arena. */
 export function RegionsScreen({
   trainerLevel,leaderSpeciesId,leaderLevel,selectedRegionId,onSelectRegion,balls,
-  wins,seenIds,capturedIds,busy,onFight,onOpenTeam,
+  wins,seenIds,capturedIds,busy,onEnterRegion,onOpenTeam,
   lastBattleRegionId,onReplayBattle
 }:Props){
   const selected=KANTO_REGIONS.find(region=>region.id===selectedRegionId)??KANTO_REGIONS[0]!;
@@ -69,6 +69,15 @@ export function RegionsScreen({
         </button>;
       })}
     </section>
+
+    <div className={styles.regionEntry} aria-label="Entrada da região selecionada">
+      <div><strong><i className="fa-solid fa-map-location-dot" aria-hidden="true"/> {selected.name}</strong>
+        <small>Selecione a área, entre nela e depois decida quando procurar um Pokémon selvagem.</small></div>
+      <button type="button" className={styles.fight} disabled={!unlocked||busy}
+        onClick={()=>onEnterRegion(selected.id)}>
+        <i className="fa-solid fa-door-open" aria-hidden="true"/> Entrar na região
+      </button>
+    </div>
 
     <section id="regional-details" aria-label="Detalhes da região" className={styles.details}>
       <div className={styles.heading}>
@@ -126,11 +135,7 @@ export function RegionsScreen({
           </div>
           <small>Após vencer você poderá escolher uma Pokébola ou deixar o Pokémon ir. Uma tentativa por batalha.</small>
         </div>
-        <button type="button" className={styles.fight}
-          disabled={!unlocked||busy}
-          onClick={()=>onFight(selected.id)}>
-          <i className="fa-solid fa-khanda" aria-hidden="true"/> Batalhar em {selected.name}
-        </button>
+
         {lastBattleRegionId===selected.id&&onReplayBattle&&
           <button type="button" className={styles.link} onClick={onReplayBattle}>
             Rever último combate nesta região
@@ -138,7 +143,7 @@ export function RegionsScreen({
         {!unlocked&&<p className={styles.notice} role="status">Alcance o nível {selected.trainerUnlockLevel} de treinador para lutar nesta região.</p>}
         {selected.id===1&&leaderLevel===1&&
           <p className={styles.notice}>Primeiros passos: mesmo se não vencer, seu Pokémon ganha 22 XP de aprendizado até alcançar o nível 2. O treinador só ganha XP nas vitórias ou expedições.</p>}
-        <p className={styles.notice}>O combate abre a tela da região com animações e diário turno a turno. Depois da vitória é você quem decide se deseja capturar o adversário; apenas uma tentativa por combate. Lendários exigem Ultra Ball.</p>
+        <p className={styles.notice}>Entrar na área não gera encontro. Na tela de combate, use Batalhar na região para encontrar um adversário; após a vitória, você pode decidir sobre uma única tentativa de captura.</p>
       </section>
     </section>
   </div>;
