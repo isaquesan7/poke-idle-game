@@ -63,8 +63,8 @@ describe('D064BJ — recompensas progressivas e anti-farm',()=>{
   it('contadores de bolas persistem entre resgates, sem ganho ao reenviar um evento',()=>{
     const ctx={regionId:9,pokemon:[{level:81,xp:0}]};
     const a=expeditionRewards(EIGHT_HOURS,{...ctx,ballProgress:emptyExpeditionBallProgress()});
-    const b=expeditionRewards(EIGHT_HOURS,{...ctx,ballProgress:a.ballProgress});
-    const c=expeditionRewards(EIGHT_HOURS,{...ctx,ballProgress:b.ballProgress});
+    const b=expeditionRewards(EIGHT_HOURS,{...ctx,ballProgress:a.ballProgress??emptyExpeditionBallProgress()});
+    const c=expeditionRewards(EIGHT_HOURS,{...ctx,ballProgress:b.ballProgress??emptyExpeditionBallProgress()});
     expect(a.ballDrops?.['ultra-ball']).toBe(0);
     expect(b.ballDrops?.['ultra-ball']).toBe(0);
     expect(c.ballDrops?.['ultra-ball']).toBe(1);
