@@ -192,12 +192,21 @@ try{
     assert.equal(await page.getByTestId('battle-fighter-player')
       .locator('[data-testid="battle-level-up"]').count(),1);
     assert.equal(await page.locator('[class*="battleLevelUpIcon"]').count(),0);
+    const final=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
+    assert.equal(final.roster[0].level,11);
+    // LEVEL UP é independente de captura; uma vitória ainda pendente deve
+    // manter o foco nas Pokébolas ATÉ capturar ou selecionar pular.
+    if(final.lastBattle.captureStatus==='available'){
+      await page.waitForFunction(()=>{
+        const area=document.querySelector('[data-testid="battle-capture-area"]');
+        return Boolean(area&&document.activeElement===area);
+      });
+      await page.getByRole('button',{name:'Seguir sem capturar'}).click();
+    }
     await page.waitForFunction(()=>{
       const btn=document.querySelector('[data-testid="battle-again-button"]');
       return Boolean(btn&&!btn.disabled&&document.activeElement===btn);
     });
-    const final=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
-    assert.equal(final.roster[0].level,11);
     await levelUp.waitFor({state:'detached',timeout:5000});
     assert.deepEqual(errors,[]);
     await context.close();
