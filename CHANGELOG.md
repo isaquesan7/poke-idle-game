@@ -2,7 +2,7 @@
 
 ## D-064BA — coortes de progressão dos três iniciais (21/11/2026)
 - Diagnóstico de 36 perfis NORMAIS, 3.456 batalhas, comparando os 3 iniciais e seis sequências independentes com ou sem 8 expedições de 15 minutos de tempo simulado. Mede primeiro Nv2, Nv6 do treinador/desbloqueio R2, Nv16, evolução manual real com UID estável, vitórias e cadência por fase; progresso exclusivamente por writer.
-- Não altera a IA, atributos, XP, regiões, recompensas ou animações. Relatório em `D064BA_STARTER_COHORT_REPORT`, detalhes em `docs/STARTER_PROGRESSION_COHORTS_D064BA.md`. CI/merge/deploy pendentes.
+- Não altera a IA, atributos, XP, regiões, recompensas ou animações. Relatório em `D064BA_STARTER_COHORT_REPORT`: sem expedições, Bulbasaur 37,50%, Charmander 50,35%, Squirtle 31,77%; com expedições, respectivamente 70,49%, 75,17%, 70,49%; 18/18 perfis com expedição evoluíram legalmente e abriram R2. Sem alterar stats/moves/XP/IA; detalhes em `docs/STARTER_PROGRESSION_COHORTS_D064BA.md`. CI/merge/deploy finais são gates antes de declarar publicação.
 
 
 ## D-064AZ — progresso inicial nível 1 sem bloqueio (21/11/2026; branch)
