@@ -1,6 +1,6 @@
 # D064BN — auditoria de moedas, Pokébolas e capturas (22/11/2026)
 
-**Estado:** PR de correção mínima e testes diagnósticos; NÃO anunciar publicação até GitHub CI, merge e Railway no SHA exato. Repositório autorizado: `isaquesan7/poke-idle-game`. Números abaixo são **cenários puros com fórmulas do core**, não telemetria nem preços de loja aprovados.
+**Estado:** **PUBLICADA EM PRODUÇÃO** pela PR #141, squash merge funcional `b36d967090207c5cf62c6e5f69506a3d6125488a`, GitHub Actions do HEAD `1b5cd91c8cb289d7af66b2eb951f05947e2c02b4`: regressão geral `45026142968`, Playwright isolado desktop/mobile `45026142970` e Docker `45026142964` todos **SUCCESS**. Railway production deployment `22a96b5c-1434-463e-bcb3-132052d08d73` **SUCCESS** no mesmo SHA, `/health` interno aprovado, 1 réplica online e 0 crashes. GET HTTP público externo `/play` não testado diretamente. Repositório autorizado: `isaquesan7/poke-idle-game`. Números abaixo são **cenários puros com fórmulas do core**, não telemetria nem preços de loja aprovados.
 
 ## Descoberta: fonte indevida de Ultra Ball por batalhas
 O arquivo `packages/game-core/src/capture/draftBallSupply.ts` é usado **de verdade** pelo writer regional `apps/web/src/play/playSave.ts`, embora mantenha `draft` no nome. Antes desta PR, concedia uma Ultra Ball a cada 15 vitórias desde R7, inclusive R7/R8. A regra desejada reserva Ultra Balls obtidas gratuitamente às **expedições elegíveis no Pico Dracônico (R9) e Santuário Lendário (R10)**.

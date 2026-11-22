@@ -572,3 +572,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Relatório `docs/ECONOMY_CAPTURE_AUDIT_D064BN.md` registra queda de disponibilidade de Ultra e raridade extrema da combinação aparição×captura de Mewtwo; decisão futura de loja/raridade pendente. CI/merge/Railway não concluídos para esta branch.
 
 - Correção de integridade adicional: limitar `regionWins[i]` a 100.000 no writer com constante core compartilhada. Antes, a vitória nº100001 podia corromper a elegibilidade do save e impedir futuras batalhas. Agora XP/moedas e confrontos válidos continuam; a contagem saturada não gera novas bolas nem altera os recibos anteriores. Teste web no teto por duas vitórias. Sem migração destrutiva.
+
+### D064BN — release publicado e auditado (22/11/2026)
+- PR #141 MERGED por squash em main SHA funcional `b36d967090207c5cf62c6e5f69506a3d6125488a`; HEAD final `1b5cd91c8cb289d7af66b2eb951f05947e2c02b4` testado com GitHub Actions **SUCCESS**: regressão geral `45026142968`, Playwright isolado desktop/mobile `45026142970`, Docker `45026142964`.
+- Railway `22a96b5c-1434-463e-bcb3-132052d08d73` **SUCCESS** no commit exato, `/health` interno aprovado, serviço online com uma réplica e zero crashes. HTTP público externo não conferido diretamente.
+- Ultra não sai mais de vitórias regionais em nenhum mapa; permanece só em expedições elegíveis R9/R10 a cada 24h. Contador de vitórias regional saturado em 100.000 sem invalidar save nem replicar drops. Moedas, XP, IA, captura/raridade, outras bolas, slots e saves preservados. Testes de economia e cap documentados em `docs/ECONOMY_CAPTURE_AUDIT_D064BN.md`.
