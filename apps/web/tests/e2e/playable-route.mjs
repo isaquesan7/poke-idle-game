@@ -1386,7 +1386,7 @@ try {
   await ready();
   const home=await fetch(BASE+'/');
   assert.equal(home.status,200,'Landing da futura autenticação na raiz');
-  assert.match(await home.text(),/href="\\/play"/);
+  assert.ok((await home.text()).includes('href="/play"'));
   assert.equal((await fetch(BASE+'/health')).status,200);
   browser=await chromium.launch({headless:true});
   await exerciseGymDuel(browser,'desktop',{width:1365,height:768});
