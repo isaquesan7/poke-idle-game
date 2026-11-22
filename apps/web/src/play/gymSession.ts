@@ -1,0 +1,231 @@
+/**
+ * GYM-03B — sessão persistida no MESMO journal do save v0.2.
+ *
+ * O browser fornece UIDs, ação e seed de início, nunca HP, SP, dano,
+ * resultado ou montante. Cada comando reconstrói o combate do elenco salvo
+ * e reproduz TODO o transcript antes de modificá-lo. Um commit por ação.
+ *
+ * Importante: armazenamento local e seed fornecida pelo navegador NÃO
+ * oferecem antifraude de servidor. Este writer é transacional somente para
+ * abas cooperativas sob PLAY_LOCK_NAME / CAS em updatePlaySave.
+ */
+import {
+  KANTO_GYMS, KANTO_BATTLE_SPECIES, KANTO_BATTLE_MOVES,
+  KANTO_SUPPORT_MOVES, KANTO_GYM_MASTER_TITLE_STATS,
+  LEGACY_ITEMS, STATS, trainerTotals, pokemonFinalStats,
+  pokemonMoveSlots, effectiveLegacyTitle, prepareGymOpponent,
+  kantoNextGym, createGymBattleState, resolveGymAiTurn,
+  applyRewardEvent, gymPsychicLevelMoves
+} from '@kanto/game-core';
+import type {
+  RewardJournal, GymBattleState, GymTurnAction, Combatant, StatValues
+} from '@kanto/game-core';
+
+type Entry=Record<string,unknown>;
+const rec=(v:unknown):v is Entry=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+const nat=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=0;
+const seedOk=(v:unknown):v is number=>nat(v)&&v<=0xffffffff;
+export interface GymSessionV1 {
+  readonly version:1;
+  readonly id:string;
+  readonly gymId:string;
+  readonly uids:readonly [number,number,number];
+  readonly seed:number;
+  readonly actions:readonly GymTurnAction[];
+}
+export type GymSessionCommand=
+  | {readonly type:'gym-start';readonly seed:number;readonly uids:readonly number[]}
+  | {readonly type:'gym-turn';readonly sessionId:string;readonly action:GymTurnAction}
+  | {readonly type:'gym-finish';readonly sessionId:string}
+  | {readonly type:'gym-abandon';readonly sessionId:string};
+export type GymSessionResult=
+  | {readonly status:'ok';readonly journal:RewardJournal}
+  | {readonly status:'blocked';readonly reason:string};
+const blocked=(reason:string):GymSessionResult=>({status:'blocked',reason});
+const toJournal=(journal:RewardJournal,game:Entry):GymSessionResult=>({
+  status:'ok',journal:{...journal,raw:JSON.stringify(game)}
+});
+function read(raw:string):Entry|null{
+  try{const v:unknown=JSON.parse(raw);return rec(v)?v:null;}
+  catch{return null;}
+}
+function readSession(v:unknown):GymSessionV1|null{
+  if(!rec(v)||v.version!==1||typeof v.id!=='string'
+    ||!/^gym-v02-[1-9][0-9]*$/.test(v.id)
+    ||typeof v.gymId!=='string'||!seedOk(v.seed)
+    ||!Array.isArray(v.uids)||v.uids.length!==3
+    ||!v.uids.every((uid:unknown)=>nat(uid)&&uid>0)
+    ||new Set(v.uids).size!==3
+    ||!Array.isArray(v.actions)||v.actions.length>144)return null;
+  const actions:GymTurnAction[]=[];
+  for(const a of v.actions){
+    if(!rec(a))return null;
+    if(a.kind==='basic'||a.kind==='focus')actions.push({kind:a.kind});
+    else if(a.kind==='switch'&&nat(a.toIndex)&&a.toIndex<3)
+      actions.push({kind:'switch',toIndex:a.toIndex});
+    else if(a.kind==='move'&&typeof a.moveName==='string'
+      &&/^[a-z][a-z-]{0,49}$/.test(a.moveName))
+      actions.push({kind:'move',moveName:a.moveName});
+    else return null;
+  }
+  return {version:1,id:v.id,gymId:v.gymId,
+    uids:v.uids as [number,number,number],seed:v.seed,actions};
+}
+function buildStart(game:Entry,session:GymSessionV1):GymBattleState{
+  if(!Array.isArray(game.badges)||!game.badges.every(id=>typeof id==='string')
+    ||!Array.isArray(game.roster)||!rec(game.trainer)
+    ||!rec(game.trainer.manual)||!Array.isArray(game.seen)
+    ||!nat(game.wins))throw new RangeError('Perfil inválido para Ginásios.');
+  const gym=kantoNextGym(game.badges);
+  if(!gym||gym.id!==session.gymId)
+    throw new RangeError('Ginásio não é o próximo desafio.');
+  const trainer=game.trainer;
+  const manual={} as StatValues;
+  for(const stat of STATS){
+    const n=trainer.manual[stat]??0;
+    if(!nat(n)||n>40)throw new RangeError('Pontos de treinador inválidos.');
+    manual[stat]=n;
+  }
+  const equipped=rec(trainer.equipped)?trainer.equipped:{};
+  const gear=LEGACY_ITEMS.filter(item=>equipped[item.slot]===item.id);
+  const badges=KANTO_GYMS.filter(item=>game.badges.includes(item.id))
+    .map(item=>({id:item.id,stats:item.badgeStats}));
+  const title=effectiveLegacyTitle(trainer.title,game.wins as number,
+    game.seen.length,game.badges.length);
+  // O título Mestre somente é desbloqueado após as oito insígnias.
+  // KANTO_GYM_MASTER_TITLE_STATS é lido pelo catálogo do título.
+  void KANTO_GYM_MASTER_TITLE_STATS;
+  const totals=trainerTotals({
+    manual,equipment:gear.map(item=>({slot:item.slot,stats:item.stats})),
+    activeTitle:title.stats,badges
+  });
+  const roster=game.roster;
+  const team=session.uids.map(uid=>{
+    const p=roster.find((entry:unknown)=>rec(entry)&&entry.uid===uid);
+    if(!rec(p)||!nat(p.level)||p.level<1||p.level>100
+      ||!nat(p.pokemonId)||p.pokemonId<1||p.pokemonId>151
+      ||!nat(p.affinity)||p.affinity>100||!rec(p.manual))
+      throw new RangeError('Pokémon não pertence ao treinador ou é inválido.');
+    const species=KANTO_BATTLE_SPECIES[p.pokemonId];
+    if(!species)throw new RangeError('Espécie de Pokémon indisponível.');
+    const manualPokemon={} as StatValues;
+    for(const stat of STATS){
+      const n=p.manual[stat]??0;
+      if(!nat(n)||n>200)throw new RangeError('Atributos do Pokémon inválidos.');
+      manualPokemon[stat]=n;
+    }
+    const slots=pokemonMoveSlots(p,species.move.name);
+    if(slots.length<1||slots.length>4||new Set(slots).size!==slots.length)
+      throw new RangeError('Golpes equipados inválidos.');
+    const psychic=gymPsychicLevelMoves(species.id,p.level)
+      .map(x=>x.move);
+    const moves=slots.map(name=>KANTO_BATTLE_MOVES[name]
+      ??KANTO_SUPPORT_MOVES[name]??psychic.find(m=>m.name===name));
+    if(moves.some(m=>!m))
+      throw new RangeError('Golpe não executável em Ginásio.');
+    const ranks=rec(p.upgrades)?p.upgrades:{};
+    const combatant:Combatant={
+      speciesId:species.id,name:species.name,level:p.level,
+      types:species.types,
+      stats:pokemonFinalStats(species.base,p.level,manualPokemon,totals,p.affinity),
+      move:moves[0]!,moves:moves as NonNullable<Combatant['moves']>,
+      rank:nat(ranks[moves[0]!.name])?ranks[moves[0]!.name] as number:0,
+      ranks:ranks as NonNullable<Combatant['ranks']>
+    };
+    return {uid,combatant};
+  });
+  const gymTeam=prepareGymOpponent(gym).team;
+  return createGymBattleState(
+    team as [typeof team[0],typeof team[0],typeof team[0]],gymTeam
+  );
+}
+/**
+ * Reproduz contra a MESMA IA e a mesma seed. A cada turno:
+ * seed seguinte = seedAfter do resolvedor; a troca pós-KO não inventa
+ * rolagens e não avança o contador de rodada.
+ */
+export function replayGymSession(game:Entry,session:GymSessionV1):GymBattleState{
+  let state=buildStart(game,session);
+  let seed=session.seed;
+  for(const action of session.actions){
+    if(state.outcome!=='ongoing')
+      throw new RangeError('Transcript contém ações após a conclusão.');
+    const result=resolveGymAiTurn(state,action,seed);
+    if(result.status!=='applied')
+      throw new RangeError('Transcript de Ginásio contém ação ilegal.');
+    state=result.state;
+    seed=result.seedAfter;
+  }
+  return state;
+}
+export function runGymSessionCommand(
+  journal:RewardJournal,action:GymSessionCommand,
+  nextRevision:number
+):GymSessionResult{
+  const game=read(journal.raw);
+  if(!game||!nat(nextRevision)||nextRevision<1)
+    return blocked('Save de Ginásio inválido.');
+  // Recusar sessões paralelas ao replay regional/expedição.
+  if(game.pendingBattle||game.expedition!==null
+    ||rec(game.lastBattle)&&game.lastBattle.captureStatus==='available')
+    return blocked('Conclua a batalha, captura ou expedição em andamento.');
+  const pending=game.gymSession;
+  if(action.type==='gym-start'){
+    if(pending!==undefined&&pending!==null)
+      return blocked('Já existe um confronto de Ginásio em andamento.');
+    if(!seedOk(action.seed)||!Array.isArray(action.uids)
+      ||action.uids.length!==3||new Set(action.uids).size!==3
+      ||!action.uids.every(uid=>nat(uid)&&uid>0))
+      return blocked('Selecione três Pokémon distintos e uma seed válida.');
+    if(!Array.isArray(game.badges))return blocked('Insígnias inválidas.');
+    const gym=kantoNextGym(game.badges);
+    if(!gym)return blocked('Nenhum Ginásio desbloqueado.');
+    const session:GymSessionV1={
+      version:1,id:'gym-v02-'+nextRevision,gymId:gym.id,
+      uids:action.uids as [number,number,number],
+      seed:action.seed,actions:[]
+    };
+    try{replayGymSession(game,session);}
+    catch(e){return blocked(e instanceof Error?e.message:'Equipe inválida.');}
+    game.gymSession=session;
+    return toJournal(journal,game);
+  }
+  const session=readSession(pending);
+  if(!session||action.sessionId!==session.id)
+    return blocked('Sessão inexistente, alterada ou desatualizada.');
+  let state:GymBattleState;
+  try{state=replayGymSession(game,session);}
+  catch(e){return blocked(e instanceof Error?e.message:'Sessão não verificável.');}
+  if(action.type==='gym-abandon'){
+    delete game.gymSession;
+    game.lastGymOutcome={gymId:session.gymId,outcome:'abandoned'};
+    return toJournal(journal,game);
+  }
+  if(action.type==='gym-turn'){
+    if(state.outcome!=='ongoing'||session.actions.length>=144)
+      return blocked('Confronto encerrado ou limite de ações atingido.');
+    if(!rec(action.action))return blocked('Ação do treinador inválida.');
+    const proposed=readSession({...session,actions:[...session.actions,action.action]});
+    if(!proposed)return blocked('Ação desconhecida.');
+    try{state=replayGymSession(game,proposed);}
+    catch(e){return blocked(e instanceof Error?e.message:'Ação ilegal.');}
+    game.gymSession=proposed;
+    return toJournal(journal,game);
+  }
+  if(state.outcome==='ongoing')
+    return blocked('O Ginásio ainda não terminou.');
+  delete game.gymSession;
+  if(state.outcome!=='player-win'){
+    game.lastGymOutcome={gymId:session.gymId,outcome:state.outcome};
+    return toJournal(journal,game);
+  }
+  // Mesmo commit de save: recompensa e remoção da sessão.
+  // Replay do botão depois deste commit fica bloqueado pela sessão ausente.
+  const award=applyRewardEvent({...journal,raw:JSON.stringify(game)},{
+    type:'gym-victory',id:session.id,expectedRevision:journal.revision,
+    gymId:session.gymId,battle:state
+  });
+  return award.status==='applied'
+    ?{status:'ok',journal:award.journal}
+    :blocked(award.status==='rejected'?award.reason:'Prêmio já processado.');
+}
