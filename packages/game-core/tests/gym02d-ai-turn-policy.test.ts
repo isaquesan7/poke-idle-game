@@ -104,6 +104,20 @@ describe('GYM-02D — IA com mesma autoridade de ações 3×3',()=>{
           expect(a).toEqual(b);
           expect(a.status).toBe('applied');
           if(a.status!=='applied')throw Error(a.reason);
+          expect(a.frames).toHaveLength(a.log.length);
+          expect(a.snapshots).toHaveLength(a.log.length);
+          for(let line=0;line<a.log.length;line++){
+            const frame=a.frames[line]!;
+            const snapshot=a.snapshots[line]!;
+            expect(frame.playerHp).toBe(snapshot.player.fighters[
+              snapshot.player.activeIndex]!.hp);
+            expect(frame.wildHp).toBe(snapshot.leader.fighters[
+              snapshot.leader.activeIndex]!.hp);
+            expect(frame.playerSp).toBe(snapshot.player.fighters[
+              snapshot.player.activeIndex]!.sp);
+            expect(frame.wildSp).toBe(snapshot.leader.fighters[
+              snapshot.leader.activeIndex]!.sp);
+          }
           state=a.state;
           rng=(a.seedAfter+step+1)>>>0;
           for(const side of ['player','leader'] as const){
