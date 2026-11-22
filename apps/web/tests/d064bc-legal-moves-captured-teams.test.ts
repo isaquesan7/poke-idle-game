@@ -55,7 +55,10 @@ function journey(starter:typeof STARTERS[number],cohort:number,policy:Policy){
     const available=kantoLevelMoves(leader.pokemonId,leader.level)
       .filter(item=>item.move.category!=='status')
       .sort((a,b)=>b.learnedAt-a.learnedAt||a.move.name.localeCompare(b.move.name));
-    const selected=available.find(item=>item.move.name!==leader.moveName);
+    // Usar somente o golpe de aprendizado mais recente. Não alternar
+    // entre golpes já conhecidos a cada turno de coleta de dados.
+    const preferred=available[0];
+    const selected=preferred?.move.name!==leader.moveName?preferred:undefined;
     if(selected){
       write(store,{type:'move',uid:leader.uid,moveName:selected.move.name,operation:'select'});
       movesSelected++;
