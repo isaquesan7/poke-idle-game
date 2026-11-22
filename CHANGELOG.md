@@ -484,3 +484,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Testes de cobertura 151, lendários finais, sorteio determinístico e contagem uniforme; resultado da CI e efeito nas vitórias ainda não verificados. Sem deploy.
 
 - D064BB: teste adicional de 3.456 batalhas reais via writer, com mesmas coortes, seeds e políticas de D064BA para comparar taxas de vitória após diversificar o bosque. CI nova ainda pendente, sem deploy.
+
+- D064BB: coortes após mudança em 3.456 batalhas: sem expedição Bulbasaur 43,75% (+6,25 p.p.), Charmander 48,78% (-1,57), Squirtle 38,72% (+6,95); diferença máxima de 18,58 a 10,06 p.p. Nos testes da branch, regressão e Docker/HTTP SUCCESS. Ainda sem deploy até merge/Railway confirmado.
