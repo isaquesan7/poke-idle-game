@@ -173,7 +173,6 @@ export function resolveGymTurn(
     let state=input;
     const log:string[]=[];
     const frames:KantoBattleVisualFrame[]=[];
-  const snapshots:GymBattleState[]=[];
     const snapshots:GymBattleState[]=[];
     let observed=input;
     const record=(line:string,meta:Partial<KantoBattleVisualFrame>={})=>{
