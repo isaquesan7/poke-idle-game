@@ -605,3 +605,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D064BQ — release confirmado (22/11/2026)
 - PR #147 merged squash em main `337ce1cbd1ca44021e92370f325ef0615f2c2b53`; HEAD final `57280d0a4bab43cbde1bf308a8c7171111925dfe`, GitHub CI geral `45034879515`, Playwright desktop/mobile `45034879419` e Docker `45034879435` **SUCCESS**.
 - Railway deploy `856530c2-8c30-4c82-9098-49adccb7e188` SUCCESS SHA exato, `/health` interno OK, 1 réplica running, 0 crashes. Drops aleatórios 0/1 bola por vitória remunerada e chances regionais 30% Poké R1–3, 25% Poké/14% Great R4–6, 18% Poké/14% Great/5% Ultra R7–8, 18%/14%/7% R9–10. Sem prêmios por marco fixo; expedição inalterada. Loja beta funcional em moedas Poké600/Great2400/Ultra16000 com recibo, atomicidade de saldo+item, quantidade e trava de compras duplicadas.
+
+### D064BR — correção de resgate e auditoria econômica (22/11/2026; EM PR)
+- Corrige bloqueio total de expedição com mochila de Pokébolas lotada: agora satura o tipo em100k, entrega moedas/XP normalmente e avança o cursor; `lastClaim.ballDrops` e prévia mostram só unidades realmente recebidas, com aviso no UI mobile/desktop.
+- Adiciona teste longitudinal sintético de 1.000 vitórias por faixa (R1/4/7/9/10) cruzando drops RNG, 8h de expedição, preços beta, compra e captura real, garantindo contabilidade e sem vender essa amostra como telemetria. Testa captura rara única no writer e bolso inválido bloqueado sem perda de save.
+- Exibe taxas regionais no catálogo Loja com tabela acessível, extraída da mesma função de drop do core. **Sem alterar os percentuais 30 /25+14 /18+14+5 /18+14+7, preços 600/2400/16000 ou regras de Ultra em expedição R9/R10**. CI/merge/Railway pendentes.
