@@ -318,6 +318,9 @@ async function exercise(browser, label, viewport) {
   const expeditionSelect=page.getByRole('combobox',{name:'Região para expedição'});
   await expeditionSelect.waitFor();
   assert.equal(await expeditionSelect.getAttribute('aria-describedby'),'expedition-region-hint');
+  // Demo inicia com Pokémon Lv20: Colinas de Kanto é a área adequada,
+  // enquanto Bosque Inicial já reduz recompensas por sobre-nível.
+  await expeditionSelect.selectOption('2');
   await expeditionSelect.focus();
   await page.keyboard.press('Tab');
   assert.equal(await page.getByRole('button',{name:'Iniciar expedição'}).evaluate(node=>node===document.activeElement),
