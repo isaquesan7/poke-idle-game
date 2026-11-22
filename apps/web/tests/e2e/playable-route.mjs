@@ -1343,7 +1343,7 @@ async function exerciseGymDuel(browser,label,viewport){
       assert.equal(await diary.getByTestId('battle-log').count(),1,
         'Ginásio deve usar exatamente o diário regional');
       const logText=await diary.getByTestId('battle-log').innerText();
-      assert.doesNotMatch(logText,/T\\d+\\s+(player|leader)\\s/i,
+      assert.doesNotMatch(logText,/T[0-9]+[ ]+(player|leader)[ ]/i,
         'UI não pode exibir atores técnicos no diário');
       const entries=await diary.getByTestId('battle-log').locator('li').count();
       assert.ok(entries>=priorLogEntries,
