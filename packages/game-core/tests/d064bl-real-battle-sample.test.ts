@@ -46,7 +46,8 @@ describe('D064BL — amostra do motor de combate em R3 com líder Nv41',()=>{
       report[String(leader)]={win,loss,draw,
         meanTurns:Math.round(turns/(R3_WILD.length*SEEDS.length)*100)/100};
     }
-    console.info('D064BL_REAL_BATTLE_SAMPLE '+JSON.stringify({
+    (globalThis as unknown as {console:{info:(text:string)=>void}})
+      .console.info('D064BL_REAL_BATTLE_SAMPLE '+JSON.stringify({
       label:'amostra ilustrativa, não taxas de vitória da UI real',
       r3WildLevel:30,leaderLevel:41,moves:'catalog-default-only',
       seeds:SEEDS.length,wildSpecies:R3_WILD,report
