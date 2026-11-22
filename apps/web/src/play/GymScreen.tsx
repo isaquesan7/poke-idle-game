@@ -11,7 +11,7 @@ import {
 import type {GymTurnAction,GymBattleState} from '@kanto/game-core';
 import type {LegacySave} from '../storage/legacySave';
 import type {PlayAction} from './playSave';
-import {replayGymSession} from './gymSession';
+import {replayGymSessionTrace} from './gymSession';
 import type {GymSessionV1} from './gymSession';
 import styles from './GymScreen.module.css';
 
@@ -43,18 +43,33 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   const [selected,setSelected]=useState<readonly number[]>([]);
   const [confirmAbandon,setConfirmAbandon]=useState(false);
   const detailsRef=useRef<HTMLElement|null>(null);
+  const actionsRef=useRef<HTMLDivElement|null>(null);
+  const finishRef=useRef<HTMLButtonElement|null>(null);
   const session=readSession(game.gymSession);
   const gym=session?KANTO_GYMS.find(g=>g.id===session.gymId):
     kantoNextGym(data.badges);
   let state:GymBattleState|null=null;
   let invalid='';
+  let history:readonly {readonly turn:number;readonly lines:readonly string[]}[]=[];
   if(session){
-    try{state=replayGymSession(game,session);}
-    catch(e){invalid=e instanceof Error?e.message:'Não foi possível validar a sessão.';}
+    try{
+      const trace=replayGymSessionTrace(game,session);
+      state=trace.state;
+      history=trace.rounds;
+    }catch(e){invalid=e instanceof Error?e.message:'Não foi possível validar a sessão.';}
   }
+  // Ao iniciar, o título recebe foco. Depois de cada ação, devolver foco
+  // às ações (ou ao botão de finalização), sem saltar para o topo da tela.
+  const previousSession=useRef<string|null>(null);
   useEffect(()=>{
-    if(session&&detailsRef.current){
-      detailsRef.current.focus({preventScroll:true});
+    if(!session){previousSession.current=null;return;}
+    if(previousSession.current!==session.id){
+      previousSession.current=session.id;
+      detailsRef.current?.focus({preventScroll:true});
+    }else if(state?.outcome==='ongoing'){
+      actionsRef.current?.focus({preventScroll:true});
+    }else{
+      finishRef.current?.focus({preventScroll:true});
     }
   },[session?.id,revision]);
   useEffect(()=>{setConfirmAbandon(false);},[session?.id]);
@@ -172,8 +187,24 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
           {renderSide('player')}
           {renderSide('leader')}
         </div>
+        {history.length>0&&<section className={styles.history}
+          aria-label="Histórico da batalha" data-testid="gym-battle-history">
+          <h4>Diário de combate</h4>
+          <p className={styles.hint}>Eventos reconstruídos pelo combate; nenhuma
+            recompensa é concedida ao consultar o diário.</p>
+          <ol aria-live="off">
+            {history.slice(-8).map((entry,i)=>
+              <li key={history.length-8+i}>
+                <strong>{'Rodada '+entry.turn}</strong>
+                <ul>{entry.lines.map((line,j)=>
+                  <li key={j}>{line.replace(/^player\b/,'Seu Pokémon')
+                    .replace(/^leader\b/,'Líder')}</li>)}</ul>
+              </li>)}
+          </ol>
+          {history.length>8&&<small>Mostrando as últimas 8 ações de {history.length}.</small>}
+        </section>}
         {state.outcome==='ongoing'&&<div className={styles.actions}
-          aria-label="Ações de batalha">
+          ref={actionsRef} tabIndex={-1} aria-label="Ações de batalha">
           {actions.map((action,i)=>{
             const label=action.kind==='basic'?'Ataque básico':
               action.kind==='focus'?'Concentrar':
@@ -193,7 +224,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
           <p>{state.outcome==='player-win'
             ?'Finalize para registrar a insígnia e a recompensa uma única vez.':
             'Nenhuma insígnia ou recompensa de vitória será concedida.'}</p>
-          <button className={styles.primary} type="button" disabled={busy}
+          <button className={styles.primary} type="button" ref={finishRef} disabled={busy}
             onClick={()=>onAction({type:'gym-finish',sessionId:session.id})}>
             Finalizar confronto
           </button>
