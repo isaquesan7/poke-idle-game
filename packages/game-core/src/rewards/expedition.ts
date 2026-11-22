@@ -71,13 +71,13 @@ export function expeditionRewards(elapsedMs:number,context?:ExpeditionContext):E
     const earnedTrainerXp=scaledRegionalReward(rates.trainerXp,leaderFactor);
     coins+=earnedCoins;
     trainerXp+=earnedTrainerXp;
-    for(let index=0;index<profiles.length;index++){
-      const current=profiles[index]!;
-      const factor=expeditionProgressFactor(context.regionId,current.level);
-      const gained=current.level===100?0:scaledRegionalReward(rates.pokemonXp,factor);
-      xpByMember[index]!+=gained;
-      if(gained>0)profiles[index]=grantXp('pokemon',current,gained);
-    }
+    // D064BS: somente o primeiro UID da composição, líder ao iniciar
+    // a expedição, recebe XP. Os outros membros não progridem neste modo.
+    const current=profiles[0]!;
+    const factor=expeditionProgressFactor(context.regionId,current.level);
+    const gained=current.level===100?0:scaledRegionalReward(rates.pokemonXp,factor);
+    xpByMember[0]!+=gained;
+    if(gained>0)profiles[0]=grantXp('pokemon',current,gained);
     // Se o fator não entrega nenhuma moeda/XP após arredondamento, o ciclo
     // não deve alimentar a reposição de Pokébolas indefinidamente.
     if(leaderFactor>0&&(earnedCoins>0||earnedTrainerXp>0)){

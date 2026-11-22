@@ -221,7 +221,7 @@ describe('expedição: claim/stop em snapshot puro e replays protegidos',()=>{
     expect(s.coins).toBe(342);
     expect(s.trainer.xp).toBe(28);
     expect(s.roster[0]?.xp).toBe(27);
-    expect(s.roster[1]?.xp).toBe(27);
+    expect(s.roster[1]?.xp).toBe(12); // reserva não recebe XP de expedição
     expect(s.roster[0]?.affinity).toBe(73);
     expect(s.roster[1]?.affinity).toBe(10);
     expect(s.expedition?.lastClaimAt).toBe(130000);
@@ -242,6 +242,7 @@ describe('expedição: claim/stop em snapshot puro e replays protegidos',()=>{
     expect(parsed(j).coins).toBe(349); // 321 +21+7
     expect(parsed(j).trainer.xp).toBe(32);
     expect(parsed(j).roster[0]?.xp).toBe(32);
+    expect(parsed(j).roster[1]?.xp).toBe(12);
     expect(applyRewardEvent(j,stop()).status).toBe('duplicate');
     rejected(j,claim('later',3,150000));
     rejected(j,stop('second-stop',3,150000));

@@ -614,3 +614,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 ### D064BR — release confirmado (22/11/2026)
 - PR #149 `7054c3790800ee4e71c2ee597ca9a576e5f9c90c` merged squash; HEAD CI geral `45037200926`, Playwright `45037200948`, Docker `45037200949` todos SUCCESS. Railway deployment `5f3bc6d4-a8ea-470e-b4bc-89a98ae3c6be` SUCCESS SHA exato, `/health` interno OK, 1 réplica running e 0 crashes.
 - Mochila no limite100k não recusa mais todo o resgate de expedição: moedas/XP e cursor mantidos, drops reais saturados e aviso/preview corrigidos. Testes de captura lendária sem repetição, auditoria sintética de moeda/bola/loja/captura e chances transparentes no UI. As porcentagens de bola, economia de expedição e preços beta continuam intactos.
+
+
+## D064BS — XP da expedição para Pokémon líder (22/11/2026, EM PR)
+- Cálculo regional concede XP apenas a `pokemon[0]` e devolve zero nas demais posições; writer faz crédito exclusivo ao primeiro UID da expedição, inclusive no fallback de saves sem região.
+- Testes de claim/stop preservam XP de reservas e verificam no core ciclos, nível máximo e anti-farm. Nenhuma mudança em XP treinador, moedas, Pokébolas, preço da loja, insígnias, Pokémon selvagens ou combate.
+- **Sem merge/deploy confirmado neste registro.**
