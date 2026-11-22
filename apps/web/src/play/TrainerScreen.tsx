@@ -5,7 +5,7 @@
  */
 import {useState} from 'react';
 import {
-  LEGACY_BADGES, LEGACY_EQUIPMENT_SLOTS, LEGACY_ITEMS, inspectInventoryOwnership, BASE_BAG_SLOTS, STATS
+  KANTO_GYMS, LEGACY_EQUIPMENT_SLOTS, LEGACY_ITEMS, inspectInventoryOwnership, BASE_BAG_SLOTS, STATS
 } from '@kanto/game-core';
 import type {EquipmentSlot, Stat, StatValues} from '@kanto/game-core';
 import type {TrainerViewModel} from '../features/trainer/legacyProjection';
@@ -213,14 +213,15 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
           <p className={styles.hint}>As insígnias conquistadas concedem bônus permanentes ao treinador.</p>
           <div className={styles.badgeHeading}>Insígnias ({view.badges.length}/8)</div>
           <div className={styles.badges}>
-            {LEGACY_BADGES.map(badge=>{
+            {KANTO_GYMS.map(gym=>{
+              const badge={id:gym.id,name:gym.name,stats:gym.badgeStats};
               const won=view.badges.some(x=>x.id===badge.id);
               return <div key={badge.id} className={won?styles.badgeWon:styles.badgeLocked}
-                tabIndex={0} title={badge.name+' · '+badge.wins+' vitórias · '+bonusLabel(badge.stats)}
-                aria-label={badge.name+(won?' conquistada':' bloqueada')+'. '+badge.wins+' vitórias. Bônus: '+bonusLabel(badge.stats)}>
-                <span className={styles.badgeTooltip} aria-hidden="true"><strong>{badge.name}</strong><small>Bônus: {bonusLabel(badge.stats)}</small><small>{won?'Conquistada':'Desbloqueia com '+badge.wins+' vitórias'}</small></span>
+                tabIndex={0} title={badge.name+' · Líder: '+gym.leader+' · '+bonusLabel(badge.stats)}
+                aria-label={badge.name+(won?' conquistada':' bloqueada')+'. '+gym.leader+'. Bônus: '+bonusLabel(badge.stats)}>
+                <span className={styles.badgeTooltip} aria-hidden="true"><strong>{badge.name}</strong><small>Bônus: {bonusLabel(badge.stats)}</small><small>{won?'Conquistada':'Derrote '+gym.leader}</small></span>
                 <span><Fa name={BADGE_ICONS[badge.id]??'fa-medal'}/></span>
-                <strong>{badge.name}</strong><small>{badge.wins} vitória(s)</small>
+                <strong>{badge.name}</strong><small>{gym.leader}</small>
               </div>;
             })}
           </div>
