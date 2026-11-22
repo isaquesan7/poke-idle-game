@@ -524,3 +524,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - XP, moedas e afinidade das batalhas regionais dependem da diferença de nível do inimigo; a partir de +12 níveis de vantagem, progresso e contagem de histórico bloqueados. UI apresenta régua/região e resultados ajustados. Sem mudança na IA selvagem, chance de captura, níveis dos Pokémon capturados ou XP absoluto Lv100. CI e publicação pendentes.
 
 - **D064BJ PUBLICADO (22/11/2026):** PR #136 SHA `3e62a721`, regressão `45019043101` SUCCESS, Playwright `45019043064` SUCCESS, Docker `45019043071` SUCCESS e Railway `30c73023-e94d-4c0d-8e84-be56a3c76072` SUCCESS no mesmo SHA. Escalonamento regional 7/4/5 → 16/13/14, caps de XP/afinidade/moedas/contagens por nível, XP de expedição recalculado por ciclo, sem afinidade passiva, Poké/Great/Ultra Ball raras por horas válidas. Economia idempotente e testes concluídos.
+
+### 2026-11-22 — D064BK (em branch; não publicado)
+- Testes diagnósticos de progressão e economia das expedições para níveis iniciais 1–100 e 40 resgates, com contadores persistidos de Pokébolas.
+- Documento `docs/PROGRESSION_ECONOMY_D064BK.md` registra premissas e próximos gates da futura loja.
+- Sem alterações funcionais, sem deploy confirmado; CI pendente.
