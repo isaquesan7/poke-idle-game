@@ -148,6 +148,18 @@ async function exercise(browser, label, viewport) {
   await dexTile.click();
   await encyclopedia.getByRole('button',{name:'Fechar detalhes'}).click();
   assert.equal(await encyclopedia.count(),0);
+  // GYM-04A: navegação de Ginásios respeita progressão e 3 UIDs,
+  // mesmo em perfil novo com só um Pokémon. UI não concede insígnias.
+  const beforeGymBrowse=await page.evaluate(key=>localStorage.getItem(key),SAVE);
+  await page.getByRole('button',{name:'Ginásios',exact:true}).click();
+  const gymPanel=page.getByTestId('gym-screen');
+  await gymPanel.getByRole('heading',{name:'Ginásios Pokémon'}).waitFor();
+  await gymPanel.getByLabel(/1º Ginásio: Rocha, Brock, desafio atual/).waitFor();
+  await gymPanel.getByLabel(/2º Ginásio: Cascata, Misty, bloqueado/).waitFor();
+  assert.equal(await gymPanel.getByRole('button',{name:'Iniciar batalha contra Brock'}).isDisabled(),true,
+    'Equipe com menos de três UIDs nunca pode iniciar Ginásio');
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeGymBrowse,
+    'Inspecionar Ginásios nunca altera o save');
   await page.getByRole('button',{name:'Treinador',exact:true}).click();
 
   let snapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
