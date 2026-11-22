@@ -274,3 +274,11 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 
 ### GYM-06 — Revogação dos controles manuais durante batalhas de Ginásio (22/11/2026; em PR)
 - Decisão do usuário: usar a experiência regional existente, sem inventar outro conjunto de animações ou diário, com IA também para a equipe do jogador. O jogador seleciona o trio antes do desafio, mas o combate é conduzido por IA simétrica para jogador/líder; o botão de pausa/retomada controla somente apresentação e agendamento dos turnos. Reuso dos componentes regionais `BattleStage`/`BattlePlayback`, com rótulo contextual do líder. Nova heurística determinística de troca em situação crítica aplica-se a ambos. Preservar intactas as quotas, o save e os prêmios; sem antifraude de servidor. Supera a decisão GYM-04A que exigia escolher golpes e trocas manualmente. Mudança depende de CI e Railway antes de publicar.
+
+
+### GYM-07 — narrativa de Ginásio por ator (22/11/2026)
+- O diário autoritativo conserva eventos, frames e HP/SP, mas a camada de apresentação usa snapshots para nomear o Pokémon ativo em cada ação. Trocas são atribuídas a quem comanda (treinador ou líder), golpes e status a quem age (Pokémon). A UI traduz nomes técnicos e imprime líder vs treinador reais. Reservas derrotadas recebem mesmo aspecto desmaiado do palco regional. Nenhuma alteração de RNG/IA/quota/insígnia.
+
+### ONLINE-01 — contas novas, sem migração; raiz reservada (22/11/2026)
+- Revoga manutenção do protótipo v0.1 em `/`: passa a landing de cadastro/login, inicialmente com CTA para `/play`; não servir os HTML/CSS/JS v0.1 nem copiá-los para runtime. `/play` permanece laboratório enquanto não existir save autoritativo.
+- **Não importar saves locais nem oferecer migração automática/manual**. Futuras contas recebem estado inicial novo criado no servidor. O banco PostgreSQL e API ficam isolados da UI até identidade, rate limiting, verificação de e-mail, migrações versionadas, proxies de mesma origem, transações idempotentes e autorização auditada. Nenhuma rota pública pode aceitar saldos/XP/insígnias informados pelo cliente. A criação de contas não é considerada lançada pela mera criação do banco.

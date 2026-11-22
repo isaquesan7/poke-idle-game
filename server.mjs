@@ -6,20 +6,33 @@ import { createReadStream, existsSync, readFileSync } from 'node:fs';
  * CSS é estático e não altera os dados ou regras do jogo.
  */
 const port = Number(process.env.PORT || 3000);
-const routes = new Map([
-  ['/', { file: 'index.html', type: 'text/html; charset=utf-8' }],
-  ['/index.html', { file: 'index.html', type: 'text/html; charset=utf-8' }],
-  ['/styles/tokens.css', { file: 'styles/tokens.css', type: 'text/css; charset=utf-8' }],
-  ['/styles/app.css', { file: 'styles/app.css', type: 'text/css; charset=utf-8' }],
-  ['/scripts/pokemon-sprites.js', { file: 'scripts/pokemon-sprites.js', type: 'text/javascript; charset=utf-8' }]
-]);
-const assets = new Map(Array.from(routes, ([route, asset]) => [
-  route,
-  { body: readFileSync(new URL('./' + asset.file, import.meta.url)), type: asset.type }
-]));
+// A raiz NÃO é mais o protótipo v0.1. Login/cadastro entrarão aqui
+// após a implantação segura do banco e da autenticação.
+const landing=readFileSync(new URL('./landing.html',import.meta.url));
 
 createServer((req, res) => {
   const url = new URL(req.url || '/', 'http://localhost');
+  if (url.pathname === '/') {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      res.writeHead(405, {Allow:'GET, HEAD'});res.end();return;
+    }
+    res.writeHead(200, {
+      'Content-Type':'text/html; charset=utf-8',
+      'Cache-Control':'no-store',
+      'X-Content-Type-Options':'nosniff'
+    });
+    res.end(req.method==='HEAD'?undefined:landing);
+    return;
+  }
+  if (url.pathname === '/index.html'
+    || url.pathname === '/scripts/pokemon-sprites.js'
+    || url.pathname === '/styles/app.css'
+    || url.pathname === '/styles/tokens.css') {
+    res.writeHead(410,{'Content-Type':'text/plain; charset=utf-8',
+      'Cache-Control':'no-store'});
+    res.end('Protótipo v0.1 desativado');
+    return;
+  }
   if (url.pathname === '/health') {
     // D-044: readiness real da rota React. A ausência do dist NÃO pode
     // passar no healthcheck e publicar apenas a home v0.1 por engano.
@@ -31,8 +44,7 @@ createServer((req, res) => {
     res.end(ready ? 'ok' : 'build indisponível');
     return;
   }
-  // Novo loop jogável React: HTML compilado pela etapa npm prestart.
-  // A raiz legada v0.1 continua ativa até termos paridade de combate e Pokedex.
+  // React /play continua disponível como ambiente de testes independente.
   // D-064AE: catálogo regional somente leitura usa o mesmo bundle React.
   if (url.pathname === '/play' || url.pathname === '/play/'
     || url.pathname === '/regions' || url.pathname === '/regions/') {
@@ -100,18 +112,9 @@ createServer((req, res) => {
     });
     return;
   }
-  const asset = assets.get(url.pathname);
-  if (!asset) {
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Não encontrado');
-    return;
-  }
-  res.writeHead(200, {
-    'Content-Type': asset.type,
-    'Cache-Control': 'no-cache',
-    'X-Content-Type-Options': 'nosniff'
-  });
-  res.end(asset.body);
+  res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Não encontrado');
+
 }).listen(port, '0.0.0.0', () => {
   console.log(`Kanto Idle LAB ouvindo na porta ${port}`);
 });

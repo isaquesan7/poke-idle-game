@@ -16,7 +16,7 @@ on:
       - 'tests/e2e/runtime-image-smoke.mjs'
       - '.github/workflows/runtime-image-regression.yml'
       - 'apps/web/tests/e2e/playable-route.mjs'
-      - 'styles/**'
+      - 'landing.html'
       - '.github/workflows/animation-regression.yml'
   workflow_dispatch:
 
@@ -56,8 +56,6 @@ jobs:
           npm run test:web
           npm test
           npm run verify:gifs
-      - name: E2E do jogo v0.1
-        run: node tests/e2e/browser-smoke.mjs
       - name: E2E da prévia React
         run: node apps/web/tests/e2e/react-preview.mjs
       - name: E2E do rascunho v0.2
@@ -72,7 +70,6 @@ jobs:
         with:
           name: arena-motion-screenshots
           path: |
-            artifacts/browser/*.png
             artifacts/react-preview/*.png
             artifacts/draft-preview/*.png
             artifacts/playable/*.png

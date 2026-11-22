@@ -11,9 +11,7 @@ on:
       - 'server.mjs'
       - 'apps/**'
       - 'packages/**'
-      - 'index.html'
-      - 'styles/**'
-      - 'scripts/pokemon-sprites.js'
+      - 'landing.html'
       - 'assets/pokemon-gifs/**'
       - 'tests/e2e/runtime-image-smoke.mjs'
       - '.github/workflows/runtime-image-regression.yml'
@@ -64,6 +62,10 @@ jobs:
             test ! -e /app/packages
             test ! -e /app/docs
             test ! -e /app/.git
+            test -s /app/landing.html
+            test ! -e /app/index.html
+            test ! -e /app/styles
+            test ! -e /app/scripts/pokemon-sprites.js
             test -s /app/apps/web/dist/index.html
             test -s /app/assets/pokemon-gifs/poke_1.gif
             test -s /app/assets/pokemon-gifs/poke_151.gif
@@ -71,7 +73,7 @@ jobs:
           '
       - name: Inicializar com o mesmo npm start configurado no Railway
         run: docker run --detach --rm --name kanto-d044-smoke -p 127.0.0.1:18080:8080 -e PORT=8080 kanto-d044-runtime npm start
-      - name: Testar rotas legadas/React, GIFs e isolamento HTTP
+      - name: Testar landing, /play, v0.1 410, GIFs e isolamento HTTP
         run: D044_SMOKE_BASE_URL=http://127.0.0.1:18080 node tests/e2e/runtime-image-smoke.mjs
       - name: Ver logs e encerrar servidor isolado
         if: always()

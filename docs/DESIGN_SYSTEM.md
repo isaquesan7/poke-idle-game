@@ -135,3 +135,8 @@ Na seção de compatibilidade, título `Migração v0.2 bloqueada` e motivos em 
 - Usar os mesmos componentes `BattleStage` e `BattlePlayback` de batalha regional no palco de Ginásio. Não duplicar keyframes de impacto, cura, concentrar, desmaio ou logs. A skin do Ginásio pode aplicar sombras, brilho, cards de duas reservas por lado e ícones Font Awesome existentes, respeitando variáveis Kanto Dark. Imagens GIF grandes mantêm `src`/DOM estáveis quando não há troca real. Transições de HP/SP são lidas do replay sem sorteios cosméticos; aba Ginásios mantém grade de oito líderes só fora de combate.
 
 - GYM-06: `BattlePlayback` recebe `initialVisible` somente no Ginásio; a lista inclui o histórico inteiro e mostra cada rodada nova a partir do índice correto. `BattleStage` recebe `frames/snapshots` 1:1 da resolução do motor GYM, e não deltas cosméticos agregados. Preservar continuidade do GIF e nunca exibir HP futuro antes de avançar o diário. Comparação de frames vs estado é testada pelo core; nenhuma nova biblioteca de animação foi introduzida.
+
+
+## GYM-07 — reservas e nomes corretos
+- Cartões de reservas nocauteadas usam filtro grayscale+brightness+opacity e deslocamento vertical equivalentes à classe regional `battleSpriteFainted`; selo “Nocauteado” e ícone FA em pequeno contraste, sem esconder HP/SP.
+- Cabeçalho expõe `<líder> × <treinador>`; diário exibe nomes do Pokémon em ataques, cura/Concentrar/status e nomes do humano em substituições. `/landing.html` tem estética Kanto Dark e chamada para /play, sem formulário de cadastro ainda.
