@@ -558,3 +558,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - A partir do nível 21, Pokémon passa a exigir `65+22L+7×max(0,L−20)²` XP para subir, mantendo níveis1–20 idênticos. A curva do treinador, ganhos regionais, IA, limite Nv100, afinidade, rareza/ciclos de Pokébolas, captura, saves e desbloqueios do treinador permanecem intactos.
 - Cenários determinísticos com resgates 5m/2h/8h passam por todas 10 regiões sem softlock, com alvo de Pokémon100 em 399–440h e treinador100 em 433–472h de ciclos elegíveis; nenhuma XP/grant retroativa. Relatório `docs/POKEMON_XP_CURVE_D064BM.md`.
 - Ampliados testes para compatibilidade de saves antigos, recuperação de treinador Lv19/Pokémon Lv41 e novos totais de 40 claims/loja, sem definir preços. CI/merge/deploy **ainda não verificados para D064BM**.
+
+- Novo teste de integração com writer real verifica que 67 vitórias regionais elegíveis recuperam treinador Lv19/Pokémon Lv41 sem reprocessar o mesmo receipt, sem XP de captura ou afinidade gratuita.
