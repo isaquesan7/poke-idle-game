@@ -146,9 +146,17 @@ function buildStart(game:Entry,session:GymSessionV1):GymBattleState{
  * seed seguinte = seedAfter do resolvedor; a troca pós-KO não inventa
  * rolagens e não avança o contador de rodada.
  */
-export function replayGymSession(game:Entry,session:GymSessionV1):GymBattleState{
+export interface GymReplayTrace {
+  readonly state:GymBattleState;
+  /** Log calculado novamente pelo motor, nunca aceito do cliente. */
+  readonly rounds:readonly {readonly turn:number;readonly lines:readonly string[]}[];
+}
+/** Replay único: o histórico visível é derivado do motor/seed persistidos,
+ * sem criar rolls, turnos ou mutações adicionais no save. */
+export function replayGymSessionTrace(game:Entry,session:GymSessionV1):GymReplayTrace{
   let state=buildStart(game,session);
   let seed=session.seed;
+  const rounds:{turn:number;lines:readonly string[]}[]=[];
   for(const action of session.actions){
     if(state.outcome!=='ongoing')
       throw new RangeError('Transcript contém ações após a conclusão.');
@@ -157,8 +165,12 @@ export function replayGymSession(game:Entry,session:GymSessionV1):GymBattleState
       throw new RangeError('Transcript de Ginásio contém ação ilegal.');
     state=result.state;
     seed=result.seedAfter;
+    rounds.push({turn:state.turn,lines:result.log});
   }
-  return state;
+  return {state,rounds};
+}
+export function replayGymSession(game:Entry,session:GymSessionV1):GymBattleState{
+  return replayGymSessionTrace(game,session).state;
 }
 export function runGymSessionCommand(
   journal:RewardJournal,action:GymSessionCommand,
