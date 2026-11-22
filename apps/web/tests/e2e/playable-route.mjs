@@ -1167,6 +1167,8 @@ async function exerciseGuaranteedLevelUp(browser,label,viewport){
   await page.getByRole('radio',{name:/Charmander/}).check();
   await page.getByRole('checkbox',{name:/modo demonstração/}).check();
   await page.getByRole('button',{name:'Começar aventura'}).click();
+  await page.getByRole('heading',{name:'Bem-vindo de volta, Teste Level Up!'}).waitFor();
+  await page.waitForFunction(key=>Boolean(localStorage.getItem(key)),SAVE);
   const before=await page.evaluate(key=>{
     const snapshot=JSON.parse(localStorage.getItem(key));
     const game=JSON.parse(snapshot.journal.raw);
