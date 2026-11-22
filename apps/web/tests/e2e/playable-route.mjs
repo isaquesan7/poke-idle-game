@@ -1307,6 +1307,7 @@ async function exerciseGymDuel(browser,label,viewport){
     for(let i=0;i<3;i++)await choices.nth(i).check();
     await screen.getByRole('button',{name:'Iniciar batalha contra Brock'}).click();
     await screen.getByTestId('gym-duel-scene').waitFor();
+    await screen.getByRole('heading',{name:/Brock.*Teste Ginásio/}).waitFor();
     await screen.getByRole('button',{name:'Pausar após a rodada'}).click();
     const stage=screen.getByTestId('battle-stage');
     assert.equal(await stage.count(),1,'Ginásio deve reutilizar BattleStage regional');
@@ -1341,6 +1342,9 @@ async function exerciseGymDuel(browser,label,viewport){
       await diary.waitFor();
       assert.equal(await diary.getByTestId('battle-log').count(),1,
         'Ginásio deve usar exatamente o diário regional');
+      const logText=await diary.getByTestId('battle-log').innerText();
+      assert.doesNotMatch(logText,/T\\d+\\s+(player|leader)\\s/i,
+        'UI não pode exibir atores técnicos no diário');
       const entries=await diary.getByTestId('battle-log').locator('li').count();
       assert.ok(entries>=priorLogEntries,
         'Histórico do Ginásio deve ser acumulativo como o regional');
