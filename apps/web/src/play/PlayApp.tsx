@@ -7,7 +7,7 @@ import {
   legacyMoveRankLimits,KANTO_BATTLE_MOVES,kantoMoveSecondaryEffect,
   kantoMoveSpCost,kantoMovePp,
   KANTO_EVOLUTION_STONES, kantoEvolutionOptions,
-  KANTO_REGIONS,inspectKantoBallPocket,xpThreshold
+  KANTO_REGIONS,inspectKantoBallPocket,xpThreshold,affinityIdlePenaltyDays
 } from '@kanto/game-core';
 import type { Stat, EquipmentSlot, StatValues, KantoBattleVisualFrame,KantoBallId } from '@kanto/game-core';
 import { projectLegacyTrainer, STAT_LABELS } from '../features/trainer/legacyProjection';
@@ -133,6 +133,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   const [save, setSave] = useState<PlayRead>(readSafe);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [regionalArea, setRegionalArea] = useState(1);
+  const [arenaEncounterId,setArenaEncounterId]=useState<string|null>(null);
   const [expeditionArea, setExpeditionArea] = useState(1);
   const [captureBall,setCaptureBall] = useState<KantoBallId|null>('poke-ball');
   const [name, setName] = useState('');
@@ -237,9 +238,11 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     // D064BE: primeiro registrar somente a batalha pendente; XP, vitória,
     // níveis e bolas permanecem intactos até o fim do diário.
     void transact(()=>updatePlaySave(window.localStorage,expected,
-      {type:'start-regional-battle',regionId,seed}))
+      {type:'start-regional-battle',regionId,seed,nowMs:Date.now()}))
       .then(result=>{
         if(result?.status==='ok'){
+          setRegionalArea(regionId);
+          setArenaEncounterId('regional-v02-'+result.snapshot.revision);
           setTab('battle');
           setBattlePlayback({id:'regional-v02-'+result.snapshot.revision,seq:(battlePlayback?.seq??0)+1,done:false});
           window.requestAnimationFrame(()=>window.scrollTo(0,0));
@@ -262,6 +265,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     }
     setSave(readSafe());
     setBattlePlayback(null);
+    setArenaEncounterId(null);
     setLevelUpNotice(null);
     setTab('overview');
     setSelectedUid(null);
@@ -358,11 +362,12 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   useEffect(()=>{
     if(pendingBattle?.battleId && battlePlayback?.id!==pendingBattle.battleId){
       setTab('battle');
+      setArenaEncounterId(pendingBattle.battleId);
       setBattlePlayback({id:pendingBattle.battleId,seq:0,done:false});
     }
   },[pendingBattle?.battleId]);
   const lastBattleRaw = pendingBattle?.preview??data?.lastBattle;
-  const lastBattle=lastBattleRaw && typeof lastBattleRaw==='object'
+  const lastBattlePersisted=lastBattleRaw && typeof lastBattleRaw==='object'
     && 'outcome' in lastBattleRaw && 'wildSpeciesId' in lastBattleRaw
     && 'log' in lastBattleRaw && Array.isArray(lastBattleRaw.log)
     ? lastBattleRaw as {
@@ -383,6 +388,10 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         playerRemainingHp:number;wildRemainingHp:number
       }
     : null;
+  // Entrada vazia: o registro anterior continua salvo, mas não é
+  // reaproveitado como adversário antes de iniciar um novo encontro.
+  const lastBattle=tab==='battle'&&!pendingBattle
+    &&arenaEncounterId!==lastBattlePersisted?.battleId?null:lastBattlePersisted;
   const battleRegion=KANTO_REGIONS.find(region=>region.id===lastBattle?.regionId)
     ??KANTO_REGIONS.find(region=>region.id===regionalArea)??KANTO_REGIONS[0]!;
   useLayoutEffect(()=>{
@@ -424,7 +433,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   }
   function captureAfterBattle(ballId:KantoBallId|null):void{
     if(save.status!=='ready'||!lastBattle?.battleId||battlePlaying)return;
-    dispatch(ballId?{type:'capture-after-battle',battleId:lastBattle.battleId,ballId}
+    dispatch(ballId?{type:'capture-after-battle',battleId:lastBattle.battleId,ballId,nowMs:Date.now()}
       :{type:'skip-capture',battleId:lastBattle.battleId});
   }
   const playbackKey=displayedBattleId+':'+(battlePlayback?.seq??0);
@@ -1022,10 +1031,21 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 seenIds={seenDexIds}
                 capturedIds={caughtDexIds}
                 busy={busy||battlePlaying}
-                onFight={fight}
+                onEnterRegion={regionId=>{
+                  if(busy||pendingBattle)return;
+                  setRegionalArea(regionId);
+                  setArenaEncounterId(null);
+                  setLevelUpNotice(null);
+                  setBattlePlayback(null);
+                  setTab('battle');
+                  window.scrollTo(0,0);
+                }}
                 onOpenTeam={()=>setTab('collection')}
                 lastBattleRegionId={lastBattle?.regionId}
-                onReplayBattle={()=>{setBattlePlayback(null);setTab('battle');}}
+                onReplayBattle={()=>{
+                  if(lastBattlePersisted?.battleId)setArenaEncounterId(lastBattlePersisted.battleId);
+                  setBattlePlayback(null);setTab('battle');
+                }}
               />
             )}
 
@@ -1062,7 +1082,11 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     <div style={{display:'grid',gap:'var(--space-3)',padding:'var(--space-4)',background:'var(--color-surface-raised)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-card)'}}>
                       <label htmlFor="region-arena-select" className={styles.arenaSelectLabel}><i className="fa-solid fa-map-location-dot" aria-hidden="true"/> Explorar região de Kanto</label>
                       <select id="region-arena-select" aria-label="Região para batalha"
-                        value={regionalArea} onChange={event=>setRegionalArea(Number(event.target.value))}
+                        value={regionalArea} onChange={event=>{
+                          setRegionalArea(Number(event.target.value));
+                          setArenaEncounterId(null);
+                          setBattlePlayback(null);
+                        }}
                         className={styles.arenaStyledSelect}>
                         {KANTO_REGIONS.map(region=><option key={region.id} value={region.id}
                           disabled={view.level<region.trainerUnlockLevel}>
@@ -1106,6 +1130,49 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     cue={playbackKey+':'+revealedLines}
                     playing={battlePlaying}
                   />
+                  {!lastBattle&&<div className={styles.arenaWaiting} role="status">
+                    <i className="fa-solid fa-question" aria-hidden="true"/>
+                    <strong>Quem aparecerá nesta região?</strong>
+                    <span>Use o botão Batalhar na região para encontrar um Pokémon selvagem.</span>
+                  </div>}
+                  {!battlePlaying&&lastBattle&&['available','caught','escaped','skipped'].includes(lastBattle.captureStatus??'')&&
+                    <div className={styles.battleCapturePlacement}>
+                      {lastBattle.captureStatus==='available' ? (
+                        <div className={styles.captureDecision} aria-label="Decisão de captura após a batalha">
+                          <h3><i className="fa-solid fa-baseball" aria-hidden="true"/> Tentar capturar {lastBattle.wildName}?</h3>
+                          <p>Uma única tentativa para este encontro. Você pode escolher a Pokébola agora que conhece o adversário.</p>
+                          <label htmlFor="post-battle-ball" className={styles.arenaSelectLabel}>Escolha sua Pokébola</label>
+                          <select id="post-battle-ball" aria-label="Pokébola para captura após batalha"
+                            className={styles.arenaStyledSelect} value={captureBall??'none'}
+                            onChange={event=>setCaptureBall(event.target.value==='none'
+                              ?null:event.target.value as KantoBallId)}>
+                            <option value="none">Selecione uma Pokébola</option>
+                            <option value="poke-ball" disabled={(ballQuantities['poke-ball']??0)<1
+                              ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)}>Poké Ball · {ballQuantities['poke-ball']??0}</option>
+                            <option value="great-ball" disabled={(ballQuantities['great-ball']??0)<1
+                              ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)}>Great Ball · {ballQuantities['great-ball']??0}</option>
+                            <option value="ultra-ball" disabled={(ballQuantities['ultra-ball']??0)<1}>Ultra Ball · {ballQuantities['ultra-ball']??0}</option>
+                          </select>
+                          <button className={styles.primary} type="button"
+                            disabled={busy||!captureBall||(ballQuantities[captureBall]??0)<1
+                              ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)
+                                &&captureBall!=='ultra-ball'}
+                            onClick={()=>captureAfterBattle(captureBall)}>
+                            <i className="fa-solid fa-bullseye" aria-hidden="true"/> Tentar capturar (1 tentativa)
+                          </button>
+                          <button type="button" className={styles.secondary}
+                            disabled={busy} onClick={()=>captureAfterBattle(null)}>
+                            Seguir sem capturar
+                          </button>
+                        </div>
+                      ) : <p>{lastBattle.captured
+                        ? 'Captura realizada! O Pokémon entrou na coleção no nível '
+                          +(lastBattle.capturedStartingLevel??'inicial')+'.'
+                        :lastBattle.captureStatus==='escaped'?'O Pokémon escapou da tentativa.'
+                        :lastBattle.captureStatus==='skipped'?'Você decidiu não tentar capturar.'
+                        :'Nenhuma captura nesta batalha.'}</p>}
+
+                    </div>}
                 </section>
                 {levelUpNotice?.battleId===displayedBattleId&&!battlePlaying&&
                   <div key={levelUpNotice.battleId} className={styles.battleLevelUp}
@@ -1141,40 +1208,6 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                           <div><small>Afinidade</small><strong>+{lastBattle.affinityGain}</strong></div>
                         </div>
                       )}
-                      {lastBattle.captureStatus==='available' ? (
-                        <div className={styles.captureDecision} aria-label="Decisão de captura após a batalha">
-                          <h3><i className="fa-solid fa-baseball" aria-hidden="true"/> Tentar capturar {lastBattle.wildName}?</h3>
-                          <p>Uma única tentativa para este encontro. Você pode escolher a Pokébola agora que conhece o adversário.</p>
-                          <label htmlFor="post-battle-ball" className={styles.arenaSelectLabel}>Escolha sua Pokébola</label>
-                          <select id="post-battle-ball" aria-label="Pokébola para captura após batalha"
-                            className={styles.arenaStyledSelect} value={captureBall??'none'}
-                            onChange={event=>setCaptureBall(event.target.value==='none'
-                              ?null:event.target.value as KantoBallId)}>
-                            <option value="none">Selecione uma Pokébola</option>
-                            <option value="poke-ball" disabled={(ballQuantities['poke-ball']??0)<1
-                              ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)}>Poké Ball · {ballQuantities['poke-ball']??0}</option>
-                            <option value="great-ball" disabled={(ballQuantities['great-ball']??0)<1
-                              ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)}>Great Ball · {ballQuantities['great-ball']??0}</option>
-                            <option value="ultra-ball" disabled={(ballQuantities['ultra-ball']??0)<1}>Ultra Ball · {ballQuantities['ultra-ball']??0}</option>
-                          </select>
-                          <button className={styles.primary} type="button"
-                            disabled={busy||!captureBall||(ballQuantities[captureBall]??0)<1
-                              ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)
-                                &&captureBall!=='ultra-ball'}
-                            onClick={()=>captureAfterBattle(captureBall)}>
-                            <i className="fa-solid fa-bullseye" aria-hidden="true"/> Tentar capturar (1 tentativa)
-                          </button>
-                          <button type="button" className={styles.secondary}
-                            disabled={busy} onClick={()=>captureAfterBattle(null)}>
-                            Seguir sem capturar
-                          </button>
-                        </div>
-                      ) : <p>{lastBattle.captured
-                        ? 'Captura realizada! O Pokémon entrou na coleção no nível '
-                          +(lastBattle.capturedStartingLevel??'inicial')+'.'
-                        :lastBattle.captureStatus==='escaped'?'O Pokémon escapou da tentativa.'
-                        :lastBattle.captureStatus==='skipped'?'Você decidiu não tentar capturar.'
-                        :'Nenhuma captura nesta batalha.'}</p>}
                       <button type="button" className={styles.secondary}
                         onClick={()=>{setLevelUpNotice(null);setBattlePlayback({id:displayedBattleId,seq:(battlePlayback?.seq??0)+1,done:false});}}>
                         Reassistir à batalha</button>
