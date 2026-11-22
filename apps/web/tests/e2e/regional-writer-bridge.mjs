@@ -70,6 +70,48 @@ try{
     const persisted=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     assert.deepEqual(persisted,after,'Reabrir não duplica recompensa regional');
     assert.notEqual(before.journal.raw,after.journal.raw);
+    // D064BE: em encontro de nível baixo, jogador decide APÓS revelar espécie.
+    await page.getByRole('button',{name:'Regiões',exact:true}).click();
+    if(game.lastBattle.captureStatus==='available'){
+      await page.getByRole('button',{name:'Rever último combate nesta região'}).click();
+      await page.getByRole('button',{name:'Seguir sem capturar'}).click();
+      await page.getByRole('button',{name:'Regiões',exact:true}).click();
+    }
+    await page.getByRole('region',{name:'Escolha de região'})
+      .getByRole('button',{name:/ÁREA 01/}).click();
+    await page.evaluate(()=>{
+      const original=window.crypto.getRandomValues.bind(window.crypto);
+      Object.defineProperty(window.crypto,'getRandomValues',{
+        configurable:true,value(array){
+          if(array instanceof Uint32Array&&array.length===1){array[0]=3;return array;}
+          return original(array);
+        }
+      });
+    });
+    await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+    await page.getByRole('heading',{name:'Batalha no Bosque Inicial'}).waitFor();
+    const pending=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw).pendingBattle,key);
+    assert.ok(pending,'o segundo encontro ainda não pagou recompensas');
+    assert.equal(pending.preview.wildSpeciesId,54,'seed fixa seleciona Psyduck');
+    await page.getByRole('button',{name:'Pular apresentação'}).click();
+    await page.getByRole('heading',{name:'Vitória!'}).waitFor();
+    const confirmed=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
+    assert.equal(confirmed.lastBattle.captureStatus,'available');
+    const stockBefore=confirmed.ballPocket.quantities['poke-ball'];
+    await page.getByRole('combobox',{name:'Pokébola para captura após batalha'}).selectOption('poke-ball');
+    await page.getByRole('button',{name:/Tentar capturar \(1 tentativa\)/}).click();
+    await page.waitForFunction(k=>{
+      const saved=JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw);
+      return ['caught','escaped'].includes(saved.lastBattle.captureStatus);
+    },key);
+    const attempt=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
+    assert.equal(attempt.ballPocket.quantities['poke-ball'],stockBefore-1);
+    assert.ok(['caught','escaped'].includes(attempt.lastBattle.captureStatus));
+    assert.equal(await page.getByRole('button',{name:/Tentar capturar \(1 tentativa\)/}).count(),0);
+    const singleAttemptSave=await page.evaluate(k=>localStorage.getItem(k),key);
+    await page.reload();
+    assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),singleAttemptSave,
+      'reload não pode conceder segunda tentativa nem prêmio');
     assert.deepEqual(errors,[]);
     await context.close();
   }
