@@ -139,9 +139,9 @@ try{
     },key);
     const attempt=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
     await page.waitForFunction(()=>{
-      const el=document.querySelector('[data-testid="battle-capture-area"]');
-      if(!el||document.activeElement!==el)return false;
-      const box=el.getBoundingClientRect();
+      const btn=document.querySelector('[data-testid="battle-again-button"]');
+      if(!btn||document.activeElement!==btn||btn.disabled)return false;
+      const box=btn.getBoundingClientRect();
       return box.bottom>0&&box.top<window.innerHeight;
     });
 
@@ -193,10 +193,8 @@ try{
       .locator('[data-testid="battle-level-up"]').count(),1);
     assert.equal(await page.locator('[class*="battleLevelUpIcon"]').count(),0);
     await page.waitForFunction(()=>{
-      const stage=document.querySelector('[data-testid="battle-stage"]');
-      const area=document.querySelector('[data-testid="battle-capture-area"]');
-      const el=area??stage;
-      return Boolean(el&&document.activeElement===el);
+      const btn=document.querySelector('[data-testid="battle-again-button"]');
+      return Boolean(btn&&!btn.disabled&&document.activeElement===btn);
     });
     const final=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
     assert.equal(final.roster[0].level,11);
