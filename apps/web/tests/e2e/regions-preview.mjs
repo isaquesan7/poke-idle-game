@@ -29,6 +29,14 @@ async function expectCaptureFocused(page){
     return rect.bottom>0&&rect.top<innerHeight;
   });
 }
+async function expectAgainFocused(page){
+  await page.waitForFunction(()=>{
+    const button=document.querySelector('[data-testid="battle-again-button"]');
+    if(!button||button.disabled||document.activeElement!==button)return false;
+    const rect=button.getBoundingClientRect();
+    return rect.bottom>0&&rect.top<innerHeight;
+  });
+}
 async function ready(){
   for(let i=0;i<80;i++){
     try{if((await fetch(base+'/health')).ok)return;}catch{}
@@ -99,11 +107,12 @@ try{
     assert.equal(game.lastBattle.regionId,4);
     assert.equal(game.lastBattle.regionName,'Lagos Serenos');
     assert.equal(game.lastBattle.log.length,game.lastBattle.frames.length);
+    if(game.lastBattle.captureStatus!=='available')await expectAgainFocused(page);
     if(game.lastBattle.captureStatus==='available'){
       await expectCaptureFocused(page);
       await page.getByRole('button',{name:'Seguir sem capturar'}).click();
       await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===3,key);
-      await expectCaptureFocused(page);
+      await expectAgainFocused(page);
       after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
       game=JSON.parse(after.journal.raw);
     }
