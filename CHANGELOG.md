@@ -620,3 +620,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Cálculo regional concede XP apenas a `pokemon[0]` e devolve zero nas demais posições; writer faz crédito exclusivo ao primeiro UID da expedição, inclusive no fallback de saves sem região.
 - Testes de claim/stop preservam XP de reservas e verificam no core ciclos, nível máximo e anti-farm. Nenhuma mudança em XP treinador, moedas, Pokébolas, preço da loja, insígnias, Pokémon selvagens ou combate.
 - **Sem merge/deploy confirmado neste registro.**
+
+
+## GYM-01 — catálogo estático dos Ginásios Kanto (22/11/2026; EM PR)
+- Novo `gyms/kantoGyms.ts` com oito líderes históricos, equipes adaptadas 3×3, níveis fixos, recompensas candidatas e regra pura de acesso sequencial que rejeita saltos, repetição e histórico inválido.
+- API exportada no core, testes Vitest verificam espécies, ordem, bônus cumulativos (99 pontos) e título planejado (+12 em seis atributos).
+- **Sem combate de Ginásio, escritor, insígnias concedidas, reset de saves ou alteração do jogo publicado.** CI/PR/merge/deploy a verificar.

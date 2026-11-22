@@ -135,3 +135,8 @@ export {KANTO_BALL_SHOP_CATALOG,KANTO_BALL_SHOP_STATUS,
   from './shop/ballShop.js';
 export type {KantoShopBallId,KantoShopPricePolicy,KantoShopPurchaseResult,
   KantoShopPurchaseInput,KantoBallShopItem} from './shop/ballShop.js';
+
+// GYM-01: catálogo e acesso sequencial apenas; sem writer/combate de ginásio.
+export {KANTO_GYMS,KANTO_GYM_MASTER_TITLE_STATS,kantoNextGym,kantoGymCatalogInvariant}
+  from './gyms/kantoGyms.js';
+export type {KantoGymId,KantoGymPokemon,KantoGymDefinition} from './gyms/kantoGyms.js';

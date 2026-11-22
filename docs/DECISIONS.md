@@ -222,3 +222,7 @@ PR #149 funcional `7054c3790800ee4e71c2ee597ca9a576e5f9c90c`, CI geral/Playwrigh
 
 ### D064BS — XP exclusivo do líder da expedição (22/11/2026, IMPLEMENTAÇÃO EM PR)
 Por decisão expressa, expedições deixam de distribuir XP para toda a equipe. Só o líder `teamUids[0]` ganha XP de Pokémon; até dois companheiros podem acompanhar, sem XP ou afinidade. Preservados XP do treinador, moedas, drops e proteção de writer/receipts. A concessão de insígnias por vitórias de regiões será substituída em fase futura dos Ginásios; **não foi modificada nesta alteração isolada**. Requer CI, merge e deploy verificados para status PUBLICADO.
+
+
+### GYM-01 — fundação estática e migração simplificada (22/11/2026; PROPOSTA TÉCNICA EM PR)
+Usuário confirmou **nenhum jogador real**. O catálogo Kanto passará a ter oito desafios sequenciais 3×3 sem rematch, badges únicas por vitória confirmada e título ao completar oito. Sem necessidade de resgatar conquistas legadas de jogadores inexistentes; resets de **dados de teste** somente explícitos. A fase GYM-01 registra catálogo e sequenciamento sem writer, battle, drops, badges ou UI: nada é reivindicado como ativo. A remoção do grant por vitórias regionais será combinada à ativação do writer de ginásios e coberta por testes. Atributos propostos totalizam +99 pelas insígnias e +12 em cada atributo pelo título ativo (não por posse). Próxima implementação precisa respeitar teto manual 40 + bônus adicionais, idempotência e catálogo de golpes.
