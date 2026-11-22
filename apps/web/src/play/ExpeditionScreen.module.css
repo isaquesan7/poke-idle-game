@@ -53,3 +53,14 @@
 @media(max-width:690px){.panel{padding:var(--space-4);gap:var(--space-4)}.partnerArt{width:82px;height:82px}.timer{padding:var(--space-4)}.timer>i{display:none}.actions button{flex:1 1 100%}.reward{padding:var(--space-3)}.rewardGrid{gap:var(--space-2)}}
 @media(max-width:370px){.rewardGrid{grid-template-columns:minmax(0,1fr)}.partner{gap:var(--space-2)}.timer strong{font-size:1.85rem;}}
 @media(prefers-reduced-motion:reduce){.track>span{transition:none;}}
+
+/* D064BI — pistas acessíveis e ação legível em telas compactas. */
+.help{display:block;color:var(--color-text-muted);font-size:.79rem;line-height:1.5;}
+.capNotice{display:flex;gap:var(--space-2);align-items:flex-start;padding:var(--space-3);border:1px solid var(--color-primary);border-radius:var(--radius-control);background:var(--color-navbtn-active-background-1);color:var(--color-text);font-size:.86rem;line-height:1.5;}
+.capNotice i{flex-shrink:0;color:var(--color-primary);margin-top:2px;}
+.actions button:focus-visible,.select:focus-visible{outline:3px solid var(--color-primary);outline-offset:3px;}
+.actions button{touch-action:manipulation;}
+.reward{overflow-wrap:anywhere;}
+.partnerInfo{overflow-wrap:anywhere;}
+@media(max-width:480px){.timer strong{font-size:clamp(1.75rem,8vw,2.5rem);letter-spacing:0}.partnerInfo strong{font-size:1.1rem}.reward strong{font-size:1.22rem}.eyebrow{letter-spacing:.055em}}
+@media(max-width:320px){.timer strong{font-size:1.55rem}.partner{flex-wrap:wrap}.partnerArt{width:76px;height:76px}}
