@@ -249,3 +249,11 @@ Todo novo treinador em modo normal recebe um único inicial escolhido entre Bulb
 
 ### D-064AZ — aprendizagem de iniciante após derrota/empate (21/11/2026; branch)
 Para eliminar o bloqueio mensurado com os três iniciais Lv1, cada batalha sem vitória enquanto o Pokémon estiver no nível 1 concede **22 XP para o Pokémon ativo**, uma única vez no mesmo recibo transacional da derrota/empate; o treinador não recebe XP e não se concedem moedas, afinidade, captura ou itens. Quatro tentativas malsucedidas alcançam o nível2 (threshold 87). Após nível2 não existe XP de derrota. A região1 informa a regra; a IA de combate e as recompensas de vitória permanecem intactas.
+
+
+### D064BB — variedade de tipos no Bosque Inicial (proposta em PR, 21/11/2026)
+- Objetivo: reduzir a concentração relativa de adversários Planta/Inseto entre os encontros iniciais, sem conceder vantagem dinâmica dependente do Pokémon escolhido.
+- R1 Bosque Inicial: 15 espécies igualmente prováveis (1/15 por espécie). Acrescentar Psyduck #54 e Poliwag #60 aos encontros já existentes com Squirtle #7, mantendo Caterpie, Weedle, Pidgey, Spearow, Oddish, Paras, Venonat, Bellsprout e os três iniciais.
+- Por exclusividade das 151 espécies, Rattata #19 passa a R3 e Meowth #52 a R4, ocupando os lugares anteriores de Psyduck/Poliwag, respectivamente.
+- Permanecem fixos tipos canônicos, stats, golpes legais FRLG, IA simétrica, níveis regionais, travas, raridade, bolas, captura e XP. Não há vantagem ou peso secreto definido pelo inicial.
+- Balanceamento **não validado** até comparar coortes de writer e encontros; nenhuma meta forçada de 50% de vitórias.
