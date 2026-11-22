@@ -657,3 +657,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Criado `gyms/gymEffects.ts`: status da instância, imunidade de tipo, quedas de Attack/Defense/Speed limitadas a seis estágios. A estrutura `GymFighterState` guarda estágios por Pokémon, persistindo após troca.
 - `gyms/gymTurn.ts`: suporte de veneno/paralisia, golpes com efeito secundário permitido de poison/burn/paralysis, quedas de velocidade, debuffs, drenagem e residual por burn/poison; paralisia altera iniciativa. Golpes de sono, efeitos psíquicos não suportados e Twineedle ainda bloqueados.
 - Novos testes `gym02c2b-status-effects.test.ts` para estado individual, resistência, dano residual, estágio máximo e recusa de efeitos pendentes. Nenhuma UI, insígnia, save ou reward nesta etapa; CI/merge/deploy a verificar.
+
+
+## GYM-02C2b2 — Sabrina, confusão e Psychic (22/11/2026; EM PR)
+- `gyms/gymPsychicMoves.ts` expõe três golpes psíquicos verificados por nível no snapshot FRLG: Confusion e Psybeam (10% confusão), Psychic (10% queda de Sp.Def).
+- `gymTactics.ts` passa a preparar legalmente Kadabra e Alakazam, liberando a montagem dos oito elencos planejados; não altera catálogo dos combates regionais.
+- `gymEffects.ts` guarda `confusionTurns` por Pokémon, com duração de 2–5 ações próprias, pausa na reserva e 50% de chance de autoacerto; `GymEffects` passa a contemplar Special Defense.
+- `gymTurn.ts` aplica efeitos após acerto e usa o modificador de Sp.Def no dano especial. Testes `gym02c2b-psychic-sabrina.test.ts`; CI, merge e Railway pendentes.

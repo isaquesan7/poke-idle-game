@@ -7,7 +7,9 @@
  */
 import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
-import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS} from './gymEffects.js';
+import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
+  gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage} from './gymEffects.js';
+import {gymPsychicSecondary} from './gymPsychicMoves.js';
 import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
 import {kantoRollHitCount} from '../combat/kantoMultiHit.js';
 import {kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
@@ -161,6 +163,22 @@ export function resolveGymTurn(
       log.push(side+' ficou paralisado e perdeu a ação.');
       continue;
     }
+    if((active.confusionTurns??0)>0){
+      // Confusão persiste na reserva. Ao agir, dura 2–5 ações próprias;
+      // 50% de autodano físico sem STAB e sem custo de SP.
+      state=gymTickConfusion(state,side);
+      if(roll()<.5){
+        const drops=active.effects??GYM_EMPTY_EFFECTS;
+        const damage=gymConfusionSelfDamage({
+          level:active.combatant.level,
+          attack:gymDamageStat(active.combatant.stats.attack,drops.attackDrops),
+          defense:gymDamageStat(active.combatant.stats.defense,drops.defenseDrops)
+        });
+        state=applyGymDamage(state,side,damage);
+        log.push(side+' se feriu na confusão: '+damage+' HP.');
+        continue;
+      }
+    }
     if(chosen.action.kind==='focus'){
       const before=active.sp;
       state=focusGymSp(state,side);
@@ -206,7 +224,9 @@ export function resolveGymTurn(
     const attacker={...cleanAttacker,stats:{...cleanAttacker.stats,
       attack:gymDamageStat(cleanAttacker.stats.attack,ownDrops.attackDrops)}};
     const defender={...target.combatant,stats:{...target.combatant.stats,
-      defense:gymDamageStat(target.combatant.stats.defense,foeDrops.defenseDrops)}};
+      defense:gymDamageStat(target.combatant.stats.defense,foeDrops.defenseDrops),
+      specialDefense:gymDamageStat(target.combatant.stats.specialDefense,
+        foeDrops.specialDefenseDrops??0)}};
     const hits=kantoRollHitCount(move.name,roll);
     for(let hit=1;hit<=hits;hit++){
       if(state[defendingSide].needsReplacement||state.outcome!=='ongoing')break;
@@ -243,6 +263,17 @@ export function resolveGymTurn(
       }else if(effect?.kind==='speed-drop'&&roll()*100<effect.chance){
         state=gymDropStat(state,defendingSide,'speedDrops');
         log.push(defendingSide+' perdeu velocidade.');
+      }
+      const psychic=gymPsychicSecondary(move.name);
+      if(psychic&&roll()*100<psychic.chance){
+        if(psychic.kind==='confusion'){
+          const duration=2+Math.floor(roll()*4);
+          state=gymApplyConfusion(state,defendingSide,duration);
+          log.push(defendingSide+' ficou confuso por '+duration+' ações.');
+        }else{
+          state=gymDropStat(state,defendingSide,'specialDefenseDrops');
+          log.push(defendingSide+' perdeu Special Defense.');
+        }
       }
     }
   }

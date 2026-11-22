@@ -33,8 +33,8 @@ describe('GYM-02A — preparação, escolha e IA sem recompensa',()=>{
       }
     }
   });
-  it('prepara elencos com golpes executáveis e bloqueia Sabrina até implementar golpes psíquicos',()=>{
-    for(const gym of KANTO_GYMS.filter(g=>g.id!=='marsh')){
+  it('prepara todos os oito elencos incluindo Sabrina com golpes psíquicos completos',()=>{
+    for(const gym of KANTO_GYMS){
       const prepared=prepareGymOpponent(gym);
       expect(prepared.gymId).toBe(gym.id);
       expect(prepared.team).toHaveLength(3);
@@ -48,9 +48,10 @@ describe('GYM-02A — preparação, escolha e IA sem recompensa',()=>{
         expect(p.stats.hp).toBeGreaterThan(0);
       }
     }
-    // Kadabra/Alakazam têm Confusion/Psybeam/Psychic no FRLG, mas
-    // os efeitos secundários ainda não estão disponíveis no motor.
-    expect(()=>prepareGymOpponent(KANTO_GYMS[5]!)).toThrow(/Espécie 64 nível 58/);
+    const sabrina=prepareGymOpponent(KANTO_GYMS[5]!);
+    for(const mon of sabrina.team.slice(1)){
+      expect(mon.moves?.some(m=>['confusion','psybeam','psychic'].includes(m.name))).toBe(true);
+    }
   });
   it('imunidade: não escolhe golpe elétrico contra adversário ground',()=>{
     const raichu=candidate(26,31);

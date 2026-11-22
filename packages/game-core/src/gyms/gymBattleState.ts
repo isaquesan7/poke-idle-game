@@ -27,6 +27,7 @@ export interface GymFighterState {
   readonly maxSp:number;
   readonly status:KantoBattleStatus|null;
   readonly effects?:GymEffects;
+  readonly confusionTurns?:number;
   readonly retreatRecoveriesUsed:number;
   readonly focusUses:number;
   readonly lastFocusTurn:number;
@@ -69,7 +70,9 @@ export function createGymBattleState(
       throw new RangeError('Combatente inválido.');
     const maxSp=kantoMaxSp(combatant.level,combatant.speciesId);
     return {combatant,uid,hp:combatant.stats.hp,maxSp,sp:maxSp,
-      status:null,effects:{attackDrops:0,defenseDrops:0,speedDrops:0},retreatRecoveriesUsed:0,focusUses:0,lastFocusTurn:-100};
+      status:null,confusionTurns:0,
+      effects:{attackDrops:0,defenseDrops:0,speedDrops:0,specialDefenseDrops:0},
+      retreatRecoveriesUsed:0,focusUses:0,lastFocusTurn:-100};
   };
   const p=player.map(p=>fighter(p.combatant,p.uid)) as
     unknown as [GymFighterState,GymFighterState,GymFighterState];
@@ -103,6 +106,8 @@ function checkFighter(f:GymFighterState):void{
     ||!Number.isSafeInteger(f.sp)||f.sp<0||f.sp>f.maxSp
     ||!Number.isSafeInteger(f.retreatRecoveriesUsed)||f.retreatRecoveriesUsed<0
     ||f.retreatRecoveriesUsed>GYM_SWITCH_RULES.maxRetreatRecoveryPerPokemon
+    ||!Number.isSafeInteger(f.confusionTurns??0)||(f.confusionTurns??0)<0
+    ||(f.confusionTurns??0)>5
     ||!Number.isSafeInteger(f.focusUses)||f.focusUses<0
     ||f.focusUses>KANTO_SP_BALANCE.maxFocusUses
     ||!Number.isSafeInteger(f.lastFocusTurn))
