@@ -3,11 +3,18 @@ export type ProgressionKind = 'trainer' | 'pokemon';
 export interface LevelProgress { readonly level: number; readonly xp: number }
 export interface XpResult extends LevelProgress { readonly gainedLevels: number }
 
-/** D-064AJ: treinador tem curva quadrática de longo prazo; Pokémon mantém a curva existente. */
+/**
+ * D064BM: curva Pokémon preserva exatamente os níveis 1–20 da alfa anterior.
+ * Acima do 20, o termo quadrático evita o líder superar a faixa de encontros
+ * antes de o treinador alcançar o desbloqueio da próxima região. O treinador
+ * continua usando a curva D064AJ original, sem qualquer XP retroativo.
+ */
 export function xpThreshold(kind: ProgressionKind, level: number): number {
   const L = points(level, 'level');
   if (L < 1 || L > 100) throw new RangeError('Nível inválido');
-  return kind === 'trainer' ? 140 + L * 35 + Math.ceil(3.5 * L * L) : 65 + L * 22;
+  if(kind === 'trainer')return 140 + L * 35 + Math.ceil(3.5 * L * L);
+  const excess=Math.max(0,L-20);
+  return 65 + L * 22 + 7 * excess * excess;
 }
 
 /** Progressão pura e determinística, sem alterar o objeto original. */
