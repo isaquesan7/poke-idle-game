@@ -119,6 +119,8 @@ export function gymAiDecision(args:{
   readonly actorHp:number;readonly actorSp:number;
   readonly bench:readonly {readonly index:number;readonly combatant:Combatant;readonly hp:number}[];
   readonly consecutiveSwitches?:number;
+  /** False quando Concentrar esgotou quotas ou cooldown no motor 3×3. */
+  readonly allowConcentrate?:boolean;
 }):GymAiDecision{
   const {actor,defender,actorHp,actorSp,bench}=args;
   const maxSp=kantoMaxSp(actor.level,actor.speciesId);
@@ -174,7 +176,7 @@ export function gymAiDecision(args:{
       decisions.push({action:'switch',toIndex:option.index,score});
     }
   }
-  if(actorSp<maxSp){
+  if(actorSp<maxSp&&args.allowConcentrate!==false){
     decisions.push({action:'concentrate',score:actorSp<15?28:actorSp<30?12:-25});
   }
   const sorted=decisions.sort((a,b)=>b.score-a.score||
