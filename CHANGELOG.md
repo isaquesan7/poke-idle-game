@@ -695,3 +695,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Nova aba `Ginásios` em `PlayApp` com oito desafios sequenciais, líder/cidade/bônus, escolha de três Pokémon distintos, estado 3×3, HP/SP, troca, Concentrar, golpes legais, finalização e abandono confirmado.
 - `GymScreen.tsx` reproduz histórico do `gymSession` para exibir turno e resultado, sem transferir HP/dano ou recompensa ao writer; `GymScreen.module.css` aplica responsividade e rótulos acessíveis. `PlayApp` impede navegação indevida e não sincroniza afinidade durante uma sessão.
 - Teste Playwright `playable-route.mjs`: aba Ginásios acessível desktop/mobile, próximo líder Brock, Misty bloqueada, seleção insuficiente não inicia nem muta save. Os testes GYM-03B seguem cobrindo sequência real e recibo. CI/merge/deploy pendentes.
+
+## 2026-11-22 — GYM-04B (branch, aguardando CI)
+- Diário de Ginásio derivado do replay determinístico de cada ação do transcript, com eventos do motor (ataques, dano, status, trocas, SP, KO), sem RNG novo ou gravação do save ao consultar.
+- Tela mostra as oito ações mais recentes e restaura foco ao grupo de ações depois de cada rodada, ou ao botão Finalizar quando o confronto termina; preserva início acessível por teclado e avisos de turno.
+- Teste Vitest de paridade entre replay e trace, imutabilidade do save e determinismo. Nenhuma regra de HP/SP, insígnias, recompensas, IA ou captura foi alterada.
+- Pendente: CI e E2E completo do Ginásio no navegador, NVDA/VoiceOver manual, merge e verificação de deploy. Não considerar publicado.
