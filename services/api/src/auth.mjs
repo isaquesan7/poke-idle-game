@@ -16,9 +16,9 @@ export function validatePassword(password){
   return password;
 }
 export function validateTrainerName(name){
-  if(typeof name!=='string'||name.trim().length<2||name.trim().length>32
+  if(typeof name!=='string'||name.trim().length<2||name.trim().length>24
     ||/[\u0000-\u001f\u007f]/.test(name))
-    throw new TypeError('Nome do treinador deve ter entre 2 e 32 caracteres.');
+    throw new TypeError('Nome do treinador deve ter entre 2 e 24 caracteres.');
   return name.trim();
 }
 export async function hashPassword(password){

@@ -75,6 +75,34 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
     assert.equal(me.data.trainerName,user.trainerName);
     assert.equal((await json(origin,'/api/v1/save','GET',undefined,
       {Cookie:sessionCookie})).status,404,'new account has no imported progress');
+    assert.equal((await json(origin,'/api/v1/adventure/start','POST',
+      {starterId:25},{Cookie:sessionCookie})).status,400,
+      'only the three approved Kanto starters are allowed');
+    assert.equal((await json(origin,'/api/v1/adventure/start','POST',
+      {starterId:4,coins:100000,badges:['boulder']},
+      {Cookie:sessionCookie})).status,400,
+      'client may never send rewards or state in the first-save request');
+    const started=await json(origin,'/api/v1/adventure/start','POST',
+      {starterId:4},{Cookie:sessionCookie});
+    assert.equal(started.status,201);
+    assert.deepEqual(started.data,{created:true,revision:0,starterId:4});
+    assert.equal((await json(origin,'/api/v1/adventure/start','POST',
+      {starterId:1},{Cookie:sessionCookie})).status,409,
+      'duplicate and concurrent starts may not mint another initial reward');
+    const serverSave=await json(origin,'/api/v1/save','GET',undefined,
+      {Cookie:sessionCookie});
+    assert.equal(serverSave.status,200);
+    assert.equal(serverSave.data.schema_version,2);
+    assert.equal(Number(serverSave.data.revision),0);
+    const initial=JSON.parse(serverSave.data.state.journal.raw);
+    assert.equal(initial.name,user.trainerName);
+    assert.equal(initial.coins,0);
+    assert.equal(initial.roster[0].pokemonId,4);
+    assert.equal(initial.roster[0].level,1);
+    assert.equal(initial.roster[0].affinity,0);
+    assert.deepEqual(initial.badges,[]);
+    assert.equal(initial.ballPocket.quantities['poke-ball'],12);
+
     assert.equal((await json(origin,'/api/v1/save','PUT',
       {coins:999999,badges:['boulder']},{Cookie:sessionCookie})).status,404,
       'clients cannot post arbitrary saves/rewards');
@@ -84,7 +112,37 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
     assert.notEqual(proof.rows[0].password_hash,user.password);
     const saves=await pool.query('SELECT account_id FROM game_saves WHERE account_id=$1',
       [register.data.id]);
-    assert.equal(saves.rowCount,0,'no import and no client-originated writes');
+    assert.equal(saves.rowCount,1,'only the server-started adventure is persisted');
+    const receipts=await pool.query(
+      'SELECT action_id,kind FROM game_action_receipts WHERE account_id=$1',
+      [register.data.id]);
+    assert.deepEqual(receipts.rows,[{action_id:'adventure:create:v1',
+      kind:'adventure-initialization'}]);
+    // Two concurrent starts from the SAME authenticated account must commit
+    // one save/receipt only. Different starter requests cannot overwrite it.
+    const another={email:'concurrency-'+process.pid+'@example.test',
+      password:'another unique strong password 2026',trainerName:'Corrida CI'};
+    const created=await json(origin,'/api/v1/auth/register','POST',another);
+    assert.equal(created.status,201);
+    assert.equal((await json(origin,'/api/v1/auth/verify','POST',
+      {token:created.data.verificationToken})).status,200);
+    const otherLogin=await json(origin,'/api/v1/auth/login','POST',
+      {email:another.email,password:another.password});
+    const otherCookie=otherLogin.headers.get('set-cookie').split(';')[0];
+    const outcomes=await Promise.all([1,7].map(starterId=>
+      json(origin,'/api/v1/adventure/start','POST',{starterId},
+        {Cookie:otherCookie})));
+    assert.deepEqual(outcomes.map(o=>o.status).sort(),[201,409]);
+    const parallelRows=await pool.query(
+      'SELECT state FROM game_saves WHERE account_id=$1',[created.data.id]);
+    assert.equal(parallelRows.rowCount,1);
+    assert.ok([1,7].includes(JSON.parse(parallelRows.rows[0].state.journal.raw)
+      .roster[0].pokemonId));
+    const parallelReceipt=await pool.query(
+      'SELECT count(*)::int AS total FROM game_action_receipts WHERE account_id=$1',
+      [created.data.id]);
+    assert.equal(parallelReceipt.rows[0].total,1);
+
     const sessions=await pool.query(
       'SELECT octet_length(token_sha256) AS bytes FROM game_auth_sessions WHERE account_id=$1',
       [register.data.id]);
