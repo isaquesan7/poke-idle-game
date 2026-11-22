@@ -35,6 +35,25 @@ describe('GYM-02D — IA com mesma autoridade de ações 3×3',()=>{
       state.player.fighters[0]!.hp);
     expect(response.state.turn).toBe(state.turn);
   });
+  it('IA do treinador e líder escolhem substituição após KO de forma legal e sem turno extra',()=>{
+    let state=match(0);
+    for(const side of ['player','leader'] as const)
+      state=applyGymDamage(state,side,state[side].fighters[0]!.hp);
+    const player=gymChooseAiAction(state,'player');
+    const leader=gymChooseAiAction(state,'leader');
+    expect(player.kind).toBe('switch');
+    expect(leader.kind).toBe('switch');
+    expect(gymLegalTurnActions(state,'player')).toContainEqual(player);
+    expect(gymLegalTurnActions(state,'leader')).toContainEqual(leader);
+    const round=resolveGymTurn(state,player,leader,17);
+    expect(round.status).toBe('applied');
+    if(round.status!=='applied')return;
+    expect(round.state.turn).toBe(state.turn);
+    expect(round.state.player.voluntarySwitchesUsed).toBe(0);
+    expect(round.state.leader.voluntarySwitchesUsed).toBe(0);
+    expect(round.state.player.fighters[0]!.hp).toBe(0);
+    expect(round.state.leader.fighters[0]!.hp).toBe(0);
+  });
   it('não pode gastar quota extra de troca ou usar Concentrar em cooldown',()=>{
     let state=spendGymSp(match(1),'leader',20);
     state={...state,turn:2,leader:{...state.leader,
