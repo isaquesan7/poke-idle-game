@@ -54,17 +54,10 @@ export function ExpeditionScreen({
   // Ao trocar de fase, manter o foco na ação útil; não roubar foco na
   // primeira montagem nem a cada atualização de segundo do cronômetro.
   const previousActive=useRef<boolean|null>(null);
-  const claimRef=useRef<HTMLButtonElement>(null);
-  const stopRef=useRef<HTMLButtonElement>(null);
-  const selectRef=useRef<HTMLSelectElement>(null);
+  const titleRef=useRef<HTMLHeadingElement>(null);
   useEffect(()=>{
-    if(previousActive.current!==null&&previousActive.current!==active){
-      if(active){
-        if(claimRef.current&&!claimRef.current.disabled)claimRef.current.focus();
-        else stopRef.current?.focus();
-      }
-      else selectRef.current?.focus();
-    }
+    if(previousActive.current!==null&&previousActive.current!==active)
+      titleRef.current?.focus();
     previousActive.current=active;
   },[active]);
   const selected=options.find(option=>option.id===selectedRegionId);
@@ -79,7 +72,7 @@ export function ExpeditionScreen({
     <section className={styles.panel} aria-labelledby="expedition-title" aria-busy={busy}>
       <header className={styles.heading}>
         <span className={styles.eyebrow}><i className="fa-solid fa-compass" aria-hidden="true"/> EXPLORAÇÃO IDLE</span>
-        <h2 id="expedition-title"><i className="fa-solid fa-map" aria-hidden="true"/> {active?'Expedição em andamento':'Expedição de Kanto'}</h2>
+        <h2 ref={titleRef} tabIndex={-1} id="expedition-title"><i className="fa-solid fa-map" aria-hidden="true"/> {active?'Expedição em andamento':'Expedição de Kanto'}</h2>
         <p>Envie seu Pokémon para explorar Kanto. A cada 10 segundos: 7 moedas, 4 XP para o treinador e 5 XP para o Pokémon, com até 8 horas de recompensas por resgate.</p>
       </header>
       <div className={styles.destination}>
@@ -112,10 +105,10 @@ export function ExpeditionScreen({
             <i className="fa-solid fa-person-hiking" aria-hidden="true"/> Iniciar expedição
           </button>
           :<>
-            <button ref={claimRef} type="button" className={styles.primary} disabled={busy||!pending?.cycles} aria-disabled={busy||!pending?.cycles} onClick={onClaim}>
+            <button type="button" className={styles.primary} disabled={busy||!pending?.cycles} aria-disabled={busy||!pending?.cycles} onClick={onClaim}>
               <i className="fa-solid fa-gift" aria-hidden="true"/> Resgatar recompensas
             </button>
-            <button ref={stopRef} type="button" className={styles.secondary} disabled={busy} aria-disabled={busy} onClick={onStop}>
+            <button type="button" className={styles.secondary} disabled={busy} aria-disabled={busy} onClick={onStop}>
               <i className="fa-solid fa-flag-checkered" aria-hidden="true"/> Encerrar expedição
             </button>
           </>}
