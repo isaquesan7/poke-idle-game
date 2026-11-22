@@ -7,8 +7,9 @@ export { clampAffinity, affinityRate, trainerContribution } from './affinity/aff
 export { affinityIdlePenaltyDays, affinityAfterInactivity, AFFINITY_IDLE_DAY_MS, AFFINITY_IDLE_GRACE_DAYS, AFFINITY_LOSS_ON_DEFEAT, AFFINITY_LOSS_ON_DRAW } from './affinity/affinityDynamics.js';
 export { xpThreshold, grantXp, battleTrainerXp, beginnerBattleXp } from './progression/xp.js';
 export type { ProgressionKind, LevelProgress, XpResult } from './progression/xp.js';
-export { expeditionRewards, EXPEDITION_CYCLE_MS, MAX_EXPEDITION_CYCLES } from './rewards/expedition.js';
-export type { ExpeditionRewards } from './rewards/expedition.js';
+export { expeditionRewards, EXPEDITION_CYCLE_MS, MAX_EXPEDITION_CYCLES, EXPEDITION_BALL_PERIODS, emptyExpeditionBallProgress } from './rewards/expedition.js';
+export {battleProgressFactor,expeditionProgressFactor,expeditionRegionRates,scaledRegionalReward} from './rewards/regionProgression.js';
+export type { ExpeditionRewards,ExpeditionContext,ExpeditionBallProgress,ExpeditionBallKind } from './rewards/expedition.js';
 export {
   LEGACY_ITEMS, LEGACY_BADGES, LEGACY_TITLES, LEGACY_STARTERS, legacyTitleIsUnlocked,
   effectiveLegacyTitle
