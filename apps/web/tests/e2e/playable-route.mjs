@@ -669,15 +669,23 @@ async function exercise(browser, label, viewport) {
   // Fechar expedição antes de mexer no time.
   await page.getByRole('button',{name:'Expedição',exact:true}).click();
   await page.getByRole('button',{name:'Encerrar expedição'}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===6+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:6+firstBattleOffset});
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await first.getByRole('button',{name:'Adicionar UID '+firstUid+' à equipe'}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===7+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:7+firstBattleOffset});
   await second.getByRole('button',{name:'Adicionar UID '+secondUid+' à equipe'}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===8+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:8+firstBattleOffset});
   assert.equal(await page.getByRole('button',{name:'Adicionar UID '+firstUid+' à equipe'}).count(),0);
   await page.getByRole('button',{name:'Tornar líder UID '+firstUid,exact:true}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===9+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:9+firstBattleOffset});
   let teamSnapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   let teamGame=JSON.parse(teamSnapshot.journal.raw);
   assert.deepEqual(teamGame.team,[firstUid,1,secondUid]);
@@ -712,7 +720,9 @@ async function exercise(browser, label, viewport) {
   await secondTraining.getByRole('button',{name:'Pré-visualizar +1 em SPD'}).click();
   assert.equal((await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE)).revision,9+firstBattleOffset);
   await secondTraining.getByRole('button',{name:'Confirmar distribuição'}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===10+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:10+firstBattleOffset});
   teamSnapshot=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   teamGame=JSON.parse(teamSnapshot.journal.raw);
   assert.equal(teamGame.roster.find(p=>p.uid===secondUid).manual.speed,1);
@@ -721,7 +731,9 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Regiões',exact:true}).click();
   await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
   await page.getByLabel('Líder do combate').getByText('UID #'+firstUid,{exact:false}).waitFor();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===11+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:11+firstBattleOffset});
   const last=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.ok(last.journal.receipts.at(-1).fingerprint.includes('"activeUid":'+firstUid),
     'Arena precisa combater com o UID promovido a líder');
@@ -751,11 +763,15 @@ async function exercise(browser, label, viewport) {
     assert.equal(await equipTackle.count(),0);
     await page.getByRole('button',{name:'Tornar principal tackle'}).click();
   }
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===12+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:12+firstBattleOffset});
   assert.equal(await page.getByRole('button',{name:'Equipar golpe tackle'}).count(),0,
     'Golpe equipado não pode exibir botão de equipar');
   await page.getByRole('button',{name:'Aprimorar golpe tackle'}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===13+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:13+firstBattleOffset});
   const moved=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);
   assert.equal(moved.roster.find(p=>p.uid===firstUid).moveName,'tackle');
   assert.equal(moved.roster.find(p=>p.uid===firstUid).upgrades.tackle,1);
@@ -777,7 +793,9 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('heading',{name:'Evolução'}).waitFor();
   page.once('dialog',dialog=>void dialog.accept());
   await page.getByRole('button',{name:'Evoluir para Pidgeotto'}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===14+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:14+firstBattleOffset});
   const evolved=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);
   assert.equal(evolved.roster.find(p=>p.uid===firstUid).pokemonId,17);
   assert.equal(evolved.roster.find(p=>p.uid===firstUid).upgrades.tackle,1);
@@ -798,11 +816,15 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Golpes'}).click();
   await page.getByRole('heading',{name:'Golpes do Pokémon'}).waitFor();
   await page.getByRole('button',{name:'Adicionar golpe growl'}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===15+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:15+firstBattleOffset});
   let slots=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).roster.find(p=>p.uid===1),SAVE);
   assert.deepEqual(slots.moveNames,['scratch','growl']);
   await page.getByRole('button',{name:'Tornar principal growl'}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===16+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:16+firstBattleOffset});
   slots=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).roster.find(p=>p.uid===1),SAVE);
   assert.deepEqual(slots.moveNames,['growl','scratch']);
   await page.reload();
@@ -812,7 +834,9 @@ async function exercise(browser, label, viewport) {
   assert.equal(await page.getByTestId('equipped-moves').getByText(/growl/).count(),1);
   await page.getByRole('button',{name:'Coleção',exact:true}).click();
   await page.getByTestId('pokemon-uid-1').getByRole('button',{name:'Tornar líder UID 1 pela coleção',exact:true}).click();
-  await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===17+firstBattleOffset,SAVE);
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:17+firstBattleOffset});
   await page.getByRole('button',{name:'Regiões',exact:true}).click();
   // Seed FIXA só para esta batalha E2E: contra Caterpie deve usar Growl e
   // em seguida Scratch; sem depender da sorte do encontro no navegador.
