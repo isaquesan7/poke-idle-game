@@ -51,14 +51,18 @@ function gymLogFrame(
   const lGain=changed('leader')?Math.max(0,next('leader').hp-previous('leader').hp):0;
   const pSp=changed('player')?Math.max(0,next('player').sp-previous('player').sp):0;
   const lSp=changed('leader')?Math.max(0,next('leader').sp-previous('leader').sp):0;
+  const statusChanged=(side:GymSide)=>changed(side)&&(
+    previous(side).status!==next(side).status||
+    previous(side).confusionTurns!==next(side).confusionTurns||
+    previous(side).sleepActions!==next(side).sleepActions||
+    previous(side).effects!==next(side).effects);
+  const pStatus=statusChanged('player'),lStatus=statusChanged('leader');
   const target=pLost?'player':lLost?'wild':pGain?'player':lGain?'wild':
-    pSp?'player':lSp?'wild':null;
+    pSp?'player':lSp?'wild':pStatus?'player':lStatus?'wild':null;
   const amount=pLost||lLost||pGain||lGain;
   const kind=pLost||lLost?line.includes('residual')?'residual':'attack':
     pGain||lGain?'heal':pSp||lSp?'focus':
-      line.includes('errou')?'miss':
-        line.includes('recebeu')||line.includes('confuso')
-          ||line.includes('paralisado')?'status':'info';
+      pStatus||lStatus?'status':line.includes('errou')?'miss':'info';
   return {
     playerHp:next('player').hp,wildHp:next('leader').hp,
     playerSp:next('player').sp,wildSp:next('leader').sp,
