@@ -46,7 +46,7 @@ test('ONLINE-01C-4 private proxy is allowlisted, disabled by default and preserv
     assert.equal(body.cookie,'__Host-kanto_session=token');
     assert.equal(body.forwarded,null);
     assert.equal(body.body,'{"email":"abc"}');
-    assert.match(r.headers.get('set-cookie'),'HttpOnly');
+    assert.match(r.headers.get('set-cookie'),/HttpOnly/);
     assert.equal((await fetch(base+'/api/v1/admin')).status,404);
     assert.equal((await fetch(base+'/api/v1/status',{method:'DELETE'})).status,405);
   }finally{child.kill();await close(backend);}
