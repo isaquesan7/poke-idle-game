@@ -10,7 +10,7 @@
  * diferente é conflito; revisão obsoleta é recusada; recompensas, captura
  * e recibo são calculados na MESMA transição imutável. Ainda não é writer.
  */
-import { grantXp, battleTrainerXp } from '../progression/xp.js';
+import { grantXp, battleTrainerXp, beginnerBattleXp } from '../progression/xp.js';
 import { expeditionRewards } from '../rewards/expedition.js';
 import { LEGACY_BADGES } from './catalog.js';
 import { kantoRegion } from '../map/kantoRegions.js';
@@ -209,6 +209,11 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
     }
     if (!Number.isSafeInteger(state.losses + 1)) throw new RangeError('Derrotas fora do limite.');
     state.losses++;
+    // Lv1 não possui expedição regional na primeira área e pode perder
+    // repetidamente para selvagens Lv2+. Aprendizagem limitada evita softlock
+    // sem modificar a IA adversária ou recompensar moedas/captura/treinador.
+    const trainingXp=beginnerBattleXp(active.level,cmd.outcome);
+    if(trainingXp>0)creditPokemonXp(active,trainingXp);
     return;
   }
   if (!natural(cmd.affinityGain) || cmd.affinityGain < 2 || cmd.affinityGain > 5) {
