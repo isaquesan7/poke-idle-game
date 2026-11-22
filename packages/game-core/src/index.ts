@@ -151,3 +151,7 @@ export {GYM_SWITCH_RULES,createGymBattleState,applyGymDamage,spendGymSp,
   switchGymPokemon,gymTeamIsDefeated} from './gyms/gymBattleState.js';
 export type {GymSide,GymFighterState,GymSideState,GymBattleState,GymStateResult}
   from './gyms/gymBattleState.js';
+
+// GYM-02C1: rodada determinística com ataques diretos e trocas; sem suporte/rewards.
+export {resolveGymTurn} from './gyms/gymTurn.js';
+export type {GymTurnAction,GymTurnResult} from './gyms/gymTurn.js';

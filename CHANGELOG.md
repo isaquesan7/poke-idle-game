@@ -639,3 +639,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Core puro `gyms/gymBattleState.ts` mantém 3 HP/SP individuais por lado, sem restaurar HP ao trocar, ao vencer Pokémon ou ao retornar. Troca voluntária custa uma oportunidade, até 3 por equipe; apenas o Pokémon recolhido recebe até 20% SP máximo, uma única vez por confronto. KO obriga substituição gratuita sem recuperação de SP. Limites simétricos jogador/líder.
 - Vitest `gym02b-persistent-team.test.ts`: ausência de cura automática, volta à arena com HP anterior, SP sem duplicação, 3 trocas, KO sem recarga, vitória após 3 KOs, mesmas regras para ambos os lados.
 - Ainda não implementa combate por turnos 3×3, integração com UI/writer, insígnias ou recompensas; nenhum efeito nas lutas regionais. CI/merge/Railway pendentes.
+
+
+## GYM-02C1 — rodada 3×3 determinística sem recompensas (22/11/2026, EM PR)
+- Novo resolvedor puro `gyms/gymTurn.ts`: ações ofensivas equipadas, básico grátis e troca de membros, com iniciativa por prioridade/velocidade/seed, custo de SP, dano existente, HP individual persistente e KO com substituição obrigatória sem turno grátis.
+- Testes `gym02c-turns.test.ts` verificam troca consumindo ação, alvo recém-entrado recebendo dano, SP sem reset, recusa de movimentos inválidos, substituição forçada e determinismo.
+- **Ainda NÃO há combate completo 3×3**: efeitos de suporte/status/secundários, multi-hit, Concentrar, integração IA, UI/save e recompensas pendentes; nenhuma alteração em regiões/capturas/insígnias.
