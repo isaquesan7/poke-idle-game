@@ -93,10 +93,7 @@ describe('D064AZ — progressão inicial real / dificuldade justa',()=>{
         trainerLevels.push(newGame.trainer.level);
       }
       const latest=game(store);
-      expect(wins).toBeGreaterThan(0);
-      expect(firstLevel2At).not.toBeNull();
-      expect(latest.roster[0].level).toBeGreaterThan(1);
-      expect(latest.trainer.level).toBeGreaterThan(1);
+      // Diagnosticar todos os iniciais, incluindo casos sem vitórias.
       expect(latest.wins).toBe(wins);
       expect(latest.losses).toBe(losses);
       expect(latest.regionWins[0]).toBe(wins);
@@ -105,6 +102,7 @@ describe('D064AZ — progressão inicial real / dificuldade justa',()=>{
       expect(new Set(latest.roster.map((p:{uid:number})=>p.uid)).size)
         .toBe(latest.roster.length);
       expect(latest.ballPocket.quantities['poke-ball']).toBeGreaterThanOrEqual(0);
+      if(latest.roster[0].level>=2){
       const old=snapshot(store);
       // Região 1 exige Pokémon nível2 para expedição, já obtido sem grant.
       const nowMs=1_000_000;
@@ -121,6 +119,7 @@ describe('D064AZ — progressão inicial real / dificuldade justa',()=>{
         .toBe('ok');
       expect(game(store).expedition).toBeNull();
       expect(snapshot(store).revision).toBe(old.revision+3);
+      }
       report[String(species)]={
         attempts:samples,wins,losses,winPct:Math.round(wins/samples*10000)/100,
         firstWinAt,firstPokemonLevel2At:firstLevel2At,
@@ -134,6 +133,7 @@ describe('D064AZ — progressão inicial real / dificuldade justa',()=>{
     }
     (globalThis as unknown as {console:{info:(s:string)=>void}}).console.info(
       'D064AZ_LEVEL1_WRITER_REPORT '+JSON.stringify(report));
+    expect(Object.values(report).every((r:any)=>r.wins>0&&r.firstPokemonLevel2At!==null)).toBe(true);
   },120000);
   it('não presume evolução, pedras, time ou região 9 automaticamente após o grind',()=>{
     for(const starter of starters){
