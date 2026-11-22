@@ -154,3 +154,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064AZ-FIX | 2026-11-21 | EM VALIDAÇÃO | Regressão real 3×72 batalhas de starter Lv1: Bulbasaur e Squirtle 0 vitórias, Charmander 1 e nenhum Lv2; progressão podia travar antes de expedições. Aprovar hipótese de onboarding restrita a derrotas/empates enquanto ativo Lv1 (+22 XP só Pokémon via writer/replay, 4 resultados sem vitória → Lv2), sem mudar IA, força, trainer XP, moedas, captura ou vitórias. Testar invariantes e documentar antes de publicar. |
+
+
+| D-064BA | 2026-11-21 | DIAGNÓSTICO EM VALIDAÇÃO | Antes de rebalancear os iniciais, comparar 3×6×2 perfis por writer, 96 encontros cada, com e sem expedições regionais legítimas; evoluir apenas no Nv16 e acessar região2 apenas ao desbloquear Nv6 do treinador. Não alterar XP, IA, power, nível selvagem, captura, TM ou saves por dados de uma trajetória única. |
