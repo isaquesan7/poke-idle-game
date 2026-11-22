@@ -1535,3 +1535,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - **Verificar:** CI TypeScript/Vitest/E2E desktop/mobile, revisão visual de luta com três UIDs e abertura/recarga, PR merge e Railway antes de chamar publicado. Próximo: reforçar diário visual/impactos na cena e regressão E2E completa de Ginásio; revisão NVDA/VoiceOver manual pendente.
 
 - GYM-04C ganhou teste de aceitação em Chromium `exerciseGymDuel` dentro de `playable-route.mjs`: instancia equipe de três UIDs de teste no save alfa, inicia Brock pelos botões, valida palco com 2 ativos e 4 reservas, recarga sem gravar save, joga até o final com a UI, finaliza e exige só um receipt/insígnia, sem overflow no desktop/mobile. Confirmar execução de CI específica do HEAD antes de integrar.
+
+
+## GYM-04D consolidada na main de GYM-04C (22/11/2026; EM BRANCH)
+- GYM-04C PR #167 MERGED squash main 0f22c880cbe49135ecb09967af2ab53ed0c16082. CI final geral 45059890362, Chromium 45059890413, Docker 45059890363 SUCCESS. Railway ab6f8209-752d-4fb1-8882-12b8346d1a97 SUCCESS no SHA exato; GET público /play não confirmado diretamente.
+- Branch limpa feat/gym04d-integrated-duel-main baseada na main após PR #167; substitui a dependente #168 e evita divergência causada por squash. Implementa replayGymSessionTrace, diário de oito ações no novo palco e foco contextual pós-ação em comandos, reservas ou finalização. Não altera combate, writer, rewards, HP/SP, IA ou RNG.
+- Teste gymSession.test.ts confere igualdade do replay, eventos, determinismo e ausência de gravação. CI/PR/merge/deploy desta etapa a verificar. Próximo: testes completos, revisão visual e NVDA/VoiceOver real. Nunca editar isaquesan7/pokedex.

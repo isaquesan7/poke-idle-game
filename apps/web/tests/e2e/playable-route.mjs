@@ -1340,6 +1340,26 @@ async function exerciseGymDuel(browser,label,viewport){
       const newRevision=before.revision+i+1;
       await page.waitForFunction(({key,rev})=>
         JSON.parse(localStorage.getItem(key))?.revision>=rev,{key:SAVE,rev:newRevision});
+      if(i===0){
+        const history=screen.getByTestId('gym-battle-history');
+        await history.waitFor();
+        assert.ok(await history.locator('ol > li').count()>0,
+          'Diário deve apresentar eventos reais após a primeira rodada');
+        await page.waitForFunction(()=>{
+          const current=document.activeElement;
+          return current?.getAttribute('aria-label')==='Comandos de batalha'
+            ||current?.getAttribute('aria-label')==='Seus Pokémon reservas'
+            ||current?.textContent?.includes('Finalizar confronto');
+        });
+        const revisionBeforeRead=await page.evaluate(key=>
+          JSON.parse(localStorage.getItem(key)).revision,SAVE);
+        await history.locator('ol').innerText();
+        assert.equal(await page.evaluate(key=>
+          JSON.parse(localStorage.getItem(key)).revision,SAVE),revisionBeforeRead,
+          'Consultar diário visual não pode escrever no save');
+        await page.screenshot({path:new URL('gym-duel-'+label+'.png',shots).pathname,
+          fullPage:true});
+      }
     }
     assert.equal(completed,true,'Brock deve concluir com três Pokémon de nível 100');
     const beforeFinish=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);

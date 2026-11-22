@@ -11,7 +11,7 @@ import {
 import type {GymTurnAction,GymBattleState} from '@kanto/game-core';
 import type {LegacySave} from '../storage/legacySave';
 import type {PlayAction} from './playSave';
-import {replayGymSession} from './gymSession';
+import {replayGymSessionTrace} from './gymSession';
 import type {GymSessionV1} from './gymSession';
 import styles from './GymScreen.module.css';
 
@@ -43,18 +43,34 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   const [selected,setSelected]=useState<readonly number[]>([]);
   const [confirmAbandon,setConfirmAbandon]=useState(false);
   const detailsRef=useRef<HTMLElement|null>(null);
+  const commandRef=useRef<HTMLDivElement|null>(null);
+  const reserveRef=useRef<HTMLDivElement|null>(null);
+  const finishRef=useRef<HTMLButtonElement|null>(null);
+  const previousSession=useRef<string|null>(null);
   const session=readSession(game.gymSession);
   const gym=session?KANTO_GYMS.find(g=>g.id===session.gymId):
     kantoNextGym(data.badges);
   let state:GymBattleState|null=null;
   let invalid='';
+  let history:readonly {readonly turn:number;readonly lines:readonly string[]}[]=[];
   if(session){
-    try{state=replayGymSession(game,session);}
-    catch(e){invalid=e instanceof Error?e.message:'Não foi possível validar a sessão.';}
+    try{
+      const trace=replayGymSessionTrace(game,session);
+      state=trace.state;
+      history=trace.rounds;
+    }catch(e){invalid=e instanceof Error?e.message:'Não foi possível validar a sessão.';}
   }
   useEffect(()=>{
-    if(session&&detailsRef.current){
-      detailsRef.current.focus({preventScroll:true});
+    if(!session){previousSession.current=null;return;}
+    if(previousSession.current!==session.id){
+      previousSession.current=session.id;
+      detailsRef.current?.focus({preventScroll:true});
+    }else if(state?.outcome!=='ongoing'){
+      finishRef.current?.focus({preventScroll:true});
+    }else if(state.player.needsReplacement){
+      reserveRef.current?.focus({preventScroll:true});
+    }else{
+      commandRef.current?.focus({preventScroll:true});
     }
   },[session?.id,revision]);
   useEffect(()=>{setConfirmAbandon(false);},[session?.id]);
@@ -90,6 +106,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
     const switchActions=actions.filter((action):action is Extract<GymTurnAction,{kind:'switch'}>=>
       action.kind==='switch');
     return <div className={styles.reserveGroup}
+      ref={side==='player'?reserveRef:undefined} tabIndex={side==='player'?-1:undefined}
       aria-label={side==='player'?'Seus Pokémon reservas':'Reservas do líder'}>
       <strong>{side==='player'?'Suas reservas':'Reservas de '+(gym?.leader??'líder')}</strong>
       <div className={styles.reserveCards}>
@@ -205,7 +222,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
           {renderReserve('leader')}
         </div>
         {state.outcome==='ongoing'&&<div className={styles.commands}
-          aria-label="Comandos de batalha">
+          ref={commandRef} tabIndex={-1} aria-label="Comandos de batalha">
           <div className={styles.commandsHeader}>
             <h4>{state.player.needsReplacement?'Escolha um Pokémon para substituir':
               'Escolha sua habilidade'}</h4>
@@ -226,13 +243,24 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
             </p>}
           </div>
         </div>}
+        {history.length>0&&<section className={styles.history}
+          aria-label="Diário do combate" data-testid="gym-battle-history">
+          <h4>Diário de combate</h4>
+          <ol aria-live="off">{history.slice(-8).map((entry,i)=><li key={history.length+i}>
+            <strong>Rodada {entry.turn}</strong>
+            <ul>{entry.lines.map((line,j)=><li key={j}>{line
+              .replace(/^player\\b/,'Seu Pokémon')
+              .replace(/^leader\\b/,'Líder')}</li>)}</ul>
+          </li>)}</ol>
+          {history.length>8&&<small>Últimas oito ações de {history.length}.</small>}
+        </section>}
         {state.outcome!=='ongoing'&&<div role="status" className={styles.result}>
           <h3>{state.outcome==='player-win'?'Você venceu '+gym?.leader+'!':
             state.outcome==='draw'?'Empate no Ginásio':'Sua equipe foi derrotada'}</h3>
           <p>{state.outcome==='player-win'
             ?'Finalize para registrar a insígnia e a recompensa uma única vez.':
             'Nenhuma insígnia ou recompensa de vitória será concedida.'}</p>
-          <button className={styles.primary} type="button" disabled={busy}
+          <button className={styles.primary} type="button" disabled={busy} ref={finishRef}
             onClick={()=>onAction({type:'gym-finish',sessionId:session.id})}>
             Finalizar confronto
           </button>
