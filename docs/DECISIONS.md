@@ -157,3 +157,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064BA | 2026-11-21 | DIAGNÓSTICO EM VALIDAÇÃO | Antes de rebalancear os iniciais, comparar 3×6×2 perfis por writer, 96 encontros cada, com e sem expedições regionais legítimas; evoluir apenas no Nv16 e acessar região2 apenas ao desbloquear Nv6 do treinador. Não alterar XP, IA, power, nível selvagem, captura, TM ou saves por dados de uma trajetória única. |
+
+
+| D-064BA-RESULT | 2026-11-21 | RESULTADO MEDIDO, SEM REBALANCEAMENTO | 36 perfis por writer: no modo só combate, Charmander 50,35% de vitórias, Bulbasaur 37,50%, Squirtle 31,77%; expedições (120 min simulados totais) aceleraram evolução até Nv16 e abertura de R2 para 18/18 perfis contra 2/18 evoluções sem expedição em 96 combates. Preservar IA, poder, curvas, captura e região; avaliar legalidade de loadouts e composição real do time antes de balancear. |
