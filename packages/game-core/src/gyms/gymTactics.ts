@@ -125,8 +125,13 @@ export function gymAiDecision(args:{
     ||!Number.isSafeInteger(args.consecutiveSwitches??0)
     ||(args.consecutiveSwitches??0)<0)throw new RangeError('Estado da IA inválido.');
   const moves=actor.moves??[actor.move];
+  // A avaliação muda só o golpe temporário, sem reescrever o loadout.
+  // A propriedade opcional 'moves' deve ser OMITIDA (exactOptionalPropertyTypes).
+  const {moves: _loadout,...combatantWithoutSlots}=actor;
+  const estimate=(move:KantoMove)=>kantoDamage(
+    {...combatantWithoutSlots,move},defender,.5,.5);
   // Ataque básico gratuito permanece disponível mesmo com SP esgotado.
-  const basicDamage=kantoDamage({...actor,move:KANTO_BASIC_ATTACK,moves:undefined},defender,.5,.5).damage;
+  const basicDamage=estimate(KANTO_BASIC_ATTACK).damage;
   const decisions:GymAiDecision[]=[{action:'basic',score:Math.round(
     100*basicDamage/Math.max(1,defender.stats.hp))}];
   for(const move of moves){
@@ -143,11 +148,8 @@ export function gymAiDecision(args:{
       decisions.push({action:'move',moveName:move.name,score});
       continue;
     }
-    // O validador de duelo exige que moves[0] seja o golpe ativo;
-    // esta cópia é só para calcular dano esperado, sem alterar o loadout.
-    const simulated={...actor,move,moves:undefined};
     // Dano previsível com rolls médios fixos, nunca os futuros resultados do RNG.
-    const expected=kantoDamage(simulated,defender,.5,.5);
+    const expected=estimate(move);
     const accuracy=move.accuracy/100;
     const damage=expected.damage*accuracy;
     const score=expected.effectiveness===0?-100
