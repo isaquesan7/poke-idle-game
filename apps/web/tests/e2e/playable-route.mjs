@@ -1048,15 +1048,21 @@ async function exerciseNewMoves(browser,label,viewport){
   await page.waitForFunction(({key,before})=>
     JSON.parse(localStorage.getItem(key))?.revision>before,
     {key:SAVE,before:before.revision});
-  const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
-  const game=JSON.parse(after.journal.raw);
-  const battle=game.lastBattle;
+  const staged=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  const stagedGame=JSON.parse(staged.journal.raw);
+  const battle=stagedGame.pendingBattle?.preview;
   assert.ok(battle?.frames?.some(f=>f.actor==='player'&&f.moveName==='double-kick'
     &&f.hitIndex===1),'Double Kick equipado deve atingir na Arena');
   assert.equal(battle.frames.length,battle.log.length);
-  assert.equal(game.team[0],uids.kickUid);
-  assert.equal(after.journal.receipts.length,before.journal.receipts.length+1);
+  assert.equal(stagedGame.team[0],uids.kickUid);
+  assert.equal(staged.journal.receipts.length,before.journal.receipts.length,
+    'nenhum prêmio até acabar o replay Double Kick');
   await page.getByRole('button',{name:'Pular apresentação'}).click();
+  await page.waitForFunction(({key,revision})=>
+    JSON.parse(localStorage.getItem(key))?.revision===revision,
+    {key:SAVE,revision:before.revision+2});
+  const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
+  assert.equal(after.journal.receipts.length,before.journal.receipts.length+1);
   await page.getByRole('button',{name:'Reassistir à batalha'}).click();
   const replay=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
   assert.equal(replay.revision,after.revision);
