@@ -325,6 +325,10 @@ async function exercise(browser, label, viewport) {
   assert.ok(await page.getByRole('timer',{name:'Tempo total da expedição'}).count());
   await page.getByRole('button',{name:'Iniciar expedição'}).click();
   await page.getByRole('heading',{name:'Expedição em andamento'}).waitFor();
+  await page.waitForFunction(()=>
+    document.activeElement?.id==='expedition-title'
+      &&document.activeElement.textContent?.includes('Expedição em andamento'));
+  assert.equal(await page.getByRole('heading',{name:'Expedição em andamento'}).getAttribute('tabindex'),'-1');
   await page.waitForFunction(key=>JSON.parse(localStorage.getItem(key))?.revision===3,SAVE);
   await page.getByRole('timer',{name:'Tempo total da expedição'}).waitFor();
   assert.match(await page.getByTestId('expedition-total-time').innerText(),/^\d{2,}:\d{2}:\d{2}$/);
