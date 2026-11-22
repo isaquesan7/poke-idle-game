@@ -14,7 +14,7 @@ import { kantoCaptureStartingLevel } from '../catalog/kantoEvolution.js';
 import { AFFINITY_LOSS_ON_DEFEAT, AFFINITY_LOSS_ON_DRAW } from '../affinity/affinityDynamics.js';
 import { grantXp, battleTrainerXp, beginnerBattleXp } from '../progression/xp.js';
 import {expeditionRewards,emptyExpeditionBallProgress} from '../rewards/expedition.js';
-import type {ExpeditionBallProgress,ExpeditionBallKind} from '../rewards/expedition.js';
+import type {ExpeditionBallKind} from '../rewards/expedition.js';
 import {battleProgressFactor,scaledRegionalReward} from '../rewards/regionProgression.js';
 import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
 import { LEGACY_BADGES } from './catalog.js';
@@ -211,8 +211,11 @@ function claimExpedition(state: ValidState, nowMs: number, required: boolean): b
   if(drops&&Object.values(drops).some(v=>v>0)){
     const pocket=inspectKantoBallPocket(state.ballPocket);
     if(pocket.status==='invalid')throw new RangeError('Bolso inválido.');
-    if(pocket.status==='valid'){
-      const quantities={...pocket.pocket.quantities};
+    if(pocket.status!=='invalid'){
+      // Em save anterior ao inventário, criar somente as bolas realmente
+      // conquistadas nesta transação, sem kit grátis retroativo.
+      const quantities=pocket.status==='valid'?{...pocket.pocket.quantities}
+        :{} as Record<ExpeditionBallKind,number>;
       for(const kind of Object.keys(drops) as ExpeditionBallKind[]){
         const old=quantities[kind]??0;
         if(!natural(old)||old+drops[kind]>100000)
