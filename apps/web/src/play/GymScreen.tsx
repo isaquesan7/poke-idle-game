@@ -315,7 +315,8 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
           <button type="button" className={styles.secondary}
             onClick={()=>setConfirmAbandon(false)}>Continuar batalha</button>
         </div>:<button type="button" className={styles.secondary}
-          disabled={busy} onClick={()=>setConfirmAbandon(true)}>Abandonar batalha</button>}
+          disabled={busy} onClick={()=>{setAutomatic(false);setConfirmAbandon(true);}}>
+            Abandonar batalha</button>}
       </div>
     </section>}
     {!session&&isRecord(game.lastGymVictory)&&
