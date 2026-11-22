@@ -140,6 +140,8 @@ export function RegionsScreen({
           </button>}
         {!unlocked&&<p className={styles.notice} role="status">Alcance o nível {selected.trainerUnlockLevel} de treinador para lutar nesta região.</p>}
         {!available&&<p className={styles.notice} role="status">Sem estoque dessa Pokébola. Escolha outra ou lute sem tentar capturar.</p>}
+        {selected.id===1&&leaderLevel===1&&
+          <p className={styles.notice}>Primeiros passos: mesmo se não vencer, seu Pokémon ganha 22 XP de aprendizado até alcançar o nível 2. O treinador só ganha XP nas vitórias ou expedições.</p>}
         <p className={styles.notice}>O combate abre a tela da região com animações e diário turno a turno. Pokébolas só são gastas numa tentativa após a vitória. Lendários exigem Ultra Ball.</p>
       </section>
     </section>
