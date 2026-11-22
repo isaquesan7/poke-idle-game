@@ -51,3 +51,24 @@ test('ONLINE-01C-4 private proxy is allowlisted, disabled by default and preserv
     assert.equal((await fetch(base+'/api/v1/status',{method:'DELETE'})).status,405);
   }finally{child.kill();await close(backend);}
 });
+
+test('proxy defaults closed with no upstream; blocks unknown paths and oversized payloads',async()=>{
+  const reservation=createServer();
+  const port=await listen(reservation);
+  await close(reservation);
+  const env={...process.env,PORT:String(port)};
+  delete env.ONLINE_API_INTERNAL_URL;
+  const child=spawn(process.execPath,['server.mjs'],{
+    cwd:process.cwd(),env,stdio:'ignore'
+  });
+  try{
+    const base='http://127.0.0.1:'+port;
+    const response=await ready(port);
+    assert.equal(response.status,503);
+    assert.equal((await response.json()).error,'Contas online em preparação');
+    assert.equal((await fetch(base+'/api/v1/unknown')).status,404);
+    const big=await fetch(base+'/api/v1/auth/login',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:'x'.repeat(16385)});
+    assert.equal(big.status,503);
+  }finally{child.kill();}
+});
