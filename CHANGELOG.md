@@ -702,3 +702,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Nenhuma alteração no motor de combate, na IA, no writer, no RNG, no limite de trocas, nas insígnias ou nas recompensas. Desktop/mobile responsivos. CI e deploy pendentes.
 
 - GYM-04C: ensaio E2E adicional com trio de teste, recarga de duelo, combate completo Brock e recibo único de insígnia em desktop/mobile (resultado CI ainda pendente).
+
+## 2026-11-22 — GYM-04D, integração sobre arena publicada (PR pendente)
+- Diário de combate mostra últimas oito ações calculadas do transcript/seed pelo mesmo motor, sem gravar estado extra.
+- Foco retorna às habilidades após ação normal, às reservas após KO e ao botão Finalizar ao terminar.
+- Preserva integralmente layout GYM-04C da main, sem alterar regras, recompensas ou limites. Teste de trace determinístico, sem mutação de storage. CI/merge/Railway desta etapa pendentes.
