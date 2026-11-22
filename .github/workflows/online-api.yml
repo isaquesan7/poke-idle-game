@@ -1,0 +1,64 @@
+name: ONLINE-01B — API PostgreSQL isolada
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/api/**'
+      - '.github/workflows/online-api.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  api-integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kanto_ci
+          POSTGRES_PASSWORD: ci_only_not_production
+          POSTGRES_DB: kanto_ci
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U kanto_ci -d kanto_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://kanto_ci:ci_only_not_production@127.0.0.1:55432/kanto_ci
+      APP_ORIGIN: http://127.0.0.1:43142
+      ONLINE_REGISTRATION_ENABLED: 'true'
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check committed lock with clean npm install
+        run: npm ci --prefix services/api --ignore-scripts --no-audit --no-fund
+      - name: Validate npm lock & code
+        run: |
+          npm run check --prefix services/api
+          npm run test --prefix services/api
+      - name: Apply and replay transactional migration
+        run: |
+          npm run db:migrate --prefix services/api
+          npm run db:migrate --prefix services/api
+      - name: HTTP authentication and save isolation
+        run: npm run test:integration --prefix services/api
+      - name: Build separate API image and verify isolation
+        run: |
+          docker build -f services/api/Dockerfile -t kanto-online-api .
+          docker run --rm --entrypoint sh kanto-online-api -c '
+            set -eu
+            test "$(id -un)" = node
+            test -e /srv/api/src/server.mjs
+            test -e /srv/api/sql/001_online_foundation.sql
+            test ! -e /srv/api/apps
+            test ! -e /srv/api/landing.html
+            test ! -e /srv/api/assets
+            test ! -e /srv/api/.env
+            test ! -e /srv/api/package-lock.json.bak
+          '
