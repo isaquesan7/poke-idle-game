@@ -499,3 +499,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Resultado de batalha regional passa a ser confirmado após o replay via estado pending salvo no writer; vitória/nível/XP permanecem anteriores durante exibição. Capture uma única vez **depois da vitória**, ou dispense a tentativa; a Pokébola escolhida é consumida na ação pós-combate, preservando chances/limitação de raros.
 - Histórico independente por UID (vitórias/empates/derrotas), exposto na Arena e no perfil; a Arena deixa de mostrar o bloco de insígnias. Dados históricos sem UID não são redistribuídos artificialmente.
 - Melhorias visuais de seletores e estoque, botões e mensagens responsivos. Revisão CI/deploy ainda pendente.
+
+- D064BE — validação funcional confirmada no HEAD `be8b7d1e...`: `44974994526` regressão SUCCESS, `44974994537` Playwright desktop/mobile SUCCESS e `44974994525` Docker SUCCESS. Confrontos postergam créditos até finalizar apresentação; uma tentativa de captura após vitória; histórico UID por Pokémon e seleção estilizada. Release condicionado a merge e Railway SHA exato.
