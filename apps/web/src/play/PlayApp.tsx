@@ -157,6 +157,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   /** Âncoras estáveis: alterações de save não devem lançar a página ao topo. */
   const battleSceneFocusRef=useRef<HTMLDivElement|null>(null);
   const battleCaptureFocusRef=useRef<HTMLDivElement|null>(null);
+  /** Retorno da captura/derrota para a ação que reinicia o encontro. */
+  const battleAgainFocusRef=useRef<HTMLButtonElement|null>(null);
   const lastBattleFocusKeyRef=useRef<string|null>(null);
   /** Apenas efeito temporário da subida de nível já confirmada pelo writer. */
   const [levelUpNotice,setLevelUpNotice]=useState<{battleId:string}|null>(null);
@@ -465,15 +467,20 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   useLayoutEffect(()=>{
     if(!battleFocusKey){lastBattleFocusKeyRef.current=null;return;}
     if(lastBattleFocusKeyRef.current===battleFocusKey)return;
-    const captureReady=!battlePlaying&&
-      ['available','caught','escaped','skipped'].includes(lastBattle?.captureStatus??'');
-    const target=captureReady?battleCaptureFocusRef.current:battleSceneFocusRef.current;
-    if(!target)return;
+    // Estados do fluxo:
+    // 1. Encontro iniciado: palco; 2. Vitória pendente: captura;
+    // 3. Capturou/falhou/pulou ou perdeu/empatou: botão do próximo combate.
+    const capturePending=!battlePlaying&&lastBattle?.captureStatus==='available';
+    const concluded=!battlePlaying&&Boolean(lastBattle)&&!capturePending;
+    const target=capturePending?battleCaptureFocusRef.current
+      :concluded?battleAgainFocusRef.current:battleSceneFocusRef.current;
+    // O botão fica temporariamente disabled enquanto a transação grava.
+    // Não registrar o foco até ele estar novamente utilizável.
+    if(!target||('disabled' in target&&target.disabled)||busy)return;
     lastBattleFocusKeyRef.current=battleFocusKey;
-    // Foco acessível e rolagem da área, NUNCA do topo da página.
     target.focus({preventScroll:true});
     target.scrollIntoView({behavior:'auto',block:'center',inline:'nearest'});
-  },[battleFocusKey,battlePlaying,lastBattle?.captureStatus]);
+  },[battleFocusKey,busy,battlePlaying,lastBattle?.captureStatus]);
   const activeRecord=pokemonBattleRecord(active);
   async function finishPlayback():Promise<void>{
     if(!pendingBattle||settlingBattle.current===pendingBattle.battleId){
@@ -1188,6 +1195,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                       <p className={styles.arenaSelectLabel}><i className="fa-solid fa-baseball" aria-hidden="true"/> Captura disponível depois da vitória</p>
                       <p className={styles.arenaCaptureHint}>Conheça o adversário no combate e escolha uma Pokébola apenas se vencer. Uma tentativa por encontro.</p>
                       <button className={styles.primary} type="button"
+                        ref={battleAgainFocusRef} data-testid="battle-again-button"
                         disabled={busy||battlePlaying||Boolean(pendingBattle)
                           ||lastBattle?.captureStatus==='available'}
                         onClick={()=>fight(regionalArea)}>
