@@ -79,6 +79,7 @@ describe('D064BK — caminho real de desbloqueio e orçamento da loja (diagnóst
     expect(result.rows.slice(0,3).map(r=>r.regionId)).toEqual([1,2,3]);
     expect(result.rows[2]).toMatchObject({trainerLevel:19,pokemonLevel:40});
     expect(result.rows[3]).toMatchObject({trainerLevel:19,pokemonLevel:41});
+    expect(result.rows.slice(0,4).map(r=>r.coins)).toEqual([8039,8772,10654,203]);
     for(const row of result.rows.slice(4)){
       expect(row).toMatchObject({regionId:3,trainerLevel:19,pokemonLevel:41,
         coins:0,trainerXp:0,pokemonXp:0,pokeballs:0,greatballs:0,ultraballs:0});
@@ -87,7 +88,8 @@ describe('D064BK — caminho real de desbloqueio e orçamento da loja (diagnóst
     expect(result.pokemon.level).toBe(41);
     expect(result.drops['great-ball']).toBe(0);
     expect(result.drops['ultra-ball']).toBe(0);
-    expect(result.coins).toBeGreaterThan(0);
+    expect(result.coins).toBe(27668);
+    expect(result.drops).toEqual({'poke-ball':5,'great-ball':0,'ultra-ball':0});
     // A trava na jornada SOMENTE com expedições é deliberadamente
     // observada, não resolvida com XP grátis. Batalhas permanecem disponíveis.
   });
