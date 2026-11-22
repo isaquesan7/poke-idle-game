@@ -1,6 +1,6 @@
 import {useEffect,useRef} from 'react';
 import type {ReactNode} from 'react';
-import {EXPEDITION_CYCLE_MS} from '@kanto/game-core';
+import {EXPEDITION_CYCLE_MS,expeditionRegionRates,expeditionProgressFactor} from '@kanto/game-core';
 import {expeditionElapsedMs,formatExpeditionDuration} from './expeditionDisplay';
 import styles from './ExpeditionScreen.module.css';
 
@@ -22,6 +22,7 @@ interface Pending {
   readonly coins:number;
   readonly trainerXp:number;
   readonly pokemonXpPerMember:number;
+  readonly ballDrops?:Readonly<Record<'poke-ball'|'great-ball'|'ultra-ball',number>>;
 }
 interface Props {
   readonly expedition:Expedition|null;
@@ -33,6 +34,7 @@ interface Props {
   readonly leaderLevel:number;
   readonly leaderArt:ReactNode;
   readonly pending:Pending|null;
+  readonly activePokemonLevel:number;
   readonly nowMs:number;
   readonly busy:boolean;
   readonly onStart:()=>void;
@@ -48,7 +50,7 @@ const rewards=[
 
 export function ExpeditionScreen({
   expedition,regionName,options,selectedRegionId,onSelectRegion,
-  leaderName,leaderLevel,leaderArt,pending,nowMs,busy,onStart,onClaim,onStop
+  leaderName,leaderLevel,leaderArt,pending,activePokemonLevel,nowMs,busy,onStart,onClaim,onStop
 }:Props){
   const active=Boolean(expedition);
   // Ao trocar de fase, manter o foco na ação útil; não roubar foco na
@@ -60,6 +62,9 @@ export function ExpeditionScreen({
       titleRef.current?.focus();
     previousActive.current=active;
   },[active]);
+  const effectiveRegion=expedition?.regionId??selectedRegionId;
+  const rates=expeditionRegionRates(effectiveRegion);
+  const levelFactor=expeditionProgressFactor(effectiveRegion,activePokemonLevel);
   const selected=options.find(option=>option.id===selectedRegionId);
   const allowed=Boolean(selected?.unlocked);
   const totalElapsed=expedition?expeditionElapsedMs(expedition.startedAt,nowMs):0;
@@ -73,7 +78,9 @@ export function ExpeditionScreen({
       <header className={styles.heading}>
         <span className={styles.eyebrow}><i className="fa-solid fa-compass" aria-hidden="true"/> EXPLORAÇÃO IDLE</span>
         <h2 ref={titleRef} tabIndex={-1} id="expedition-title"><i className="fa-solid fa-map" aria-hidden="true"/> {active?'Expedição em andamento':'Expedição de Kanto'}</h2>
-        <p>Envie seu Pokémon para explorar Kanto. A cada 10 segundos: 7 moedas, 4 XP para o treinador e 5 XP para o Pokémon, com até 8 horas de recompensas por resgate.</p>
+        <p>Explore Kanto para obter moedas, XP e uma pequena quantidade de Pokébolas.
+          O ganho cresce com a região, mas diminui quando o Pokémon fica forte demais
+          para a área. Até 8 horas de ciclos por resgate.</p>
       </header>
       <div className={styles.destination}>
         <label id="expedition-region-label" htmlFor="expedition-region">
@@ -89,6 +96,16 @@ export function ExpeditionScreen({
             </select>}
         {!active&&<small id="expedition-region-hint" className={styles.help}>Regiões indisponíveis ficam desativadas. A expedição não inicia ao mudar a seleção.</small>}
         {!active&&!allowed&&<small role="status" className={styles.warning}>Seu treinador ou Pokémon líder ainda não atende aos requisitos desta região.</small>}
+      </div>
+      <div className={styles.regionYield} aria-label="Recompensas-base por ciclo nesta região">
+        <strong><i className="fa-solid fa-chart-line" aria-hidden="true"/> Por ciclo de 10 segundos</strong>
+        <span>{rates.coins} moedas · {rates.trainerXp} XP treinador · {rates.pokemonXp} XP Pokémon</span>
+        <small>Faixa ideal: até o nível {((options.find(r=>r.id===effectiveRegion)?.levelMin??2)+8)+2}.
+          Com nível superior, o rendimento diminui até zerar. Afinidade somente em batalhas.</small>
+        {levelFactor===0&&<small role="status" className={styles.warning}>
+          Seu Pokémon está acima do limite de XP desta região.
+          Escolha uma região mais avançada para voltar a evoluir.
+        </small>}
       </div>
       <div className={styles.partner}>
         <div className={styles.partnerArt}>{leaderArt}</div>
@@ -132,6 +149,17 @@ export function ExpeditionScreen({
           <div><i className={'fa-solid '+reward.icon} aria-hidden="true"/><small>{reward.label}</small></div>
           <strong>{reward.suffix}{pending?.[reward.key]??0}</strong>
         </div>)}
+      </div>
+      <div className={styles.expeditionBalls} aria-label="Pokébolas da expedição">
+        <strong><i className="fa-solid fa-circle-dot" aria-hidden="true"/> Pokébolas acumuladas</strong>
+        <div className={styles.ballPills}>
+          <span>Poké Ball <b>+{pending?.ballDrops?.['poke-ball']??0}</b></span>
+          {effectiveRegion>=5&&<span>Great Ball <b>+{pending?.ballDrops?.['great-ball']??0}</b></span>}
+          {effectiveRegion>=9&&<span>Ultra Ball <b>+{pending?.ballDrops?.['ultra-ball']??0}</b></span>}
+        </div>
+        <small>Poké Ball: uma por 4h de ciclos elegíveis. Great Ball: uma por 8h
+          (áreas 5–10). Ultra Ball: uma por 24h (somente Pico Dracônico e Santuário Lendário).
+          O progresso continua entre resgates e só avança quando a região concede recompensas.</small>
       </div>
       <div className={styles.cycleInfo}>
         {active
