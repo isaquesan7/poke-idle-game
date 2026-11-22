@@ -172,3 +172,7 @@ export {gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage} from './gyms/
 // GYM-02C2c: sono individual e KO residual atômico, inclusive empate 3×3.
 export {gymApplySleep,gymTickSleep} from './gyms/gymEffects.js';
 export {applyGymResidual} from './gyms/gymBattleState.js';
+
+// GYM-02D: escolha tática validada pelas mesmas ações legais do jogador.
+export {gymLegalTurnActions,GYM_MAX_TURNS} from './gyms/gymTurn.js';
+export {gymChooseAiAction,resolveGymAiTurn} from './gyms/gymAiTurn.js';

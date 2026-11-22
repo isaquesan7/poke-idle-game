@@ -671,3 +671,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Twineedle não é mais bloqueado no motor de Ginásios: precisão/SP uma vez por ação; poison 20% após cada hit com dano real, interrompendo após KO.
 - `applyGymResidual` aplica dano residual dos dois ativos de forma atômica, com resultado `draw` quando ambas as equipes completas desmaiam juntas; substituição forçada simétrica quando ambos têm reservas.
 - Vitest dedicado `gym02c2c-sleep-twineedle-residual.test.ts` inclui sono/trocas, poison por hit, empates e 12 duelos 3×3 completos; teste anterior de sono atualizado. Regiões, expeditions, recompensas, writer e UI inalterados. CI/merge/deploy a verificar.
+
+
+## GYM-02D — IA legal dos líderes e limite de 120 rodadas (22/11/2026, EM PR)
+- `gymTurn.ts` disponibiliza `gymLegalTurnActions` como fonte única para jogador e IA, sem contornar SP, cooldown, equipagem ou quota de troca. Confrontos restantes na rodada 120 terminam em `draw`; substituições obrigatórias não avançam o turno.
+- `gymAiTurn.ts`: adaptador determinístico do `gymAiDecision`, filtrando golpes e reservas para ações legais, respeitando Concentrar e escolhendo substituição pós-KO pelo percentual de HP da reserva, sem RNG futuro; `resolveGymAiTurn` executa ação do treinador contra a IA.
+- 32 confrontos completos com seeds fixas entre equipes dos oito líderes, verificação de legalidade e budgets, replay idêntico, troca forçada e empate técnico em `gym02d-ai-turn-policy.test.ts`. Sem writer, badges, UI nem mudança no motor regional. CI/merge/Railway a verificar.

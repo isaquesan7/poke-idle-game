@@ -254,3 +254,7 @@ Não habilitar genericamente golpes com efeitos ainda não executáveis no motor
 
 ### GYM-02C2c — duração de sono e empate residual sem privilégio (22/11/2026; EM PR)
 Duração de sono = 1–3 ações próprias como no motor regional, preservada em reserva; Twineedle = 2 hits com 20% de poison testado individualmente por impacto efetivo, cobrando uma vez SP/precisão. A resolução do residual é atômica para não favorecer a ordem dos lados: se os últimos membros caírem juntos, resultado `draw`, sem vencedor nem pagamento; se existem reservas, ambos devem substituir sem gastar ação e sem recarga de HP/SP. Limites da GYM-02B permanecem. Não ativar novas recompensas no core até writer GYM-03.
+
+
+### GYM-02D — autoridade única de ações legais e draw no turno 120 (22/11/2026, EM PR)
+A IA não possui regras paralelas para executar movimentos: recebe lista legal do próprio `gymTurn.ts`, restringe movimentos, reservas e Concentrar antes de pontuar pela heurística existente, e volta ao básico gratuito se heurística propuser uma ação proibida. Troca pós-KO obrigatória é escolhida deterministicamente entre vivos por percentual de HP (não é troca voluntária). O confronto termina em empate técnico ao completar 120 rodadas sem KO total, sem premiar lado por maior HP, pois isso privilegiaria recuperação/stall; nem usuário nem IA recebe insígnia nesse resultado. Não conectar writer/UI antes da validação integral.
