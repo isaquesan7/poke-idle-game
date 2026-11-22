@@ -11,7 +11,7 @@ const base={
            {id:4,name:'Lagos Serenos',trainerUnlockLevel:20,levelMin:31,unlocked:false}],
   selectedRegionId:1,
   onSelectRegion:(_id:number)=>{},
-  leaderName:'Dragonair',leaderLevel:41,leaderArt:<span>GIF Dragonair</span>,
+  leaderName:'Dragonair',leaderLevel:41,activePokemonLevel:41,leaderArt:<span>GIF Dragonair</span>,
   pending:null,nowMs:started,busy:false,
   onStart:()=>{},onClaim:()=>{},onStop:()=>{}
 } as const;
