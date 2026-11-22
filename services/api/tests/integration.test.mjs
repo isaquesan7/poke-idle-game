@@ -93,9 +93,33 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {Cookie:sessionCookie})).status,200);
     assert.equal((await json(origin,'/api/v1/me','GET',undefined,
       {Cookie:sessionCookie})).status,401);
+    const requestReset=await json(origin,'/api/v1/auth/request-reset','POST',
+      {email});
+    assert.equal(requestReset.status,200);
+    assert.equal(requestReset.data.accepted,true);
+    assert.match(requestReset.data.testResetToken,/^[A-Za-z0-9_-]{43}$/);
+    const unknown=await json(origin,'/api/v1/auth/request-reset','POST',
+      {email:'missing-'+process.pid+'@example.test'});
+    assert.equal(unknown.status,200,'reset request must not reveal account existence');
+    assert.equal(unknown.data.accepted,true);
+    assert.equal(Object.hasOwn(unknown.data,'testResetToken'),false);
+    const appliedReset=await json(origin,'/api/v1/auth/confirm-reset','POST',
+      {token:requestReset.data.testResetToken,
+        password:'new securely chosen password for CI 2026'});
+    assert.equal(appliedReset.status,200);
+    assert.equal((await json(origin,'/api/v1/auth/confirm-reset','POST',
+      {token:requestReset.data.testResetToken,
+        password:'another securely chosen password 2026'})).status,400,
+      'reset must be single-use');
+    assert.equal((await json(origin,'/api/v1/me','GET',undefined,
+      {Cookie:sessionCookie})).status,401,'all old sessions revoked by reset');
+    assert.equal((await json(origin,'/api/v1/auth/login','POST',
+      {email,password:user.password})).status,401,'old password denied');
+    assert.equal((await json(origin,'/api/v1/auth/login','POST',
+      {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,2,'both migrations applied exactly once');
+    assert.equal(migrations.rows.length,3,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
