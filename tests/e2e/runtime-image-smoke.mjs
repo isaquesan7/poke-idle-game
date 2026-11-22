@@ -38,10 +38,12 @@ for(let i=0;i<60;i++){
 }
 assert.equal(healthy,true,'/health deve iniciar sem dependências npm de desenvolvimento');
 
-const legacy=await request('/');
-assert.equal(legacy.status,200);
-assert.match(legacy.body.toString(),/Protótipo v0\.1/);
-assert.match(legacy.headers.get('content-type')??'',/text\/html/);
+const landing=await request('/');
+assert.equal(landing.status,200);
+assert.match(landing.body.toString(),/Poke Idle Game/);
+assert.match(landing.body.toString(),/href="\/play"/);
+assert.doesNotMatch(landing.body.toString(),/Protótipo v0\.1/);
+assert.match(landing.headers.get('content-type')??'',/text\/html/);
 
 const modern=await request('/play');
 assert.equal(modern.status,200,'build React precisa existir ANTES do start');
@@ -51,10 +53,15 @@ const script=html.match(/<script[^>]+src="(\/assets\/[^"]+\.js)"/)?.[1];
 const css=html.match(/<link[^>]+href="(\/assets\/[^"]+\.css)"/)?.[1];
 assert.ok(script,'bundle JavaScript Vite precisa estar no contêiner');
 assert.ok(css,'bundle CSS Vite precisa estar no contêiner');
-for(const path of [script,css,'/styles/tokens.css','/styles/app.css','/scripts/pokemon-sprites.js']){
+for(const path of [script,css]){
   const r=await request(path);
-  assert.equal(r.status,200, 'asset ausente: '+path);
+  assert.equal(r.status,200, 'asset React ausente: '+path);
   assert.ok(r.body.length>50, 'asset incompleto: '+path);
+}
+for(const path of ['/index.html','/styles/tokens.css','/styles/app.css',
+  '/scripts/pokemon-sprites.js']){
+  const r=await request(path);
+  assert.equal(r.status,410,'Protótipo v0.1 deve permanecer desativado: '+path);
 }
 
 for(const id of [1,4,25,151]){
@@ -71,4 +78,4 @@ for(const path of ['/package.json','/package-lock.json','/apps/web/src/play/Play
 }
 const slash=await request('/play/');
 assert.equal(slash.status,200,'variante /play/ também funciona');
-console.log('D044_RUNTIME_SMOKE_OK: /, /play, /play/, /health, JS/CSS, GIFs e rotas privadas');
+console.log('ONLINE01_RUNTIME_SMOKE_OK: landing /, /play, /play/, /health, assets React, GIFs, v0.1 HTTP 410 e isolamento');
