@@ -1,6 +1,6 @@
 # D064BR — auditoria da economia, resgate com mochila cheia e clareza de chances (22/11/2026)
 
-**Estado:** PR/CI/merge/produção pendentes nesta branch. Partiu de `main` `aadd3a503ac67d6c44ef6c26a74e8f7dfb8b150d` (D064BQ lançada).
+**Estado: PUBLICADA EM PRODUÇÃO** pela PR #149, merge squash funcional `7054c3790800ee4e71c2ee597ca9a576e5f9c90c`; HEAD da branch funcional `ef0a020b8a8dbbcbc76ec22cb9360fffdcc90c1e` testado no GitHub Actions: regressão geral `45037200926`, Playwright isolado desktop/mobile `45037200948`, Docker `45037200949`, os três **SUCCESS**. Railway deployment `5f3bc6d4-a8ea-470e-b4bc-89a98ae3c6be` **SUCCESS** no commit exato, `/health` **interno** aprovado, serviço online com 1 réplica running, 0 crashes, sem trabalho pendente. GET público externo `/play` não foi testado diretamente.
 
 ## Política preservada nesta fase
 
@@ -58,6 +58,6 @@ Na aba **Loja**, abaixo dos itens, uma tabela acessível apresenta exatamente as
 
 ## Critérios de liberação
 
-A entrega funcional exige CI geral TypeScript/Vitest/E2E, Playwright isolado desktop/mobile e Docker verdes, squash merge para `main`, Railway SUCCESS no SHA publicado, saúde interna `/health` e ausência de crashes. Depois registrar o release real com CI e deployment exatos. PR/CI/merge/deploy **não foram confirmados no momento da criação do documento**. Repositório `isaquesan7/pokedex` não será alterado.
+A entrega funcional exige CI geral TypeScript/Vitest/E2E, Playwright isolado desktop/mobile e Docker verdes, squash merge para `main`, Railway SUCCESS no SHA publicado, saúde interna `/health` e ausência de crashes. Depois registrar o release real com CI e deployment exatos. CI geral, Playwright isolado, Docker, squash merge, Railway e healthcheck interno **confirmados após validação**; ver status no topo. GET público externo não aferido. Repositório `isaquesan7/pokedex` não será alterado.
 
 **Próxima fase proposta D064BS:** monitoramento opt-in de indicadores agregados e auditáveis, análises de falhas por navegador e opções para operação no servidor; eventual revisão de preços e chances somente com decisão explícita, sem reintroduzir drops fixos.
