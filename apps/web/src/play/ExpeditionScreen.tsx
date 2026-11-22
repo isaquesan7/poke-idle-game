@@ -38,6 +38,7 @@ interface Props {
   readonly leaderLevel:number;
   readonly leaderArt:ReactNode;
   readonly pending:Pending|null;
+  readonly ballStockCapped?:boolean;
   readonly ballProgress?:BallProgress|undefined;
   readonly activePokemonLevel:number;
   readonly nowMs:number;
@@ -55,7 +56,7 @@ const rewards=[
 
 export function ExpeditionScreen({
   expedition,regionName,options,selectedRegionId,onSelectRegion,
-  leaderName,leaderLevel,leaderArt,pending,ballProgress,activePokemonLevel,nowMs,busy,onStart,onClaim,onStop
+  leaderName,leaderLevel,leaderArt,pending,ballStockCapped=false,ballProgress,activePokemonLevel,nowMs,busy,onStart,onClaim,onStop
 }:Props){
   const active=Boolean(expedition);
   // Ao trocar de fase, manter o foco na ação útil; não roubar foco na
@@ -176,6 +177,12 @@ export function ExpeditionScreen({
           {effectiveRegion>=5&&<span>Great Ball <b>+{pending?.ballDrops?.['great-ball']??0}</b></span>}
           {effectiveRegion>=9&&<span>Ultra Ball <b>+{pending?.ballDrops?.['ultra-ball']??0}</b></span>}
         </div>
+        {ballStockCapped&&<small className={styles.warning} role="status"
+          data-testid="expedition-ball-cap-warning">
+          Sua mochila chegou ao limite para um ou mais tipos de Pokébola.
+          As unidades excedentes não serão adicionadas; moedas e XP serão
+          recebidos normalmente ao resgatar.
+        </small>}
         {progress&&<div role="group" aria-label="Próximos marcos de Pokébolas">
           <small>{noCycleYield?'Contadores pausados nesta região':'Ciclos elegíveis para as próximas Pokébolas'}</small>
           <div className={styles.ballPills}>
