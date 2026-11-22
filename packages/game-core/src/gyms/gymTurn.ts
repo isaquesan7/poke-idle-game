@@ -29,6 +29,7 @@ export type GymTurnAction=
 export type GymTurnResult=
   | {readonly status:'applied';readonly state:GymBattleState;
       readonly log:readonly string[];readonly frames:readonly KantoBattleVisualFrame[];
+      readonly snapshots:readonly GymBattleState[];
       readonly seedAfter:number}
   | {readonly status:'blocked';readonly state:GymBattleState;readonly reason:string};
 
@@ -172,9 +173,12 @@ export function resolveGymTurn(
     let state=input;
     const log:string[]=[];
     const frames:KantoBattleVisualFrame[]=[];
+  const snapshots:GymBattleState[]=[];
+    const snapshots:GymBattleState[]=[];
     let observed=input;
     const record=(line:string,meta:Partial<KantoBattleVisualFrame>={})=>{
-      log.push(line);frames.push(gymLogFrame(observed,state,line,meta));observed=state;
+      log.push(line);frames.push(gymLogFrame(observed,state,line,meta));
+      snapshots.push(state);observed=state;
     };
     for(const side of ['player','leader'] as const){
       if(!state[side].needsReplacement)continue;
@@ -185,7 +189,7 @@ export function resolveGymTurn(
       state=result.state;
       record(side+' substituiu após KO, sem restaurar HP ou SP.');
     }
-    return {status:'applied',state,log,frames,seedAfter:seed>>>0};
+    return {status:'applied',state,log,frames,snapshots,seedAfter:seed>>>0};
   }
   let current=seed>>>0;
   const roll=()=>{
@@ -208,9 +212,11 @@ export function resolveGymTurn(
   let state=input;
   const log:string[]=[];
   const frames:KantoBattleVisualFrame[]=[];
+  const snapshots:GymBattleState[]=[];
   let observed=input;
   const record=(line:string,meta:Partial<KantoBattleVisualFrame>={})=>{
-    log.push(line);frames.push(gymLogFrame(observed,state,line,meta));observed=state;
+    log.push(line);frames.push(gymLogFrame(observed,state,line,meta));
+      snapshots.push(state);observed=state;
   };
   for(const side of [first,other(first)]){
     if(state.outcome!=='ongoing')break;
@@ -403,7 +409,7 @@ export function resolveGymTurn(
   // e sem concessão de insígnias em combate sem vencedor.
   if(finished.turn>=GYM_MAX_TURNS&&finished.outcome==='ongoing'){
     record('Empate técnico: limite de '+GYM_MAX_TURNS+' rodadas.');
-    return {status:'applied',state:{...finished,outcome:'draw'},log,frames,seedAfter:current};
+    return {status:'applied',state:{...finished,outcome:'draw'},log,frames,snapshots,seedAfter:current};
   }
-  return {status:'applied',state:finished,log,frames,seedAfter:current};
+  return {status:'applied',state:finished,log,frames,snapshots,seedAfter:current};
 }
