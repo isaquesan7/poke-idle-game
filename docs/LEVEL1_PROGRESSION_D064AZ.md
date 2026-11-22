@@ -42,3 +42,19 @@ A regra antiga dava XP **somente pela vitória**. Nesse cenário os três perman
 - Regressão de jornada pelo writer valida correspondência `lastBattle.pokemonXp`, ausência de ganho de treinador/moedas nas derrotas de Nv1, evolução/expedição desbloqueadas apenas quando permitidas e proteção de revisões/recibos. Teste puro `d064az-beginner-xp.test.ts` prova quatro resultados sem vitória, parada automática após Nv2 e rejeição de níveis inválidos.
 
 **Limitações:** regra é uma hipótese de onboarding para alfa, válida a qualquer Pokémon Nv1, não só starter. Não é telemetria de pessoas. A trajetória até a segunda região e primeiro estágio evoluído ainda precisará de medição posterior. CI final e Railway SUCCESS no SHA exato são gates antes da publicação.
+
+## Resultado após correção — CI `44966534464` (HEAD `dd659610aba530f74f1812fb6a70851a621323a4`)
+
+Todos os testes passaram: regressão TypeScript/Vitest/core+web/React E2E `44966534464 SUCCESS`, Playwright isolado `44966534485 SUCCESS`, Docker/HTTP `44966534484 SUCCESS`.
+
+Relatório `D064AZ_LEVEL1_WRITER_REPORT` nas 72 tentativas sequenciais por starter, sem inserts arbitrários no save, usando o writer real:
+
+| Inicial | Vitórias | Primeiro Nv2 Pokémon | 1ª vitória | Nv Pokémon final | Nv treinador final | Capturas |
+|---|---:|---:|---:|---:|---:|---:|
+| Bulbasaur | 15/72 (20,83%) | **tentativa 4** | tentativa 5 | 5 | 4 | 13 |
+| Charmander | 35/72 (48,61%) | **tentativa 4** | tentativa 11 | 11 | 7 | 21 |
+| Squirtle | 17/72 (23,61%) | **tentativa 4** | tentativa 16 | 6 | 4 | 16 |
+
+No último checkpoint, cada inicial desbloqueou e resgatou uma expedição **sem injetar nível ou XP**. O estoque de Pokébolas foi respeitado; quando zerou, batalhas seguiram **sem tentar capturar**, evitando pedidos de inventário inexistente. O relatório da XP de derrota no save/diário coincidiu com a transação, sem XP/coins do treinador na derrota.
+
+**Importante:** esta é uma única trajetória determinística por starter, de 72 encontros sequenciais (não 72 perfis independentes), sem estratégias diferentes nem seleção otimizada de líderes. As porcentagens não representam win-rate populacional. O desnível entre os iniciais, em especial o rápido avanço de Charmander, é um sinal para uma auditoria maior antes de mexer em atributos/IA, assim como a dificuldade tardia da região9. Os XP extras cessam após Lv2; derrotas normais continuam sem recompensas.
