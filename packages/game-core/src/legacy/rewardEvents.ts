@@ -211,23 +211,25 @@ function claimExpedition(state: ValidState, nowMs: number, required: boolean): b
   }
   // Inventário e evento num único commit: nunca duplicar bolas após reload.
   const drops=reward.ballDrops;
+  const creditedDrops=drops?{...drops}:undefined;
   if(drops&&Object.values(drops).some(v=>v>0)){
     const pocket=inspectKantoBallPocket(state.ballPocket);
     if(pocket.status==='invalid')throw new RangeError('Bolso inválido.');
-    {
-      // Em save anterior ao inventário, criar somente as bolas realmente
-      // conquistadas nesta transação, sem kit grátis retroativo.
-      const quantities=pocket.status==='valid'?{...pocket.pocket.quantities}
-        :{} as Record<ExpeditionBallKind,number>;
-      for(const kind of Object.keys(drops) as ExpeditionBallKind[]){
-        const old=quantities[kind]??0;
-        if(!natural(old)||old+drops[kind]>100000)
-          throw new RangeError('Bolso de Pokébolas cheio.');
-        quantities[kind]=old+drops[kind];
-      }
-      state.ballPocket={version:1,quantities};
+    // D064BR: no limite técnico, apenas a bola excedente não entra.
+    // A coleta de moedas, XP e o cursor da expedição NUNCA ficam bloqueados
+    // por um item cujo estoque já chegou a 100.000.
+    const quantities=pocket.status==='valid'?{...pocket.pocket.quantities}
+      :{} as Record<ExpeditionBallKind,number>;
+    for(const kind of Object.keys(drops) as ExpeditionBallKind[]){
+      const old=quantities[kind]??0;
+      if(!natural(old)||old>100000)
+        throw new RangeError('Bolso de Pokébolas inválido.');
+      const amount=Math.min(100000,old+drops[kind]);
+      if(creditedDrops)creditedDrops[kind]=amount-old;
+      quantities[kind]=amount;
     }
-    // Save v0.1 sem bolso: não inventar kit por migração implícita.
+    state.ballPocket={version:1,quantities};
+    // Em save v0.1 sem bolso não criamos o kit inicial retroativamente.
   }
   if(reward.ballProgress)state.expeditionBallProgress=reward.ballProgress;
   creditCoins(state,reward.coins);
@@ -239,7 +241,7 @@ function claimExpedition(state: ValidState, nowMs: number, required: boolean): b
   state.lastClaim={
     coins:reward.coins,trainerXP:reward.trainerXp,
     pokemonXP:reward.pokemonXpPerMember,cycles:reward.cycles,
-    ...(drops?{ballDrops:drops}:{}),
+    ...(creditedDrops?{ballDrops:creditedDrops}:{}),
   };
   return true;
 }
