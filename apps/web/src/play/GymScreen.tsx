@@ -5,14 +5,16 @@
  */
 import {useEffect,useRef,useState} from 'react';
 import {
-  KANTO_GYMS,kantoNextGym,gymLegalTurnActions,
+  KANTO_GYMS,kantoNextGym,gymChooseAiAction,
   KANTO_BATTLE_SPECIES
 } from '@kanto/game-core';
-import type {GymTurnAction,GymBattleState} from '@kanto/game-core';
+import type {GymBattleState,KantoBattleVisualFrame} from '@kanto/game-core';
 import type {LegacySave} from '../storage/legacySave';
 import type {PlayAction} from './playSave';
 import {replayGymSessionTrace} from './gymSession';
 import type {GymSessionV1} from './gymSession';
+import {BattleStage} from './BattleStage';
+import {BattlePlayback} from './BattlePlayback';
 import styles from './GymScreen.module.css';
 
 type Props={
@@ -43,12 +45,11 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   const [selected,setSelected]=useState<readonly number[]>([]);
   const [confirmAbandon,setConfirmAbandon]=useState(false);
   const detailsRef=useRef<HTMLElement|null>(null);
-  const commandRef=useRef<HTMLDivElement|null>(null);
-  const reserveRef=useRef<HTMLDivElement|null>(null);
   const finishRef=useRef<HTMLButtonElement|null>(null);
   const previousSession=useRef<string|null>(null);
-  const lastCueActions=useRef<{id:string;count:number}|null>(null);
-  const [cue,setCue]=useState<{id:string;count:number}|null>(null);
+  const lastSent=useRef<string|null>(null);
+  const [automatic,setAutomatic]=useState(false);
+  const [presented,setPresented]=useState(0);
   const session=readSession(game.gymSession);
   const gym=session?KANTO_GYMS.find(g=>g.id===session.gymId):
     kantoNextGym(data.badges);
@@ -63,86 +64,72 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
     }catch(e){invalid=e instanceof Error?e.message:'Não foi possível validar a sessão.';}
   }
   useEffect(()=>{
-    if(!session){previousSession.current=null;return;}
+    if(!session){previousSession.current=null;lastSent.current=null;return;}
     if(previousSession.current!==session.id){
       previousSession.current=session.id;
       detailsRef.current?.focus({preventScroll:true});
     }else if(state?.outcome!=='ongoing'){
       finishRef.current?.focus({preventScroll:true});
-    }else if(state.player.needsReplacement){
-      reserveRef.current?.focus({preventScroll:true});
-    }else{
-      commandRef.current?.focus({preventScroll:true});
     }
   },[session?.id,revision]);
   useEffect(()=>{setConfirmAbandon(false);},[session?.id]);
-
-  // O efeito aparece somente para uma NOVA ação confirmada no writer.
-  // Recarregar /play não reencena dano nem recria os elementos GIF.
   const actionCount=session?.actions.length??0;
+  const lastRound=history.at(-1);
+  const donePresentation=presented>=actionCount;
+  // O primeiro turno é decidido pela mesma IA dos líderes. A cada
+  // gravação o replay reconstruído é a fonte de verdade antes da ação
+  // seguinte. Pausar não grava no save; recarregar requer retomada explícita.
   useEffect(()=>{
-    if(!session){lastCueActions.current=null;setCue(null);return;}
-    const previous=lastCueActions.current;
-    lastCueActions.current={id:session.id,count:actionCount};
-    if(previous?.id===session.id&&actionCount>previous.count)
-      setCue({id:session.id,count:actionCount});
-    else if(previous?.id!==session.id)setCue(null);
-  },[session?.id,actionCount]);
-  const activeCue=session&&cue?.id===session.id&&cue.count===actionCount
-    ?history.at(-1)?.visual:null;
+    if(!automatic||!session||!state||busy||!donePresentation
+      ||state.outcome!=='ongoing')return;
+    const key=session.id+':'+actionCount;
+    if(lastSent.current===key)return;
+    const timer=window.setTimeout(()=>{
+      if(lastSent.current===key)return;
+      lastSent.current=key;
+      onAction({type:'gym-turn',sessionId:session.id,
+        action:gymChooseAiAction(state,'player')});
+    },160);
+    return ()=>window.clearTimeout(timer);
+  },[automatic,session?.id,actionCount,busy,donePresentation,revision]);
   const earned=new Set(data.badges);
   const starting=selected.length===3&&!session;
-  const actions=state&&state.outcome==='ongoing'
-    ?gymLegalTurnActions(state,'player'):[];
-  const renderActive=(side:'player'|'leader')=>{
-    if(!state)return null;
-    const party=state[side];
-    const active=party.fighters[party.activeIndex]!;
-    const maxHp=active.combatant.stats.hp;
-    const impacted=side==='player'?activeCue?.playerLostHp:activeCue?.leaderLostHp;
-    const recovered=side==='player'?activeCue?.playerGainedHp:activeCue?.leaderGainedHp;
-    const charged=side==='player'?activeCue?.playerGainedSp:activeCue?.leaderGainedSp;
-    const switched=side==='player'?activeCue?.playerSwitched:activeCue?.leaderSwitched;
-    const knocked=side==='player'?activeCue?.playerKo:activeCue?.leaderKo;
-    const cueLabel=knocked?'NOCAUTE':impacted?'DANO':recovered?'CURA':
-      switched?'ENTROU':charged?'SP +':null;
-    const cueClass=impacted?styles.cueHit:recovered?styles.cueHeal:
-      switched?styles.cueSwitch:charged?styles.cueCharge:'';
-    return <div className={styles.duelist} data-testid={'gym-active-'+side}
-      aria-label={side==='player'?'Seu Pokémon em campo':'Pokémon do líder em campo'}>
-      <span className={styles.role}>{side==='player'?'SEU PARCEIRO':'POKÉMON DE '+(gym?.leader??'LÍDER').toUpperCase()}</span>
-      <div className={styles.duelArt+' '+(activeCue?cueClass:'')}
-        data-testid={'gym-sprite-'+side}>
-        {art(active.combatant.speciesId,active.combatant.name)}
-        {cueLabel&&<span key={session?.id+'-'+actionCount+'-'+side}
-          className={styles.cueLabel} data-testid={'gym-cue-'+side}
-          aria-hidden="true">{cueLabel}</span>}
-      </div>
-      <strong>{active.combatant.name} · Nv. {active.combatant.level}</strong>
-      <small>{active.hp===0?'Nocauteado':status(active)}</small>
-      <div className={styles.meters}>
-        <label>HP <strong>{active.hp} / {maxHp}</strong>
-          <progress aria-label={'HP '+active.combatant.name}
-            value={active.hp} max={maxHp}/></label>
-        <label>SP <strong>{active.sp} / {active.maxSp}</strong>
-          <progress aria-label={'SP '+active.combatant.name}
-            value={active.sp} max={active.maxSp}/></label>
-      </div>
-    </div>;
-  };
+  const player=state?.player.fighters[state.player.activeIndex];
+  const leader=state?.leader.fighters[state.leader.activeIndex];
+  const visual=lastRound?.visual;
+  const hitSide=visual?.playerLostHp?'player':
+    visual?.leaderLostHp?'wild':null;
+  const healSide=visual?.playerGainedHp?'player':
+    visual?.leaderGainedHp?'wild':null;
+  const focusSide=visual?.playerGainedSp?'player':
+    visual?.leaderGainedSp?'wild':null;
+  const frame:KantoBattleVisualFrame|null=player&&leader?{
+    kind:hitSide?'attack':healSide?'heal':focusSide?'focus':'info',
+    target:hitSide??healSide??focusSide,
+    amount:hitSide==='player'&&lastRound?Math.max(0,
+      lastRound.before.player.fighters[lastRound.before.player.activeIndex]!.hp-
+      lastRound.after.player.fighters[lastRound.before.player.activeIndex]!.hp):
+      hitSide==='wild'&&lastRound?Math.max(0,
+        lastRound.before.leader.fighters[lastRound.before.leader.activeIndex]!.hp-
+        lastRound.after.leader.fighters[lastRound.before.leader.activeIndex]!.hp):0,
+    playerHp:player.hp,wildHp:leader.hp,
+    playerSp:player.sp,wildSp:leader.sp,
+    spRecovery:focusSide==='player'&&lastRound
+      ?Math.max(0,player.sp-lastRound.before.player.fighters[
+        lastRound.before.player.activeIndex]!.sp):
+      focusSide==='wild'&&lastRound?Math.max(0,leader.sp-
+        lastRound.before.leader.fighters[lastRound.before.leader.activeIndex]!.sp):0
+  }:null;
+  const showingRound=Boolean(automatic&&lastRound&&!donePresentation);
   const renderReserve=(side:'player'|'leader')=>{
     if(!state)return null;
     const party=state[side];
-    const switchActions=actions.filter((action):action is Extract<GymTurnAction,{kind:'switch'}>=>
-      action.kind==='switch');
     return <div className={styles.reserveGroup}
-      ref={side==='player'?reserveRef:undefined} tabIndex={side==='player'?-1:undefined}
       aria-label={side==='player'?'Seus Pokémon reservas':'Reservas do líder'}>
       <strong>{side==='player'?'Suas reservas':'Reservas de '+(gym?.leader??'líder')}</strong>
       <div className={styles.reserveCards}>
         {party.fighters.map((fighter,index)=>{
           if(index===party.activeIndex)return null;
-          const switchAction=switchActions.find(action=>action.toIndex===index);
           return <div key={index} className={styles.reserveCard}>
             {art(fighter.combatant.speciesId,fighter.combatant.name)}
             <div className={styles.reserveInfo}>
@@ -153,10 +140,9 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
               <label>SP {fighter.sp}/{fighter.maxSp}
                 <progress value={fighter.sp} max={fighter.maxSp}/></label>
             </div>
-            {side==='player'&&<button type="button" className={styles.switchButton}
-              disabled={busy||!switchAction} onClick={()=>{
-                if(switchAction)onAction({type:'gym-turn',sessionId:session!.id,action:switchAction});
-              }}>{fighter.hp===0?'Nocauteado':switchAction?'Trocar':'Indisponível'}</button>}
+            {side==='player'&&<span className={styles.benchIndicator}>
+              {fighter.hp===0?'Nocauteado':'Reserva · IA decide a troca'}
+            </span>}
           </div>;
         })}
       </div>
@@ -222,7 +208,10 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
       <button type="button" className={styles.primary} disabled={busy||!starting}
         onClick={()=>{
           const seed=window.crypto.getRandomValues(new Uint32Array(1))[0];
-          if(seed!==undefined)onAction({type:'gym-start',seed,uids:selected});
+          if(seed!==undefined){
+            setPresented(0);setAutomatic(true);lastSent.current=null;
+            onAction({type:'gym-start',seed,uids:selected});
+          }
         }}>Iniciar batalha contra {gym.leader}</button>
       <p className={styles.hint}>Batalha local alfa: dados e resultados ainda não
         são verificados por um servidor.</p>
@@ -241,48 +230,52 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
             state.outcome==='player-win'?'Vitória!':
             state.outcome==='leader-win'?'Sua equipe foi derrotada':'Empate'}
         </p>
-        <div className={styles.duelScene} role="region" aria-label="Arena de batalha do Ginásio"
-          data-testid="gym-duel-scene">
-          {renderActive('player')}
-          <span className={styles.vs} aria-hidden="true">VS</span>
-          {renderActive('leader')}
+        <div className={styles.duelScene} data-testid="gym-duel-scene"
+          aria-label="Arena de batalha do Ginásio">
+          {player&&leader&&<BattleStage
+            player={{name:player.combatant.name,level:player.combatant.level,
+              art:art(player.combatant.speciesId,player.combatant.name)}}
+            wild={{name:leader.combatant.name,level:leader.combatant.level,
+              art:art(leader.combatant.speciesId,leader.combatant.name)}}
+            frame={frame} playerMaxHp={player.combatant.stats.hp}
+            wildMaxHp={leader.combatant.stats.hp}
+            playerMaxSp={player.maxSp} wildMaxSp={leader.maxSp}
+            cue={session.id+':'+actionCount} playing={showingRound}
+            opponentLabel={'Pokémon de '+(gym?.leader??'líder')}/>}
         </div>
         <div className={styles.benchColumns}>
           {renderReserve('player')}
           {renderReserve('leader')}
         </div>
         {state.outcome==='ongoing'&&<div className={styles.commands}
-          ref={commandRef} tabIndex={-1} aria-label="Comandos de batalha">
+          aria-label="Comandos de batalha">
           <div className={styles.commandsHeader}>
-            <h4>{state.player.needsReplacement?'Escolha um Pokémon para substituir':
-              'Escolha sua habilidade'}</h4>
-            <small>Trocas voluntárias: {state.player.voluntarySwitchesUsed}/3 ·
-              Ao recolher, HP é preservado e o SP recupera somente dentro do limite.</small>
+            <h4> <i className="fa-solid fa-wand-magic-sparkles" aria-hidden="true"/> Combate automático por IA</h4>
+            <small>Ambos os lados escolhem golpes, Concentrar e trocas pela IA.
+              A equipe preserva HP e SP; até 3 trocas voluntárias por lado,
+              com uma recuperação de SP ao recolher cada Pokémon.</small>
           </div>
-          <div className={styles.actions} aria-label="Habilidades disponíveis">
-            {actions.filter(action=>action.kind!=='switch').map((action,i)=>{
-              const label=action.kind==='basic'?'Ataque básico':
-                action.kind==='focus'?'Concentrar':action.kind==='move'?action.moveName:'';
-              return <button type="button" className={styles.secondary} key={action.kind+'-'+i}
-                disabled={busy} onClick={()=>onAction({type:'gym-turn',sessionId:session.id,action})}>
-                {label}
-              </button>;
-            })}
-            {state.player.needsReplacement&&<p className={styles.hint}>
-              Selecione uma das reservas acima. A substituição após KO não consome rodada.
-            </p>}
+          <div className={styles.actions}>
+            <button type="button" className={styles.primary}
+              disabled={busy||automatic} onClick={()=>{
+                lastSent.current=null;setPresented(actionCount);setAutomatic(true);
+              }}><i className="fa-solid fa-play" aria-hidden="true"/> {automatic?'IA em ação':'Continuar batalha automática'}</button>
+            <button type="button" className={styles.secondary}
+              disabled={!automatic} onClick={()=>setAutomatic(false)}>
+              <i className="fa-solid fa-pause" aria-hidden="true"/> Pausar após a rodada
+            </button>
           </div>
+          <small className={styles.hint}>A IA escolhe a próxima ação somente após o diário revelar o turno atual.
+            O resultado continua sendo validado no save, sem prêmios antecipados.</small>
         </div>}
-        {history.length>0&&<section className={styles.history}
-          aria-label="Diário do combate" data-testid="gym-battle-history">
-          <h4>Diário de combate</h4>
-          <ol aria-live="off">{history.slice(-8).map((entry,i)=><li key={history.length+i}>
-            <strong>Rodada {entry.turn}</strong>
-            <ul>{entry.lines.map((line,j)=><li key={j}>{line
+        {lastRound&&<section className={styles.history} data-testid="gym-battle-history"
+          aria-label="Diário do combate">
+          <BattlePlayback key={session.id+':'+actionCount}
+            log={lastRound.lines.map(line=>'T'+lastRound.turn+' '+line
               .replace(/^player\\b/,'Seu Pokémon')
-              .replace(/^leader\\b/,'Líder')}</li>)}</ul>
-          </li>)}</ol>
-          {history.length>8&&<small>Últimas oito ações de {history.length}.</small>}
+              .replace(/^leader\\b/,'Líder'))}
+            turns={Math.max(1,state.turn)}
+            playing={!donePresentation} onFinished={()=>setPresented(actionCount)}/>
         </section>}
         {state.outcome!=='ongoing'&&<div role="status" className={styles.result}>
           <h3>{state.outcome==='player-win'?'Você venceu '+gym?.leader+'!':
