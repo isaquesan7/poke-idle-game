@@ -142,7 +142,7 @@ describe('journal de eventos idempotentes v0.2 (somente RAM)',()=>{
     expect(parsed(first).wins).toBe(0);
     expect(parsed(first).coins).toBe(321);
     // D064BG: somente o Pokémon ativo perde 3 pontos de afinidade.
-    expect(parsed(first).roster[0].affinity).toBe(70);
+    expect(parsed(first).roster[0]?.affinity).toBe(70);
     expect(parsed(first).roster[1]).toEqual(source().roster[1]);
     expect((parsed(first).roster[0] as any).battleRecord).toEqual({wins:0,draws:0,losses:1});
     const draw=applied(first,{...loss,id:'draw',expectedRevision:1,outcome:'draw'});
@@ -150,7 +150,7 @@ describe('journal de eventos idempotentes v0.2 (somente RAM)',()=>{
     expect((parsed(draw) as any).draws).toBe(1);
     expect((parsed(draw).roster[0] as any).battleRecord).toEqual({wins:0,draws:1,losses:1});
     expect(parsed(draw).coins).toBe(321);
-    expect(parsed(draw).roster[0].affinity).toBe(69);
+    expect(parsed(draw).roster[0]?.affinity).toBe(69);
     expect(parsed(draw).roster[1]).toEqual(source().roster[1]);
     expect(applyRewardEvent(first,loss).status).toBe('duplicate');
   });
