@@ -76,6 +76,32 @@ describe('D064BH — cronômetro de expedição',()=>{
     expect(html).not.toContain('aria-label="Progresso para o próximo ciclo"');
     expect(html).toContain('08:00:00');
   });
+  it('D064BK: informa quando arredondamento zera as recompensas e pausa os contadores',()=>{
+    const html=renderToStaticMarkup(<ExpeditionScreen {...base}
+      selectedRegionId={3}
+      options={[{id:3,name:'Caverna Rochosa',trainerUnlockLevel:12,levelMin:21,unlocked:true}]}
+      activePokemonLevel={41}
+      ballProgress={{'poke-ball':1439,'great-ball':0,'ultra-ball':0}}
+      pending={{cycles:2880,coins:0,trainerXp:0,pokemonXpPerMember:0,
+        ballProgress:{'poke-ball':1439,'great-ball':0,'ultra-ball':0}}}
+    />);
+    expect(html).toContain('Esta região não gera moedas nem XP por ciclo');
+    expect(html).toContain('O progresso de Pokébolas também fica pausado');
+    expect(html).toContain('Contadores pausados nesta região');
+    expect(html).toContain('Poké Ball: <b>1 ciclo</b>');
+  });
+  it('D064BK: exibe o próximo marco real das três bolas em áreas superiores',()=>{
+    const html=renderToStaticMarkup(<ExpeditionScreen {...base}
+      selectedRegionId={9} activePokemonLevel={81}
+      options={[{id:9,name:'Pico Dracônico',trainerUnlockLevel:82,levelMin:81,unlocked:true}]}
+      ballProgress={{'poke-ball':1439,'great-ball':2879,'ultra-ball':8639}}
+    />);
+    expect(html).toContain('Ciclos elegíveis para as próximas Pokébolas');
+    expect(html).toContain('Poké Ball: <b>1 ciclo</b>');
+    expect(html).toContain('Great Ball: <b>1 ciclo</b>');
+    expect(html).toContain('Ultra Ball: <b>1 ciclo</b>');
+    expect(html).not.toContain('Contadores pausados nesta região');
+  });
   it('próxima perda de afinidade usa última atividade e dias já cobrados',()=>{
     const D=86_400_000;
     expect(timeUntilAffinityLoss(started,started,0)).toBe(2*D);
