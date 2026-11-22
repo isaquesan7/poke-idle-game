@@ -46,7 +46,13 @@ try{
     assert.deepEqual(entered,before,'entrar na região não deve iniciar batalha');
     assert.equal(await page.getByText('Encontro surpresa').count(),1);
     await page.getByRole('button',{name:'Batalhar na região'}).click();
-    await page.waitForFunction(()=>scrollY===0);
+    // D064BO: abrir combate foca o palco, não teleporta para scrollY=0.
+    await page.waitForFunction(()=>{
+      const el=document.querySelector('[data-testid="battle-stage"]');
+      if(!el||document.activeElement!==el)return false;
+      const box=el.getBoundingClientRect();
+      return box.bottom>0&&box.top<window.innerHeight;
+    });
     await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===1,key);
     const staged=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     const stagedGame=JSON.parse(staged.journal.raw);
@@ -108,6 +114,15 @@ try{
     await page.getByRole('heading',{name:'Vitória!'}).waitFor();
     const confirmed=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
     assert.equal(confirmed.lastBattle.captureStatus,'available');
+    // Fim do replay: opção de captura deve estar visível e com foco,
+    // incluindo viewport de 390px (sem voltar ao início da página).
+    await page.waitForFunction(()=>{
+      const el=document.querySelector('[data-testid="battle-capture-area"]');
+      if(!el||document.activeElement!==el)return false;
+      const box=el.getBoundingClientRect();
+      return box.bottom>0&&box.top<window.innerHeight;
+    });
+
     const stockBefore=confirmed.ballPocket.quantities['poke-ball'];
     const stageBounds=await page.getByTestId('battle-stage').boundingBox();
     const captureSection=page.locator('[class*="battleCapturePlacement"]');
@@ -123,6 +138,13 @@ try{
       return ['caught','escaped'].includes(saved.lastBattle.captureStatus);
     },key);
     const attempt=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
+    await page.waitForFunction(()=>{
+      const el=document.querySelector('[data-testid="battle-capture-area"]');
+      if(!el||document.activeElement!==el)return false;
+      const box=el.getBoundingClientRect();
+      return box.bottom>0&&box.top<window.innerHeight;
+    });
+
     assert.equal(attempt.ballPocket.quantities['poke-ball'],stockBefore-1);
     if(attempt.lastBattle.captured){
       const caught=attempt.roster.at(-1);
