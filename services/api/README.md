@@ -16,7 +16,7 @@
 
 ## Regras de lançamento (ainda pendentes)
 1. Gerar e versionar lockfile exclusivo da API, instalar somente deps de produção e criar imagem Docker isolada; fazer testes Node HTTP + banco real em ambiente de teste.
-2. Aplicar SQL ao PostgreSQL por migração com registro de versão e backup automático habilitado; confirmar tabelas e constraints. O arquivo SQL commitado **não significa migration executada**.
+2. Executar `npm run db:migrate` (transação, advisory lock e checksum) após configurar backup, conexão privada e lockfile da API; confirmar tabelas e constraints. O arquivo SQL commitado **não significa migration executada**.
 3. Revisão de segurança: rate limiting distribuído para login/cadastro, verificação de e-mail e recuperação de senha, cookies `Secure`, CSRF/origin estritos, monitoramento, retenção e gestão de dados/LGPD.
 4. Conectar frontend `/` aos endpoints pela **mesma origem** (proxy reverso autenticado), e só depois liberar `ONLINE_REGISTRATION_ENABLED`.
 5. Mover inicialização do save, turnos, capturas, recompensas e inventário para transações **autoritativas no servidor**. Não implementar `PUT /save` aceitando JSON arbitrário de cliente.
@@ -32,4 +32,4 @@ PORT=3001
 NODE_ENV=development
 ```
 
-O serviço de API **não foi implantado** nem conectado ao site nesta etapa. O banco pode existir vazio por enquanto. Não expor variáveis privadas nem credenciais em documentação, prints ou logs.
+A migration está pronta em `services/api/src/migrate.mjs`, mas **não foi executada no banco**. A API **não foi implantada** nem conectada ao site nesta etapa; o banco permanece sem contas. A instalação das dependências exige lockfile/CI de produção. Não expor variáveis privadas nem credenciais em documentação, prints ou logs.
