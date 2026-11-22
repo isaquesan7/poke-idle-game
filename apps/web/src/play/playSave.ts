@@ -42,6 +42,10 @@ export type PlayAction =
   | { readonly type: 'pokemon-invest-batch'; readonly uid:number; readonly increments: Readonly<Partial<Record<keyof StatValues,number>>> }
   | { readonly type: 'battle'; readonly seed: number }
   | { readonly type: 'regional-battle'; readonly seed:number; readonly regionId:number; readonly ballId?:KantoBallId|null }
+  | { readonly type:'start-regional-battle'; readonly seed:number; readonly regionId:number }
+  | { readonly type:'finish-regional-battle'; readonly battleId:string }
+  | { readonly type:'capture-after-battle'; readonly battleId:string; readonly ballId:KantoBallId }
+  | { readonly type:'skip-capture'; readonly battleId:string }
   | { readonly type: 'evolution'; readonly uid:number; readonly targetSpeciesId:number }
   | { readonly type: 'evolution-test-kit' }
   | { readonly type: 'move'; readonly uid:number; readonly moveName:string;
@@ -129,7 +133,8 @@ export function createPlaySave(
     roster: [{
       uid: 1, pokemonId: starterId, level: demo ? 20 : 1,
       xp: 0, manual: zeroStats(), affinity: demo ? 70 : 0,
-      moveName: starterId === 4 ? 'scratch' : 'tackle', upgrades: {}
+      moveName: starterId === 4 ? 'scratch' : 'tackle', upgrades: {},
+      battleRecord:{wins:0,draws:0,losses:0}
     }],
     team: [1], nextUid: 2, expedition: null, lastClaim: null,
     ballPocket: D064_DRAFT_STARTER_BALLS, regionWins: Array(10).fill(0)
@@ -372,6 +377,115 @@ function playBattle(
 }
 
 /**
+ * D064BE: o combate é calculado de maneira determinística, mas as recompensas
+ * só são concedidas quando a reprodução termina. O pending fica no próprio
+ * save para sobreviver a reload/navegação, sem pagamento duplicado.
+ */
+function stagedRegionalBattle(journal:RewardJournal,seed:number,regionId:number,battleId:string):
+  {status:'ok';journal:RewardJournal}|{status:'blocked';reason:string}{
+  let game:Record<string,unknown>;
+  try{game=JSON.parse(journal.raw) as Record<string,unknown>;}catch{
+    return {status:'blocked',reason:'Save inválido.'};
+  }
+  if(game.pendingBattle)return {status:'blocked',reason:'Finalize o combate pendente.'};
+  if(record(game.lastBattle)&&game.lastBattle.captureStatus==='available')
+    return {status:'blocked',reason:'Escolha capturar ou seguir antes de lutar novamente.'};
+  const simulated=playBattle(journal,seed,battleId,regionId,null);
+  if(simulated.status!=='ok')return simulated;
+  let advanced:Record<string,unknown>;
+  try{advanced=JSON.parse(simulated.journal.raw) as Record<string,unknown>;}catch{
+    return {status:'blocked',reason:'Resultado inválido.'};
+  }
+  game.pendingBattle={
+    battleId,seed,regionId,preview:advanced.lastBattle
+  };
+  return {status:'ok',journal:{...journal,raw:JSON.stringify(game)}};
+}
+
+function finalizeRegionalBattle(journal:RewardJournal,battleId:string):
+  {status:'ok';journal:RewardJournal}|{status:'blocked';reason:string}{
+  let game:Record<string,unknown>;
+  try{game=JSON.parse(journal.raw) as Record<string,unknown>;}catch{
+    return {status:'blocked',reason:'Save inválido.'};
+  }
+  const pending=game.pendingBattle;
+  if(!record(pending)||pending.battleId!==battleId
+    ||!goodNumber(pending.regionId)||!goodNumber(pending.seed))
+    return {status:'blocked',reason:'Batalha pendente não encontrada ou já finalizada.'};
+  delete game.pendingBattle;
+  const base={...journal,raw:JSON.stringify(game)};
+  const outcome=playBattle(base,pending.seed as number,battleId,pending.regionId as number,null);
+  if(outcome.status!=='ok')return outcome;
+  const updated=JSON.parse(outcome.journal.raw) as Record<string,unknown>;
+  if(!record(updated.lastBattle)||!record(pending.preview)
+    ||updated.lastBattle.outcome!==pending.preview.outcome
+    ||updated.lastBattle.wildSpeciesId!==pending.preview.wildSpeciesId)
+    return {status:'blocked',reason:'Resultado divergente; progresso preservado.'};
+  updated.lastBattle.captureStatus=updated.lastBattle.outcome==='win'?'available':'unavailable';
+  updated.lastBattle.captureSeed=pending.seed;
+  return {status:'ok',journal:{...outcome.journal,raw:JSON.stringify(updated)}};
+}
+
+/** Uma escolha pós-combate; id do encontro é obrigatório e replay não reabre oferta. */
+function postBattleCapture(journal:RewardJournal,battleId:string,ballId:KantoBallId|null):
+  {status:'ok';journal:RewardJournal}|{status:'blocked';reason:string}{
+  let game:Record<string,unknown>;
+  try{game=JSON.parse(journal.raw) as Record<string,unknown>;}catch{
+    return {status:'blocked',reason:'Save inválido.'};
+  }
+  const battle=game.lastBattle;
+  if(game.pendingBattle||!record(battle)||battle.battleId!==battleId
+    ||battle.outcome!=='win'||battle.captureStatus!=='available'
+    ||!goodNumber(battle.regionId)||!goodNumber(battle.wildSpeciesId)
+    ||!goodNumber(battle.captureSeed)||!goodNumber(battle.wildMaxHp))
+    return {status:'blocked',reason:'Não há captura disponível para este combate.'};
+  if(ballId===null){
+    battle.captureStatus='skipped';
+    return {status:'ok',journal:{...journal,raw:JSON.stringify(game)}};
+  }
+  if(!['poke-ball','great-ball','ultra-ball'].includes(ballId))
+    return {status:'blocked',reason:'Pokébola inválida.'};
+  const region=kantoRegion(battle.regionId as number);
+  const species=KANTO_BATTLE_SPECIES[battle.wildSpeciesId as number];
+  const pocket=inspectKantoBallPocket(game.ballPocket);
+  if(!region||!species||pocket.status!=='valid')
+    return {status:'blocked',reason:'Encontro ou inventário inválido.'};
+  if(region.rareSpeciesIds.includes(species.id)&&ballId!=='ultra-ball')
+    return {status:'blocked',reason:'Este Pokémon exige Ultra Ball.'};
+  if((pocket.pocket.quantities[ballId]??0)<1)
+    return {status:'blocked',reason:'Você não possui esta Pokébola.'};
+  const outcome=resolveKantoCaptureAttempt({
+    regionId:region.id,speciesId:species.id,ballId,pocket:pocket.pocket,
+    maxHp:battle.wildMaxHp as number,currentHp:0,
+    seed:((battle.captureSeed as number)^0xa5a5a5a5)>>>0
+  });
+  if(outcome.status!=='resolved')return {status:'blocked',reason:outcome.reason};
+  if(!Array.isArray(game.roster)||!goodNumber(game.nextUid)||game.nextUid<1)
+    return {status:'blocked',reason:'Coleção inválida.'};
+  if(outcome.captured){
+    if(!Number.isSafeInteger(game.nextUid+1))
+      return {status:'blocked',reason:'UID esgotado.'};
+    game.roster.push({
+      uid:game.nextUid,pokemonId:species.id,level:battle.wildLevel,xp:0,
+      manual:zeroStats(),affinity:0,moveName:species.move.name,upgrades:{},
+      battleRecord:{wins:0,draws:0,losses:0}
+    });
+    game.nextUid++;
+    const caught=new Set<number>(Array.isArray(game.caughtSpecies)
+      ?game.caughtSpecies.filter((value:unknown):value is number=>
+          typeof value==='number'&&Number.isSafeInteger(value)&&value>=1&&value<=151):[]);
+    caught.add(species.id);
+    game.caughtSpecies=[...caught];
+  }
+  game.ballPocket=outcome.pocket;
+  battle.captured=outcome.captured;
+  battle.captureStatus=outcome.captured?'caught':'escaped';
+  battle.captureBallId=ballId;
+  // Captura é separada do replay e NÃO acrescenta outra vitória/XP.
+  return {status:'ok',journal:{...journal,raw:JSON.stringify(game)}};
+}
+
+/**
  * Uma única transição imutável + uma gravação da chave v0.2.
  * O caller DEVE usar navigator.locks para coordenação entre abas.
  * Enquanto não existir backend, o relógio do dispositivo não é confiável.
@@ -387,6 +501,13 @@ export function updatePlaySave(
     return { status: 'blocked', reason: 'Revisão desatualizada. Atualize antes de jogar.' };
   }
   const journal = previous.snapshot.journal;
+  // Não permitir edição/expedição paralela a uma batalha ainda sem prêmio.
+  let current:Record<string,unknown>;
+  try{current=JSON.parse(journal.raw) as Record<string,unknown>;}catch{
+    return {status:'blocked',reason:'Save inválido.'};
+  }
+  if(current.pendingBattle&&action.type!=='finish-regional-battle')
+    return {status:'blocked',reason:'Conclua o replay antes de continuar.'};
   let next: RewardJournal;
   if (action.type === 'trainer' || action.type === 'pokemon') {
     const result = action.type === 'trainer'
@@ -470,6 +591,20 @@ export function updatePlaySave(
         : {type:'grant-test-kit'});
     if(result.status!=='ok')return{status:'blocked',reason:result.reason};
     next={...journal,raw:result.json};
+  } else if (action.type === 'start-regional-battle') {
+    const result=stagedRegionalBattle(journal,action.seed,action.regionId,
+      'regional-v02-'+(previous.snapshot.revision+1));
+    if(result.status==='blocked')return result;
+    next=result.journal;
+  } else if (action.type === 'finish-regional-battle') {
+    const result=finalizeRegionalBattle(journal,action.battleId);
+    if(result.status==='blocked')return result;
+    next=result.journal;
+  } else if (action.type === 'capture-after-battle'||action.type==='skip-capture') {
+    const result=postBattleCapture(journal,action.battleId,
+      action.type==='skip-capture'?null:action.ballId);
+    if(result.status==='blocked')return result;
+    next=result.journal;
   } else if (action.type === 'battle'||action.type === 'regional-battle') {
     const region=action.type==='regional-battle'?action.regionId:undefined;
     const idPrefix=region===undefined?'battle-v02-':'regional-v02-';
