@@ -55,3 +55,9 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - POST /api/v1/adventure/start valida sessão, e-mail verificado, origin e um único campo starterId (1, 4 ou 7). O servidor gera nome do perfil, relógio e política inicial Kanto nível 1; rejeita recompensas fornecidas pelo navegador.
 - INSERT de game_saves e game_action_receipts no mesmo BEGIN/COMMIT; ON CONFLICT(account_id) DO NOTHING previne replays e duas abas criando aventuras simultaneamente. GET /api/v1/save permanece somente leitura. Escrita posterior de progresso (batalhas, capturas etc.) ainda NÃO foi implementada no backend.
 - O CI cria duas contas de teste, valida a unicidade e executa backup/restore em banco PostgreSQL de teste isolado. Isso não comprova backup agendado ou PITR na instância Railway de produção. Sem importação local; /play não foi modificado.
+
+
+## ONLINE-01C-4 — passagem privada same-origin (em branch)
+- Web possui proxy `/api/v1/*` com allowlist para o serviço API interno, via `ONLINE_API_INTERNAL_URL` (somente origem privada definida pelo operador; **não adicionar credenciais ou endpoint secreto ao Git**). Sem essa variável, responde 503. O backend permanece independente, sem domínio público.
+- `Origin` e `Cookie` de entrada seguem intactos; `Forwarded`, `X-Forwarded-For`, `X-Forwarded-Host` e `X-Forwarded-Proto` são descartados, sem confiar em cabeçalhos controlados pelo cliente. O destino é configuração fixa, sem redirects controlados pelo browser ou proxy aberto; body limitado a 16KiB.
+- Configuração NÃO está ativada no Railway. Fazer revisão de segurança da rede interna, `APP_ORIGIN`, cookies, backup e restore e email operacional antes de conectar a variável. Mesmo com proxy, o guard `NODE_ENV=production` ainda bloqueia auth e início da aventura. Não existe fluxo online aberto.
