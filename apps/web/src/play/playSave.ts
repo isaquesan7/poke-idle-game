@@ -481,6 +481,7 @@ function postBattleCapture(journal:RewardJournal,battleId:string,ballId:KantoBal
   }
   game.ballPocket=outcome.pocket;
   battle.captured=outcome.captured;
+  if(outcome.captured)battle.capturedStartingLevel=kantoCaptureStartingLevel(species.id);
   battle.captureStatus=outcome.captured?'caught':'escaped';
   battle.captureBallId=ballId;
   // Captura é separada do replay e NÃO acrescenta outra vitória/XP.
