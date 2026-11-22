@@ -689,3 +689,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - `apps/web/src/play/gymSession.ts` reconstrói equipe de UIDs próprios a partir do save, bônus de treinador e moves equipados, IA/seed inicial, reproduz transcript completo e valida cada ação de turno. Comandos `gym-start/turn/finish/abandon` persistidos no próprio snapshot v0.2; não aceitam estado ou resultado do navegador.
 - `updatePlaySave` preserva controle de revisão/CAS e bloqueia todas as ações não-Ginásio enquanto uma sessão estiver ativa; vitória efetivamente simulada chama `gym-victory` do GYM-03A com recibo no mesmo commit final, com sessão removida. Abandono/empate/derrota não concedem badges nem dinheiro.
 - `gymSession.test.ts` cobre equipe inválida, sessão exclusiva, mutação paralela negada, persistência por reload, transcript adulterado, derrota/abandono e recompensa única após 3×3. **Sem UI de Ginásio e sem backend/antifraude remoto.** CI, merge e Railway a verificar.
+
+
+## GYM-04A — tela de Ginásios integrada e jogável (22/11/2026, EM PR)
+- Nova aba `Ginásios` em `PlayApp` com oito desafios sequenciais, líder/cidade/bônus, escolha de três Pokémon distintos, estado 3×3, HP/SP, troca, Concentrar, golpes legais, finalização e abandono confirmado.
+- `GymScreen.tsx` reproduz histórico do `gymSession` para exibir turno e resultado, sem transferir HP/dano ou recompensa ao writer; `GymScreen.module.css` aplica responsividade e rótulos acessíveis. `PlayApp` impede navegação indevida e não sincroniza afinidade durante uma sessão.
+- Teste Playwright `playable-route.mjs`: aba Ginásios acessível desktop/mobile, próximo líder Brock, Misty bloqueada, seleção insuficiente não inicia nem muta save. Os testes GYM-03B seguem cobrindo sequência real e recibo. CI/merge/deploy pendentes.
