@@ -64,6 +64,21 @@ describe('GYM-02C2b — status individual simétrico',()=>{
     s=gymApplyStatus(s,'player','poison');
     expect(s.player.fighters[0]!.status).toBeNull();
   });
+  it('paralisia pode impedir a ação antes de consumir SP, deterministicamente',()=>{
+    let state=equip(team(),'tackle');
+    state=gymApplyStatus(state,'player','paralysis');
+    const move={kind:'move',moveName:'tackle'} as const;
+    const results=Array.from({length:64},(_,seed)=>resolveGymTurn(state,move,basic,seed));
+    const skipped=results.find(r=>r.status==='applied'&&
+      r.log.some(line=>line.includes('paralisado e perdeu a ação')));
+    expect(skipped).toBeDefined();
+    if(skipped?.status==='applied'){
+      expect(skipped.state.player.fighters[0]!.sp).toBe(
+        state.player.fighters[0]!.sp);
+    }
+    expect(resolveGymTurn(state,move,basic,17)).toEqual(
+      resolveGymTurn(state,move,basic,17));
+  });
   it('aplica debuff até o teto de seis estágios, sem tocar HP/SP',()=>{
     let s=team();
     const initial=s.leader.fighters[0]!;
