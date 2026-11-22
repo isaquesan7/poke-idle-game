@@ -583,3 +583,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Removida rolagem ao topo do `PlayApp` a cada revisão; ao entrar/iniciar/reassistir combate, foco/rolagem vai ao palco; ao vencer ou tentar capturar, fica na área de captura, inclusive falha, em mobile e desktop, com foco programático sem abrir teclado.
 - Cartão grande de level up substituído por `LEVEL UP!` animado sobre o sprite do parceiro por ~2,3s, depois desaparece; `prefers-reduced-motion` respeitado. O aviso depende do writer e não duplica XP/recompensa.
 - E2E regional com foco no palco/captura e nível verdadeiro no writer adicionado; documento `docs/D064BO_COMBAT_FOCUS_AND_ULTRA_POLICY.md`. Sem implementação da loja/preços; CI, PR, merge e Railway ainda a verificar.
+
+### D064BO — correções publicadas (22/11/2026)
+- PR #143 MERGED na main SHA `230c78b8312593ba1eae7820e2fc40cafde127f2`, HEAD `04ba433caf31911f641922449530e8e0f702224c` aprovado em regressão geral `45028737965`, Playwright desktop/mobile `45028737971` e Docker `45028738017` **SUCCESS**.
+- Railway deployment `7a144fd5-b4b0-4ebc-ab1a-e0b16a03d536` **SUCCESS** SHA exato, `/health` interno OK, 1 réplica online sem crashes. GET público externo não verificado.
+- Ultra por vitórias regionais desde R7 restaurada (+1 a cada 15), Ultra de expedição ainda exclusiva de R9/R10 (24h elegíveis); navegador foca palco/captura e não sobe ao topo; LEVEL UP flutuante e breve sobre sprite aliado, cartão removido. Teste obsoleto `scrollY===0` corrigido e revalidado na CI final. Nenhum preço/compra de loja alterado.
