@@ -560,3 +560,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Ampliados testes para compatibilidade de saves antigos, recuperação de treinador Lv19/Pokémon Lv41 e novos totais de 40 claims/loja, sem definir preços. CI/merge/deploy **ainda não verificados para D064BM**.
 
 - Novo teste de integração com writer real verifica que 67 vitórias regionais elegíveis recuperam treinador Lv19/Pokémon Lv41 sem reprocessar o mesmo receipt, sem XP de captura ou afinidade gratuita.
+
+### D064BM — release confirmado (22/11/2026)
+- PR #139 `feat/d064bm-pokemon-xp-curve-unlock-safety` MERGED na `main`, SHA `a26bde2ce55b98a455e6845e0a800ac4c0375d54`; HEAD testado `dd84dba96ad6f2bba30a24f19db2982e13326f17` com GitHub CI geral `45024095411` e Docker `45024095537` **SUCCESS**.
+- Railway deployment `e5d8c22d-c101-4f65-8d75-30238a03d090` **SUCCESS** no commit exato, build Vite OK, Node porta8080, `/health` interno OK, 1 réplica online. GET externo público não confirmado; warning não fatal de chunk frontend >500kB registrado para futura otimização.
+- Entregue a curva gradual de XP Pokémon pós-Lv20, mantendo early game, treinador, desbloqueios, sistema de regiões, combats, bolas, raridade e saves. Simulação e testes completos em `docs/POKEMON_XP_CURVE_D064BM.md`.
