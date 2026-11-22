@@ -54,4 +54,3 @@ CREATE TABLE IF NOT EXISTS game_action_receipts (
 );
 CREATE INDEX IF NOT EXISTS game_action_receipts_account_idx
   ON game_action_receipts(account_id,created_at DESC);
-COMMIT;
