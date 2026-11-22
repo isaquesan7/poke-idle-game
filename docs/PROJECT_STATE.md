@@ -1292,3 +1292,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - CSS com foco teclado mais nítido, toque facilitado e tratamento de largura extra compacta, somente tokens já existentes.
 - Testes SSR `d064bh-expedition-display.test.tsx` cobrem semântica e limite; `playable-route.mjs` valida foco Tab, timer não anunciado repetidamente e painel sem overflow em tela mobile. Preservar replays, capturas, afinidade e TM09.
 - **Próxima:** CI full TypeScript/Vitest/E2E Chromium desktop/mobile/Docker; corrigir falhas antes do merge e confirmar Railway SHA. Após publicação, D064BJ pode revisar navegação por teclado no resto do jogo.
+
+- Refinamento D064BI de foco: `ExpeditionScreen` foca o heading `tabIndex=-1` somente quando a fase `ativa/inativa` muda. Assim iniciar/encerrar preserva contexto para teclado/leitor de tela mesmo quando o botão de resgate está desabilitado; não rouba foco a cada segundo. E2E valida transição.
