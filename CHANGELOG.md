@@ -764,3 +764,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - PR #179 integrada por squash na main SHA 611d928d7954c8b08bd4a01f3afc3aa99ef9141b, HEAD validada edd129f417ca7f0d2f1660af5c28bb959fe0c7a5. CI API PG18 45081671999 SUCCESS, regressão geral/Chromium 45081672028 SUCCESS.
 - Railway serviço privado kanto-idle-api deployment 89f64284-2d9e-4d5a-aa73-d8677d9add02 SUCCESS no SHA exato. Logs: migrations 001/002 já aplicadas, 003_password_reset.sql aplicada; runtime inicializado com cadastro desabilitado.
 - Recovery testada no banco descartável e adapter Resend testado via mock, mas remetente/credenciais de e-mail real ainda NÃO configurados, envio real NÃO realizado. Backups e restauração ainda não confirmados, /play local e nenhum save importado.
+
+
+### ONLINE-01C-3 — save inicial autoritativo (branch, CI pendente)
+- `initialAdventure.mjs` constrói perfil novo 1/4/7 lv1 só a partir de perfil autenticado + relógio do servidor. Endpoint test-only `POST /api/v1/adventure/start` aceita apenas starterId e grava save + receipt em transação PostgreSQL com unicidade por conta; dupla tentativa retorna 409 sem remuneração duplicada. Conta existente não pode sobrescrever save.
+- Testes unitários dos 3 iniciais, integração PG de rejeição de payload forjado e corrida de duas solicitações. Workflow executa `pg_dump` + `pg_restore` num segundo banco CI descartável para simular recuperação lógica, não se confunde com backup/restauração real do Railway.
+- Não habilita cadastro de produção, não conecta /play à API e não migra localStorage. Limite de nome API alinhado com /play em 24 caracteres.
