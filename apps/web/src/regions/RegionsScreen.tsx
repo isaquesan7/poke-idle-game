@@ -55,29 +55,25 @@ export function RegionsScreen({
       {KANTO_REGIONS.map(region=>{
         const availableRegion=trainerLevel>=region.trainerUnlockLevel;
         const active=region.id===selected.id;
-        return <button key={region.id} type="button"
-          className={active?styles.regionActive:styles.region}
-          aria-pressed={active} aria-controls="regional-details"
-          onClick={()=>onSelectRegion(region.id)}>
-          <span className={styles.regionNumber}>ÁREA {String(region.id).padStart(2,'0')}</span>
-          <strong>{region.name}</strong>
-          <span className={styles.regionRange}>Pokémon Lv. {region.levelMin}–{region.levelMax}</span>
-          <span className={availableRegion?styles.open:styles.locked}>
-            <i className={'fa-solid '+(availableRegion?'fa-lock-open':'fa-lock')} aria-hidden="true"/>
-            {availableRegion?' Desbloqueada':' Treinador Lv. '+region.trainerUnlockLevel}
-          </span>
-        </button>;
+        return <div key={region.id} className={styles.regionSlot}>
+          <button type="button" className={active?styles.regionActive:styles.region}
+            aria-pressed={active} aria-controls="regional-details"
+            onClick={()=>onSelectRegion(region.id)}>
+            <span className={styles.regionNumber}>ÁREA {String(region.id).padStart(2,'0')}</span>
+            <strong>{region.name}</strong>
+            <span className={styles.regionRange}>Pokémon Lv. {region.levelMin}–{region.levelMax}</span>
+            <span className={availableRegion?styles.open:styles.locked}>
+              <i className={'fa-solid '+(availableRegion?'fa-lock-open':'fa-lock')} aria-hidden="true"/>
+              {availableRegion?' Desbloqueada':' Treinador Lv. '+region.trainerUnlockLevel}
+            </span>
+          </button>
+          {active&&<button type="button" className={styles.regionInlineEnter}
+            disabled={!availableRegion||busy} onClick={()=>onEnterRegion(region.id)}>
+            <i className="fa-solid fa-door-open" aria-hidden="true"/> Entrar na região
+          </button>}
+        </div>;
       })}
     </section>
-
-    <div className={styles.regionEntry} aria-label="Entrada da região selecionada">
-      <div><strong><i className="fa-solid fa-map-location-dot" aria-hidden="true"/> {selected.name}</strong>
-        <small>Selecione a área, entre nela e depois decida quando procurar um Pokémon selvagem.</small></div>
-      <button type="button" className={styles.fight} disabled={!unlocked||busy}
-        onClick={()=>onEnterRegion(selected.id)}>
-        <i className="fa-solid fa-door-open" aria-hidden="true"/> Entrar na região
-      </button>
-    </div>
 
     <section id="regional-details" aria-label="Detalhes da região" className={styles.details}>
       <div className={styles.heading}>
