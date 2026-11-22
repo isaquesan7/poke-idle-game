@@ -218,3 +218,7 @@ Decisão técnica de consistência com o combate regional: se resgate de expedi�
 
 ### D064BR — correção e auditagem oficialmente publicadas (22/11/2026)
 PR #149 funcional `7054c3790800ee4e71c2ee597ca9a576e5f9c90c`, CI geral/Playwright/Docker sucesso e Railway `5f3bc6d4-a8ea-470e-b4bc-89a98ae3c6be` SUCCESS com `/health` interno aprovado. O limite100k de Pokébolas só limita crédito de bola, **NÃO elimina moedas, XP ou cursor** de expedição; preview/UI mostra valor líquido/aviso. Loja informa odds derivadas do core; nenhum percentual ou preço foi modificado. A auditoria de 1.000 vitórias é *simulação com 100% de vitórias assumidas*, não dados reais dos jogadores. Próxima D064BS avaliar evidência de economia e backend/antifraude.
+
+
+### D064BS — XP exclusivo do líder da expedição (22/11/2026, IMPLEMENTAÇÃO EM PR)
+Por decisão expressa, expedições deixam de distribuir XP para toda a equipe. Só o líder `teamUids[0]` ganha XP de Pokémon; até dois companheiros podem acompanhar, sem XP ou afinidade. Preservados XP do treinador, moedas, drops e proteção de writer/receipts. A concessão de insígnias por vitórias de regiões será substituída em fase futura dos Ginásios; **não foi modificada nesta alteração isolada**. Requer CI, merge e deploy verificados para status PUBLICADO.
