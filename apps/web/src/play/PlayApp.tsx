@@ -388,16 +388,22 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     ?expBallProgress as Record<'poke-ball'|'great-ball'|'ultra-ball',number>:undefined;
   const expeditionMembers=expedition?.teamUids?.map(uid=>data?.roster.find(p=>p.uid===uid))
     .filter((p):p is NonNullable<typeof p>=>Boolean(p))??[];
-  const pending=expedition
-    ? expeditionRewards(Math.max(0,now-expedition.lastClaimAt),
-      expedition.regionId&&expeditionMembers.length>0
-        ?{regionId:expedition.regionId,
-          pokemon:expeditionMembers.map(p=>({
-            level:p.level,xp:typeof p.xp==='number'&&Number.isSafeInteger(p.xp)?p.xp:0
-          })),
-          ...(expProgress?{ballProgress:expProgress}:{})}
-        :undefined)
-    :null;
+  const pending=expedition?(()=>{
+    try{
+      return expeditionRewards(Math.max(0,now-expedition.lastClaimAt),
+        expedition.regionId&&expeditionMembers.length>0
+          ?{regionId:expedition.regionId,
+            pokemon:expeditionMembers.map(p=>({
+              level:p.level,xp:typeof p.xp==='number'&&Number.isSafeInteger(p.xp)?p.xp:0
+            })),
+            ...(expProgress?{ballProgress:expProgress}:{})}
+          :undefined);
+    }catch{
+      // Save local malformado não pode derrubar toda a interface.
+      // Writer mantém o bloqueio e não concede recompensas incorretas.
+      return null;
+    }
+  })():null;
   const pendingBattle=ballGame?.pendingBattle && typeof ballGame.pendingBattle==='object'
     ? ballGame.pendingBattle as {battleId:string;preview:unknown}:null;
   // Em um reload, retomar apresentação pendente antes de pagar resultados.
