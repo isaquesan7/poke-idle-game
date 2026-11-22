@@ -160,3 +160,6 @@ Histórico append-only: não apague decisões antigas; marque SUPERADA e inclua 
 
 
 | D-064BA-RESULT | 2026-11-21 | RESULTADO MEDIDO, SEM REBALANCEAMENTO | 36 perfis por writer: no modo só combate, Charmander 50,35% de vitórias, Bulbasaur 37,50%, Squirtle 31,77%; expedições (120 min simulados totais) aceleraram evolução até Nv16 e abertura de R2 para 18/18 perfis contra 2/18 evoluções sem expedição em 96 combates. Preservar IA, poder, curvas, captura e região; avaliar legalidade de loadouts e composição real do time antes de balancear. |
+
+
+| D-064BB | 2026-11-21 | PROPOSTA EM PR, NÃO PUBLICADA | Diversificar adversários no Bosque Inicial: Psyduck #54/Poliwag #60 entram em R1, Rattata #19/Meowth #52 migram para R3/R4. Cada Pokémon continua em exatamente uma das dez regiões; a probabilidade é uniforme para todos os 15 encontros da R1 e não depende do inicial. Medir novamente coortes antes de mexer em stats, IA, XP ou chances. Alteração motivada pelo desnível de Charmander/Squirtle observado em D064BA, cuja causa ainda não foi isolada. |

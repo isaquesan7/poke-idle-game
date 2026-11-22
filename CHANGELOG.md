@@ -477,3 +477,12 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Snapshot oficial fixo de learnsets FireRed/LeafGreen: 151 espécies, 1.536 entradas por nível e 273 nomes de golpes (metadados de golpe atuais da PokéAPI).
 - Amplia os golpes equipáveis de level-up pelo subconjunto de 52 técnicas ofensivas de efeitos já simulados; completa PP e secundários para os novos golpes, preservando os movimentos anteriores e a política de TMs.
 - Sem criação de efeitos não suportados, alteração de XP, recompensas, drops, capturas, save v0.2 ou GIFs. Auditoria e fontes em `docs/POKEAPI_MOVES_D064AO.md`.
+
+## 2026-11-21 — D064BB (proposta em PR; NÃO publicada)
+- Bosque Inicial: dois encontros aquáticos adicionais, Psyduck #54 e Poliwag #60, em lugar de Rattata #19 e Meowth #52. Rattata passa à região 3 e Meowth à região 4; 151 espécies permanecem exclusivas de uma região.
+- Sem pesos diferentes por inicial; 15 espécies de Bosque continuam equiprováveis. Não altera tipo, força, golpes, IA, XP, captura, raridade, níveis, saves ou ativos.
+- Testes de cobertura 151, lendários finais, sorteio determinístico e contagem uniforme; resultado da CI e efeito nas vitórias ainda não verificados. Sem deploy.
+
+- D064BB: teste adicional de 3.456 batalhas reais via writer, com mesmas coortes, seeds e políticas de D064BA para comparar taxas de vitória após diversificar o bosque. CI nova ainda pendente, sem deploy.
+
+- D064BB: coortes após mudança em 3.456 batalhas: sem expedição Bulbasaur 43,75% (+6,25 p.p.), Charmander 48,78% (-1,57), Squirtle 38,72% (+6,95); diferença máxima de 18,58 a 10,06 p.p. Nos testes da branch, regressão e Docker/HTTP SUCCESS. Ainda sem deploy até merge/Railway confirmado.

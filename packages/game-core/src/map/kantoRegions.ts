@@ -21,18 +21,24 @@ export interface KantoRegionDefinition {
   readonly rareWeight:number;
 }
 
+/**
+ * D064BB: Bosque Inicial inclui Psyduck e Poliwag (água) para ampliar
+ * confrontos dos três iniciais. Rattata e Meowth migram respectivamente
+ * para R3 e R4: mantém as 151 espécies em uma única região cada.
+ * Chances continuam uniformes; nenhum multiplicador oculto por inicial.
+ */
 export const KANTO_REGIONS:readonly KantoRegionDefinition[]=[
   {id:1,name:'Bosque Inicial',levelMin:2,levelMax:10,trainerUnlockLevel:1,
-    speciesIds:[10,13,16,19,21,29,32,43,46,48,52,69,1,4,7],
+    speciesIds:[10,13,16,54,21,29,32,43,46,48,60,69,1,4,7],
     rareSpeciesIds:[],commonWeight:1,rareWeight:1},
   {id:2,name:'Colinas de Kanto',levelMin:11,levelMax:20,trainerUnlockLevel:6,
     speciesIds:[11,14,17,20,22,23,24,27,28,30,33,35,37,39,41,44,47,49,50,51,53,56,58],
     rareSpeciesIds:[],commonWeight:1,rareWeight:1},
   {id:3,name:'Caverna Rochosa',levelMin:21,levelMax:30,trainerUnlockLevel:12,
-    speciesIds:[12,15,40,42,54,55,57,59,63,64,66,67,70,71,72,73,74,75,95],
+    speciesIds:[12,15,40,42,19,55,57,59,63,64,66,67,70,71,72,73,74,75,95],
     rareSpeciesIds:[],commonWeight:1,rareWeight:1},
   {id:4,name:'Lagos Serenos',levelMin:31,levelMax:40,trainerUnlockLevel:20,
-    speciesIds:[60,61,62,79,80,86,87,90,91,98,99,116,117,118,119,120,121,129],
+    speciesIds:[52,61,62,79,80,86,87,90,91,98,99,116,117,118,119,120,121,129],
     rareSpeciesIds:[],commonWeight:1,rareWeight:1},
   {id:5,name:'Planícies Elétricas',levelMin:41,levelMax:50,trainerUnlockLevel:30,
     speciesIds:[25,26,81,82,100,101,102,103,104,105,106,107,108,109,110,111,112],
