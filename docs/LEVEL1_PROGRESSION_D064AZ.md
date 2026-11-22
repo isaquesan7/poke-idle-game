@@ -22,3 +22,23 @@ Não mudar curva de XP, níveis dos selvagens, batalha, IA, raridade de lendári
 
 ## Próxima etapa
 Usar os resultados observados para decidir se a jornada inicial precisa de intervenção explícita (por exemplo, tutorial, encontro inicial adequado ou pequenos pontos de XP em derrotas), sem conceder recursos invisíveis. Prolongar a trajetória até a primeira evolução via writer e investigar desbloqueios da região2, expedições reais e impacto de partidas curtas no jogador. CI, merge e Railway SUCCESS no SHA exato são gates.
+
+
+## Diagnóstico comprovado na primeira regressão — bloqueio grave
+CI `44966046157` no HEAD `6894e5958a3863665f30ab4cafd6c9a73ea4a060` obteve os seguintes dados, com IA D064AV e starter Lv1 normal, 72 encontros sequenciais por espécie:
+
+| Inicial | Vitórias/72 | Primeiro resultado vitorioso | Chegou ao Nv2? |
+|---|---:|---|---|
+| Bulbasaur #1 | **0** | nunca | não |
+| Charmander #4 | **1** | tentativa 35 | não |
+| Squirtle #7 | **0** | nunca | não |
+
+A regra antiga dava XP **somente pela vitória**. Nesse cenário os três permaneceram no nível 1 após 72 batalhas, sem poder iniciar a expedição regional, demonstrando um **softlock real**, não apenas risco teórico.
+
+## Correção implementada D064AZ
+- **Aprendizado inicial:** enquanto o Pokémon ativo está no **nível 1**, uma derrota ou empate concede **22 XP somente a esse Pokémon**, uma única vez via writer transacional no evento já registrado. Quatro não-vitórias somam 88 XP; o limiar do Lv1 é 87 XP, então o Pokémon chega ao Nv2 (restando 1 XP). Vitórias continuam com recompensa normal, podendo antecipar a progressão.
+- Ao atingir Nv2, o benefício termina automaticamente. Não há moedas, XP do treinador, afinidade ou Pokébolas por derrotas. A IA, os selvagens, precisão, dano, custo SP, regiões, níveis/XP de vitória e raridade dos lendários não foram alterados.
+- `beginnerBattleXp` definido em `packages/game-core/src/progression/xp.ts`, compartilhado por `rewardEvents` (aplica XP) e `apps/web/src/play/playSave.ts` (registra XP real no replay e frame de informação). A interface explica a regra na região1 para líder Nv1.
+- Regressão de jornada pelo writer valida correspondência `lastBattle.pokemonXp`, ausência de ganho de treinador/moedas nas derrotas de Nv1, evolução/expedição desbloqueadas apenas quando permitidas e proteção de revisões/recibos. Teste puro `d064az-beginner-xp.test.ts` prova quatro resultados sem vitória, parada automática após Nv2 e rejeição de níveis inválidos.
+
+**Limitações:** regra é uma hipótese de onboarding para alfa, válida a qualquer Pokémon Nv1, não só starter. Não é telemetria de pessoas. A trajetória até a segunda região e primeiro estágio evoluído ainda precisará de medição posterior. CI final e Railway SUCCESS no SHA exato são gates antes da publicação.
