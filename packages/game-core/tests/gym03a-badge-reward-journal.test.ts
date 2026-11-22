@@ -88,9 +88,10 @@ describe('GYM-03A — concessão sequencial e idempotente pelo journal',()=>{
       fighters:c.battle.leader.fighters.map((f,i)=>i===0
         ?{...f,hp:1}:f) as unknown as typeof c.battle.leader.fighters}};
     expect(applyRewardEvent(origin,{...c,battle:invalid}).status).toBe('rejected');
-    const unowned={...c.battle,player:{...c.battle.player,
-      fighters:c.battle.player.fighters.map((f,i)=>i===0?{...f,uid:999}:f)
-        as unknown as typeof c.battle.player.fighters}};
+    const unownedFighters=c.battle.player.fighters.map((f,i)=>
+      i===0?{...f,uid:999}:f) as unknown as typeof c.battle.player.fighters;
+    const unowned={...c.battle,
+      player:{...c.battle.player,fighters:unownedFighters}};
     expect(applyRewardEvent(origin,{...c,battle:unowned}).status).toBe('rejected');
   });
   it('oito ginásios em sequência, moedas únicas e título +12 em seis atributos',()=>{
