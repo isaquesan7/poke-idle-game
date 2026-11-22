@@ -103,3 +103,16 @@
   .reserveCards{grid-template-columns:repeat(2,minmax(0,1fr))}
   .commands{padding:var(--space-3)}
 }
+
+/* GYM-04D: diário do duelo, consultável sem alterar combate ou save. */
+.history{display:grid;gap:var(--space-2);margin-top:var(--space-4);
+  padding:var(--space-4);border:1px solid var(--color-border);
+  border-radius:var(--radius-card);background:var(--color-surface-raised);min-width:0}
+.history h4{margin:0}
+.history ol{display:grid;gap:var(--space-3);margin:0;padding-left:var(--space-5);
+  max-height:300px;overflow:auto}
+.history li{line-height:1.5;overflow-wrap:anywhere}
+.history ul{padding-left:var(--space-4)}
+.history small{color:var(--color-text-muted)}
+.reserveGroup:focus,.commands:focus{outline:2px solid var(--color-primary);
+  outline-offset:3px;border-radius:var(--radius-card)}
