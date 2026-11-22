@@ -1,3 +1,4 @@
+import {d064DraftBallDrop} from '@kanto/game-core';
 import {describe,expect,it} from 'vitest';
 import {
   createPlaySave,PLAY_SAVE_KEY,readPlaySave,updatePlaySave
@@ -12,12 +13,12 @@ function store(){
   };
 }
 
-/** D064BN: usar o escritor REAL de batalha, que chama d064DraftBallDrop,
- * em vez de provar somente a função pura. A preparação de progresso avançado
- * abaixo ocorre apenas na memória do teste, nunca no jogo publicado.
+/** D064BQ: usar o writer real de batalha para validar sorteio
+ * por seed + encontro e recibo, nunca por número fixo de vitórias.
+ * Progresso avançado nos testes apenas; não altera o jogo publicado.
  */
-describe('D064BN — reposição de bolas no writer jogável',()=>{
-  it('15ª vitória regional em R7 concede uma Ultra Ball com recibo único',()=>{
+describe('D064BQ — drops aleatórios no writer jogável',()=>{
+  it('15ª vitória em R7 NÃO garante Ultra: resultado depende do seed e do encontro',()=>{
     const storage=store();
     const initial=createPlaySave(storage,'Auditoria Ultra',7,100_000);
     expect(initial.status).toBe('ok');
@@ -27,7 +28,7 @@ describe('D064BN — reposição de bolas no writer jogável',()=>{
     game.roster[0].pokemonId=9; // Blastoise como exemplo de save avançado
     game.roster[0].level=69;
     game.roster[0].moveName='water-gun';
-    game.regionWins[6]=14; // próxima vitória elegível será a 15ª
+    game.regionWins[6]=14; // não é mais marco fixo de Ultra
     game.ballPocket={version:1,quantities:{
       'poke-ball':12,'great-ball':0,'ultra-ball':0
     }};
@@ -45,8 +46,12 @@ describe('D064BN — reposição de bolas no writer jogável',()=>{
     expect(saved.lastBattle.regionId).toBe(7);
     expect(saved.regionWins[6]).toBe(15);
     expect(saved.wins).toBe(1);
+    const rolled=d064DraftBallDrop(7,0,'regional-v02-1')!;
+    expect(saved.lastBattle.ballDrops).toEqual(rolled);
     expect(saved.ballPocket.quantities).toMatchObject({
-      'poke-ball':12,'great-ball':0,'ultra-ball':1
+      'poke-ball':12+rolled['poke-ball'],
+      'great-ball':rolled['great-ball'],
+      'ultra-ball':rolled['ultra-ball']
     });
     expect(saved.coins).toBeGreaterThan(game.coins);
     expect(result.snapshot.journal.receipts).toHaveLength(1);
@@ -77,6 +82,7 @@ describe('D064BN — reposição de bolas no writer jogável',()=>{
         ...initial.snapshot.journal,raw:JSON.stringify(game)
       }
     }));
+    const totals={'poke-ball':12,'great-ball':3,'ultra-ball':0};
     for(let revision=0;revision<2;revision++){
       const result=updatePlaySave(storage,revision,{
         type:'regional-battle',regionId:7,seed:0,ballId:null
@@ -88,9 +94,11 @@ describe('D064BN — reposição de bolas no writer jogável',()=>{
       expect(saved.regionWins[6]).toBe(100000);
       expect(saved.wins).toBe(revision+1);
       expect(saved.coins).toBeGreaterThan(game.coins);
-      expect(saved.ballPocket.quantities).toMatchObject({
-        'poke-ball':12,'great-ball':3,'ultra-ball':0
-      });
+      const rolled=d064DraftBallDrop(7,0,'regional-v02-'+(revision+1))!;
+      for(const id of ['poke-ball','great-ball','ultra-ball'] as const)
+        totals[id]+=rolled[id];
+      expect(saved.lastBattle.ballDrops).toEqual(rolled);
+      expect(saved.ballPocket.quantities).toMatchObject(totals);
       expect(result.snapshot.journal.receipts).toHaveLength(revision+1);
       expect(readPlaySave(storage).status).toBe('ready');
     }
