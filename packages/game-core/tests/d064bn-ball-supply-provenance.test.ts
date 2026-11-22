@@ -1,6 +1,6 @@
 import {describe,expect,it} from 'vitest';
 import {
-  KANTO_REGIONS,D064_DRAFT_STARTER_BALLS,
+  KANTO_REGIONS,D064_DRAFT_STARTER_BALLS,KANTO_REGION_WINS_CAP,
   d064DraftBallDrop,emptyExpeditionBallProgress,expeditionRewards,
   KANTO_BALLS,inspectKantoBallPocket
 } from '../src/index.js';
@@ -44,6 +44,10 @@ describe('D064BN — proveniência de Poké/Great/Ultra Ball',()=>{
     expect(d064DraftBallDrop(11,15)).toBeNull();
     expect(d064DraftBallSupply(0,15)).toBeNull();
     expect(d064DraftBallDrop(7,0)).toBeNull();
+    expect(KANTO_REGION_WINS_CAP).toBe(100000);
+    expect(d064DraftBallDrop(7,KANTO_REGION_WINS_CAP)).not.toBeNull();
+    expect(d064DraftBallDrop(7,KANTO_REGION_WINS_CAP+1)).toBeNull();
+    expect(d064DraftBallSupply(7,KANTO_REGION_WINS_CAP+1)).toBeNull();
   });
 
   it('Ultra Ball depende de 8640 ciclos elegíveis de expedição nas áreas 9/10',()=>{
