@@ -32,9 +32,9 @@ function readSession(value:unknown):GymSessionV1|null{
     ||typeof value.gymId!=='string'||typeof value.seed!=='number')return null;
   return value as unknown as GymSessionV1;
 }
-function art(id:number,alt:string){
+function art(id:number,alt:string,large=false){
   return <img src={'/assets/pokemon-gifs/poke_'+id+'.gif'} alt={alt}
-    loading="lazy" className={styles.pokemonArt}/>;
+    loading="eager" className={large?styles.duelPokemon:styles.pokemonArt}/>;
 }
 function status(value:GymBattleState['player']['fighters'][number]):string{
   const conditions=[value.status,value.confusionTurns?'confuso':null]
@@ -234,9 +234,9 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
           aria-label="Arena de batalha do Ginásio">
           {player&&leader&&<BattleStage
             player={{name:player.combatant.name,level:player.combatant.level,
-              art:art(player.combatant.speciesId,player.combatant.name)}}
+              art:art(player.combatant.speciesId,player.combatant.name,true)}}
             wild={{name:leader.combatant.name,level:leader.combatant.level,
-              art:art(leader.combatant.speciesId,leader.combatant.name)}}
+              art:art(leader.combatant.speciesId,leader.combatant.name,true)}}
             frame={frame} playerMaxHp={player.combatant.stats.hp}
             wildMaxHp={leader.combatant.stats.hp}
             playerMaxSp={player.maxSp} wildMaxSp={leader.maxSp}
