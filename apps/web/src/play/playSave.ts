@@ -17,6 +17,7 @@ import {
   kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant,
   inspectKantoBallPocket,resolveKantoCaptureAttempt,d064DraftBallDrop,
   D064_DRAFT_STARTER_BALLS,battleTrainerXp,beginnerBattleXp,kantoCaptureStartingLevel,
+  battleProgressFactor,scaledRegionalReward,emptyExpeditionBallProgress,
   affinityIdlePenaltyDays
 } from '@kanto/game-core';
 import type {
@@ -139,7 +140,7 @@ export function createPlaySave(
       battleRecord:{wins:0,draws:0,losses:0},affinityLastUsedAt:nowMs,affinityIdleDaysApplied:0
     }],
     team: [1], nextUid: 2, expedition: null, lastClaim: null,
-    ballPocket: D064_DRAFT_STARTER_BALLS, regionWins: Array(10).fill(0)
+    ballPocket: D064_DRAFT_STARTER_BALLS,expeditionBallProgress:emptyExpeditionBallProgress(), regionWins: Array(10).fill(0)
   };
   const journal = prepareRewardJournal(JSON.stringify(game));
   if (!journal) return { status: 'blocked', reason: 'Falha ao preparar o perfil inicial.' };
@@ -299,7 +300,9 @@ function playBattle(
       }
     }
     const base={ id:eventId,expectedRevision:journal.revision,type:'battle-result' as const,
-      outcome:result.outcome,activeUid:currentUid as number,wildLevel };
+      outcome:result.outcome,activeUid:currentUid as number,wildLevel,
+      ...(selectedRegion?{regionId:selectedRegion.id}:{}) };
+    const rewardFactor=selectedRegion?battleProgressFactor(active.level as number,wildLevel):1;
     const command:RewardCommand=result.outcome==='win'
       ? {
         ...base,outcome:'win',affinityGain:result.affinityGain!,
@@ -368,9 +371,12 @@ function playBattle(
       }:{ }),
       battleId:eventId,
       wildName:enemy.name,wildLevel,
-      rewardCoins:result.outcome==='win'?25+wildLevel*3:0,
-      trainerXp:result.outcome==='win'?battleTrainerXp(wildLevel):0,
-      pokemonXp:result.outcome==='win'?20+wildLevel*6:earlyLossXp
+      rewardFactor,
+      rewardCoins:result.outcome==='win'?scaledRegionalReward(25+wildLevel*3,rewardFactor):0,
+      trainerXp:result.outcome==='win'?scaledRegionalReward(battleTrainerXp(wildLevel),rewardFactor):0,
+      pokemonXp:result.outcome==='win'?scaledRegionalReward(20+wildLevel*6,rewardFactor):earlyLossXp,
+      affinityGain:result.outcome==='win'&&typeof result.affinityGain==='number'
+        ?scaledRegionalReward(result.affinityGain,rewardFactor):null
     };
     return {status:'ok',journal:{...applied.journal,raw:JSON.stringify(updated)}};
   } catch {
