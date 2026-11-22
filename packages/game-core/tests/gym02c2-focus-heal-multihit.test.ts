@@ -67,9 +67,10 @@ describe('GYM-02C2 — recuperação deliberada e múltiplos impactos',()=>{
     const two=KANTO_BATTLE_MOVES['double-kick']!;
     expect(two).toBeDefined();
     const attacker={...base[0]!,move:two,moves:[two]};
+    const bulky={...base[0]!,stats:{...base[0]!.stats,hp:300}};
     let state=createGymBattleState([
       {uid:1,combatant:attacker},{uid:2,combatant:base[1]!},
-      {uid:3,combatant:base[2]!}],base);
+      {uid:3,combatant:base[2]!}],[bulky,base[1]!,base[2]!]);
     const beforeSp=state.player.fighters[0]!.sp;
     const result=good(resolveGymTurn(state,{kind:'move',moveName:'double-kick'},basic,42));
     state=result.state;
