@@ -1316,7 +1316,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 regionName={expeditionRegion?.name??'Expedição antiga'}
                 options={expeditionOptions.map(({region,unlocked})=>({
                   id:region.id,name:region.name,trainerUnlockLevel:region.trainerUnlockLevel,
-                  levelMin:region.levelMin,unlocked
+                  levelMin:region.levelMin,levelMax:region.levelMax,unlocked
                 }))}
                 selectedRegionId={expeditionArea}
                 onSelectRegion={setExpeditionArea}
