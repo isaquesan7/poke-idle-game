@@ -16,7 +16,11 @@ const appOrigin=process.env.APP_ORIGIN;
 if(!connectionString||!appOrigin)throw new Error('DATABASE_URL e APP_ORIGIN são obrigatórios.');
 const pool=new pg.Pool({connectionString,max:12,connectionTimeoutMillis:5000,
   idleTimeoutMillis:30000});
-const enabled=process.env.ONLINE_REGISTRATION_ENABLED==='true';
+// Registration is intentionally a CI-only harness until email verification,
+// distributed rate limiting, anti-abuse and game-authoritative saves land.
+// Misconfiguring one Railway env variable cannot open public accounts.
+const enabled=process.env.NODE_ENV==='test' &&
+  process.env.ONLINE_REGISTRATION_ENABLED==='true';
 const isSecure=process.env.NODE_ENV==='production';
 const json=(res,status,body,headers={})=>{
   res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',
@@ -60,6 +64,8 @@ function rejectCors(res){
   // Não permitir CORS. A futura página / consumirá /api no MESMO host.
   res.setHeader('Vary','Origin');
   res.setHeader('X-Content-Type-Options','nosniff');
+  res.setHeader('X-Frame-Options','DENY');
+  res.setHeader('Referrer-Policy','no-referrer');
 }
 const server=createServer(async(req,res)=>{
   rejectCors(res);
