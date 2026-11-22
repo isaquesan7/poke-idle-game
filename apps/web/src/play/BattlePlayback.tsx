@@ -4,7 +4,7 @@ import styles from './PlayApp.module.css';
 interface BattlePlaybackProps {
   readonly log: readonly string[];
   readonly turns: number;
-  /** Somente a apresentação; resultado e recompensas já estão salvos. */
+  /** A apresentação conclui o combate; o writer efetiva as recompensas após onFinished. */
   readonly playing: boolean;
   readonly onFinished: () => void;
   /** Informar apenas o índice visível: não modifica nem recalcula o combate. */
@@ -76,7 +76,7 @@ export function BattlePlayback({log,turns,playing,onFinished,onProgress}:BattleP
   const shownTurn=turnMatch?Number(turnMatch[1]):0;
   const isConcentrating=/\busou Concentrar\b/.test(latest);
   const liveMessage=!inProgress
-    ?'Apresentação concluída. Resultado já registrado no progresso local.'
+    ?'Apresentação concluída. Resultado pronto para ser confirmado.'
     :paused?'Apresentação pausada no registro '+visible+' de '+log.length+'.'
       :assistive?'Registro '+visible+' de '+log.length+'. '+latest
         :isConcentrating?'Concentrar. '+latest:'';
@@ -140,13 +140,13 @@ export function BattlePlayback({log,turns,playing,onFinished,onProgress}:BattleP
       </ol>
       <p className={styles.disclaimer} data-testid="battle-playback-status">
         {inProgress ? paused?'Apresentação pausada.': 'Combate em andamento · '+latest
-          : 'Apresentação concluída · resultado registrado no progresso local.'}
+          : 'Apresentação concluída · resultado revelado ao jogador.'}
       </p>
       <p className={styles.battleSrOnly} role="status" aria-live="polite"
         aria-atomic="true" data-testid="battle-screenreader-status">
         {liveMessage}
       </p>
-      <p className={styles.disclaimer}>O cronômetro mede o tempo de exibição dos ataques. O cálculo da batalha e o registro de recompensas são instantâneos; reproduzir ou pular não concede prêmios novamente.</p>
+      <p className={styles.disclaimer}>O cronômetro mede o tempo de exibição dos ataques. O cálculo do encontro é imediato, mas o prêmio só é confirmado depois do fim da apresentação; reassistir não concede recompensas adicionais.</p>
     </section>
   );
 }

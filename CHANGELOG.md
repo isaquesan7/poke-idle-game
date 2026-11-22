@@ -494,3 +494,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - D064BC: primeiros 2.592 encontros writer passaram na CI; metodologia de seleção de golpes refinada para evitar alternância artificial; relatório final condicionado à nova CI. Nenhuma mudança de gameplay.
 
 - D064BC: CI corrigida aprovada (regressão `44971956167`, Docker `44971956153`) em 2.592 batalhas por writer; políticas isolado vs capturas com rotação: Bulbasaur 38,89/30,09%, Charmander 48,38/32,64%, Squirtle 33,80/30,56%. Sem alteração funcional. Estratégia de rotação arbitrária reduz XP do líder; não é indicação de nerf/buff.
+
+## 2026-11-21 — D064BE (proposta em branch)
+- Resultado de batalha regional passa a ser confirmado após o replay via estado pending salvo no writer; vitória/nível/XP permanecem anteriores durante exibição. Capture uma única vez **depois da vitória**, ou dispense a tentativa; a Pokébola escolhida é consumida na ação pós-combate, preservando chances/limitação de raros.
+- Histórico independente por UID (vitórias/empates/derrotas), exposto na Arena e no perfil; a Arena deixa de mostrar o bloco de insígnias. Dados históricos sem UID não são redistribuídos artificialmente.
+- Melhorias visuais de seletores e estoque, botões e mensagens responsivos. Revisão CI/deploy ainda pendente.
+
+- D064BE — validação funcional confirmada no HEAD `be8b7d1e...`: `44974994526` regressão SUCCESS, `44974994537` Playwright desktop/mobile SUCCESS e `44974994525` Docker SUCCESS. Confrontos postergam créditos até finalizar apresentação; uma tentativa de captura após vitória; histórico UID por Pokémon e seleção estilizada. Release condicionado a merge e Railway SHA exato.

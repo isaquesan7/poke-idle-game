@@ -56,7 +56,6 @@ try{
     await grid.getByRole('button',{name:/ÁREA 04/}).click();
     const consulted=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     assert.deepEqual(consulted,before);
-    await page.getByRole('combobox',{name:'Pokébola para captura regional'}).selectOption('poke-ball');
     await page.getByRole('button',{name:/Batalhar em Lagos Serenos/}).click();
     await page.getByRole('heading',{name:'Batalha nos Lagos Serenos'}).waitFor();
     await page.waitForFunction(()=>scrollY===0);
@@ -64,14 +63,26 @@ try{
     await page.getByRole('heading',{name:'Pokémon encontrados nesta área'}).waitFor();
     assert.equal(await page.locator('[class*="encounterGrid"] [class*="encounterCard"]').count(),18);
     await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===1,key);
-    const after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
-    const game=JSON.parse(after.journal.raw);
-    assert.equal(after.revision,1);
+    const staged=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+    const pending=JSON.parse(staged.journal.raw);
+    assert.equal(staged.journal.revision,0,'o diário não concede resultados antes de terminar');
+    assert.ok(pending.pendingBattle);
+    assert.equal(pending.pendingBattle.preview.regionId,4);
+    await page.getByRole('button',{name:'Pular apresentação'}).click();
+    await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===2,key);
+    let after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+    let game=JSON.parse(after.journal.raw);
     assert.equal(after.journal.revision,1);
     assert.equal(after.journal.receipts.length,1);
     assert.equal(game.lastBattle.regionId,4);
     assert.equal(game.lastBattle.regionName,'Lagos Serenos');
     assert.equal(game.lastBattle.log.length,game.lastBattle.frames.length);
+    if(game.lastBattle.captureStatus==='available'){
+      await page.getByRole('button',{name:'Seguir sem capturar'}).click();
+      await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===3,key);
+      after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
+      game=JSON.parse(after.journal.raw);
+    }
     await page.getByRole('button',{name:'Regiões',exact:true}).click();
     await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
     await page.getByText(/Vitórias regionais/).waitFor();
@@ -98,7 +109,13 @@ try{
     await page.getByRole('button',{name:/Batalhar em Costa Oceânica/}).click();
     await page.getByRole('heading',{name:'Batalha na Costa Oceânica'}).waitFor();
     await page.waitForFunction(()=>window.scrollY===0);
-    await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===2,key);
+    await page.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key))?.revision===revision,
+      {key,revision:after.revision+1});
+    const coastalStage=JSON.parse((await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key)).journal.raw);
+    assert.equal(coastalStage.pendingBattle.preview.regionId,7);
+    await page.getByRole('button',{name:'Pular apresentação'}).click();
+    await page.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key))?.revision===revision,
+      {key,revision:after.revision+2});
     const coast=JSON.parse((await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key)).journal.raw);
     assert.equal(coast.lastBattle.regionId,7);
     assert.ok([77,78,83,84,85,134,135,136,138,3,6,9].includes(coast.lastBattle.wildSpeciesId));

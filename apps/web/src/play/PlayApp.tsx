@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
@@ -57,6 +57,15 @@ function effectLabel(name:string):string|null {
   return effect.chance+'% de '+(
     effect.status==='burn'?'queimadura':effect.status==='poison'?'envenenamento':'paralisia'
   );
+}
+/** Histórico por UID com fallback 0 para partidas anteriores a D064BE. */
+function pokemonBattleRecord(value:unknown):{wins:number;draws:number;losses:number}{
+  const v=value && typeof value==='object'?value as Record<string,unknown>:{};
+  const r=v.battleRecord && typeof v.battleRecord==='object'
+    ?v.battleRecord as Record<string,unknown>:{};
+  const read=(key:'wins'|'draws'|'losses')=>
+    typeof r[key]==='number'&&Number.isSafeInteger(r[key])&&r[key]>=0?r[key] as number:0;
+  return {wins:read('wins'),draws:read('draws'),losses:read('losses')};
 }
 function focusedSpeciesFallback(speciesId:number|undefined) {
   return speciesId?KANTO_BATTLE_SPECIES[speciesId]?.move:undefined;
@@ -141,6 +150,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   const [battlePlayback, setBattlePlayback] = useState<{id:string;seq:number;done:boolean}|null>(null);
   /** Apenas reprodução: não faz parte do save do jogo. */
   const [battleReveal,setBattleReveal]=useState<{key:string;visible:number}|null>(null);
+  const settlingBattle=useRef<string|null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -220,9 +230,10 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
       setFeedback('Não foi possível sortear o encontro.');
       return;
     }
-    // Uma única transação de gameplay; animação não toca o save nem recompensas.
+    // D064BE: primeiro registrar somente a batalha pendente; XP, vitória,
+    // níveis e bolas permanecem intactos até o fim do diário.
     void transact(()=>updatePlaySave(window.localStorage,expected,
-      {type:'regional-battle',regionId,seed,ballId:captureBall}))
+      {type:'start-regional-battle',regionId,seed}))
       .then(result=>{
         if(result?.status==='ok'){
           setTab('battle');
@@ -328,7 +339,17 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   const expeditionAllowed=expeditionSelected?.unlocked??false;
   const pending = expedition
     ? expeditionRewards(Math.max(0, now - expedition.lastClaimAt)) : null;
-  const lastBattleRaw = data?.lastBattle;
+  const pendingBattle=ballGame?.pendingBattle && typeof ballGame.pendingBattle==='object'
+    ? ballGame.pendingBattle as {battleId:string;preview:unknown}:null;
+  // Em um reload, retomar apresentação pendente antes de pagar resultados.
+  // O save ainda contém os níveis, XP e estatísticas anteriores ao combate.
+  useEffect(()=>{
+    if(pendingBattle?.battleId && battlePlayback?.id!==pendingBattle.battleId){
+      setTab('battle');
+      setBattlePlayback({id:pendingBattle.battleId,seq:0,done:false});
+    }
+  },[pendingBattle?.battleId]);
+  const lastBattleRaw = pendingBattle?.preview??data?.lastBattle;
   const lastBattle=lastBattleRaw && typeof lastBattleRaw==='object'
     && 'outcome' in lastBattleRaw && 'wildSpeciesId' in lastBattleRaw
     && 'log' in lastBattleRaw && Array.isArray(lastBattleRaw.log)
@@ -344,6 +365,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         outcome:'win'|'loss'|'draw'; wildSpeciesId:number;
         wildName:string;wildLevel:number;turns:number;
         captured:boolean;affinityGain:number|null;log:string[];
+        captureStatus?:'available'|'unavailable'|'caught'|'escaped'|'skipped';
+        captureBallId?:KantoBallId|null;
         rewardCoins:number;trainerXp:number;pokemonXp:number;
         playerRemainingHp:number;wildRemainingHp:number
       }
@@ -354,7 +377,29 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     if(tab==='battle')window.scrollTo(0,0);
   },[tab,save.status==='ready'?save.snapshot.revision:0]);
   const displayedBattleId=lastBattle?.battleId??'legacy-battle';
-  const battlePlaying=Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
+  const battlePlaying=Boolean(pendingBattle)||Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
+  const activeRecord=pokemonBattleRecord(active);
+  async function finishPlayback():Promise<void>{
+    if(!pendingBattle||settlingBattle.current===pendingBattle.battleId){
+      if(!pendingBattle)setBattlePlayback(previous=>previous?{...previous,done:true}:null);
+      return;
+    }
+    settlingBattle.current=pendingBattle.battleId;
+    const current=readSafe();
+    if(current.status==='ready'){
+      const result=await transact(()=>updatePlaySave(window.localStorage,
+        current.snapshot.revision,{type:'finish-regional-battle',
+          battleId:pendingBattle.battleId}));
+      if(result?.status==='ok')
+        setBattlePlayback(previous=>previous?{...previous,done:true}:null);
+    }
+    settlingBattle.current=null;
+  }
+  function captureAfterBattle(ballId:KantoBallId|null):void{
+    if(save.status!=='ready'||!lastBattle?.battleId||battlePlaying)return;
+    dispatch(ballId?{type:'capture-after-battle',battleId:lastBattle.battleId,ballId}
+      :{type:'skip-capture',battleId:lastBattle.battleId});
+  }
   const playbackKey=displayedBattleId+':'+(battlePlayback?.seq??0);
   const onBattleProgress=useCallback((visible:number)=>{
     setBattleReveal(previous=>previous?.key===playbackKey&&previous.visible===visible
@@ -456,7 +501,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
           {(['overview','trainer','pokemon','collection','pokedex','regions','expedition'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
-              onClick={() => { if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
+              onClick={() => { if(pendingBattle){setTab('battle');setFeedback('Conclua o combate em andamento antes de navegar.');return;} if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
@@ -578,6 +623,11 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         <span><i className="fa-solid fa-star" aria-hidden="true"/> Nível {focused.level}</span>
                         <span><i className="fa-solid fa-shield-heart" aria-hidden="true"/> Afinidade {focused.affinity}%</span>
                         <span><i className="fa-solid fa-users" aria-hidden="true"/> {data.team[0]===focused.uid?'Líder da equipe':data.team.includes(focused.uid)?'Na equipe':'Na coleção'}</span>
+                      </div>
+                      <div className={styles.pokemonBattleHistory} aria-label="Histórico individual deste Pokémon">
+                        <span><i className="fa-solid fa-trophy" aria-hidden="true"/> {pokemonBattleRecord(focused)["wins"]} vitórias</span>
+                        <span><i className="fa-solid fa-handshake" aria-hidden="true"/> {pokemonBattleRecord(focused)["draws"]} empates</span>
+                        <span><i className="fa-solid fa-shield-halved" aria-hidden="true"/> {pokemonBattleRecord(focused)["losses"]} derrotas</span>
                       </div>
                       <div className={styles.pokemonAffinity}>
                         <div><strong>Vínculo com o treinador</strong><span>{focused.affinity}%</span></div>
@@ -925,8 +975,6 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 selectedRegionId={regionalArea}
                 onSelectRegion={setRegionalArea}
                 balls={ballQuantities}
-                selectedBall={captureBall}
-                onSelectBall={setCaptureBall}
                 wins={Array.isArray(ballGame?.regionWins)
                   ?(ballGame.regionWins as number[]):[]}
                 seenIds={seenDexIds}
@@ -944,7 +992,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 <section className={styles.battleIntro}>
                   <div>
                     <button type="button" className={styles.secondary}
-                      onClick={()=>{setBattlePlayback(null);setTab('regions');window.scrollTo(0,0);}}>
+                      onClick={()=>{if(pendingBattle){setFeedback('Conclua o combate antes de sair.');return;}setBattlePlayback(null);setTab('regions');window.scrollTo(0,0);}}>
                       <i className="fa-solid fa-arrow-left" aria-hidden="true"/> Voltar às regiões
                     </button>
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · {battleRegion.name.toUpperCase()}</div>
@@ -959,48 +1007,40 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         <strong>{speciesName(active.pokemonId)}</strong>
                         <span>UID #{active.uid} · Nível {active.level}</span>
                       </div>
-                      <button type="button" className={styles.secondary} onClick={()=>setTab('collection')}>
+                      <button type="button" className={styles.secondary} disabled={Boolean(pendingBattle)}
+                        onClick={()=>setTab('collection')}>
                         <i className="fa-solid fa-users" aria-hidden="true"/> Equipe {data.team.length}/3
                       </button>
                     </div>
                     <div className={styles.arenaOverview} aria-label="Desempenho na região">
-                      <div><i className="fa-solid fa-trophy" aria-hidden="true"/><strong>{typeof data.wins==='number'?data.wins:0}</strong><span>Vitórias</span></div>
-                      <div><i className="fa-solid fa-shield-halved" aria-hidden="true"/><strong>{typeof data.losses==='number'?data.losses:0}</strong><span>Derrotas e empates</span></div>
-                      <div><i className="fa-solid fa-medal" aria-hidden="true"/><strong>{view.badges.length}<small>/8</small></strong><span>Insígnias</span></div>
+                      <div><i className="fa-solid fa-trophy" aria-hidden="true"/><strong>{activeRecord.wins}</strong><span>Vitórias</span></div>
+                      <div><i className="fa-solid fa-handshake" aria-hidden="true"/><strong>{activeRecord.draws}</strong><span>Empates</span></div>
+                      <div><i className="fa-solid fa-shield-halved" aria-hidden="true"/><strong>{activeRecord.losses}</strong><span>Derrotas</span></div>
                     </div>
                     <div style={{display:'grid',gap:'var(--space-3)',padding:'var(--space-4)',background:'var(--color-surface-raised)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-card)'}}>
-                      <label htmlFor="region-arena-select"><strong>Explorar região de Kanto</strong></label>
+                      <label htmlFor="region-arena-select" className={styles.arenaSelectLabel}><i className="fa-solid fa-map-location-dot" aria-hidden="true"/> Explorar região de Kanto</label>
                       <select id="region-arena-select" aria-label="Região para batalha"
                         value={regionalArea} onChange={event=>setRegionalArea(Number(event.target.value))}
-                        style={{minHeight:44,padding:'var(--space-3)',color:'var(--color-text)',background:'var(--color-surface)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-control)'}}>
+                        className={styles.arenaStyledSelect}>
                         {KANTO_REGIONS.map(region=><option key={region.id} value={region.id}
                           disabled={view.level<region.trainerUnlockLevel}>
                           {region.id}. {region.name} · Treinador Lv. {region.trainerUnlockLevel}
                         </option>)}
                       </select>
-                      <label htmlFor="regional-ball-select"><strong>Pokébola para tentar capturar após vitória</strong></label>
-                      <select id="regional-ball-select" aria-label="Pokébola para captura"
-                        value={captureBall??'none'}
-                        onChange={event=>setCaptureBall(event.target.value==='none'?null:event.target.value as KantoBallId)}
-                        style={{minHeight:44,padding:'var(--space-3)',color:'var(--color-text)',background:'var(--color-surface)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-control)'}}>
-                        <option value="none">Não tentar captura</option>
-                        <option value="poke-ball" disabled={(ballQuantities['poke-ball']??0)<1}>Poké Ball · {ballQuantities['poke-ball']??0}</option>
-                        <option value="great-ball" disabled={(ballQuantities['great-ball']??0)<1}>Great Ball · {ballQuantities['great-ball']??0}</option>
-                        <option value="ultra-ball" disabled={(ballQuantities['ultra-ball']??0)<1}>Ultra Ball · {ballQuantities['ultra-ball']??0}</option>
-                      </select>
+                      <p className={styles.arenaSelectLabel}><i className="fa-solid fa-baseball" aria-hidden="true"/> Captura disponível depois da vitória</p>
+                      <p className={styles.arenaCaptureHint}>Conheça o adversário no combate e escolha uma Pokébola apenas se vencer. Uma tentativa por encontro.</p>
                       <button className={styles.primary} type="button"
-                        disabled={busy||battlePlaying||(
-                          captureBall!==null&&(ballQuantities[captureBall]??0)<1
-                        )}
+                        disabled={busy||battlePlaying||Boolean(pendingBattle)
+                          ||lastBattle?.captureStatus==='available'}
                         onClick={()=>fight(regionalArea)}>
                         <i className="fa-solid fa-map-location-dot" aria-hidden="true"/> Batalhar na região
                       </button>
-                      <small>As bolas são gastas apenas ao tentar capturar após uma vitória, mesmo que a captura falhe. Vitória pode conceder novas bolas; lendários exigem Ultra Ball.</small>
+                      <small>O resultado, XP e níveis são confirmados apenas ao fim do diário. Após vencer, você pode tentar capturar uma vez ou seguir sem capturar.</small>
                     </div>
                     <p className={styles.arenaMicrocopy}>
                       <i className="fa-solid fa-circle-info" aria-hidden="true"/>
                       {battlePlaying?' Assista ao confronto antes de iniciar outra batalha.':
-                        ' Vitórias concedem experiência, moedas e afinidade; a tentativa de captura usa a Pokébola escolhida.'}
+                        ' Vitórias concedem experiência, moedas e afinidade ao final do combate.'}
                     </p>
                   </div>
                   <BattleStage
@@ -1047,9 +1087,39 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                           <div><small>Afinidade</small><strong>+{lastBattle.affinityGain}</strong></div>
                         </div>
                       )}
-                      <p>{lastBattle.captured
+                      {lastBattle.captureStatus==='available' ? (
+                        <div className={styles.captureDecision} aria-label="Decisão de captura após a batalha">
+                          <h3><i className="fa-solid fa-baseball" aria-hidden="true"/> Tentar capturar {lastBattle.wildName}?</h3>
+                          <p>Uma única tentativa para este encontro. Você pode escolher a Pokébola agora que conhece o adversário.</p>
+                          <label htmlFor="post-battle-ball" className={styles.arenaSelectLabel}>Escolha sua Pokébola</label>
+                          <select id="post-battle-ball" aria-label="Pokébola para captura após batalha"
+                            className={styles.arenaStyledSelect} value={captureBall??'none'}
+                            onChange={event=>setCaptureBall(event.target.value==='none'
+                              ?null:event.target.value as KantoBallId)}>
+                            <option value="none">Selecione uma Pokébola</option>
+                            <option value="poke-ball" disabled={(ballQuantities['poke-ball']??0)<1
+                              ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)}>Poké Ball · {ballQuantities['poke-ball']??0}</option>
+                            <option value="great-ball" disabled={(ballQuantities['great-ball']??0)<1
+                              ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)}>Great Ball · {ballQuantities['great-ball']??0}</option>
+                            <option value="ultra-ball" disabled={(ballQuantities['ultra-ball']??0)<1}>Ultra Ball · {ballQuantities['ultra-ball']??0}</option>
+                          </select>
+                          <button className={styles.primary} type="button"
+                            disabled={busy||!captureBall||(ballQuantities[captureBall]??0)<1
+                              ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)
+                                &&captureBall!=='ultra-ball'}
+                            onClick={()=>captureAfterBattle(captureBall)}>
+                            <i className="fa-solid fa-bullseye" aria-hidden="true"/> Tentar capturar (1 tentativa)
+                          </button>
+                          <button type="button" className={styles.secondary}
+                            disabled={busy} onClick={()=>captureAfterBattle(null)}>
+                            Seguir sem capturar
+                          </button>
+                        </div>
+                      ) : <p>{lastBattle.captured
                         ? 'Captura realizada! O Pokémon foi adicionado à coleção.'
-                        : 'Nenhuma captura nesta batalha.'}</p>
+                        :lastBattle.captureStatus==='escaped'?'O Pokémon escapou da tentativa.'
+                        :lastBattle.captureStatus==='skipped'?'Você decidiu não tentar capturar.'
+                        :'Nenhuma captura nesta batalha.'}</p>}
                       <button type="button" className={styles.secondary}
                         onClick={()=>setBattlePlayback({id:displayedBattleId,seq:(battlePlayback?.seq??0)+1,done:false})}>
                         Reassistir à batalha</button>
@@ -1057,7 +1127,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     </section>
                     <BattlePlayback key={displayedBattleId+':'+(battlePlayback?.seq??0)}
                       log={lastBattle.log} turns={lastBattle.turns}
-                      playing={battlePlaying} onProgress={onBattleProgress} onFinished={()=>setBattlePlayback(previous=>previous&&previous.id===displayedBattleId?{...previous,done:true}:previous)} />
+                      playing={battlePlaying} onProgress={onBattleProgress} onFinished={()=>{void finishPlayback();}} />
                   </div>
                 )}
                 <section className={styles.panel+' '+styles.arenaEncounters}>
