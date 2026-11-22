@@ -1,3 +1,4 @@
+import {useEffect,useRef} from 'react';
 import type {ReactNode} from 'react';
 import {EXPEDITION_CYCLE_MS} from '@kanto/game-core';
 import {expeditionElapsedMs,formatExpeditionDuration} from './expeditionDisplay';
@@ -50,6 +51,18 @@ export function ExpeditionScreen({
   leaderName,leaderLevel,leaderArt,pending,nowMs,busy,onStart,onClaim,onStop
 }:Props){
   const active=Boolean(expedition);
+  // Ao trocar de fase, manter o foco na ação útil; não roubar foco na
+  // primeira montagem nem a cada atualização de segundo do cronômetro.
+  const previousActive=useRef<boolean|null>(null);
+  const claimRef=useRef<HTMLButtonElement>(null);
+  const selectRef=useRef<HTMLSelectElement>(null);
+  useEffect(()=>{
+    if(previousActive.current!==null&&previousActive.current!==active){
+      if(active)claimRef.current?.focus();
+      else selectRef.current?.focus();
+    }
+    previousActive.current=active;
+  },[active]);
   const selected=options.find(option=>option.id===selectedRegionId);
   const allowed=Boolean(selected?.unlocked);
   const totalElapsed=expedition?expeditionElapsedMs(expedition.startedAt,nowMs):0;
@@ -95,7 +108,7 @@ export function ExpeditionScreen({
             <i className="fa-solid fa-person-hiking" aria-hidden="true"/> Iniciar expedição
           </button>
           :<>
-            <button type="button" className={styles.primary} disabled={busy||!pending?.cycles} aria-disabled={busy||!pending?.cycles} onClick={onClaim}>
+            <button ref={claimRef} type="button" className={styles.primary} disabled={busy||!pending?.cycles} aria-disabled={busy||!pending?.cycles} onClick={onClaim}>
               <i className="fa-solid fa-gift" aria-hidden="true"/> Resgatar recompensas
             </button>
             <button type="button" className={styles.secondary} disabled={busy} aria-disabled={busy} onClick={onStop}>
