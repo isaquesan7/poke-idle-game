@@ -81,7 +81,7 @@ export function ExpeditionScreen({
         </label>
         {active
           ?<strong className={styles.activeRegion}>{regionName} <span>· em exploração</span></strong>
-          :<select id="expedition-region" className={styles.select} value={selectedRegionId}
+          :<select id="expedition-region" className={styles.select} aria-describedby="expedition-region-hint" value={selectedRegionId}
               onChange={event=>onSelectRegion(Number(event.target.value))}>
               {options.map(region=><option key={region.id} value={region.id} disabled={!region.unlocked}>
                 {region.name} · Treinador Nv. {region.trainerUnlockLevel} · Pokémon Nv. {region.levelMin}{region.unlocked?'':' (bloqueada)'}
