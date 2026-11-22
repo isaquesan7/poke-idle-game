@@ -73,6 +73,8 @@ try{
     // D064BE: em encontro de nível baixo, jogador decide APÓS revelar espécie.
     await page.getByRole('button',{name:'Regiões',exact:true}).click();
     if(game.lastBattle.captureStatus==='available'){
+      await page.getByRole('region',{name:'Escolha de região'})
+        .getByRole('button',{name:/ÁREA 04/}).click();
       await page.getByRole('button',{name:'Rever último combate nesta região'}).click();
       await page.getByRole('button',{name:'Seguir sem capturar'}).click();
       await page.getByRole('button',{name:'Regiões',exact:true}).click();
