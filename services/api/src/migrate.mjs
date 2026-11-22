@@ -9,7 +9,8 @@ import pg from 'pg';
 if(!process.env.DATABASE_URL)throw new Error('DATABASE_URL ausente.');
 const client=new pg.Client({connectionString:process.env.DATABASE_URL,
   connectionTimeoutMillis:5000});
-const migrations=['001_online_foundation.sql','002_auth_limits_verification.sql'];
+const migrations=['001_online_foundation.sql','002_auth_limits_verification.sql',
+  '003_password_reset.sql'];
 await client.connect();
 try{
   await client.query('BEGIN');
