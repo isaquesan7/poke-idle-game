@@ -8,14 +8,15 @@
 import type {GymBattleState,GymFighterState,GymSide} from './gymBattleState.js';
 import type {KantoBattleStatus} from '../combat/kantoStatusEffects.js';
 
-export type GymStage='attackDrops'|'defenseDrops'|'speedDrops';
+export type GymStage='attackDrops'|'defenseDrops'|'speedDrops'|'specialDefenseDrops';
 export interface GymEffects {
   readonly attackDrops:number;
   readonly defenseDrops:number;
   readonly speedDrops:number;
+  readonly specialDefenseDrops:number;
 }
 export const GYM_EMPTY_EFFECTS:GymEffects=Object.freeze({
-  attackDrops:0,defenseDrops:0,speedDrops:0
+  attackDrops:0,defenseDrops:0,speedDrops:0,specialDefenseDrops:0
 });
 
 export function gymStatusAllowed(status:KantoBattleStatus,types:readonly string[]):boolean{
@@ -61,4 +62,37 @@ export function gymDropStat(
 }
 export function gymDamageStat(value:number,drops:number):number{
   return Math.max(1,Math.floor(value*2/(2+drops)));
+}
+
+/** Confusão não ocupa o slot de burn/poison/paralysis/sleep.
+ * Duração entre 2 e 5 AÇÕES DO PRÓPRIO Pokémon, congelada na reserva.
+ * Não substituir duração existente com novos acertos; válido nos dois lados.
+ */
+export function gymApplyConfusion(
+  state:GymBattleState,side:GymSide,actions:number
+):GymBattleState{
+  if(!Number.isSafeInteger(actions)||actions<2||actions>5)
+    throw new RangeError('Duração de confusão inválida.');
+  return gymReplaceFighter(state,side,old=>
+    (old.confusionTurns??0)>0?old:{...old,confusionTurns:actions});
+}
+export function gymTickConfusion(state:GymBattleState,side:GymSide):GymBattleState{
+  return gymReplaceFighter(state,side,old=>{
+    const remaining=old.confusionTurns??0;
+    if(remaining===0)return old;
+    return {...old,confusionTurns:remaining-1};
+  });
+}
+/** Autodano de confusão: poder40, físico, sem STAB, crítico nem vantagem
+ * de tipo, fórmula base Kanto. Não é um golpe equipável e não gasta SP.
+ */
+export function gymConfusionSelfDamage(
+  stats:Readonly<{level:number;attack:number;defense:number}>
+):number{
+  if(!Number.isSafeInteger(stats.level)||stats.level<1||stats.level>100
+    ||!Number.isSafeInteger(stats.attack)||stats.attack<1
+    ||!Number.isSafeInteger(stats.defense)||stats.defense<1)
+    throw new RangeError('Atributos de confusão inválidos.');
+  return Math.max(1,Math.floor(
+    ((2*stats.level/5+2)*40*stats.attack/Math.max(1,stats.defense))/50+2));
 }
