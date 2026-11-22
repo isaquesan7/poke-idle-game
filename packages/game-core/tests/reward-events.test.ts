@@ -129,9 +129,15 @@ describe('journal de eventos idempotentes v0.2 (somente RAM)',()=>{
     expect(parsed(first).losses).toBe(1);
     expect(parsed(first).wins).toBe(0);
     expect(parsed(first).coins).toBe(321);
-    expect(parsed(first).roster).toEqual(source().roster);
+    // D064BE: o restante da instância permanece intacto, mas seu registro
+    // individual contabiliza a derrota recém-resolvida.
+    expect(parsed(first).roster.map(({battleRecord,...rest}:any)=>rest))
+      .toEqual(source().roster);
+    expect(parsed(first).roster[0].battleRecord).toEqual({wins:0,draws:0,losses:1});
     const draw=applied(first,{...loss,id:'draw',expectedRevision:1,outcome:'draw'});
-    expect(parsed(draw).losses).toBe(2);
+    expect(parsed(draw).losses).toBe(2); // compatibilidade legado: derrotas + empates
+    expect(parsed(draw).draws).toBe(1);
+    expect(parsed(draw).roster[0].battleRecord).toEqual({wins:0,draws:1,losses:1});
     expect(parsed(draw).coins).toBe(321);
     expect(applyRewardEvent(first,loss).status).toBe('duplicate');
   });
