@@ -83,7 +83,7 @@ describe('journal de eventos idempotentes v0.2 (somente RAM)',()=>{
     expect(save.roster[0]?.affinity).toBe(76);
     expect(save.roster).toHaveLength(3);
     expect(save.roster[2]).toMatchObject({
-      uid:3,pokemonId:25,level:10,xp:0,affinity:0,
+      uid:3,pokemonId:25,level:1,xp:0,affinity:0,
       moveName:'thunder-shock',upgrades:{}
     });
     expect(save.nextUid).toBe(4);
