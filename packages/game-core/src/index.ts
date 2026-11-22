@@ -115,7 +115,7 @@ export {KANTO_BALLS,canUseKantoBall} from './capture/kantoBalls.js';
 export {inspectKantoBallPocket,spendKantoBallForAttempt}
   from './capture/kantoBallPocket.js';
 export {resolveKantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
-export {d064DraftBallDrop,D064_DRAFT_STARTER_BALLS} from './capture/draftBallSupply.js';
+export {d064DraftBallDrop,D064_DRAFT_STARTER_BALLS,KANTO_REGION_WINS_CAP} from './capture/draftBallSupply.js';
 export type {KantoBallId} from './capture/kantoBalls.js';
 export type {KantoBallPocketV1} from './capture/kantoBallPocket.js';
 
