@@ -161,8 +161,14 @@ const server=createServer(async(req,res)=>{
       if(!await enforceThrottle(req,res,{scope:'reset-email',
         identifier:cleanEmail,limit:3}))return;
       const token=await issuePasswordReset(pool,cleanEmail);
-      if(token)await deliver({to:cleanEmail,purpose:'reset',token,
-        idempotencyKey:'reset/'+createHash('sha256').update(token).digest('hex').slice(0,32)});
+      if(token)try{
+        await deliver({to:cleanEmail,purpose:'reset',token,
+          idempotencyKey:'reset/'+createHash('sha256').update(token).digest('hex').slice(0,32)});
+      }catch{
+        // Never reveal whether the account exists by the provider status.
+        // The next stage adds durable outbox retries; no credentials or token logged.
+        console.error('Account mail transport unavailable');
+      }
       // No email-account enumeration. Tokens returned ONLY in test harness
       // when mail adapter is disabled, never in any production response.
       return json(res,200,{accepted:true,
