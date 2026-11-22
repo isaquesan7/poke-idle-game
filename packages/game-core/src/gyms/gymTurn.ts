@@ -391,15 +391,17 @@ export function resolveGymTurn(
     };
     const amounts={player:amount('player'),leader:amount('leader')};
     if(amounts.player>0||amounts.leader>0){
-      for(const side of ['player','leader'] as const){
-        if(amounts[side]>0){
-          const hp=state[side].fighters[state[side].activeIndex]!.hp;
-          record(side+' sofreu '+Math.min(hp,amounts[side])+
-            ' dano residual ('+
-            state[side].fighters[state[side].activeIndex]!.status+').');
-        }
-      }
+      const residuals=(['player','leader'] as const).flatMap(side=>{
+        if(amounts[side]<=0)return [];
+        const fighter=state[side].fighters[state[side].activeIndex]!;
+        return [{side,amount:Math.min(fighter.hp,amounts[side]),
+          text:side+' sofreu '+Math.min(fighter.hp,amounts[side])+
+            ' dano residual ('+fighter.status+').'}];
+      });
       state=applyGymResidual(state,amounts);
+      for(const event of residuals)
+        record(event.text,{kind:'residual',
+          target:event.side==='player'?'player':'wild',amount:event.amount});
       if(state.outcome==='draw')record('Empate: ambos os times desmaiaram.');
     }
   }
