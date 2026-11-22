@@ -46,7 +46,13 @@ try{
     assert.deepEqual(entered,before,'entrar na região não deve iniciar batalha');
     assert.equal(await page.getByText('Encontro surpresa').count(),1);
     await page.getByRole('button',{name:'Batalhar na região'}).click();
-    await page.waitForFunction(()=>scrollY===0);
+    // D064BO: abrir combate foca o palco, não teleporta para scrollY=0.
+    await page.waitForFunction(()=>{
+      const el=document.querySelector('[data-testid="battle-stage"]');
+      if(!el||document.activeElement!==el)return false;
+      const box=el.getBoundingClientRect();
+      return box.bottom>0&&box.top<window.innerHeight;
+    });
     await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===1,key);
     const staged=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     const stagedGame=JSON.parse(staged.journal.raw);
@@ -108,6 +114,15 @@ try{
     await page.getByRole('heading',{name:'Vitória!'}).waitFor();
     const confirmed=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
     assert.equal(confirmed.lastBattle.captureStatus,'available');
+    // Fim do replay: opção de captura deve estar visível e com foco,
+    // incluindo viewport de 390px (sem voltar ao início da página).
+    await page.waitForFunction(()=>{
+      const el=document.querySelector('[data-testid="battle-capture-area"]');
+      if(!el||document.activeElement!==el)return false;
+      const box=el.getBoundingClientRect();
+      return box.bottom>0&&box.top<window.innerHeight;
+    });
+
     const stockBefore=confirmed.ballPocket.quantities['poke-ball'];
     const stageBounds=await page.getByTestId('battle-stage').boundingBox();
     const captureSection=page.locator('[class*="battleCapturePlacement"]');
@@ -123,6 +138,13 @@ try{
       return ['caught','escaped'].includes(saved.lastBattle.captureStatus);
     },key);
     const attempt=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
+    await page.waitForFunction(()=>{
+      const el=document.querySelector('[data-testid="battle-capture-area"]');
+      if(!el||document.activeElement!==el)return false;
+      const box=el.getBoundingClientRect();
+      return box.bottom>0&&box.top<window.innerHeight;
+    });
+
     assert.equal(attempt.ballPocket.quantities['poke-ball'],stockBefore-1);
     if(attempt.lastBattle.captured){
       const caught=attempt.roster.at(-1);
@@ -136,6 +158,49 @@ try{
     await page.reload();
     assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),singleAttemptSave,
       'reload não pode conceder segunda tentativa nem prêmio');
+    // D064BO: um level-up confirmado deve surgir SOBRE o aliado, sem
+    // caixa de informação que expande layout ou salta a página.
+    // Este XP alto é uma fixture de E2E, nunca recompensa artificial no jogo.
+    await page.evaluate(k=>{
+      const snap=JSON.parse(localStorage.getItem(k));
+      const game=JSON.parse(snap.journal.raw);
+      game.roster[0].level=10;
+      game.roster[0].xp=65+10*22-1; // o próximo ganho válido deve chegar ao Nv11
+      game.roster[0].moveName='vine-whip';
+      snap.journal.raw=JSON.stringify(game);
+      localStorage.setItem(k,JSON.stringify(snap));
+    },key);
+    await page.reload();
+    await page.getByRole('button',{name:'Regiões',exact:true}).click();
+    await page.getByRole('region',{name:'Escolha de região'})
+      .getByRole('button',{name:/ÁREA 01/}).click();
+    await page.getByRole('button',{name:/Entrar na região/}).click();
+    await page.evaluate(()=>{
+      const original=window.crypto.getRandomValues.bind(window.crypto);
+      Object.defineProperty(window.crypto,'getRandomValues',{
+        configurable:true,value(array){
+          if(array instanceof Uint32Array&&array.length===1){array[0]=3;return array;}
+          return original(array);
+        }
+      });
+    });
+    await page.getByRole('button',{name:'Batalhar na região'}).click();
+    await page.getByRole('button',{name:'Pular apresentação'}).click();
+    const levelUp=page.getByTestId('battle-level-up');
+    await levelUp.waitFor();
+    assert.equal(await levelUp.innerText(),'LEVEL UP!');
+    assert.equal(await page.getByTestId('battle-fighter-player')
+      .locator('[data-testid="battle-level-up"]').count(),1);
+    assert.equal(await page.locator('[class*="battleLevelUpIcon"]').count(),0);
+    await page.waitForFunction(()=>{
+      const stage=document.querySelector('[data-testid="battle-stage"]');
+      const area=document.querySelector('[data-testid="battle-capture-area"]');
+      const el=area??stage;
+      return Boolean(el&&document.activeElement===el);
+    });
+    const final=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
+    assert.equal(final.roster[0].level,11);
+    await levelUp.waitFor({state:'detached',timeout:5000});
     assert.deepEqual(errors,[]);
     await context.close();
   }

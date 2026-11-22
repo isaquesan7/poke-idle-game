@@ -154,9 +154,12 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   /** Apenas reprodução: não faz parte do save do jogo. */
   const [battleReveal,setBattleReveal]=useState<{key:string;visible:number}|null>(null);
   const settlingBattle=useRef<string|null>(null);
-  const [levelUpNotice,setLevelUpNotice]=useState<{
-    battleId:string;name:string;from:number;to:number
-  }|null>(null);
+  /** Âncoras estáveis: alterações de save não devem lançar a página ao topo. */
+  const battleSceneFocusRef=useRef<HTMLDivElement|null>(null);
+  const battleCaptureFocusRef=useRef<HTMLDivElement|null>(null);
+  const lastBattleFocusKeyRef=useRef<string|null>(null);
+  /** Apenas efeito temporário da subida de nível já confirmada pelo writer. */
+  const [levelUpNotice,setLevelUpNotice]=useState<{battleId:string}|null>(null);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -170,6 +173,14 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
       window.removeEventListener('storage', refresh);
     };
   }, []);
+
+  // O LEVEL UP é um efeito breve; não vira um aviso permanente na página.
+  useEffect(()=>{
+    if(!levelUpNotice)return;
+    const timer=window.setTimeout(()=>setLevelUpNotice(current=>
+      current?.battleId===levelUpNotice.battleId?null:current),2300);
+    return()=>window.clearTimeout(timer);
+  },[levelUpNotice?.battleId]);
 
   /** Status real do endpoint /health, sem confundir com a PokéAPI. */
   useEffect(()=>{
@@ -275,7 +286,6 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
           setArenaEncounterId('regional-v02-'+result.snapshot.revision);
           setTab('battle');
           setBattlePlayback({id:'regional-v02-'+result.snapshot.revision,seq:(battlePlayback?.seq??0)+1,done:false});
-          window.requestAnimationFrame(()=>window.scrollTo(0,0));
         }
       });
   }
@@ -444,11 +454,26 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     &&arenaEncounterId!==lastBattlePersisted?.battleId?null:lastBattlePersisted;
   const battleRegion=KANTO_REGIONS.find(region=>region.id===lastBattle?.regionId)
     ??KANTO_REGIONS.find(region=>region.id===regionalArea)??KANTO_REGIONS[0]!;
-  useLayoutEffect(()=>{
-    if(tab==='battle')window.scrollTo(0,0);
-  },[tab,save.status==='ready'?save.snapshot.revision:0]);
   const displayedBattleId=lastBattle?.battleId??'legacy-battle';
   const battlePlaying=Boolean(pendingBattle)||Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
+  // Só reposiciona a página em transições REAIS de combate/captura/tab.
+  // As dezenas de atualizações do replay e o cronômetro não roubam scroll.
+  const battleFocusKey=tab==='battle'?[
+    arenaEncounterId??'',displayedBattleId,pendingBattle?.battleId??'',
+    lastBattle?.captureStatus??'',battlePlaying?'playing':'settled'
+  ].join(':'):null;
+  useLayoutEffect(()=>{
+    if(!battleFocusKey){lastBattleFocusKeyRef.current=null;return;}
+    if(lastBattleFocusKeyRef.current===battleFocusKey)return;
+    const captureReady=!battlePlaying&&
+      ['available','caught','escaped','skipped'].includes(lastBattle?.captureStatus??'');
+    const target=captureReady?battleCaptureFocusRef.current:battleSceneFocusRef.current;
+    if(!target)return;
+    lastBattleFocusKeyRef.current=battleFocusKey;
+    // Foco acessível e rolagem da área, NUNCA do topo da página.
+    target.focus({preventScroll:true});
+    target.scrollIntoView({behavior:'auto',block:'center',inline:'nearest'});
+  },[battleFocusKey,battlePlaying,lastBattle?.captureStatus]);
   const activeRecord=pokemonBattleRecord(active);
   async function finishPlayback():Promise<void>{
     if(!pendingBattle||settlingBattle.current===pendingBattle.battleId){
@@ -472,9 +497,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
           const currentPokemon=final.roster?.find(p=>p.uid===initialUid);
           if(currentPokemon&&typeof initialLevel==='number'
             &&currentPokemon.level>initialLevel)
-            setLevelUpNotice({battleId:pendingBattle.battleId,
-              name:speciesName(currentPokemon.pokemonId),from:initialLevel,
-              to:currentPokemon.level});
+            setLevelUpNotice({battleId:pendingBattle.battleId});
         }catch{/* nenhuma animação inventada para save inesperado */}
         setBattlePlayback(previous=>previous?{...previous,done:true}:null);
       }
@@ -1107,8 +1130,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                   setLevelUpNotice(null);
                   setBattlePlayback(null);
                   setTab('battle');
-                  window.scrollTo(0,0);
-                }}
+                 }}
                 onOpenTeam={()=>setTab('collection')}
                 lastBattleRegionId={lastBattle?.regionId}
                 onReplayBattle={()=>{
@@ -1123,7 +1145,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 <section className={styles.battleIntro}>
                   <div>
                     <button type="button" className={styles.secondary}
-                      onClick={()=>{if(pendingBattle){setFeedback('Conclua o combate antes de sair.');return;}setBattlePlayback(null);setTab('regions');window.scrollTo(0,0);}}>
+                      onClick={()=>{if(pendingBattle){setFeedback('Conclua o combate antes de sair.');return;}setBattlePlayback(null);setTab('regions');}}>
                       <i className="fa-solid fa-arrow-left" aria-hidden="true"/> Voltar às regiões
                     </button>
                     <div className={styles.kicker}>ENCONTROS SELVAGENS · {battleRegion.name.toUpperCase()}</div>
@@ -1181,9 +1203,11 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                   </div>
                   <div className={styles.battleArenaColumn}>
                   <BattleStage
+                    stageRef={battleSceneFocusRef}
+                    levelUp={Boolean(levelUpNotice?.battleId===displayedBattleId&&!battlePlaying)}
                     player={{
                       name:lastBattle?.playerName??view.active.name,
-                      level:lastBattle?.playerLevel??active.level,
+                      level:battlePlaying?(lastBattle?.playerLevel??active.level):active.level,
                       art:<PokemonArt id={lastBattle?.playerSpeciesId??active.pokemonId}
                         name={lastBattle?.playerName??view.active.name} large />
                     }}
@@ -1207,7 +1231,9 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     <span>Use o botão Batalhar na região para encontrar um Pokémon selvagem.</span>
                   </div>}
                   {!battlePlaying&&lastBattle&&['available','caught','escaped','skipped'].includes(lastBattle.captureStatus??'')&&
-                    <div className={styles.battleCapturePlacement}>
+                    <div className={styles.battleCapturePlacement} ref={battleCaptureFocusRef}
+                      tabIndex={-1} role="region" aria-label="Área de captura"
+                      data-testid="battle-capture-area">
                       {lastBattle.captureStatus==='available' ? (
                         <div className={styles.captureDecision} aria-label="Decisão de captura após a batalha">
                           <h3><i className="fa-solid fa-baseball" aria-hidden="true"/> Tentar capturar {lastBattle.wildName}?</h3>
@@ -1246,18 +1272,6 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     </div>}
                   </div>
                 </section>
-                {levelUpNotice?.battleId===displayedBattleId&&!battlePlaying&&
-                  <div key={levelUpNotice.battleId} className={styles.battleLevelUp}
-                    role="status" aria-live="polite" data-testid="battle-level-up">
-                    <span className={styles.battleLevelUpIcon} aria-hidden="true">
-                      <i className="fa-solid fa-star"/>
-                    </span>
-                    <div>
-                      <strong>LEVEL UP!</strong>
-                      <span>{levelUpNotice.name} avançou do nível {levelUpNotice.from}
-                        {' '}para o nível {levelUpNotice.to}!</span>
-                    </div>
-                  </div>}
                 {lastBattle && (
                   <div className={styles.twoColumn}>
                     <section className={styles.panel+' '+styles.arenaResultPanel} aria-label="Resultado da última batalha">

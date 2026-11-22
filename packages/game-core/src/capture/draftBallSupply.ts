@@ -3,9 +3,10 @@
  *
  * Apesar do nome histórico "draft", o writer v0.2 JÁ utiliza esta função
  * para recompensar vitórias regionais. A loja ainda não existe.
- * D064BN: Ultra Ball não é drop de combate: obtida somente pelos ciclos
- * elegíveis de expedição no Pico Dracônico e Santuário Lendário.
- * Preservar Poké/Great Ball e o contador de vitórias já publicados.
+ * D064BO (esclarecimento do usuário): Ultra Ball ganha em combate desde
+ * a R7 a cada 15 vitórias. A restrição de Ultra Ball a R9/R10 é
+ * EXCLUSIVA do modo EXPEDIÇÃO; não se aplica a vitórias regionais.
+ * Preservar Poké/Great Ball e o teto de vitórias já publicados.
  * O writer futuro deve contar vitórias por região com recibo idempotente;
  * NÃO se basear em contador arbitrário enviado pelo botão/cliente.
  */
@@ -36,7 +37,7 @@ export function d064DraftBallDrop(regionId:number,regionWinNumber:number):
   return {
     'poke-ball':regionId<=6&&regionWinNumber%3===0?1:0,
     'great-ball':regionId>=4&&regionWinNumber%7===0?1:0,
-    'ultra-ball':0 // apenas em expedições R9–R10 (não por vitórias regionais)
+    'ultra-ball':regionId>=7&&regionWinNumber%15===0?1:0
   };
 }
 /** Soma apenas ganhos de vitórias reais; nenhuma quantidade pode ser negativa
@@ -47,6 +48,6 @@ export function d064DraftBallSupply(regionId:number,wins:number):
   return{
     'poke-ball':regionId<=6?Math.floor(wins/3):0,
     'great-ball':regionId>=4?Math.floor(wins/7):0,
-    'ultra-ball':0
+    'ultra-ball':regionId>=7?Math.floor(wins/15):0
   };
 }

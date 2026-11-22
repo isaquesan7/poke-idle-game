@@ -1028,16 +1028,29 @@
    Filtro no contêiner preserva o nó e a animação GIF, sem remontar sprite. */
 .battleSpriteFainted{display:grid;place-items:center;filter:grayscale(1) brightness(.57);opacity:.48;transform:translateY(9px) scale(.96);transition:filter .35s ease,opacity .35s ease,transform .35s ease;}
 .battleFaintedLabel{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);z-index:2;border:1px solid var(--color-border);border-radius:var(--radius-pill);padding:5px 10px;background:var(--color-surface-raised);color:var(--color-text);font-size:.69rem;font-weight:900;letter-spacing:.06em;white-space:nowrap;pointer-events:none;}
-/* Resultado de level-up aparece somente após o writer confirmar o combate. */
-.battleLevelUp{display:flex;align-items:center;gap:15px;margin:0 0 var(--space-5);padding:18px 20px;border:1px solid var(--color-gold);border-radius:var(--radius-card);background:var(--color-surface-raised);box-shadow:var(--shadow-modal);animation:pokemonLevelReveal .75s ease-out both;}
-.battleLevelUp>div{display:grid;gap:5px;}
-.battleLevelUp strong{color:var(--color-gold);font-size:1.25rem;font-weight:950;letter-spacing:.07em;}
-.battleLevelUp span:not(.battleLevelUpIcon){color:var(--color-text);font-weight:700;}
-.battleLevelUpIcon{display:grid;place-items:center;width:52px;height:52px;flex-shrink:0;border-radius:50%;color:var(--color-gold);background:var(--color-surface);font-size:1.65rem;animation:pokemonLevelStar 1s ease-out both;}
-@keyframes pokemonLevelReveal{0%{opacity:0;transform:translateY(14px) scale(.97)}55%{opacity:1;transform:translateY(-3px) scale(1.01)}100%{opacity:1;transform:translateY(0) scale(1)}}
-@keyframes pokemonLevelStar{0%{transform:rotate(-80deg) scale(.3);opacity:0}60%{transform:rotate(12deg) scale(1.25);opacity:1}100%{transform:rotate(0) scale(1);opacity:1}}
-@media(max-width:520px){.pokemonExperience{padding:12px}.battleLevelUp{padding:14px;gap:10px}.battleLevelUp strong{font-size:1.08rem}.battleLevelUpIcon{width:42px;height:42px;font-size:1.3rem}}
-@media(prefers-reduced-motion:reduce){.battleLevelUp,.battleLevelUpIcon{animation:none}.battleSpriteFainted{transition:none}}
+/* D064BO: só um efeito LEVEL UP sobre o sprite aliado, sem cartão/banner. */
+.battleLevelUpBurst{
+  position:absolute;z-index:4;top:12%;left:50%;pointer-events:none;
+  white-space:nowrap;color:var(--color-gold);
+  font-size:clamp(1rem,2.2vw,1.65rem);font-weight:950;letter-spacing:.1em;
+  text-shadow:0 2px 8px var(--color-bg),var(--shadow-pokemon-art);
+  animation:battleLevelUpFloat 2.25s ease-out both;
+}
+@keyframes battleLevelUpFloat{
+  0%{opacity:0;transform:translate(-50%,14px) scale(.75)}
+  22%{opacity:1;transform:translate(-50%,-4px) scale(1.18)}
+  64%{opacity:1;transform:translate(-50%,-13px) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-32px) scale(.98)}
+}
+@media(max-width:690px){
+  .battleLevelUpBurst{top:8%;font-size:clamp(.95rem,5vw,1.25rem)}
+}
+@media(prefers-reduced-motion:reduce){
+  .battleLevelUpBurst{animation:none;opacity:1;transform:translateX(-50%)}
+}
+.battleScene:focus:not(:focus-visible),
+.battleCapturePlacement:focus:not(:focus-visible){outline:none}
+.battleScene,.battleCapturePlacement{scroll-margin-block:var(--space-4)}
 
 /* D064BG — captura na mesma coluna e diretamente após os dois combatentes. */
 .battleArenaColumn{display:grid;grid-template-columns:minmax(0,1fr);align-content:start;gap:var(--space-3);min-width:0;}

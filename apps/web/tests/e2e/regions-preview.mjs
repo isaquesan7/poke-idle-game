@@ -12,6 +12,23 @@ const server=spawn(process.execPath,[new URL('server.mjs',root).pathname],{
 });
 let stderr='';
 server.stderr.on('data',data=>stderr+=String(data));
+/** D064BO: o foco da viewport é o campo de combate, nunca o topo da página. */
+async function expectStageFocused(page){
+  await page.waitForFunction(()=>{
+    const stage=document.querySelector('[data-testid="battle-stage"]');
+    if(!stage||document.activeElement!==stage)return false;
+    const rect=stage.getBoundingClientRect();
+    return rect.bottom>0&&rect.top<innerHeight;
+  });
+}
+async function expectCaptureFocused(page){
+  await page.waitForFunction(()=>{
+    const capture=document.querySelector('[data-testid="battle-capture-area"]');
+    if(!capture||document.activeElement!==capture)return false;
+    const rect=capture.getBoundingClientRect();
+    return rect.bottom>0&&rect.top<innerHeight;
+  });
+}
 async function ready(){
   for(let i=0;i<80;i++){
     try{if((await fetch(base+'/health')).ok)return;}catch{}
@@ -63,7 +80,7 @@ try{
     assert.deepEqual(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key),consulted,
       'entrar na região não pode sortear adversário nem alterar save');
     await page.getByRole('button',{name:'Batalhar na região'}).click();
-    await page.waitForFunction(()=>scrollY===0);
+    await expectStageFocused(page);
     assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
     await page.getByRole('heading',{name:'Pokémon encontrados nesta área'}).waitFor();
     assert.equal(await page.locator('[class*="encounterGrid"] [class*="encounterCard"]').count(),18);
@@ -83,8 +100,10 @@ try{
     assert.equal(game.lastBattle.regionName,'Lagos Serenos');
     assert.equal(game.lastBattle.log.length,game.lastBattle.frames.length);
     if(game.lastBattle.captureStatus==='available'){
+      await expectCaptureFocused(page);
       await page.getByRole('button',{name:'Seguir sem capturar'}).click();
       await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===3,key);
+      await expectCaptureFocused(page);
       after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
       game=JSON.parse(after.journal.raw);
     }
@@ -114,7 +133,7 @@ try{
     await page.getByRole('button',{name:/Entrar na região/}).click();
     await page.getByRole('heading',{name:'Batalha na Costa Oceânica'}).waitFor();
     await page.getByRole('button',{name:'Batalhar na região'}).click();
-    await page.waitForFunction(()=>window.scrollY===0);
+    await expectStageFocused(page);
     await page.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key))?.revision===revision,
       {key,revision:after.revision+1});
     const coastalStage=JSON.parse((await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key)).journal.raw);

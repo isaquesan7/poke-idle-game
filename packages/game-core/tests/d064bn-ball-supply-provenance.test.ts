@@ -7,9 +7,9 @@ import {
 import {d064DraftBallSupply} from '../src/capture/draftBallSupply.js';
 
 /**
- * D064BN — o draftBallDrop é usado pelo writer jogável no PlaySave;
- * não é mera simulação. Portanto Ultra Ball nunca deve vir de vitórias,
- * inclusive vitórias contra selvagens das áreas R7–R10.
+ * D064BO — combate concede Ultra desde R7 (1/15 vitórias);
+ * expedição concede Ultra apenas R9/R10 (1/24h elegíveis).
+ * O draftBallDrop participa do writer REAL e exige regressão.
  */
 describe('D064BN — proveniência de Poké/Great/Ultra Ball',()=>{
   it('mantém kit inicial de 12 Poké Balls e proíbe Master Ball gratuita',()=>{
@@ -21,7 +21,7 @@ describe('D064BN — proveniência de Poké/Great/Ultra Ball',()=>{
     expect(KANTO_BALLS['master-ball'].conventionalShop).toBe(false);
   });
 
-  it('D064BN: a cada vitória, 10 regiões mantêm Poké/Great, mas jamais premiam Ultra',()=>{
+  it('D064BO: Ultra em combate desde R7 e Poké/Great preservadas',()=>{
     for(const region of KANTO_REGIONS){
       for(let wins=1;wins<=105;wins++){
         const reward=d064DraftBallDrop(region.id,wins);
@@ -29,7 +29,7 @@ describe('D064BN — proveniência de Poké/Great/Ultra Ball',()=>{
         expect(reward).toEqual({
           'poke-ball':region.id<=6&&wins%3===0?1:0,
           'great-ball':region.id>=4&&wins%7===0?1:0,
-          'ultra-ball':0
+          'ultra-ball':region.id>=7&&wins%15===0?1:0
         });
       }
       for(const wins of [0,1,2,3,7,15,30,105,999]){
@@ -37,7 +37,7 @@ describe('D064BN — proveniência de Poké/Great/Ultra Ball',()=>{
         expect(aggregate).toEqual({
           'poke-ball':region.id<=6?Math.floor(wins/3):0,
           'great-ball':region.id>=4?Math.floor(wins/7):0,
-          'ultra-ball':0
+          'ultra-ball':region.id>=7?Math.floor(wins/15):0
         });
       }
     }
