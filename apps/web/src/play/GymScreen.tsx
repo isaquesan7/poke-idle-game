@@ -76,6 +76,10 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   useEffect(()=>{setConfirmAbandon(false);},[session?.id]);
   const actionCount=session?.actions.length??0;
   const lastRound=history.at(-1);
+  const priorLines=history.slice(0,-1).reduce((total,round)=>total+round.lines.length,0);
+  const fullLog=history.flatMap(round=>round.lines.map(line=>
+    'T'+round.turn+' '+line.replace(/^player\\b/,'Seu Pokémon')
+      .replace(/^leader\\b/,'Líder')));
   const donePresentation=presented>=actionCount;
   // O primeiro turno é decidido pela mesma IA dos líderes. A cada
   // gravação o replay reconstruído é a fonte de verdade antes da ação
@@ -103,7 +107,8 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
     setProgress(previous=>previous.key===roundKey&&previous.visible===visible
       ?previous:{key:roundKey,visible});
   },[roundKey]);
-  const visible=progress.key===roundKey?progress.visible:0;
+  const visible=progress.key===roundKey
+    ?Math.max(0,progress.visible-priorLines):0;
   const displayState=lastRound&&!donePresentation
     ?visible>0?lastRound.snapshots[Math.min(visible,lastRound.snapshots.length)-1]
       ??lastRound.before:lastRound.before
@@ -273,9 +278,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
         {lastRound&&<section className={styles.history} data-testid="gym-battle-history"
           aria-label="Diário do combate">
           <BattlePlayback key={session.id+':'+actionCount}
-            log={lastRound.lines.map(line=>'T'+lastRound.turn+' '+line
-              .replace(/^player\\b/,'Seu Pokémon')
-              .replace(/^leader\\b/,'Líder'))}
+            log={fullLog} initialVisible={priorLines}
             turns={Math.max(1,state.turn)}
             playing={!donePresentation} onProgress={onProgress}
             onFinished={()=>setPresented(actionCount)}/>
