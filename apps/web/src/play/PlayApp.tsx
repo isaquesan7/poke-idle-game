@@ -197,6 +197,34 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     } finally { setBusy(false); }
   }
 
+  // D064BG: no máximo um commit quando a afinidade efetivamente muda
+  // (ou quando um save legado ganha sua âncora inicial). Sem cron jobs de
+  // servidor; a reavaliação acontece ao abrir o jogo e periodicamente.
+  useEffect(()=>{
+    if(save.status!=='ready'||busy)return;
+    const snapshot=save.snapshot;
+    let game:Record<string,unknown>;
+    try{game=JSON.parse(snapshot.journal.raw) as Record<string,unknown>;}
+    catch{return;}
+    if(game.pendingBattle||!Array.isArray(game.roster))return;
+    const needsSync=game.roster.some(item=>{
+      if(!item||typeof item!=='object')return false;
+      const p=item as Record<string,unknown>;
+      if(typeof p.affinityLastUsedAt!=='number')return true;
+      if(typeof p.affinity!=='number'||p.affinity<=0)return false;
+      if(typeof p.affinityIdleDaysApplied!=='number')return true;
+      try{return affinityIdlePenaltyDays(p.affinityLastUsedAt,now)>p.affinityIdleDaysApplied;}
+      catch{return false;}
+    });
+    if(!needsSync)return;
+    // Não gerar mensagem de erro se outra aba salvar primeiro.
+    const run=()=>updatePlaySave(window.localStorage,snapshot.revision,
+      {type:'affinity-tick',nowMs:Date.now()});
+    void (navigator.locks?.request
+      ?navigator.locks.request(PLAY_LOCK_NAME,{mode:'exclusive'},run)
+      :Promise.resolve(run())).then(()=>setSave(readSafe())).catch(()=>{});
+  },[save.status==='ready'?save.snapshot.revision:-1,Math.floor(now/60000),busy]);
+
   function newGame() {
     void transact(() => createPlaySave(window.localStorage, name, starter, Date.now(), demo));
   }
@@ -687,6 +715,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                           <span style={{width:focused.affinity+'%'}}/>
                         </div>
                         <small>Transferência de atributos: {(affinityRate(focused.affinity)*100).toFixed(1)}%</small>
+                        <small>Vitórias aumentam a afinidade; derrotas reduzem 3 pontos e empates reduzem 1. Após 48h sem batalhar, diminui 1 ponto por dia até zero.</small>
                       </div>
                       <p className={styles.pokemonRole}>{data.team[0]===focused.uid?'Lidera as batalhas regionais.'
                         :data.team.includes(focused.uid)?'Está na equipe, podendo ser escolhido como líder.':'Está na coleção, fora da equipe ativa.'}</p>
@@ -1200,6 +1229,11 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                       {(lastBattle.playerStatus||lastBattle.wildStatus)&&
                         <p>Condições ao fim do encontro: parceiro {lastBattle.playerStatus??'normal'} ·
                           selvagem {lastBattle.wildStatus??'normal'}. Reiniciadas na próxima batalha.</p>}
+                      {lastBattle.outcome!=='win'&&
+                        <p className={styles.affinityLossNotice} role="status">
+                          <i className="fa-solid fa-heart-crack" aria-hidden="true"/>
+                          Afinidade do Pokémon: {lastBattle.outcome==='draw'?'−1':'−3'} ponto(s) neste combate.
+                        </p>}
                       {lastBattle.outcome === 'win' && (
                         <div className={styles.battleRewards} aria-label="Recompensas recebidas">
                           <div><small>Moedas</small><strong>+{lastBattle.rewardCoins}</strong></div>
