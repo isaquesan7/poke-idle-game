@@ -158,3 +158,8 @@ export type {GymTurnAction,GymTurnResult} from './gyms/gymTurn.js';
 
 // GYM-02C2: cura ativa e Concentrar com orçamento individual no 3x3.
 export {healGymHp,focusGymSp} from './gyms/gymBattleState.js';
+
+// GYM-02C2b: status e estágios pertencem ao Pokémon, nunca ao slot ativo.
+export {gymStatusAllowed,gymApplyStatus,gymDropStat,gymDamageStat,
+  GYM_EMPTY_EFFECTS} from './gyms/gymEffects.js';
+export type {GymEffects,GymStage} from './gyms/gymEffects.js';
