@@ -55,10 +55,14 @@ export function ExpeditionScreen({
   // primeira montagem nem a cada atualização de segundo do cronômetro.
   const previousActive=useRef<boolean|null>(null);
   const claimRef=useRef<HTMLButtonElement>(null);
+  const stopRef=useRef<HTMLButtonElement>(null);
   const selectRef=useRef<HTMLSelectElement>(null);
   useEffect(()=>{
     if(previousActive.current!==null&&previousActive.current!==active){
-      if(active)claimRef.current?.focus();
+      if(active){
+        if(claimRef.current&&!claimRef.current.disabled)claimRef.current.focus();
+        else stopRef.current?.focus();
+      }
       else selectRef.current?.focus();
     }
     previousActive.current=active;
@@ -111,7 +115,7 @@ export function ExpeditionScreen({
             <button ref={claimRef} type="button" className={styles.primary} disabled={busy||!pending?.cycles} aria-disabled={busy||!pending?.cycles} onClick={onClaim}>
               <i className="fa-solid fa-gift" aria-hidden="true"/> Resgatar recompensas
             </button>
-            <button type="button" className={styles.secondary} disabled={busy} aria-disabled={busy} onClick={onStop}>
+            <button ref={stopRef} type="button" className={styles.secondary} disabled={busy} aria-disabled={busy} onClick={onStop}>
               <i className="fa-solid fa-flag-checkered" aria-hidden="true"/> Encerrar expedição
             </button>
           </>}
