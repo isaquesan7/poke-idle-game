@@ -9,6 +9,7 @@
  */
 import type {Combatant} from '../combat/kantoBattle.js';
 import type {KantoBattleStatus} from '../combat/kantoStatusEffects.js';
+import type {GymEffects} from './gymEffects.js';
 import {kantoMaxSp,kantoFocusRecovery,KANTO_SP_BALANCE} from '../combat/kantoSkillEnergy.js';
 
 export const GYM_SWITCH_RULES=Object.freeze({
@@ -25,6 +26,7 @@ export interface GymFighterState {
   readonly sp:number;
   readonly maxSp:number;
   readonly status:KantoBattleStatus|null;
+  readonly effects?:GymEffects;
   readonly retreatRecoveriesUsed:number;
   readonly focusUses:number;
   readonly lastFocusTurn:number;
@@ -67,7 +69,7 @@ export function createGymBattleState(
       throw new RangeError('Combatente inválido.');
     const maxSp=kantoMaxSp(combatant.level,combatant.speciesId);
     return {combatant,uid,hp:combatant.stats.hp,maxSp,sp:maxSp,
-      status:null,retreatRecoveriesUsed:0,focusUses:0,lastFocusTurn:-100};
+      status:null,effects:{attackDrops:0,defenseDrops:0,speedDrops:0},retreatRecoveriesUsed:0,focusUses:0,lastFocusTurn:-100};
   };
   const p=player.map(p=>fighter(p.combatant,p.uid)) as
     unknown as [GymFighterState,GymFighterState,GymFighterState];
