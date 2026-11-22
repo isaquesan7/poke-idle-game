@@ -100,7 +100,7 @@ describe('D064BK — caminho real de desbloqueio e orçamento da loja (diagnóst
     expect(affordable.every(quantity=>Number.isSafeInteger(quantity)&&quantity>=0))
       .toBe(true);
     expect(affordable).toEqual([...affordable].sort((a,b)=>b-a));
-    expect(affordable[0]).toBeGreaterThan(affordable[3]);
+    expect(affordable[0]!).toBeGreaterThan(affordable[3]!);
     for(const r of KANTO_REGIONS){
       const theoreticalMaxCoins=MAX_EXPEDITION_CYCLES*(r.id+6);
       expect(theoreticalMaxCoins).toBeGreaterThan(0);
