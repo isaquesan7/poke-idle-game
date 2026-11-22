@@ -221,6 +221,20 @@ async function exercise(browser, label, viewport) {
   const pokemonProfile=page.locator('[class*="pokemonWorkspace"]');
   await pokemonProfile.getByRole('img',{name:/charmander/i}).waitFor();
   await page.getByRole('progressbar',{name:'Afinidade do Pokémon'}).waitFor();
+  const starterXp=await page.evaluate(key=>{
+    const game=JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw);
+    return game.roster.find(p=>p.uid===1);
+  },SAVE);
+  const starterXpMax=starterXp.level>=100?1:65+starterXp.level*22;
+  const pokemonXpBar=page.getByRole('progressbar',{name:'Experiência do Pokémon UID 1'});
+  await pokemonXpBar.waitFor();
+  assert.equal(await pokemonXpBar.getAttribute('aria-valuemax'),String(starterXpMax));
+  assert.equal(await pokemonXpBar.getAttribute('aria-valuenow'),
+    String(starterXp.level>=100?1:starterXp.xp));
+  if(starterXp.level<100)
+    await page.getByText('Faltam '+(starterXpMax-starterXp.xp)+' XP para o nível '+(starterXp.level+1)+'.').waitFor();
+  assert.equal(await page.getByTestId('pokemon-xp').count(),1,
+    'Perfil do Pokémon deve mostrar XP individual sem modificar save');
   const pokemonTabs=pokemonProfile.getByRole('navigation',{name:'Seções do Pokémon'});
   assert.equal(await pokemonTabs.getByRole('button').count(),3);
   assert.equal(await pokemonTabs.getByRole('button',{name:'Perfil'}).getAttribute('aria-current'),'page');
@@ -493,6 +507,23 @@ async function exercise(browser, label, viewport) {
   assert.equal(confirmed.journal.revision,3,'um recibo único no fim do replay');
   assert.equal(confirmedGame.wins+confirmedGame.losses,1);
   assert.ok(confirmedGame.seen.includes(visual.wildSpeciesId));
+  // D064BF: KO fica cinza e claramente indicado apenas quando o HP revelado é zero.
+  for(const side of ['player','wild']){
+    const finalHp=side==='player'?visual.playerRemainingHp:visual.wildRemainingHp;
+    const fighter=page.getByTestId('battle-visual-'+side);
+    assert.equal(await fighter.getAttribute('data-fainted'),finalHp===0?'true':'false');
+    assert.equal(await page.getByTestId('battle-fainted-'+side).count(),finalHp===0?1:0);
+  }
+  // O Level Up é exclusivamente efeito da confirmação — não um prêmio no replay.
+  const settledActive=confirmedGame.roster.find(p=>p.uid===1);
+  if(settledActive&&settledActive.level>visual.playerLevel){
+    await page.getByTestId('battle-level-up').waitFor();
+    await page.getByText(/LEVEL UP!/).waitFor();
+    assert.ok((await page.getByTestId('battle-level-up').innerText()).includes(
+      'nível '+settledActive.level));
+  }else{
+    assert.equal(await page.getByTestId('battle-level-up').count(),0);
+  }
   if(confirmedGame.lastBattle.captureStatus==='available'){
     await page.getByRole('button',{name:'Seguir sem capturar'}).click();
     afterFirstBattleRevision++;
@@ -1124,6 +1155,71 @@ async function exerciseInventoryActions(browser,label,viewport){
   console.log(label+': modal Equipar/Remover, revisão e progresso intacto OK');
 }
 
+
+/** D064BF: nível realmente confirmado só após concluir a apresentação. */
+async function exerciseGuaranteedLevelUp(browser,label,viewport){
+  const context=await browser.newContext({viewport});
+  const page=await context.newPage();
+  const errors=[];
+  page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(BASE+'/play');
+  await page.getByLabel('Nome do treinador').fill('Teste Level Up');
+  await page.getByRole('radio',{name:/Charmander/}).check();
+  await page.getByRole('checkbox',{name:/modo demonstração/}).check();
+  await page.getByRole('button',{name:'Começar aventura'}).click();
+  await page.getByRole('heading',{name:'Bem-vindo de volta, Teste Level Up!'}).waitFor();
+  await page.waitForFunction(key=>Boolean(localStorage.getItem(key)),SAVE);
+  const before=await page.evaluate(key=>{
+    const snapshot=JSON.parse(localStorage.getItem(key));
+    const game=JSON.parse(snapshot.journal.raw);
+    const leader=game.roster.find(p=>p.uid===game.team[0]);
+    leader.xp=65+leader.level*22-1;
+    snapshot.journal.raw=JSON.stringify(game);
+    localStorage.setItem(key,JSON.stringify(snapshot));
+    return {level:leader.level,xp:leader.xp};
+  },SAVE);
+  await page.reload();
+  await page.getByRole('button',{name:'Pokémon',exact:true}).click();
+  const xp=page.getByRole('progressbar',{name:'Experiência do Pokémon UID 1'});
+  assert.equal(await xp.getAttribute('aria-valuenow'),String(before.xp));
+  await page.getByRole('button',{name:'Regiões',exact:true}).click();
+  await page.evaluate(()=>{
+    const original=window.crypto.getRandomValues.bind(window.crypto);
+    Object.defineProperty(window.crypto,'getRandomValues',{
+      configurable:true,value(array){
+        if(array instanceof Uint32Array&&array.length===1){array[0]=0;return array;}
+        return original(array);
+      }
+    });
+  });
+  await page.getByRole('button',{name:/Batalhar em Bosque Inicial/}).click();
+  await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
+  const staged=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);
+  assert.equal(staged.roster[0].level,before.level);
+  assert.equal(staged.roster[0].xp,before.xp);
+  assert.equal(await page.getByTestId('battle-level-up').count(),0);
+  assert.equal(await page.getByTestId('battle-visual-wild').getAttribute('data-fainted'),'false');
+  await page.getByRole('button',{name:'Pular apresentação'}).click();
+  await page.getByRole('heading',{name:'Vitória!'}).waitFor();
+  const finished=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);
+  assert.ok(finished.roster[0].level>before.level,'vitória deve conceder nível ao Pokémon');
+  await page.getByTestId('battle-level-up').waitFor();
+  assert.match(await page.getByTestId('battle-level-up').textContent(),/LEVEL UP!/);
+  assert.equal(await page.getByTestId('battle-visual-wild').getAttribute('data-fainted'),'true');
+  assert.equal(await page.getByTestId('battle-fainted-wild').count(),1);
+  const after=await page.evaluate(key=>localStorage.getItem(key),SAVE);
+  await page.getByRole('button',{name:'Reassistir à batalha'}).click();
+  assert.equal(await page.getByTestId('battle-level-up').count(),0,
+    'replay não deve festejar nível ganho uma segunda vez');
+  await page.getByRole('button',{name:'Pular apresentação'}).click();
+  assert.equal(await page.getByTestId('battle-level-up').count(),0);
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),after,
+    'replay e animação de nocaute não escrevem no save');
+  assert.deepEqual(errors,[]);
+  await context.close();
+  console.log(label+': XP/Level Up e KO visual confirmados no final, sem antecipar ou duplicar');
+}
+
 let browser;
 try {
   await ready();
@@ -1134,6 +1230,8 @@ try {
   await exercise(browser,'mobile',{width:390,height:844});
   await exerciseNewMoves(browser,'desktop',{width:1365,height:768});
   await exerciseNewMoves(browser,'mobile',{width:390,height:844});
+  await exerciseGuaranteedLevelUp(browser,'desktop',{width:1365,height:768});
+  await exerciseGuaranteedLevelUp(browser,'mobile',{width:390,height:844});
   await exerciseInventoryActions(browser,'desktop',{width:1365,height:768});
   await exerciseInventoryActions(browser,'mobile',{width:390,height:844});
   console.log('PASS: experiência React jogável no servidor de produção');

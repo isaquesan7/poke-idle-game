@@ -108,6 +108,12 @@ try{
     },key);
     const attempt=await page.evaluate(k=>JSON.parse(JSON.parse(localStorage.getItem(k)).journal.raw),key);
     assert.equal(attempt.ballPocket.quantities['poke-ball'],stockBefore-1);
+    if(attempt.lastBattle.captured){
+      const caught=attempt.roster.at(-1);
+      assert.equal(caught.pokemonId,54);
+      assert.equal(caught.level,1,'Psyduck capturado no nível selvagem deve entrar na coleção no nível base');
+      assert.equal(caught.xp,0);
+    }
     assert.ok(['caught','escaped'].includes(attempt.lastBattle.captureStatus));
     assert.equal(await page.getByRole('button',{name:/Tentar capturar \(1 tentativa\)/}).count(),0);
     const singleAttemptSave=await page.evaluate(k=>localStorage.getItem(k),key);

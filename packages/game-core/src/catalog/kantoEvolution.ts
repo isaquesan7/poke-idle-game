@@ -98,3 +98,24 @@ export function kantoEvolutionOptions(speciesId:number):readonly KantoEvolutionR
   if(!Number.isSafeInteger(speciesId)||speciesId<1||speciesId>151)return [];
   return KANTO_EVOLUTION_RULES.filter(rule=>rule.from===speciesId);
 }
+
+/**
+ * D064BF: nível inicial de uma instância capturada, independente do nível
+ * do oponente selvagem. Considera TODA a cadeia anterior para não criar
+ * evoluções em níveis abaixo do requisito de um estágio intermediário.
+ * Evoluções por pedra/troca não impõem nível numérico: herdam o piso anterior.
+ * Espécies sem pré-evolução, inclusive lendários, começam no nível 1.
+ */
+export function kantoCaptureStartingLevel(speciesId:number):number {
+  if(!Number.isSafeInteger(speciesId)||speciesId<1||speciesId>151)
+    throw new RangeError('Espécie inválida para captura.');
+  const seen=new Set<number>();
+  const floor=(id:number):number=>{
+    if(seen.has(id))throw new RangeError('Ciclo na cadeia evolutiva.');
+    seen.add(id);
+    const parent=KANTO_EVOLUTION_RULES.find(rule=>rule.to===id);
+    if(!parent)return 1;
+    return Math.max(floor(parent.from),parent.trigger==='level'?parent.minLevel:1);
+  };
+  return floor(speciesId);
+}

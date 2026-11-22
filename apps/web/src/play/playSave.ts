@@ -16,7 +16,7 @@ import {
   KANTO_SUPPORT_MOVES,pokemonMoveSlots,reducePokemonMoveSlotsJson,
   kantoRegion,kantoRegionalEncounter,kantoRegionCatalogInvariant,
   inspectKantoBallPocket,resolveKantoCaptureAttempt,d064DraftBallDrop,
-  D064_DRAFT_STARTER_BALLS,battleTrainerXp,beginnerBattleXp
+  D064_DRAFT_STARTER_BALLS,battleTrainerXp,beginnerBattleXp,kantoCaptureStartingLevel
 } from '@kanto/game-core';
 import type {
   LegacyPokemonTeamAction, RewardJournal, RewardCommand, TrainerDraftAction, StatValues, Combatant,
@@ -465,9 +465,11 @@ function postBattleCapture(journal:RewardJournal,battleId:string,ballId:KantoBal
   if(outcome.captured){
     if(!Number.isSafeInteger(game.nextUid+1))
       return {status:'blocked',reason:'UID esgotado.'};
+    const captureLevel=kantoCaptureStartingLevel(species.id);
+    const initialMove=kantoWildMoveLoadout(species.id,captureLevel,species.move)[0];
     game.roster.push({
-      uid:game.nextUid,pokemonId:species.id,level:battle.wildLevel,xp:0,
-      manual:zeroStats(),affinity:0,moveName:species.move.name,upgrades:{},
+      uid:game.nextUid,pokemonId:species.id,level:captureLevel,xp:0,
+      manual:zeroStats(),affinity:0,moveName:initialMove?.name??species.move.name,upgrades:{},
       battleRecord:{wins:0,draws:0,losses:0}
     });
     game.nextUid++;
@@ -479,6 +481,7 @@ function postBattleCapture(journal:RewardJournal,battleId:string,ballId:KantoBal
   }
   game.ballPocket=outcome.pocket;
   battle.captured=outcome.captured;
+  if(outcome.captured)battle.capturedStartingLevel=kantoCaptureStartingLevel(species.id);
   battle.captureStatus=outcome.captured?'caught':'escaped';
   battle.captureBallId=ballId;
   // Captura é separada do replay e NÃO acrescenta outra vitória/XP.

@@ -94,7 +94,7 @@ export {
 } from './catalog/kantoMovePp.js';
 export {
   KANTO_EVOLUTION_SOURCE_COMMIT, KANTO_EVOLUTION_STONES,
-  KANTO_EVOLUTION_RULES, kantoEvolutionOptions
+  KANTO_EVOLUTION_RULES, kantoEvolutionOptions,kantoCaptureStartingLevel
 } from './catalog/kantoEvolution.js';
 export type { KantoEvolutionRule, KantoEvolutionStone } from './catalog/kantoEvolution.js';
 export { reduceKantoEvolutionJson } from './legacy/pokemonEvolutionReducer.js';

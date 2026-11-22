@@ -10,6 +10,7 @@
  * diferente é conflito; revisão obsoleta é recusada; recompensas, captura
  * e recibo são calculados na MESMA transição imutável. Ainda não é writer.
  */
+import { kantoCaptureStartingLevel } from '../catalog/kantoEvolution.js';
 import { grantXp, battleTrainerXp, beginnerBattleXp } from '../progression/xp.js';
 import { expeditionRewards } from '../rewards/expedition.js';
 import { LEGACY_BADGES } from './catalog.js';
@@ -266,7 +267,7 @@ function resolvedBattle(state: ValidState, cmd: Extract<RewardCommand, {type:'ba
     if (!Number.isSafeInteger(state.nextUid + 1)) throw new RangeError('UID esgotado.');
     const p: ProgressPokemon = {
       uid: state.nextUid, pokemonId: cmd.capture.pokemonId,
-      level: cmd.wildLevel, xp: 0,
+      level: kantoCaptureStartingLevel(cmd.capture.pokemonId), xp: 0,
       manual: { hp: 0, attack: 0, defense: 0,
         specialAttack: 0, specialDefense: 0, speed: 0 },
       affinity: 0, moveName: cmd.capture.moveName ?? null, upgrades: {},
