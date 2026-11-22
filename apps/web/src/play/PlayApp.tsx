@@ -434,6 +434,22 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
       return null;
     }
   })():null;
+  // D064BR: a prévia deve refletir as bolas EFETIVAMENTE creditáveis.
+  // Encher a mochila nunca cancela moedas/XP da expedição.
+  const pendingClaim=pending?.ballDrops&&ballPocket.status==='valid'?{
+    ...pending,
+    ballDrops:{
+      'poke-ball':Math.min(pending.ballDrops['poke-ball'],
+        Math.max(0,100000-(ballQuantities['poke-ball']??0))),
+      'great-ball':Math.min(pending.ballDrops['great-ball'],
+        Math.max(0,100000-(ballQuantities['great-ball']??0))),
+      'ultra-ball':Math.min(pending.ballDrops['ultra-ball'],
+        Math.max(0,100000-(ballQuantities['ultra-ball']??0)))
+    }
+  }:pending;
+  const pendingStockLimitReached=Boolean(pending?.ballDrops&&pendingClaim?.ballDrops&&
+    (['poke-ball','great-ball','ultra-ball'] as const).some(id=>
+      pending.ballDrops![id]>pendingClaim.ballDrops![id]));
   const pendingBattle=ballGame?.pendingBattle && typeof ballGame.pendingBattle==='object'
     ? ballGame.pendingBattle as {battleId:string;preview:unknown}:null;
   // Em um reload, retomar apresentação pendente antes de pagar resultados.
@@ -1381,7 +1397,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 leaderName={view.active.name}
                 leaderLevel={active.level}
                 leaderArt={<PokemonArt id={active.pokemonId} name={view.active.name} />}
-                pending={pending??null}
+                pending={pendingClaim??null}
+                ballStockCapped={pendingStockLimitReached}
                 ballProgress={expProgress}
                 activePokemonLevel={expeditionMembers[0]?.level??active.level}
                 nowMs={now}
