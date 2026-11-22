@@ -3,7 +3,7 @@
  * Nunca fornece HP/SP/outcome/recompensas. O estado exibido é replayado
  * pelo motor a partir do transcript persistido (inclusive após reload).
  */
-import {useCallback,useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {
   KANTO_GYMS,kantoNextGym,gymChooseAiAction,
   KANTO_BATTLE_SPECIES
@@ -12,7 +12,7 @@ import type {GymBattleState,KantoBattleVisualFrame} from '@kanto/game-core';
 import type {LegacySave} from '../storage/legacySave';
 import type {PlayAction} from './playSave';
 import {replayGymSessionTrace} from './gymSession';
-import type {GymSessionV1} from './gymSession';
+import type {GymSessionV1,GymReplayRound} from './gymSession';
 import {BattleStage} from './BattleStage';
 import {BattlePlayback} from './BattlePlayback';
 import styles from './GymScreen.module.css';
@@ -54,16 +54,21 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   const session=readSession(game.gymSession);
   const gym=session?KANTO_GYMS.find(g=>g.id===session.gymId):
     kantoNextGym(data.badges);
-  let state:GymBattleState|null=null;
-  let invalid='';
-  let history:readonly import('./gymSession').GymReplayRound[]=[];
-  if(session){
+  const replay=useMemo<{
+    readonly state:GymBattleState|null;
+    readonly history:readonly GymReplayRound[];
+    readonly invalid:string;
+  }>(()=>{
+    if(!session)return {state:null,history:[],invalid:''};
     try{
       const trace=replayGymSessionTrace(game,session);
-      state=trace.state;
-      history=trace.rounds;
-    }catch(e){invalid=e instanceof Error?e.message:'Não foi possível validar a sessão.';}
-  }
+      return {state:trace.state,history:trace.rounds,invalid:''};
+    }catch(e){
+      return {state:null,history:[],invalid:e instanceof Error
+        ?e.message:'Não foi possível validar a sessão.'};
+    }
+  },[game]);
+  const {state,history,invalid}=replay;
   useEffect(()=>{
     if(!session){previousSession.current=null;lastSent.current=null;return;}
     if(previousSession.current!==session.id){
