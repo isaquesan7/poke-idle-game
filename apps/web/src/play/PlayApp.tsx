@@ -392,8 +392,10 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     ? expeditionRewards(Math.max(0,now-expedition.lastClaimAt),
       expedition.regionId&&expeditionMembers.length>0
         ?{regionId:expedition.regionId,
-          pokemon:expeditionMembers.map(p=>({level:p.level,xp:p.xp})),
-          ballProgress:expProgress}
+          pokemon:expeditionMembers.map(p=>({
+            level:p.level,xp:typeof p.xp==='number'&&Number.isSafeInteger(p.xp)?p.xp:0
+          })),
+          ...(expProgress?{ballProgress:expProgress}:{})}
         :undefined)
     :null;
   const pendingBattle=ballGame?.pendingBattle && typeof ballGame.pendingBattle==='object'
