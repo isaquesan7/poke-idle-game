@@ -29,6 +29,14 @@ async function expectCaptureFocused(page){
     return rect.bottom>0&&rect.top<innerHeight;
   });
 }
+async function expectAgainFocused(page){
+  await page.waitForFunction(()=>{
+    const button=document.querySelector('[data-testid="battle-again-button"]');
+    if(!button||button.disabled||document.activeElement!==button)return false;
+    const rect=button.getBoundingClientRect();
+    return rect.bottom>0&&rect.top<innerHeight;
+  });
+}
 async function ready(){
   for(let i=0;i<80;i++){
     try{if((await fetch(base+'/health')).ok)return;}catch{}
@@ -54,6 +62,22 @@ try{
     await page.getByRole('radio',{name:/Bulbasaur/}).check();
     await page.getByRole('checkbox',{name:/modo demonstração/}).check();
     await page.getByRole('button',{name:'Começar aventura'}).click();
+    // A rota /regions inicia na seção de regiões, não em Visão geral.
+    await page.getByRole('region',{name:'Escolha de região'}).waitFor();
+    await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===0,key);
+    // D064BP: vitrine exibe mochila e desbloqueios sem preço/compra falsa.
+    const shopBefore=await page.evaluate(k=>localStorage.getItem(k),key);
+    await page.getByRole('button',{name:'Loja',exact:true}).click();
+    const shop=page.getByTestId('shop-preview');
+    await shop.waitFor();
+    assert.equal(await shop.getByTestId('shop-item-poke-ball').count(),1);
+    assert.equal(await shop.getByTestId('shop-item-great-ball').count(),1);
+    assert.equal(await shop.getByTestId('shop-item-ultra-ball').count(),1);
+    assert.equal(await shop.getByText('Preço a definir').count(),3);
+    assert.equal(await shop.getByRole('button',{name:/Comprar/}).count(),0);
+    assert.equal(await page.evaluate(k=>localStorage.getItem(k),key),shopBefore);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+    await page.screenshot({path:new URL('shop-'+device+'.png',folder).pathname,fullPage:true});
     await page.getByRole('button',{name:'Regiões',exact:true}).click();
     await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
     const grid=page.getByRole('region',{name:'Escolha de região'});
@@ -99,11 +123,12 @@ try{
     assert.equal(game.lastBattle.regionId,4);
     assert.equal(game.lastBattle.regionName,'Lagos Serenos');
     assert.equal(game.lastBattle.log.length,game.lastBattle.frames.length);
+    if(game.lastBattle.captureStatus!=='available')await expectAgainFocused(page);
     if(game.lastBattle.captureStatus==='available'){
       await expectCaptureFocused(page);
       await page.getByRole('button',{name:'Seguir sem capturar'}).click();
       await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===3,key);
-      await expectCaptureFocused(page);
+      await expectAgainFocused(page);
       after=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
       game=JSON.parse(after.journal.raw);
     }

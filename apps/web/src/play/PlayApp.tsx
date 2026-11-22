@@ -21,20 +21,21 @@ import styles from './PlayApp.module.css';
 import { PokedexPanel } from './PokedexPanel';
 import { BattlePlayback } from './BattlePlayback';
 import { BattleStage } from './BattleStage';
+import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
 import { PokemonTraining } from './PokemonTraining';
 import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
 import { formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
 
-type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'expedition';
+type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'expedition' | 'shop';
 type CollectionFilter = 'all' | 'team' | 'reserve';
 type CollectionSort = 'recent' | 'level' | 'affinity' | 'species';
 type PokemonSection = 'profile' | 'evolution' | 'moves';
 /** D-051: navegação consistente com o Font Awesome da tela do treinador. */
 const NAV_ICONS:Readonly<Record<Tab,string>>={
   overview:'fa-house',trainer:'fa-user',pokemon:'fa-dragon',collection:'fa-layer-group',
-  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',expedition:'fa-compass'
+  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',expedition:'fa-compass',shop:'fa-store'
 };
 
 /** D-042: animações completas na Arena independentemente do sistema operacional. */
@@ -123,7 +124,7 @@ function regionBattleTitle(regionId:number,regionName:string):string {
 }
 
 function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', expedition: 'Expedição' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', expedition: 'Expedição', shop:'Loja' }[tab];
 }
 
 /**
@@ -157,6 +158,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   /** Âncoras estáveis: alterações de save não devem lançar a página ao topo. */
   const battleSceneFocusRef=useRef<HTMLDivElement|null>(null);
   const battleCaptureFocusRef=useRef<HTMLDivElement|null>(null);
+  /** Retorno da captura/derrota para a ação que reinicia o encontro. */
+  const battleAgainFocusRef=useRef<HTMLButtonElement|null>(null);
   const lastBattleFocusKeyRef=useRef<string|null>(null);
   /** Apenas efeito temporário da subida de nível já confirmada pelo writer. */
   const [levelUpNotice,setLevelUpNotice]=useState<{battleId:string}|null>(null);
@@ -465,15 +468,20 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
   useLayoutEffect(()=>{
     if(!battleFocusKey){lastBattleFocusKeyRef.current=null;return;}
     if(lastBattleFocusKeyRef.current===battleFocusKey)return;
-    const captureReady=!battlePlaying&&
-      ['available','caught','escaped','skipped'].includes(lastBattle?.captureStatus??'');
-    const target=captureReady?battleCaptureFocusRef.current:battleSceneFocusRef.current;
-    if(!target)return;
+    // Estados do fluxo:
+    // 1. Encontro iniciado: palco; 2. Vitória pendente: captura;
+    // 3. Capturou/falhou/pulou ou perdeu/empatou: botão do próximo combate.
+    const capturePending=!battlePlaying&&lastBattle?.captureStatus==='available';
+    const concluded=!battlePlaying&&Boolean(lastBattle)&&!capturePending;
+    const target=capturePending?battleCaptureFocusRef.current
+      :concluded?battleAgainFocusRef.current:battleSceneFocusRef.current;
+    // O botão fica temporariamente disabled enquanto a transação grava.
+    // Não registrar o foco até ele estar novamente utilizável.
+    if(!target||('disabled' in target&&target.disabled)||busy)return;
     lastBattleFocusKeyRef.current=battleFocusKey;
-    // Foco acessível e rolagem da área, NUNCA do topo da página.
     target.focus({preventScroll:true});
     target.scrollIntoView({behavior:'auto',block:'center',inline:'nearest'});
-  },[battleFocusKey,battlePlaying,lastBattle?.captureStatus]);
+  },[battleFocusKey,busy,battlePlaying,lastBattle?.captureStatus]);
   const activeRecord=pokemonBattleRecord(active);
   async function finishPlayback():Promise<void>{
     if(!pendingBattle||settlingBattle.current===pendingBattle.battleId){
@@ -604,7 +612,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         <nav className={styles.menu} aria-label="Navegação do jogo">
-          {(['overview','trainer','pokemon','collection','pokedex','regions','expedition'] as Tab[]).map(item => (
+          {(['overview','trainer','pokemon','collection','pokedex','regions','expedition','shop'] as Tab[]).map(item => (
             <button type="button" key={item} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
               onClick={() => { if(pendingBattle){setTab('battle');setFeedback('Conclua o combate em andamento antes de navegar.');return;} if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
@@ -1188,6 +1196,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                       <p className={styles.arenaSelectLabel}><i className="fa-solid fa-baseball" aria-hidden="true"/> Captura disponível depois da vitória</p>
                       <p className={styles.arenaCaptureHint}>Conheça o adversário no combate e escolha uma Pokébola apenas se vencer. Uma tentativa por encontro.</p>
                       <button className={styles.primary} type="button"
+                        ref={battleAgainFocusRef} data-testid="battle-again-button"
                         disabled={busy||battlePlaying||Boolean(pendingBattle)
                           ||lastBattle?.captureStatus==='available'}
                         onClick={()=>fight(regionalArea)}>
@@ -1332,6 +1341,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 </section>
               </>
             )}
+            {tab === 'shop' && <BallShopPreview coins={data.coins}
+              trainerLevel={view.level} quantities={ballQuantities}/>} 
             {tab === 'expedition' && (
               <ExpeditionScreen
                 expedition={expedition??null}

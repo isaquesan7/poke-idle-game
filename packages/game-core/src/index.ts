@@ -126,3 +126,9 @@ export {
   kantoFrlgLevelMoveCatalog
 } from './catalog/kantoFrlgLevelupSnapshot.js';
 export type {FrlgLevelMoveMeta} from './catalog/kantoFrlgLevelupSnapshot.js';
+
+export {KANTO_BALL_SHOP_CATALOG,KANTO_BALL_SHOP_STATUS,
+  KANTO_SHOP_BALL_POCKET_CAP,quoteKantoBallShopPurchase}
+  from './shop/ballShop.js';
+export type {KantoShopBallId,KantoShopPricePolicy,KantoShopPurchaseResult,
+  KantoShopPurchaseInput,KantoBallShopItem} from './shop/ballShop.js';
