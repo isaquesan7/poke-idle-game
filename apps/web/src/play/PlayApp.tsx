@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
-  EXPEDITION_CYCLE_MS, expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
+  expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
   LEGACY_ITEMS, LEGACY_STARTERS, STATS, legacyPokemonManualBudget,
   KANTO_BATTLE_SPECIES, pokemonFinalStats, affinityRate, zeroStats,
   kantoLevelMoves,kantoSupportMoves,KANTO_SUPPORT_MOVES,pokemonMoveSlots,
@@ -24,6 +24,8 @@ import { BattleStage } from './BattleStage';
 import { TrainerScreen } from './TrainerScreen';
 import { PokemonTraining } from './PokemonTraining';
 import { RegionsScreen } from '../regions/RegionsScreen';
+import { ExpeditionScreen } from './ExpeditionScreen';
+import { formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'expedition';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -498,9 +500,6 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     ?battleReveal?.key===playbackKey?battleReveal.visible:Math.min(lastBattle?.log.length??0,1)
     :lastBattle?.log.length??0;
   const currentFrame=validFrames?.[Math.max(0,revealedLines-1)]??null;
-  const nextCycle = expedition
-    ? Math.max(0, Math.ceil((EXPEDITION_CYCLE_MS - Math.max(0, now - expedition.lastClaimAt) % EXPEDITION_CYCLE_MS) / 1000))
-    : 0;
 
   if (save.status !== 'ready') {
     return (
@@ -716,6 +715,19 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         </div>
                         <small>Transferência de atributos: {(affinityRate(focused.affinity)*100).toFixed(1)}%</small>
                         <small>Vitórias aumentam a afinidade; derrotas reduzem 3 pontos e empates reduzem 1. Após 48h sem batalhar, diminui 1 ponto por dia até zero.</small>
+                        <small data-testid="pokemon-affinity-next-loss">
+                          <i className="fa-regular fa-clock" aria-hidden="true"/>{' '}
+                          {focused.affinity<=0
+                            ?'Afinidade mínima alcançada. Vença batalhas para recuperar o vínculo.'
+                            :typeof focused.affinityLastUsedAt==='number'
+                              &&Number.isSafeInteger(focused.affinityLastUsedAt)
+                              ?'Próxima redução por inatividade em '
+                                +formatExpeditionDuration(timeUntilAffinityLoss(
+                                  focused.affinityLastUsedAt,now,
+                                  typeof focused.affinityIdleDaysApplied==='number'
+                                    ?focused.affinityIdleDaysApplied:0))
+                              :'Tempo de inatividade será contado a partir da primeira sincronização.'}
+                        </small>
                       </div>
                       <p className={styles.pokemonRole}>{data.team[0]===focused.uid?'Lidera as batalhas regionais.'
                         :data.team.includes(focused.uid)?'Está na equipe, podendo ser escolhido como líder.':'Está na coleção, fora da equipe ativa.'}</p>
@@ -1281,43 +1293,25 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
               </>
             )}
             {tab === 'expedition' && (
-              <div className={styles.twoColumn}>
-                <section className={styles.panel}>
-                  <h2>{expedition ? 'Expedição em andamento' : 'Expedição de Kanto'}</h2>
-                  <p>Escolha uma região desbloqueada pelo treinador e compatível com o nível do Pokémon líder. Cada ciclo de 10 segundos rende 7 moedas, 4 XP ao treinador e 5 XP ao Pokémon expedicionário (até 8 horas por resgate).</p>
-                  {expedition ? <p><strong>Região da expedição:</strong> {expeditionRegion?.name??'Expedição antiga'} · Pokémon UID {expedition.teamUids?.join(', ')??'—'}</p> : <label htmlFor="expedition-region"><strong>Região para expedição</strong>
-                    <select id="expedition-region" value={expeditionArea} onChange={event=>setExpeditionArea(Number(event.target.value))}>
-                      {expeditionOptions.map(({region,unlocked})=><option key={region.id} value={region.id} disabled={!unlocked}>
-                        {region.name} · Treinador Nv. {region.trainerUnlockLevel} · Pokémon Nv. {region.levelMin}{unlocked?'':' (bloqueada)'}
-                      </option>)}
-                    </select>
-                    {!expeditionAllowed&&<span role="status">O líder ou treinador ainda não atende aos requisitos desta região.</span>}
-                  </label>}
-                  <div className={styles.partner}><PokemonArt id={active.pokemonId} name={view.active.name} />
-                    <div><strong>{view.active.name}</strong><p>Parceiro da equipe · Nível {active.level}</p></div>
-                  </div>
-                  {!expedition
-                    ? <button type="button" className={styles.primary} disabled={busy||!expeditionAllowed}
-                        onClick={() => dispatch({type:'start-expedition',regionId:expeditionArea,nowMs:Date.now()})}>Iniciar expedição</button>
-                    : <div className={styles.heroActions}>
-                        <button type="button" className={styles.primary} disabled={busy || !pending?.cycles}
-                          onClick={() => dispatch({type:'claim-expedition',nowMs:Date.now()})}>Resgatar recompensas</button>
-                        <button type="button" className={styles.secondary} disabled={busy}
-                          onClick={() => dispatch({type:'stop-expedition',nowMs:Date.now()})}>Encerrar expedição</button>
-                      </div>}
-                </section>
-                <section className={styles.panel}>
-                  <h2>Recompensas acumuladas</h2>
-                  <div className={styles.metricsCompact}>
-                    <div><small>Ciclos completos</small><strong>{pending?.cycles ?? 0}</strong></div>
-                    <div><small>Moedas</small><strong>+{pending?.coins ?? 0}</strong></div>
-                    <div><small>XP treinador</small><strong>+{pending?.trainerXp ?? 0}</strong></div>
-                    <div><small>XP Pokémon</small><strong>+{pending?.pokemonXpPerMember ?? 0}</strong></div>
-                  </div>
-                  <p>{expedition ? 'Próximo ciclo em cerca de ' + nextCycle + 's' : 'Comece uma expedição para acumular recompensas.'}</p>
-                  <p className={styles.disclaimer}>A versão alfa usa o relógio deste dispositivo e não possui proteção contra alterações locais.</p>
-                </section>
-              </div>
+              <ExpeditionScreen
+                expedition={expedition??null}
+                regionName={expeditionRegion?.name??'Expedição antiga'}
+                options={expeditionOptions.map(({region,unlocked})=>({
+                  id:region.id,name:region.name,trainerUnlockLevel:region.trainerUnlockLevel,
+                  levelMin:region.levelMin,unlocked
+                }))}
+                selectedRegionId={expeditionArea}
+                onSelectRegion={setExpeditionArea}
+                leaderName={view.active.name}
+                leaderLevel={active.level}
+                leaderArt={<PokemonArt id={active.pokemonId} name={view.active.name} />}
+                pending={pending??null}
+                nowMs={now}
+                busy={busy}
+                onStart={()=>dispatch({type:'start-expedition',regionId:expeditionArea,nowMs:Date.now()})}
+                onClaim={()=>dispatch({type:'claim-expedition',nowMs:Date.now()})}
+                onStop={()=>dispatch({type:'stop-expedition',nowMs:Date.now()})}
+              />
             )}
           </>
         )}
