@@ -291,6 +291,29 @@ describe('expedição: claim/stop em snapshot puro e replays protegidos',()=>{
     expect(applyRewardEvent(j,claim('r5',1,100000+8*60*60*1000)).status).toBe('duplicate');
     expect(parsed(afterStart).roster[0]?.affinity).toBe(73);
   });
+  it('D064BK: writer não concede Pokébolas em resgate regional com rendimento zero',()=>{
+    const src=source();
+    src.roster[0]!.level=41;src.roster[1]!.level=41;
+    src.trainer.level=19;src.trainer.xp=1139;
+    (src as any).expeditionBallProgress={
+      'poke-ball':1439,'great-ball':2879,'ultra-ball':8639
+    };
+    (src as any).ballPocket={
+      version:1,quantities:{'poke-ball':2,'great-ball':0,'ultra-ball':0}
+    };
+    let j=applied(journal(JSON.stringify(src)),{...start(),regionId:3});
+    j=applied(j,claim('zero-pay-r3',1,100000+8*60*60*1000));
+    const got=parsed(j) as any;
+    expect(got.coins).toBe(src.coins);
+    expect(got.trainer).toMatchObject({level:19,xp:1139});
+    expect(got.roster[0]).toMatchObject({level:41,xp:12,affinity:73});
+    expect(got.ballPocket).toEqual((src as any).ballPocket);
+    expect(got.expeditionBallProgress).toEqual((src as any).expeditionBallProgress);
+    expect(got.lastClaim).toMatchObject({cycles:2880});
+    expect(j.receipts).toHaveLength(2);
+    expect(applyRewardEvent(j,claim('zero-pay-r3',1,100000+8*60*60*1000)).status)
+      .toBe('duplicate');
+  });
   it('rejeita relógio retrocedido, nenhuma expedição, fonte inconsistente e IDs ruins',()=>{
     const base=journal();
     rejected(base,claim());
