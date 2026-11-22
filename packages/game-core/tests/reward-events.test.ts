@@ -99,6 +99,18 @@ describe('journal de eventos idempotentes v0.2 (somente RAM)',()=>{
     expect(original.receipts).toHaveLength(0);
   });
 
+  it('D064BF: captura evoluída não herda nível do selvagem mesmo com wild Lv 90',()=>{
+    for(const [species,expected] of [[77,1],[78,40],[6,36],[149,55],[150,1],[151,1]]){
+      const cmd={...battle('capture-'+species),wildLevel:90,
+        capture:{pokemonId:species,moveName:'tackle'}} as BattleCommand;
+      const j=applied(journal(),cmd);
+      const caught=parsed(j).roster.at(-1);
+      expect(caught).toMatchObject({pokemonId:species,level:expected,xp:0});
+      expect(j.receipts).toHaveLength(1);
+      expect(applyRewardEvent(j,cmd).status).toBe('duplicate');
+    }
+  });
+
   it('mesmo ID com payload diferente é conflito, inclusive captura alterada',()=>{
     const a=applied(journal(),battle());
     rejected(a,{...battle(),capture:{pokemonId:151}});
