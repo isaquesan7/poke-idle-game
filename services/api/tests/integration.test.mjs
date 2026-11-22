@@ -93,6 +93,10 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {Cookie:sessionCookie})).status,200);
     assert.equal((await json(origin,'/api/v1/me','GET',undefined,
       {Cookie:sessionCookie})).status,401);
+    const preResetLogin=await json(origin,'/api/v1/auth/login','POST',
+      {email,password:user.password});
+    assert.equal(preResetLogin.status,200);
+    const preResetCookie=preResetLogin.headers.get('set-cookie').split(';')[0];
     const requestReset=await json(origin,'/api/v1/auth/request-reset','POST',
       {email});
     assert.equal(requestReset.status,200);
@@ -112,7 +116,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
         password:'another securely chosen password 2026'})).status,400,
       'reset must be single-use');
     assert.equal((await json(origin,'/api/v1/me','GET',undefined,
-      {Cookie:sessionCookie})).status,401,'all old sessions revoked by reset');
+      {Cookie:preResetCookie})).status,401,'all old sessions revoked by reset');
     assert.equal((await json(origin,'/api/v1/auth/login','POST',
       {email,password:user.password})).status,401,'old password denied');
     assert.equal((await json(origin,'/api/v1/auth/login','POST',
