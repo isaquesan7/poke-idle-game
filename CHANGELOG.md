@@ -758,3 +758,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Migration 003: token 30 minutos, uso único e SHA-256. Redefinir a senha revoga as sessões anteriores. Request de email inexistente não revela conta e recebe rate limiting por IP/email.
 - Adaptador HTTP de emails Resend com Idempotency-Key; teste unitário via fetch injetado, sem env secret no GitHub. Envio desligado por padrão, autenticação de produção bloqueada.
 - Testes PostgreSQL reais de reset e cookie revogado. Sem implantação de tela de contas e sem importação de saves de /play.
+
+
+### ONLINE-01C-2 — release privado confirmado (22/11/2026)
+- PR #179 integrada por squash na main SHA 611d928d7954c8b08bd4a01f3afc3aa99ef9141b, HEAD validada edd129f417ca7f0d2f1660af5c28bb959fe0c7a5. CI API PG18 45081671999 SUCCESS, regressão geral/Chromium 45081672028 SUCCESS.
+- Railway serviço privado kanto-idle-api deployment 89f64284-2d9e-4d5a-aa73-d8677d9add02 SUCCESS no SHA exato. Logs: migrations 001/002 já aplicadas, 003_password_reset.sql aplicada; runtime inicializado com cadastro desabilitado.
+- Recovery testada no banco descartável e adapter Resend testado via mock, mas remetente/credenciais de e-mail real ainda NÃO configurados, envio real NÃO realizado. Backups e restauração ainda não confirmados, /play local e nenhum save importado.
