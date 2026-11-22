@@ -80,15 +80,16 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
   // gravação o replay reconstruído é a fonte de verdade antes da ação
   // seguinte. Pausar não grava no save; recarregar requer retomada explícita.
   useEffect(()=>{
-    if(!automatic||!session||!state||busy||!donePresentation
-      ||state.outcome!=='ongoing')return;
+    const currentState=state;
+    if(!automatic||!session||!currentState||busy||!donePresentation
+      ||currentState.outcome!=='ongoing')return;
     const key=session.id+':'+actionCount;
     if(lastSent.current===key)return;
     const timer=window.setTimeout(()=>{
       if(lastSent.current===key)return;
       lastSent.current=key;
       onAction({type:'gym-turn',sessionId:session.id,
-        action:gymChooseAiAction(state,'player')});
+        action:gymChooseAiAction(currentState,'player')});
     },160);
     return ()=>window.clearTimeout(timer);
   },[automatic,session?.id,actionCount,busy,donePresentation,revision]);
@@ -153,7 +154,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
       <div>
         <p className={styles.kicker}>DESAFIO OFICIAL · KANTO</p>
         <h2>Ginásios Pokémon</h2>
-        <p>Monte uma equipe de três Pokémon e enfrente o líder por turnos.
+        <p>Monte uma equipe de três Pokémon: a IA conduz o duelo contra o líder.
           HP e SP persistem entre as trocas. Apenas vencer os três adversários
           concede a insígnia.</p>
       </div>
@@ -224,9 +225,9 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
         Nenhum prêmio foi concedido.</p>:state&&<>
         <p className={styles.round} aria-live="polite" aria-atomic="true">
           Rodada {state.turn}/120 · {state.outcome==='ongoing'
-            ?state.player.needsReplacement?'Escolha um substituto':
+            ?state.player.needsReplacement?'IA escolhendo substituto':
               state.leader.needsReplacement?'O líder está substituindo o Pokémon':
-              'Escolha sua ação':
+              'IA decidindo próxima ação':
             state.outcome==='player-win'?'Vitória!':
             state.outcome==='leader-win'?'Sua equipe foi derrotada':'Empate'}
         </p>
@@ -277,7 +278,12 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
             turns={Math.max(1,state.turn)}
             playing={!donePresentation} onFinished={()=>setPresented(actionCount)}/>
         </section>}
-        {state.outcome!=='ongoing'&&<div role="status" className={styles.result}>
+        {state.outcome!=='ongoing'&&!donePresentation&&
+          <p role="status" className={styles.hint}>
+            Finalize a apresentação do diário para revelar o resultado e as recompensas.
+          </p>}
+        {state.outcome!=='ongoing'&&donePresentation&&
+          <div role="status" className={styles.result}>
           <h3>{state.outcome==='player-win'?'Você venceu '+gym?.leader+'!':
             state.outcome==='draw'?'Empate no Ginásio':'Sua equipe foi derrotada'}</h3>
           <p>{state.outcome==='player-win'
