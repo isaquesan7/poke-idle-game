@@ -233,6 +233,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
       setFeedback('Não foi possível sortear o encontro.');
       return;
     }
+    setLevelUpNotice(null);
     // D064BE: primeiro registrar somente a batalha pendente; XP, vitória,
     // níveis e bolas permanecem intactos até o fim do diário.
     void transact(()=>updatePlaySave(window.localStorage,expected,
@@ -261,6 +262,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
     }
     setSave(readSafe());
     setBattlePlayback(null);
+    setLevelUpNotice(null);
     setTab('overview');
     setSelectedUid(null);
     setPokemonSection('profile');
@@ -1172,7 +1174,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                         :lastBattle.captureStatus==='skipped'?'Você decidiu não tentar capturar.'
                         :'Nenhuma captura nesta batalha.'}</p>}
                       <button type="button" className={styles.secondary}
-                        onClick={()=>setBattlePlayback({id:displayedBattleId,seq:(battlePlayback?.seq??0)+1,done:false})}>
+                        onClick={()=>{setLevelUpNotice(null);setBattlePlayback({id:displayedBattleId,seq:(battlePlayback?.seq??0)+1,done:false});}}>
                         Reassistir à batalha</button>
                       </>}
                     </section>
