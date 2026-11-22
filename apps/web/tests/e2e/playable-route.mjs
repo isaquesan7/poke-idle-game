@@ -1326,7 +1326,7 @@ async function exerciseGymDuel(browser,label,viewport){
     assert.equal(await screen.getByTestId('battle-impact-player').count(),0);
     assert.equal(await screen.getByTestId('battle-impact-wild').count(),0);
     await screen.getByRole('button',{name:'Continuar batalha automática'}).click();
-    let lastRevision=paused.revision,completed=false;
+    let lastRevision=paused.revision,completed=false,priorLogEntries=0;
     for(let i=0;i<140;i++){
       await page.waitForFunction(({key,rev})=>{
         const next=JSON.parse(localStorage.getItem(key));
@@ -1341,6 +1341,10 @@ async function exerciseGymDuel(browser,label,viewport){
       await diary.waitFor();
       assert.equal(await diary.getByTestId('battle-log').count(),1,
         'Ginásio deve usar exatamente o diário regional');
+      const entries=await diary.getByTestId('battle-log').locator('li').count();
+      assert.ok(entries>=priorLogEntries,
+        'Histórico do Ginásio deve ser acumulativo como o regional');
+      priorLogEntries=entries;
       const skip=diary.getByRole('button',{name:'Pular apresentação'});
       if(await skip.count()&&await skip.isEnabled())await skip.click();
       if(await screen.getByRole('button',{name:'Finalizar confronto'}).count()){
@@ -1354,6 +1358,8 @@ async function exerciseGymDuel(browser,label,viewport){
       }
     }
     assert.equal(completed,true,'IA deve concluir o desafio Brock');
+    assert.equal(await stage.getByTestId('battle-fainted-wild').count(),1,
+      'Nocaute do líder deve usar o mesmo efeito regional');
     const pre=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
     assert.deepEqual(JSON.parse(pre.journal.raw).badges,[]);
     await screen.getByRole('button',{name:'Finalizar confronto'}).click();
