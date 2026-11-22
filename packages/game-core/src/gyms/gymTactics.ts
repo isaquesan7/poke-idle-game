@@ -6,7 +6,7 @@
  */
 import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
-import {kantoMaxSp,kantoMoveSpCost} from '../combat/kantoSkillEnergy.js';
+import {kantoMaxSp,kantoMoveSpCost,KANTO_BASIC_ATTACK} from '../combat/kantoSkillEnergy.js';
 import {kantoLevelMoves} from '../catalog/kantoLevelMoves.js';
 import {kantoSupportMoves,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import {kantoSpecies} from '../catalog/kantoSpecies.js';
@@ -105,7 +105,8 @@ export function prepareGymOpponent(gym:KantoGymDefinition):GymPreparedOpponent{
 export type GymAiDecision=
  | {readonly action:'move';readonly moveName:string;readonly score:number}
  | {readonly action:'switch';readonly toIndex:number;readonly score:number}
- | {readonly action:'concentrate';readonly score:number};
+ | {readonly action:'concentrate';readonly score:number}
+ | {readonly action:'basic';readonly score:number};
 
 /** Uma heurística, não um resultado de batalha. Não lê RNG futuro.
  * Precisa receber HP/SP presentes e estado público antes da decisão.
@@ -124,7 +125,10 @@ export function gymAiDecision(args:{
     ||!Number.isSafeInteger(args.consecutiveSwitches??0)
     ||(args.consecutiveSwitches??0)<0)throw new RangeError('Estado da IA inválido.');
   const moves=actor.moves??[actor.move];
-  const decisions:GymAiDecision[]=[];
+  // Ataque básico gratuito permanece disponível mesmo com SP esgotado.
+  const basicDamage=kantoDamage({...actor,move:KANTO_BASIC_ATTACK},defender,.5,.5).damage;
+  const decisions:GymAiDecision[]=[{action:'basic',score:Math.round(
+    100*basicDamage/Math.max(1,defender.stats.hp))}];
   for(const move of moves){
     const cost=kantoMoveSpCost(move);
     if(cost>actorSp)continue;
@@ -170,5 +174,5 @@ export function gymAiDecision(args:{
   const sorted=decisions.sort((a,b)=>b.score-a.score||
     (a.action==='move'?0:a.action==='concentrate'?1:2)-
     (b.action==='move'?0:b.action==='concentrate'?1:2));
-  return sorted[0]??{action:'concentrate',score:0};
+  return sorted[0]!;
 }
