@@ -64,3 +64,18 @@
 .partnerInfo{overflow-wrap:anywhere;}
 @media(max-width:480px){.timer strong{font-size:clamp(1.75rem,8vw,2.5rem);letter-spacing:0}.partnerInfo strong{font-size:1.1rem}.reward strong{font-size:1.22rem}.eyebrow{letter-spacing:.055em}}
 @media(max-width:320px){.timer strong{font-size:1.55rem}.partner{flex-wrap:wrap}.partnerArt{width:76px;height:76px}}
+
+/* D064BJ — régua regional e estoque raro de Pokébolas, tokens Kanto Dark. */
+.regionYield,.expeditionBalls{display:grid;gap:var(--space-2);padding:var(--space-4);
+  border:1px solid var(--color-border);border-radius:var(--radius-card);
+  background:var(--color-surface-raised);min-width:0;}
+.regionYield>strong,.expeditionBalls>strong{display:flex;gap:var(--space-2);
+  align-items:center;color:var(--color-primary);font-size:.86rem;}
+.regionYield>span{font-weight:850;font-size:.92rem;line-height:1.5;}
+.regionYield>small,.expeditionBalls>small{font-size:.77rem;
+  color:var(--color-text-muted);line-height:1.55;}
+.ballPills{display:flex;gap:var(--space-2);flex-wrap:wrap;}
+.ballPills span{display:inline-flex;align-items:center;gap:var(--space-2);
+  padding:8px 10px;background:var(--color-bg);border:1px solid var(--color-border);
+  border-radius:var(--radius-pill);font-size:.8rem;}
+.ballPills b{color:var(--color-gold);font-variant-numeric:tabular-nums;}
