@@ -125,7 +125,7 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
       <p>Recomendação: níveis {gym.recommendedMinLevel}–{gym.recommendedMaxLevel}.
         Recompensa por vitória: {gym.coins.toLocaleString('pt-BR')} moedas
         e {gym.trainerXp.toLocaleString('pt-BR')} XP de treinador.</p>
-      <div className={styles.opponents} aria-label={"Equipe de "+gym.leader}}>
+      <div className={styles.opponents} aria-label={"Equipe de "+gym.leader}>
         {gym.team.map((foe,i)=><div key={i}>
           {art(foe.speciesId,KANTO_BATTLE_SPECIES[foe.speciesId]?.name??'Pokémon')}
           <span>{KANTO_BATTLE_SPECIES[foe.speciesId]?.name} · Nv. {foe.level}</span>
