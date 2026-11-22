@@ -234,9 +234,9 @@ function claimExpedition(state: ValidState, nowMs: number, required: boolean): b
   if(reward.ballProgress)state.expeditionBallProgress=reward.ballProgress;
   creditCoins(state,reward.coins);
   creditTrainerXp(state,reward.trainerXp);
-  for(let i=0;i<members.length;i++){
-    creditPokemonXp(members[i]!,reward.pokemonXpByMember?.[i]??reward.pokemonXpPerMember);
-  }
+  // Proteção também para expedições legadas sem regionId:
+  // só o UID líder (primeiro membro fixado no início) recebe XP.
+  creditPokemonXp(members[0]!,reward.pokemonXpByMember?.[0]??reward.pokemonXpPerMember);
   exp.lastClaimAt=nowMs;
   state.lastClaim={
     coins:reward.coins,trainerXP:reward.trainerXp,
