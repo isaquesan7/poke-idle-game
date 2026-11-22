@@ -1358,6 +1358,7 @@ async function exerciseGymDuel(browser,label,viewport){
       }
     }
     assert.equal(completed,true,'IA deve concluir o desafio Brock');
+    await stage.getByTestId('battle-fainted-wild').waitFor({timeout:5000});
     assert.equal(await stage.getByTestId('battle-fainted-wild').count(),1,
       'Nocaute do líder deve usar o mesmo efeito regional');
     const pre=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
