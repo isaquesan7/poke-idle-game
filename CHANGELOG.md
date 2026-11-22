@@ -626,3 +626,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Novo `gyms/kantoGyms.ts` com oito líderes históricos, equipes adaptadas 3×3, níveis fixos, recompensas candidatas e regra pura de acesso sequencial que rejeita saltos, repetição e histórico inválido.
 - API exportada no core, testes Vitest verificam espécies, ordem, bônus cumulativos (99 pontos) e título planejado (+12 em seis atributos).
 - **Sem combate de Ginásio, escritor, insígnias concedidas, reset de saves ou alteração do jogo publicado.** CI/PR/merge/deploy a verificar.
+
+
+## GYM-02A — base da IA e preparação 3×3 (22/11/2026, EM PR)
+- Novo core `gyms/gymTactics.ts`: escolher três UIDs em ordem sem duplicatas, alocar somente os pontos legais do líder, selecionar golpes disponíveis na versão FRLG e pontuar ações com dano médio, imunidade, custo de SP, cura/status e troca limitada.
+- Testes de oito elencos, orçamento de pontos, indisponibilidade de UIDs e ausência de mutação. **Não é ainda uma batalha 3×3 executável; não há writer, UI, insígnias, XP ou moedas.**
+
+- Durante validação, detectado bloqueio legítimo da equipe Sabrina: Kadabra/Alakazam precisam de suporte a efeitos dos golpes psíquicos (77/73); teste confirma bloqueio explícito em vez de moveset fabricado. Corrigido cálculo temporário de dano da IA para TypeScript `exactOptionalPropertyTypes`. Uso de Concentrar com SP baixo é escolha tática válida.
