@@ -126,7 +126,7 @@ export function gymAiDecision(args:{
     ||(args.consecutiveSwitches??0)<0)throw new RangeError('Estado da IA inválido.');
   const moves=actor.moves??[actor.move];
   // Ataque básico gratuito permanece disponível mesmo com SP esgotado.
-  const basicDamage=kantoDamage({...actor,move:KANTO_BASIC_ATTACK},defender,.5,.5).damage;
+  const basicDamage=kantoDamage({...actor,move:KANTO_BASIC_ATTACK,moves:undefined},defender,.5,.5).damage;
   const decisions:GymAiDecision[]=[{action:'basic',score:Math.round(
     100*basicDamage/Math.max(1,defender.stats.hp))}];
   for(const move of moves){
@@ -143,7 +143,9 @@ export function gymAiDecision(args:{
       decisions.push({action:'move',moveName:move.name,score});
       continue;
     }
-    const simulated={...actor,move};
+    // O validador de duelo exige que moves[0] seja o golpe ativo;
+    // esta cópia é só para calcular dano esperado, sem alterar o loadout.
+    const simulated={...actor,move,moves:undefined};
     // Dano previsível com rolls médios fixos, nunca os futuros resultados do RNG.
     const expected=kantoDamage(simulated,defender,.5,.5);
     const accuracy=move.accuracy/100;
