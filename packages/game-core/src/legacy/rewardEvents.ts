@@ -211,7 +211,7 @@ function claimExpedition(state: ValidState, nowMs: number, required: boolean): b
   if(drops&&Object.values(drops).some(v=>v>0)){
     const pocket=inspectKantoBallPocket(state.ballPocket);
     if(pocket.status==='invalid')throw new RangeError('Bolso inválido.');
-    if(pocket.status!=='invalid'){
+    {
       // Em save anterior ao inventário, criar somente as bolas realmente
       // conquistadas nesta transação, sem kit grátis retroativo.
       const quantities=pocket.status==='valid'?{...pocket.pocket.quantities}
