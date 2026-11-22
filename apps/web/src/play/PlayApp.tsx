@@ -1062,6 +1062,14 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                 busy={busy||battlePlaying}
                 onEnterRegion={regionId=>{
                   if(busy||pendingBattle)return;
+                  if(lastBattlePersisted?.captureStatus==='available'){
+                    setFeedback('Resolva a captura pendente antes de entrar em outra região.');
+                    setArenaEncounterId(lastBattlePersisted.battleId??null);
+                    setRegionalArea(lastBattlePersisted.regionId??regionId);
+                    setBattlePlayback(null);
+                    setTab('battle');
+                    return;
+                  }
                   setRegionalArea(regionId);
                   setArenaEncounterId(null);
                   setLevelUpNotice(null);
@@ -1111,6 +1119,7 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
                     <div style={{display:'grid',gap:'var(--space-3)',padding:'var(--space-4)',background:'var(--color-surface-raised)',border:'1px solid var(--color-border)',borderRadius:'var(--radius-card)'}}>
                       <label htmlFor="region-arena-select" className={styles.arenaSelectLabel}><i className="fa-solid fa-map-location-dot" aria-hidden="true"/> Explorar região de Kanto</label>
                       <select id="region-arena-select" aria-label="Região para batalha"
+                        disabled={Boolean(pendingBattle)||lastBattle?.captureStatus==='available'}
                         value={regionalArea} onChange={event=>{
                           setRegionalArea(Number(event.target.value));
                           setArenaEncounterId(null);
