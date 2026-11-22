@@ -40,3 +40,12 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - Em `NODE_ENV=test` com flag, registro emite token **somente no payload do test harness**, guarda apenas hash no banco, endpoint `/api/v1/auth/verify` consome token uma vez e ativa `email_verified_at`. Login antes da verificação responde 403. **Não existe envio de e-mail conectado nesta etapa: teste não representa entrega real**.
 - `NODE_ENV=production` mantém login/registro/verificação bloqueados, mesmo se a flag for ativada. Não criar conta real antes de integração com provedor de e-mail, limites/antifraude completos, proxy same-origin e criador de save autoritativo.
 - Backup: Railway possui backups de volumes e PITR PostgreSQL (veja [documentação de backups](https://docs.railway.com/volumes/backups) e [PITR](https://docs.railway.com/volumes/point-in-time-recovery)), mas **nenhum backup agendado ou exercício de restauração foi confirmado nesta etapa**. Configurar e testar antes de lançar contas reais. Não restaurar sobre volume de produção para testes.
+
+
+## ONLINE-01C-2 — recuperação de senha e e-mail transacional (implementação em PR)
+
+- 003_password_reset.sql: tokens criptograficamente aleatórios; banco armazena somente SHA-256, validade de 30 minutos e uso único. O runner aplica 001, 002 e 003 em transação e registra checksum.
+- /api/v1/auth/request-reset: responde genericamente para conta existente ou inexistente, com limites PostgreSQL por IP e e-mail. /api/v1/auth/confirm-reset: troca senha por scrypt, consome token e revoga todas as sessões da conta na mesma transação.
+- mailer.mjs: adaptador Resend via POST HTTPS autenticado, Idempotency-Key e envio em texto plano, usando exclusivamente RESEND_API_KEY e MAIL_FROM em ambiente privado. ACCOUNT_MAIL_MODE=off por padrão; sem domínio remetente verificado ou credenciais, nenhum e-mail real é enviado. As páginas /verify-email e /reset-password ainda precisam ser criadas.
+- Em produção a autenticação continua bloqueada por código; tokens são retornados no corpo apenas no harness de testes sem envio de e-mail, jamais em produção.
+- Não habilitar contas antes de backup/PITR com teste de restauração isolada, entrega real verificada, recuperação de erros e primeiro save autoritativo. /play segue local, sem migração de saves.

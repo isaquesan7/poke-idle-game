@@ -3,6 +3,7 @@
  * ONLINE_REGISTRATION_ENABLED=true. Nunca importa saves locais.
  */
 import {createServer} from 'node:http';
+import {createHash} from 'node:crypto';
 import pg from 'pg';
 import {
   normalizeEmail,validatePassword,validateTrainerName,
@@ -10,6 +11,8 @@ import {
   sessionCookie,parseSessionCookie
 } from './auth.mjs';
 import {throttle,requesterIp,issueVerification,consumeVerification} from './authSecurity.mjs';
+import {issuePasswordReset,consumePasswordReset} from './passwordReset.mjs';
+import {deliverAccountEmail} from './mailer.mjs';
 
 const port=Number(process.env.PORT??3001);
 const connectionString=process.env.DATABASE_URL;
@@ -23,6 +26,19 @@ const pool=new pg.Pool({connectionString,max:12,connectionTimeoutMillis:5000,
 const enabled=process.env.NODE_ENV==='test' &&
   process.env.ONLINE_REGISTRATION_ENABLED==='true';
 const isSecure=process.env.NODE_ENV==='production';
+const mailMode=process.env.ACCOUNT_MAIL_MODE??'off';
+if(mailMode!=='off'&&mailMode!=='resend')throw new Error('ACCOUNT_MAIL_MODE inválido');
+const mailConfigured=mailMode==='resend';
+if(mailConfigured&&(!process.env.RESEND_API_KEY||!process.env.MAIL_FROM))
+  throw new Error('Configure RESEND_API_KEY e MAIL_FROM');
+async function deliver({to,purpose,token,idempotencyKey}){
+  if(!mailConfigured)return false;
+  await deliverAccountEmail({to,purpose,token,
+    origin:appOrigin,key:process.env.RESEND_API_KEY,
+    from:process.env.MAIL_FROM,idempotencyKey});
+  return true;
+}
+
 const throttleSecret=process.env.AUTH_RATE_LIMIT_SECRET;
 if(enabled&&(!throttleSecret||throttleSecret.length<32))
   throw new Error('AUTH_RATE_LIMIT_SECRET precisa ter ao menos 32 caracteres');
@@ -120,10 +136,12 @@ const server=createServer(async(req,res)=>{
         await client.query('COMMIT');
       }catch(e){await client.query('ROLLBACK');throw e;}
       finally{client.release();}
-      // Test harness only. No production route can issue/return a token until
-      // trusted email delivery, rate limits and an onboarding flow exist.
+      // Mail transport is optional in tests. The production auth gate remains
+      // hard-disabled until verified sender, recovery UI and backups exist.
+      const mailed=await deliver({to:cleanEmail,purpose:'verify',token:verification,
+        idempotencyKey:'verify/'+userId});
       return json(res,201,{id:userId,trainerName:cleanName,
-        verificationToken:verification});
+        ...(mailed?{}:{verificationToken:verification})});
     }
     if(pathname==='/api/v1/auth/verify'&&req.method==='POST'){
       requireSameOrigin(req);
@@ -133,6 +151,39 @@ const server=createServer(async(req,res)=>{
       const valid=await consumeVerification(pool,token);
       return valid?json(res,200,{verified:true}):
         json(res,400,{error:'Link de verificação inválido ou expirado.'});
+    }
+    if(pathname==='/api/v1/auth/request-reset'&&req.method==='POST'){
+      requireSameOrigin(req);
+      const {email}=await readJson(req);
+      const cleanEmail=normalizeEmail(email);
+      if(!await enforceThrottle(req,res,{scope:'reset-ip',
+        identifier:requesterIp(req),limit:10}))return;
+      if(!await enforceThrottle(req,res,{scope:'reset-email',
+        identifier:cleanEmail,limit:3}))return;
+      const token=await issuePasswordReset(pool,cleanEmail);
+      if(token)try{
+        await deliver({to:cleanEmail,purpose:'reset',token,
+          idempotencyKey:'reset/'+createHash('sha256').update(token).digest('hex').slice(0,32)});
+      }catch{
+        // Never reveal whether the account exists by the provider status.
+        // The next stage adds durable outbox retries; no credentials or token logged.
+        console.error('Account mail transport unavailable');
+      }
+      // No email-account enumeration. Tokens returned ONLY in test harness
+      // when mail adapter is disabled, never in any production response.
+      return json(res,200,{accepted:true,
+        ...(!mailConfigured&&process.env.NODE_ENV==='test'&&token?
+          {testResetToken:token}:{})});
+    }
+    if(pathname==='/api/v1/auth/confirm-reset'&&req.method==='POST'){
+      requireSameOrigin(req);
+      if(!await enforceThrottle(req,res,{scope:'reset-confirm-ip',
+        identifier:requesterIp(req),limit:20}))return;
+      const {token,password}=await readJson(req);
+      validatePassword(password);
+      const applied=await consumePasswordReset(pool,token,password);
+      return applied?json(res,200,{passwordChanged:true}):
+        json(res,400,{error:'Link de redefinição inválido ou expirado.'});
     }
     if(pathname==='/api/v1/auth/login'&&req.method==='POST'){
       requireSameOrigin(req);

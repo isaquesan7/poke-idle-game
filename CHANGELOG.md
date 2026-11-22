@@ -752,3 +752,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - PR #177 MERGED por squash em `4420fd4d29cd90241380fb39f9d1132eaf002cbb`; HEAD da PR `0da69e50baf2c75e4e1d1a4f3e655e7ee06c5915`. CI específica API/PostgreSQL18 `45079651579` e regressão web completa `45079651455`: ambas **SUCCESS**.
 - Railway serviço privado `kanto-idle-api` deployment `e84f5562-ebb4-4068-bdc3-c39761cc1276` **SUCCESS** no mesmo commit. Logs de predeploy: `migration já aplicada: 001_online_foundation.sql` e `migration aplicada: 002_auth_limits_verification.sql`; runtime `registro desabilitado` na porta 8080. Web e Postgres também SUCCESS.
 - A schema passa a conter `game_auth_throttles` (contadores atômicos por digest) e `game_email_verifications` (tokens únicos com hash). Verificação real por e-mail e backups/restore seguem **não confirmados**; cadastro de produção permanece bloqueado; `/play` local e sem importação de saves.
+
+
+## ONLINE-01C-2 — recuperação de senha e adaptador Resend (em PR)
+- Migration 003: token 30 minutos, uso único e SHA-256. Redefinir a senha revoga as sessões anteriores. Request de email inexistente não revela conta e recebe rate limiting por IP/email.
+- Adaptador HTTP de emails Resend com Idempotency-Key; teste unitário via fetch injetado, sem env secret no GitHub. Envio desligado por padrão, autenticação de produção bloqueada.
+- Testes PostgreSQL reais de reset e cookie revogado. Sem implantação de tela de contas e sem importação de saves de /play.
