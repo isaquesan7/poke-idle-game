@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/server.mjs",
     "test": "node --test tests/auth.test.mjs",
-    "check": "node --check src/server.mjs && node --check src/auth.mjs && node --check src/migrate.mjs",
+    "check": "node --check src/server.mjs && node --check src/auth.mjs && node --check src/migrate.mjs && node --check src/authSecurity.mjs",
     "db:migrate": "node src/migrate.mjs",
     "test:integration": "node --test tests/integration.test.mjs"
   },
