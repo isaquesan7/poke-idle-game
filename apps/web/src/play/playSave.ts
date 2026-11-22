@@ -127,7 +127,7 @@ export function createPlaySave(
     coins: demo ? 200 : 0, wins: 0, losses: 0, seen: [starterId],
     caughtSpecies:[starterId],evolutionStones:{},evolutionTestKitClaimed:false,badges: [],
     roster: [{
-      uid: 1, pokemonId: starterId, level: demo ? 20 : 5,
+      uid: 1, pokemonId: starterId, level: demo ? 20 : 1,
       xp: 0, manual: zeroStats(), affinity: demo ? 70 : 0,
       moveName: starterId === 4 ? 'scratch' : 'tackle', upgrades: {}
     }],
