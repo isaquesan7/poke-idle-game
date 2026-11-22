@@ -17,6 +17,7 @@ import {expeditionRewards,emptyExpeditionBallProgress} from '../rewards/expediti
 import type {ExpeditionBallKind} from '../rewards/expedition.js';
 import {battleProgressFactor,scaledRegionalReward} from '../rewards/regionProgression.js';
 import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
+import {KANTO_BALL_SHOP_PRICE_POLICY,quoteKantoBallShopPurchase} from '../shop/ballShop.js';
 import { LEGACY_BADGES } from './catalog.js';
 import { kantoRegion } from '../map/kantoRegions.js';
 
@@ -47,6 +48,8 @@ export type RewardCommand =
     /** Captura já resolvida (nenhuma rolagem ou sorteio dentro do reducer). */
     readonly capture?: { readonly pokemonId: number; readonly moveName?: string | null };
   })
+  | (CommandBase & { readonly type:'shop-purchase';readonly ballId:string;
+      readonly quantity:number })
   | (CommandBase & { readonly type: 'start-expedition'; readonly nowMs: number; readonly regionId?: number })
   | (CommandBase & { readonly type: 'claim-expedition'; readonly nowMs: number })
   | (CommandBase & { readonly type: 'stop-expedition'; readonly nowMs: number });
@@ -369,6 +372,25 @@ export function applyRewardEvent(journal: RewardJournal, cmd: RewardCommand): Re
       case 'battle-result':
         resolvedBattle(state, cmd);
         break;
+      case 'shop-purchase': {
+        // Preço e desbloqueio derivados do estado do save e do catálogo do CORE,
+        // nunca do formulário. Tudo dentro da mesma transição com receipt.
+        const bag=inspectKantoBallPocket(state.ballPocket);
+        if(bag.status!=='valid')
+          throw new RangeError('Mochila de Pokébolas indisponível ou inválida.');
+        const quote=quoteKantoBallShopPurchase({
+          coins:state.coins,trainerLevel:state.trainer.level as number,
+          pocket:bag.pocket,ballId:cmd.ballId,quantity:cmd.quantity
+        },KANTO_BALL_SHOP_PRICE_POLICY);
+        if(quote.status!=='quoted')throw new RangeError(quote.reason);
+        state.coins=quote.remainingCoins;
+        state.ballPocket=quote.pocket;
+        state.lastShopPurchase={
+          id:cmd.id,ballId:cmd.ballId,quantity:cmd.quantity,cost:quote.cost,
+          priceVersion:quote.policyVersion
+        };
+        break;
+      }
       case 'start-expedition':
         if (!natural(cmd.nowMs) || state.expedition !== null) {
           throw new RangeError('Expedição já ativa ou horário inválido.');
