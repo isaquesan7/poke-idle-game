@@ -24,7 +24,7 @@ type Summary={
  equippedMoves:readonly string[];
 };
 type WildSummary=Omit<Summary,'uid'>;
-type State={
+export type SquadTurnState={
  version:1;mode:'turns';regionId:1;phase:'await-player'|'resolved';
  turn:number;maxTurns:30;player:Summary;wild:WildSummary;
  playerParty:readonly Summary[];log:readonly string[];
@@ -85,7 +85,7 @@ function matches(actual:Summary,expected:Summary):boolean{
    Array.isArray(actual.equippedMoves)&&
    actual.equippedMoves.join(',')===expected.equippedMoves.join(',');
 }
-function verify(snapshot:unknown,state:State,engine:GymBattleState):boolean{
+function verify(snapshot:unknown,state:SquadTurnState,engine:GymBattleState):boolean{
  const squad=canonicalFrozenWildParty(snapshot);
  if(!squad||state.playerParty.length!==squad.party.length||
    !engine||engine.outcome!=='ongoing'||engine.turn!==state.turn||
@@ -145,9 +145,9 @@ const sameAction=(a:GymTurnAction,b:SquadHumanAction)=>
     b.kind==='move'&&a.moveName===b.moveName:
     a.kind==='switch'?b.kind==='switch'&&a.toIndex===b.toIndex:true);
 function actorAndEngine(snapshot:unknown,current:unknown):
- {state:State;engine:GymBattleState}|null{
+ {state:SquadTurnState;engine:GymBattleState}|null{
  if(!current||typeof current!=='object'||Array.isArray(current))return null;
- const state=current as State;
+ const state=current as SquadTurnState;
  const initial=createFrozenWildTurnSession(snapshot);
  if(!initial||!('playerParty' in initial)||!initial.playerParty||
     state.mode!=='turns'||state.version!==1||state.regionId!==1||
@@ -175,7 +175,7 @@ export function legalFrozenSquadActions(snapshot:unknown,current:unknown):
 export function resolveFrozenSquadTurn(
  snapshot:unknown,current:unknown,action:unknown,serverSeed:number
 ):null|{status:'blocked';reason:string}|{
- status:'applied';turnState:State;playerAction:SquadHumanAction;
+ status:'applied';turnState:SquadTurnState;playerAction:SquadHumanAction;
  wildAction:GymTurnAction;logDelta:readonly string[];
  framesDelta:readonly KantoBattleVisualFrame[];
  nextActions:readonly SquadHumanAction[];
@@ -217,7 +217,7 @@ export function resolveFrozenSquadTurn(
      line.startsWith('player substituiu')?'Treinador':actor)
      .replace(/^leader\b/,frameState.leader.fighters[0]!.combatant.name);
  });
- const turnState:State={
+ const turnState:SquadTurnState={
    ...state,phase:complete?'resolved':'await-player',turn:ordinal,
    player:summary(p),wild:wildSummary(w),playerParty,
    engine:finalEngine,...(outcome?{outcome}:{}),
