@@ -32,29 +32,14 @@ export function auditResolvedWildTurnTranscript(snapshot,session,receipts){
      !isObject(session.engine))return null;
   const expectedEngineOutcome=session.outcome==='win'?'player-win':
     session.outcome==='loss'?'leader-win':'draw';
-  const isSquad=snapshot.version===3;
-  if(isSquad&&(!Array.isArray(snapshot.party)||
-     snapshot.party.length<2||snapshot.party.length>3||
-     !Array.isArray(session.playerParty)||
-     session.playerParty.length!==snapshot.party.length||
-     session.playerParty.some((member,i)=>
-       member?.uid!==snapshot.party[i]?.uid||
-       !Number.isSafeInteger(member.hp)||member.hp<0||
-       !Number.isSafeInteger(member.maxHp)||member.maxHp<1||
-       member.hp>member.maxHp||
-       !Number.isSafeInteger(member.sp)||member.sp<0||
-       !Number.isSafeInteger(member.maxSp)||member.maxSp<1||
-       member.sp>member.maxSp)))return null;
-  const playerAlive=isSquad?
-    session.playerParty.some(member=>member.hp>0):session.player.hp>0;
   if(session.engine.outcome!==expectedEngineOutcome||
      session.engine.turn!==session.turn||
      (session.outcome==='win'&&
-       (session.wild.hp!==0||!playerAlive))||
+       (session.wild.hp!==0||session.player.hp===0))||
      (session.outcome==='loss'&&
-       (playerAlive||session.wild.hp===0))||
+       (session.player.hp!==0||session.wild.hp===0))||
      (session.outcome==='draw'&&session.turn<30&&
-       (playerAlive||session.wild.hp!==0)))return null;
+       (session.player.hp!==0||session.wild.hp!==0)))return null;
   const logs=[],frames=[];
   let lastRevision=0;
   for(let i=0;i<receipts.length;i++){

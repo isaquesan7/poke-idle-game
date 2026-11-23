@@ -160,3 +160,11 @@
   background:var(--color-surface-raised);color:var(--color-text);
   font-weight:800}
 .reserveKoTag i{margin-right:4px;color:var(--color-danger)}
+
+/* O trio só é escalado na Coleção; o Ginásio apresenta o elenco congelado,
+   sem checkboxes nem aparência de controle editável. */
+.teamSetup{display:grid;justify-items:start;gap:var(--space-2);margin:var(--space-4) 0}
+.teamSetup h4{margin:0}
+.teamSetup p{margin:0;color:var(--color-text-muted)}
+.teamSetup .choices{width:100%;margin:var(--space-2) 0;border:0;padding:0;max-height:none;overflow:visible}
+.teamSetup .choiceOn{cursor:default}

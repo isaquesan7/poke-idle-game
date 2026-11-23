@@ -72,38 +72,30 @@ test('ONLINE-01C-23A: v2 freezes exactly explicit equipped moves, not learned ca
 });
 
 
-test('ONLINE-01C-23B1: v3 freezes only real ordered team members without free bonuses',()=>{
+test('ONLINE-01C-23 correction: a three-Pokémon Gym team never becomes a regional squad',()=>{
  const save=initial();
  const raw=JSON.parse(save.journal.raw);
- const p1=raw.roster[0];
- const p2={...structuredClone(p1),uid:2,pokemonId:25,level:20,
-   moveName:'thunder-shock',
-   equippedMoveNames:['thunder-shock','quick-attack','growl']};
- const p3={...structuredClone(p1),uid:3,pokemonId:7,level:12,
-   moveName:'tackle',equippedMoveNames:['tackle','water-gun']};
- raw.roster=[p1,p2,p3];raw.team=[1,2,3];raw.nextUid=4;
- const make=data=>({...save,journal:{...save.journal,raw:JSON.stringify(data)}});
- const snapshot=buildBattleSnapshot(make(raw),opponent);
- assert.equal(snapshot.version,3);
- assert.deepEqual(snapshot.party.map(p=>p.uid),[1,2,3]);
- assert.deepEqual(snapshot.party.map(p=>p.moveNames),
-   [['scratch'],['thunder-shock','quick-attack','growl'],['tackle','water-gun']]);
- assert.deepEqual(snapshot.activePokemon,snapshot.party[0]);
- assert.equal(snapshot.trainer.level,1);
- assert.equal(Object.hasOwn(snapshot,'coins'),false);
- assert.equal(Object.hasOwn(snapshot,'seed'),false);
- for(const invalid of [
-   [1,1],[1,2,2],[1,2,99],[2,1,4],
- ]){
-   const forged=structuredClone(raw);forged.team=invalid;
-   assert.equal(buildBattleSnapshot(make(forged),opponent),null);
- }
- const corrupt=structuredClone(raw);
- corrupt.roster[1].equippedMoveNames=['thunder-shock','thunder-shock'];
- assert.equal(buildBattleSnapshot(make(corrupt),opponent),null);
- const impossible=structuredClone(raw);
- impossible.roster[1].manual.attack=41;
- assert.equal(buildBattleSnapshot(make(impossible),opponent),null);
- const legacy=structuredClone(raw);legacy.team=[1];
- assert.equal(buildBattleSnapshot(make(legacy),opponent).version,1);
+ raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25,
+   level:20,moveName:'thunder-shock'});
+ raw.roster.push({...structuredClone(raw.roster[0]),uid:3,pokemonId:7,
+   level:20,moveName:'tackle'});
+ raw.team=[1,2,3];raw.nextUid=4;
+ const withRaw=data=>({...save,journal:{...save.journal,raw:JSON.stringify(data)}});
+ const one=buildBattleSnapshot(withRaw(raw),opponent);
+ assert.equal(one.version,1,'regions keep the legacy single-fighter snapshot');
+ assert.equal(one.activePokemon.uid,1);
+ assert.equal(one.activePokemon.speciesId,4);
+ assert.equal(Object.hasOwn(one,'party'),false);
+ assert.equal(Object.hasOwn(one,'playerParty'),false);
+ raw.roster[0].equippedMoveNames=['scratch','growl'];
+ const equipped=buildBattleSnapshot(withRaw(raw),opponent);
+ assert.equal(equipped.version,2,'one fighter can still equip multiple moves');
+ assert.deepEqual(equipped.activePokemon.moveNames,['scratch','growl']);
+ assert.equal(Object.hasOwn(equipped,'party'),false);
+ raw.team=[2,1,3];
+ const otherLead=buildBattleSnapshot(withRaw(raw),opponent);
+ assert.equal(otherLead.version,1);
+ assert.equal(otherLead.activePokemon.uid,2,
+   'only the selected lead of the stored team enters the regional battle');
+ assert.equal(otherLead.activePokemon.speciesId,25);
 });

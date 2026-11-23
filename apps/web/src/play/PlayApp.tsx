@@ -1385,7 +1385,8 @@ export function PlayApp({initialTab='overview'}:{readonly initialTab?:'overview'
               </>
             )}
             {tab === 'gyms' && <GymScreen game={ballGame??{}} data={data}
-              busy={busy} revision={save.snapshot.revision} onAction={dispatch}/>}
+              busy={busy} revision={save.snapshot.revision} onAction={dispatch}
+              onOpenCollection={()=>setTab('collection')}/>}
             {tab === 'shop' && <BallShopPreview coins={data.coins}
               trainerLevel={view.level} quantities={ballQuantities}
               busy={busy} onBuy={(ballId,quantity)=>void buyBall(ballId,quantity)}/>} 

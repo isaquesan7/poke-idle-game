@@ -27,13 +27,7 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
   const s=snapshot as {activePokemon:{uid:number;affinity:number};regionId:number};
   const {player,wild}=pair;
   const outcome=v.outcome as 'win'|'loss'|'draw';
-  // Team battle rewards still belong to the frozen LEAD UID, never to
-  // every participant. Use the HIGHEST team level for the region cap so a
-  // low-level lead cannot farm low-level wilds with a level-90 bench.
-  const squad=snapshot as {version?:number;party?:readonly {level:number}[]};
-  const combatLevel=squad.version===3&&Array.isArray(squad.party)?
-    Math.max(...squad.party.map(p=>p.level)):player.level;
-  const factor=battleProgressFactor(combatLevel,wild.level);
+  const factor=battleProgressFactor(player.level,wild.level);
   const win=outcome==='win';
   const affinityBase=win?2+affinityRoll:0;
   const drop=d064BattleBallDropFromRoll(s.regionId,ballRoll);
