@@ -15,7 +15,7 @@ ALTER TABLE game_encounter_reservations
     (battle_sealed_outcome IS NULL AND battle_sealed_at IS NULL
       AND battle_seal_action_id IS NULL AND battle_seal_revision IS NULL)
     OR
-    (battle_sealed_outcome IN ('win','loss','draw')
+    (battle_sealed_outcome IS NOT NULL AND battle_sealed_outcome IN ('win','loss','draw')
       AND battle_sealed_at IS NOT NULL
       AND battle_seal_action_id IS NOT NULL
       AND length(battle_seal_action_id) BETWEEN 12 AND 100
