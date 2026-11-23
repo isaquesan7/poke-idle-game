@@ -181,7 +181,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,19,'all migrations applied exactly once');
+    assert.equal(migrations.rows.length,20,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
@@ -2768,6 +2768,32 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
     assert.deepEqual(frozen.rows[0].frozen_battle.player.fighters.map(x=>x.uid),
       [2,3,1]);
     assert.equal(frozen.rows[0].frozen_battle.outcome,'ongoing');
+    const {startReservedGymTurnSession}=await import('../src/gymTurnSession.mjs');
+    const turnZeroArgs={accountId,gymReservationId:race[0].gymReservationId,
+      expectedRevision:2};
+    assert.equal((await startReservedGymTurnSession(pool,{
+      ...turnZeroArgs,seed:42})).status,'invalid',
+      'no browser RNG can be injected into Gym sessions');
+    assert.equal((await startReservedGymTurnSession(pool,{
+      ...turnZeroArgs,expectedRevision:0})).status,'stale');
+    const started=await Promise.all([
+      startReservedGymTurnSession(pool,turnZeroArgs),
+      startReservedGymTurnSession(pool,turnZeroArgs)
+    ]);
+    assert.deepEqual(started.map(x=>x.status).sort(),['replay','started']);
+    assert.deepEqual(started[0].turnState,started[1].turnState);
+    assert.equal(started[0].turnState.turn,0);
+    assert.deepEqual(started[0].turnState.player.fighters.map(x=>x.uid),[2,3,1]);
+    assert.ok(started[0].actions.some(a=>a.kind==='move'));
+    assert.ok(started[0].turnState.player.fighters.every(x=>x.hp===x.combatant.stats.hp));
+    const storedTurn=await pool.query(
+      'SELECT turn_state,turn_started_at FROM game_gym_reservations WHERE id=$1',
+      [race[0].gymReservationId]);
+    assert.ok(storedTurn.rows[0].turn_started_at);
+    assert.deepEqual(storedTurn.rows[0].turn_state,started[0].turnState);
+    assert.equal((await startReservedGymTurnSession(pool,{
+      ...turnZeroArgs,expectedRevision:0})).status,'replay',
+      'turn-zero retries are immutable even with an old revision');
     assert.equal((await reserveNextGym(pool,{...args,
       actionId:'gym-start-another-action-0001',expectedRevision:2})).status,'busy');
     assert.equal((await setCollectionTeam(pool,{accountId,
