@@ -2479,7 +2479,8 @@ test('ONLINE-01C-23B1: real three-Pokémon Gym switches retain HP/SP through pay
       await turn(attack);
     }
     assert.equal(session.phase,'resolved');
-    assert.ok(['win','loss','draw'].includes(session.outcome));
+    assert.equal(session.outcome,'win',
+      'an experienced three-member squad should defeat a level-2 Caterpie');
     const quote=core.quoteFrozenBattleRewards(prepared.snapshot,{
       outcome:session.outcome,turns:session.turn,
       playerRemainingHp:session.player.hp,wildRemainingHp:session.wild.hp,
@@ -2504,14 +2505,23 @@ test('ONLINE-01C-23B1: real three-Pokémon Gym switches retain HP/SP through pay
     assert.equal(paid.paid.coins,0);
     const finished=await finishPaidWildTurnEncounter(pool,{
       ...ids,actionId:'wild-squad-finish-0001',
-      expectedRevision:revision,choice:'skip',entropyKey});
+      expectedRevision:revision,choice:'poke-ball',entropyKey});
     assert.equal(finished.status,'finished');
+    assert.ok(['captured','failed'].includes(finished.result.outcome));
+    assert.equal(finished.result.ballId,'poke-ball');
+    assert.deepEqual((await finishPaidWildTurnEncounter(pool,{
+      ...ids,actionId:'wild-squad-finish-0001',
+      expectedRevision:revision,choice:'poke-ball',entropyKey})).result,
+      finished.result,'replay may never spend a second ball');
     revision=finished.revision;
     const after=await pool.query(
       'SELECT state,revision FROM game_saves WHERE account_id=$1',[accountId]);
     const savedRaw=JSON.parse(after.rows[0].state.journal.raw);
     assert.equal(Number(after.rows[0].revision),revision);
-    assert.equal(savedRaw.roster.length,3);
+    assert.equal(savedRaw.roster.length,
+      finished.result.outcome==='captured'?4:3);
+    assert.equal(savedRaw.ballPocket.quantities['poke-ball'],11,
+      'one Poké Ball consumed even on capture failure, never twice');
     assert.deepEqual(savedRaw.team,[1,2,3]);
     assert.equal(savedRaw.coins,0);
     assert.deepEqual(savedRaw.badges,[]);
