@@ -334,3 +334,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - A integração de combate é construída sobre `simulateKantoBattle` e os catálogos atuais de espécies, stats e IA. Snapshot sozinho não autoriza tipos, poderes, golpe futuro, rank ou status. Calcular combatentes novamente pelo game-core.
 - Prévia de batalha não pode usar a chance de captura automática do simulador legado como captura online: capturar exige requisição separada com gasto atômico de Pokébolas e receipt. Resultado e recompensas não são persistidos neste adaptador.
 - Ainda não é versão final dos atributos pois o snapshot atual não inclui equipamentos/títulos/bônus de insígnias, nem 4 slots completos do jogador. Completar contrato antes de disponibilizar combate online real.
+
+### ONLINE-01C-12 — prévia imutável antes de recompensas
+- O bundle canônico de jogo é compilado em estágio Docker isolado e executado pela API apenas via funções internas; nunca disponibilizar game-core source/build tooling no runtime.
+- Cada encontro reservável recebe no máximo uma prévia de combate persistida; não guardar seed nem HMAC, não aceitar identidade/combate enviados pelo cliente. A fase `wild-battle` deriva seed da identidade de conta e encontro já persistidos. Repetição de chamada usa a prévia congelada, não roda novo simulador.
+- Prévia não é confirmação de premiação e não finaliza a reserva. O motor legado tem mensagens de auto-captura/rewards removidas pelo adaptador; premiações e Pokébolas somente por transações/receipts próprios futuros. Public account registration segue fechado.

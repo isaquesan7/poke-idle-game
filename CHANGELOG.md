@@ -814,3 +814,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Adicionado `packages/game-core/src/combat/serverFrozenBattle.ts`: valida contrato da fotografia `ONLINE-01C-10`, reconstrói combatentes exclusivamente com catálogo Kanto, atributos oficiais, pontos manuais e aprendizado de golpes FRLG permitido para o nível, e monta conjunto de golpes selvagens pela mesma regra usada em `/play`.
 - `previewFrozenWildBattle` usa o MESMO `simulateKantoBattle` com seed uint32 fornecida pelo backend; retorna HP/SP, resultado e log/frame, mas NÃO expõe a captura automática do simulador legado, afinidade ou moedas. Não escreve nenhuma recompensa ou save; nenhuma rota HTTP foi aberta.
 - Testes Vitest verificam paridade exata de motor, estatísticas, IA selvagem, validação de golpes de nível futuro, orçamento de pontos e resultados reproduzíveis. CI e merge pendentes.
+
+## ONLINE-01C-12 — bundle privado canônico e prévia persistida (branch)
+- A imagem da API privada agora compila `serverFrozenBattle.ts` usando esbuild do lockfile do monorepo em estágio Docker separado, copiando apenas o bundle ESM para a imagem runtime Node + pg; sem React, Vite, TS ou node_modules de desenvolvimento no runtime.
+- Novo módulo interno `previewReservedBattle`, sem endpoint: exige UUIDs do banco/conta, chave HMAC de servidor e snapshot validado; resolve o combate pelo bundle canônico, salva `battle_preview` e `battle_preview_at` na migração 007. Retries e trabalhadores concorrentes recebem exatamente o resultado persistido, mesmo com troca de chave.
+- Prévia contém resultado/turnos/HP/SP/log/frames, sem seed, captura automática, afinidade, moedas ou recompensas. Reserva continua `reserved`, sem recibo de conclusão ou mudança no save. CI PG18 testa concorrência, replay e ausência de grants.
+- Cadastro público hard-disabled, sem rotas novas, `/play` local independente. CI, revisão e merge ainda pendentes.
