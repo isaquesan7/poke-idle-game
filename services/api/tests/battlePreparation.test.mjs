@@ -41,3 +41,32 @@ test('reject bad region, forged stats and inconsistent party',()=>{
  illegal3.roster[0].uid=-1;
  assert.equal(buildBattleSnapshot(mut(illegal3),opponent),null);
 });
+
+
+test('ONLINE-01C-23A: v2 freezes exactly explicit equipped moves, not learned catalog',()=>{
+ const save=initial();
+ const raw=JSON.parse(save.journal.raw);
+ const make=data=>({...save,journal:{...save.journal,raw:JSON.stringify(data)}});
+ raw.roster[0].equippedMoveNames=['scratch','growl'];
+ const v2=buildBattleSnapshot(make(raw),opponent);
+ assert.equal(v2.version,2);
+ assert.equal(v2.activePokemon.moveName,'scratch');
+ assert.deepEqual(v2.activePokemon.moveNames,['scratch','growl']);
+ assert.equal(Object.hasOwn(v2,'loadout'),false);
+ assert.equal(Object.hasOwn(v2,'bonus'),false);
+ assert.deepEqual(buildBattleSnapshot(save,opponent).activePokemon,{
+   uid:1,speciesId:4,level:1,affinity:0,
+   manual:{hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0},
+   moveName:'scratch'
+ },'legacy v1 must preserve its exact snapshot shape');
+ for(const names of [
+   [],['scratch','scratch'],['scratch','growl','ember','quick-attack','tackle'],
+   ['growl','scratch'],['scratch','<script>'],['scratch',88],null
+ ]){
+   raw.roster[0].equippedMoveNames=names;
+   assert.equal(buildBattleSnapshot(make(raw),opponent),null,
+     'invalid equipment array must fail closed');
+ }
+ delete raw.roster[0].equippedMoveNames;
+ assert.equal(buildBattleSnapshot(make(raw),opponent).version,1);
+});
