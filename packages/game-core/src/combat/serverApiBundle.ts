@@ -25,3 +25,6 @@ export {gymLegalTurnActions} from '../gyms/gymTurn.js';
 // ONLINE-01C-23B2E: shared canonical 3v3 resolver and fair Gym AI.
 export {resolveGymTurn} from '../gyms/gymTurn.js';
 export {gymChooseAiAction} from '../gyms/gymAiTurn.js';
+
+// ONLINE-01C-23B2H: immutable reward transition from local Gym catalog.
+export {applyCertifiedGymSettlement} from './serverGymSettlement.js';
