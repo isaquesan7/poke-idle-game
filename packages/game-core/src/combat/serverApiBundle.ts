@@ -9,3 +9,6 @@ export {finalizeFrozenWildEncounter} from '../capture/serverEncounterFinalizatio
 
 export {createFrozenWildTurnSession,initialFrozenWildTurnActions}
   from './serverWildTurnSession.js';
+
+export {legalFrozenWildTurnActions,resolveFrozenWildTurn}
+  from './serverWildTurnResolver.js';
