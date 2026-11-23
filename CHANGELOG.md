@@ -775,3 +775,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Novo `online-api-proxy.mjs` permite encaminhar apenas rotas `/api/v1` explicitamente autorizadas ao serviço interno, quando `ONLINE_API_INTERNAL_URL` for configurada de forma privada. Sem variável, retorna 503 e nenhuma conexão é feita.
 - Preserva cookies de sessão e `Origin`, elimina cabeçalhos Forwarded não confiáveis, limita corpo a 16 KiB, não expõe CORS e impede proxy genérico. Docker runtime inclui o módulo. Testes Node verificam isolamento e encaminhamento.
 - Nenhuma alteração no `/play`, nos saves locais, nas regras de ginásio ou na ativação de contas. A API de produção mantém autenticação bloqueada. CI, revisão e deploy ainda pendentes.
+
+## ONLINE-01C-6 — primeira ação incremental autoritativa (branch, sem deploy)
+- Nova operação de API `POST /api/v1/trainer/invest` apenas em harness test-only: recebe somente `actionId`, `expectedRevision`, `stat`. A conta vem da sessão, os pontos vêm do nível e do save no servidor; não aceita moedas, XP, badges ou save arbitrário. Regras: +2 pontos por nível acima do 1, limite de 40 pontos manuais por atributo.
+- Transação com `SELECT FOR UPDATE`, `revision` esperado e recibo único por conta/ação. Concorrência e retries não duplicam investimento. Atualiza JSON envelopado e revisão junto do recibo em PostgreSQL; sem mutação do `/play`.
+- Testes unitários e integração PostgreSQL 18 cobrem orçamento, payload malicioso, origem, corrida, replay, revisão e preservação do inventário/recompensas. Rotas disponíveis apenas no harness, produção permanece bloqueada. CI e merge ainda pendentes.
