@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/server.mjs",
     "test": "node --test tests/auth.test.mjs tests/mailer.test.mjs tests/initialAdventure.test.mjs tests/trainerInvestment.test.mjs tests/battleEntropy.test.mjs",
-    "check": "node --check src/server.mjs && node --check src/auth.mjs && node --check src/migrate.mjs && node --check src/authSecurity.mjs && node --check src/mailer.mjs && node --check src/passwordReset.mjs && node --check src/initialAdventure.mjs && node --check src/trainerInvestment.mjs && node --check src/battleEntropy.mjs",
+    "check": "node --check src/server.mjs && node --check src/auth.mjs && node --check src/migrate.mjs && node --check src/authSecurity.mjs && node --check src/mailer.mjs && node --check src/passwordReset.mjs && node --check src/initialAdventure.mjs && node --check src/trainerInvestment.mjs && node --check src/battleEntropy.mjs && node --check src/encounterReservation.mjs",
     "db:migrate": "node src/migrate.mjs",
     "test:integration": "node --test tests/integration.test.mjs"
   },

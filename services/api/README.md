@@ -76,3 +76,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 ## ONLINE-01C-7 — módulo interno de RNG, ainda não integrado
 - `src/battleEntropy.mjs` fornece HMAC-SHA256 determinístico, separado por conta, UUID de encontro e fase. Requer Buffer de chave de servidor com no mínimo 32 bytes; não implementa encontros, drops nem premiações.
 - Regra de integração futura: somente criar stream após reserva/persistência de encontro pelo backend; nunca aceitar ID de encontro ou seed do cliente; ligar ao motor validado e ledger com transações e receipts. Não configurar chave ou expor rota nesta entrega. `/play` e cadastro real continuam inalterados.
+
+## ONLINE-01C-8 — reserva de encontros (módulo interno)
+- Migrar `004_encounter_reservations.sql` com o runner checksum/lock já existente. `reserveEncounter` é função server-only, não há rota HTTP nem geração de espécies/recompensas.
+- Usa actionId idempotente, revisão esperada e um único encontro reservado por treinador, com `FOR UPDATE` do save, UUID do DB e gravação atômica do receipt. Região 1 apenas até validar progressão regional. Mesmo actionId lê ID persistido; nenhuma fonte de seed do cliente. CI de restauração valida quatro migrações em banco descartável.
+- Não habilitar cadastro público nem configurar RNG de produção nesta fase; /play sem migração.
