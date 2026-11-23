@@ -1,7 +1,7 @@
 /**
  * ONLINE-01C-11 — offline pure adapter for a frozen SERVER-OWNED snapshot.
  * No database writes, transport, grants, captures, or client-supplied combatants.
- * The API must later bundle game-core into its isolated runtime and derive
+ * The API bundles this game-core in its isolated runtime and derives
  * battle seeds exclusively from the persisted encounter's private entropy.
  */
 import {KANTO_BATTLE_SPECIES,simulateKantoBattle} from '../combat/kantoBattle.js';
@@ -25,6 +25,43 @@ export interface ServerBattleSnapshotV1 {
     readonly moveName:string;
   };
 }
+/** v2 records an EXPLICIT equipped loadout, not the entire learned catalog.
+ * The original v1 snapshot remains valid for in-flight 1-move encounters.
+ */
+export interface ServerBattleSnapshotV2 extends
+  Omit<ServerBattleSnapshotV1,'version'|'activePokemon'> {
+  readonly version:2;
+  readonly activePokemon:ServerBattleSnapshotV1['activePokemon']&{
+    readonly moveNames:readonly string[];
+  };
+}
+/** Only canonical FRLG learned/implemented moves (plus the historical
+ * no-offense fallback) are legal. No TM/egg/tutor or level-locked moves.
+ * This is used by BOTH the equip writer and frozen battle constructor.
+ */
+export function frozenValidatedEquippedMoves(
+  speciesId:number,level:number,names:unknown
+):readonly KantoMove[]|null{
+  if(!Number.isSafeInteger(speciesId)||speciesId<1||speciesId>151||
+     !Number.isSafeInteger(level)||level<1||level>100||
+     !Array.isArray(names)||names.length<1||names.length>4||
+     !names.every(name=>typeof name==='string'&&
+       /^[a-z][a-z-]{1,63}$/.test(name))||
+     new Set(names).size!==names.length)return null;
+  const species=KANTO_BATTLE_SPECIES[speciesId];
+  if(!species)return null;
+  const unlocked=[...kantoLevelMoves(speciesId,level),
+    ...kantoSupportMoves(speciesId,level)].map(entry=>entry.move);
+  const unlockedAttacks=unlocked.filter(move=>move.category!=='status');
+  // The legacy fallback is legal only if NO implementable offensive move
+  // has been learned yet, regardless of whether supports exist.
+  const legal=new Map([...unlocked,...(unlockedAttacks.length===0?
+    [species.move]:[])].map(move=>[move.name,move] as const));
+  const result=names.map(name=>legal.get(name));
+  return result.every((move):move is KantoMove=>!!move)?
+    Object.freeze(result as KantoMove[]):null;
+}
+
 
 function manualValid(values:unknown,maxBudget:number):values is StatValues{
   if(!values||typeof values!=='object'||Array.isArray(values))return false;
@@ -43,9 +80,9 @@ function manualValid(values:unknown,maxBudget:number):values is StatValues{
 export function canonicalFrozenCombatants(snapshot:unknown):
   {readonly player:Combatant;readonly wild:Combatant}|null{
   if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return null;
-  const s=snapshot as Partial<ServerBattleSnapshotV1>;
+  const s=snapshot as Partial<ServerBattleSnapshotV1|ServerBattleSnapshotV2>;
   const player=s.activePokemon,trainer=s.trainer,enemy=s.opponent;
-  if(s.version!==1||s.regionId!==1||!player||!trainer||!enemy
+  if((s.version!==1&&s.version!==2)||s.regionId!==1||!player||!trainer||!enemy
      ||!Number.isSafeInteger(trainer.level)||trainer.level<1||trainer.level>100
      ||!Number.isSafeInteger(player.uid)||player.uid<1
      ||!Number.isSafeInteger(player.level)||player.level<1||player.level>100
@@ -59,16 +96,16 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   const own=KANTO_BATTLE_SPECIES[player.speciesId];
   const other=KANTO_BATTLE_SPECIES[enemy.speciesId];
   if(!own||!other)return null;
-  const unlocked=[...kantoLevelMoves(player.speciesId,player.level),
-    ...kantoSupportMoves(player.speciesId,player.level)].map(entry=>entry.move);
-  const unlockedAttacks=unlocked.filter(move=>move.category!=='status');
-  const legalMoves=unlocked.length?unlocked:[own.move];
-  const chosen=legalMoves.find(move=>move.name===player.moveName);
-  // Fallback only when no offensive move was unlocked. Never accept arbitrary
-  // moves, TM, higher-level learnsets or stats from client JSON.
-  const selected=chosen??(unlockedAttacks.length===0&&
-    player.moveName===own.move.name?own.move:null);
-  if(!selected)return null;
+  const rawNames=(player as {moveNames?:unknown}).moveNames;
+  // Legacy v1 cannot smuggle a multi-move loadout without versioning it.
+  // v2 MUST bind the first equipped slot to the legacy primary moveName.
+  if(s.version===1&&rawNames!==undefined)return null;
+  if(s.version===2&&(!Array.isArray(rawNames)||
+     rawNames[0]!==player.moveName))return null;
+  const equipped=frozenValidatedEquippedMoves(
+    player.speciesId,player.level,s.version===2?rawNames:[player.moveName]);
+  if(!equipped)return null;
+  const selected=equipped[0]!;
   const trainerStats=trainerTotals({
     manual:trainer.manual,equipment:[],activeTitle:null,badges:[]
   });
@@ -76,7 +113,7 @@ export function canonicalFrozenCombatants(snapshot:unknown):
     speciesId:own.id,name:own.name,types:own.types,level:player.level,
     stats:pokemonFinalStats(own.base,player.level,player.manual,
       trainerStats,player.affinity),
-    move:selected,moves:[selected],rank:0
+    move:selected,moves:equipped,rank:0
   };
   const wildMoves=kantoWildMoveLoadout(enemy.speciesId,enemy.level,other.move);
   const wildCombatant:Combatant={

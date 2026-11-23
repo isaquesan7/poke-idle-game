@@ -181,7 +181,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,16,'all migrations applied exactly once');
+    assert.equal(migrations.rows.length,17,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
@@ -2177,6 +2177,176 @@ test('ONLINE-01C-22: winning turn encounter captures or fails exactly once',asyn
   }finally{
     for(const accountId of accounts)
       await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
+
+
+test('ONLINE-01C-23A: private FRLG four-move equip, frozen turn combat and safe receipts',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {equipPokemonMoves}=await import('../src/pokemonMoveEquipment.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {startReservedWildTurnSession}=await import('../src/wildTurnSession.mjs');
+  const {applyReservedWildTurn}=await import('../src/wildTurnAction.mjs');
+  const {certifyResolvedWildTurn}=await import('../src/wildTurnCertificate.mjs');
+  const {payCertifiedWildTurns}=await import('../src/wildTurnSettlement.mjs');
+  const {finishPaidWildTurnEncounter}=await import('../src/wildTurnFinalization.mjs');
+  const {loadCombatAdapter}=await import('../src/battlePreview.mjs');
+  const core=await loadCombatAdapter();
+  const learned=['thunder-shock','quick-attack','thunder-wave','growl'];
+  assert.equal(core.frozenValidatedEquippedMoves(25,1,learned),null,
+    'level-up moves are not automatically unlocked at level one');
+  assert.equal(core.frozenValidatedEquippedMoves(25,20,
+    ['thunder-shock','hydro-pump']),null,'cross-species move must fail');
+  assert.equal(core.frozenValidatedEquippedMoves(25,20,
+    ['thunder-shock','thunder-shock']),null,'duplicate equipment must fail');
+  assert.deepEqual(core.frozenValidatedEquippedMoves(25,20,learned)
+    .map(x=>x.name),learned);
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const registered=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['move-equipment-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=registered.rows[0].id;
+    const save=firstSave('Loadout CI',4,1740000000000);
+    const raw=JSON.parse(save.journal.raw);
+    // CI-only fixture: experienced Pikachu with its verified FRLG moves.
+    raw.roster[0].pokemonId=25;
+    raw.roster[0].level=20;
+    raw.roster[0].moveName='thunder-shock';
+    raw.seen=[25];raw.caughtSpecies=[25];
+    save.journal.raw=JSON.stringify(raw);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(save)]);
+    const action={accountId,actionId:'move-equip-four-slots-0001',
+      expectedRevision:0,pokemonUid:1,moveNames:learned};
+    assert.equal((await equipPokemonMoves(pool,{
+      ...action,expectedRevision:7})).status,'stale');
+    assert.equal((await equipPokemonMoves(pool,{
+      ...action,moveNames:['hydro-pump']})).status,'illegal-moves');
+    assert.equal((await equipPokemonMoves(pool,{
+      ...action,moveNames:['thunder-shock','thunderbolt']})).status,'illegal-moves',
+      'future/TM moves are not included in approved online learnset');
+    assert.equal((await equipPokemonMoves(pool,{
+      ...action,pokemonUid:88})).status,'missing-pokemon');
+    assert.equal((await equipPokemonMoves(pool,{
+      ...action,moveNames:['thunder-shock','thunder-shock']})).status,'invalid');
+    const concurrent=await Promise.all([
+      equipPokemonMoves(pool,action),equipPokemonMoves(pool,action)
+    ]);
+    assert.deepEqual(concurrent.map(x=>x.status).sort(),['equipped','replay']);
+    assert.deepEqual(concurrent[0].moveNames,concurrent[1].moveNames);
+    assert.equal(concurrent[0].revision,1);
+    assert.equal((await equipPokemonMoves(pool,{
+      ...action,moveNames:learned.slice().reverse()})).status,'duplicate-action');
+    assert.equal((await equipPokemonMoves(pool,{
+      ...action,actionId:'move-equip-other-id-0001',expectedRevision:0})).status,'stale');
+    const afterEquip=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    assert.equal(Number(afterEquip.rows[0].revision),1);
+    const fromRaw=JSON.parse(afterEquip.rows[0].state.journal.raw);
+    assert.equal(fromRaw.roster[0].moveName,learned[0]);
+    assert.deepEqual(fromRaw.roster[0].equippedMoveNames,learned);
+    assert.equal(fromRaw.coins,raw.coins);
+    assert.equal(fromRaw.trainer.xp,raw.trainer.xp);
+    assert.deepEqual(fromRaw.team,raw.team);
+    assert.deepEqual(fromRaw.ballPocket,raw.ballPocket);
+    assert.deepEqual(fromRaw.badges,raw.badges);
+    const receipts=await pool.query(
+      'SELECT pokemon_uid,move_names,save_revision FROM game_pokemon_move_equip_receipts WHERE account_id=$1',
+      [accountId]);
+    assert.equal(receipts.rowCount,1);
+    assert.equal(Number(receipts.rows[0].pokemon_uid),1);
+    assert.deepEqual(receipts.rows[0].move_names,learned);
+    await assert.rejects(pool.query(
+      `UPDATE game_pokemon_move_equip_receipts
+          SET move_names='[]'::jsonb WHERE account_id=$1`,[accountId]),e=>e.code==='23514');
+    const reservation=await reserveEncounter(pool,{
+      accountId,actionId:'loadout-pg-reservation-0001',
+      expectedRevision:1,regionId:1});
+    assert.equal(reservation.status,'reserved');
+    const ids={accountId,encounterId:reservation.encounterId};
+    const key=Buffer.alloc(32,0x64);
+    assert.equal((await equipPokemonMoves(pool,{
+      ...action,actionId:'move-equip-in-battle-0001',
+      expectedRevision:2,moveNames:['thunder-shock']})).status,'busy',
+      'loadout must remain frozen during the whole reservation, even pre-battle');
+    assert.equal((await materializeReservedEncounter(pool,{
+      ...ids,entropyKey:key})).status,'materialized');
+    const prepared=await prepareReservedBattle(pool,ids);
+    assert.equal(prepared.status,'prepared');
+    assert.equal(prepared.snapshot.version,2);
+    assert.deepEqual(prepared.snapshot.activePokemon.moveNames,learned);
+    assert.deepEqual(core.canonicalFrozenCombatants(prepared.snapshot)
+      .player.moves.map(x=>x.name),learned);
+    const forged={...prepared.snapshot,
+      activePokemon:{...prepared.snapshot.activePokemon,
+        moveNames:['thunder-shock','hydro-pump']}};
+    assert.equal(core.canonicalFrozenCombatants(forged),null);
+    assert.equal(core.createFrozenWildTurnSession(forged),null);
+    const started=await startReservedWildTurnSession(pool,{
+      ...ids,expectedRevision:2});
+    assert.equal(started.status,'started');
+    assert.deepEqual(started.turnState.player.equippedMoves,learned);
+    assert.deepEqual(started.actions.filter(a=>a.kind==='move')
+      .map(a=>a.moveName),learned);
+    const invalid=await applyReservedWildTurn(pool,{
+      ...ids,actionId:'loadout-turn-illegal-0001',expectedRevision:2,
+      action:{kind:'move',moveName:'hydro-pump'},entropyKey:key});
+    assert.equal(invalid.status,'blocked');
+    let rev=2,session=started.turnState,ordinal=0;
+    while(session.phase==='await-player'&&ordinal<30){
+      ordinal++;
+      const chosen=ordinal===1?
+        {kind:'move',moveName:'thunder-wave'}:
+        {kind:'move',moveName:'quick-attack'};
+      const applied=await applyReservedWildTurn(pool,{
+        ...ids,actionId:'loadout-pg-turn-'+String(ordinal).padStart(4,'0'),
+        expectedRevision:rev,action:chosen,entropyKey:key});
+      assert.equal(applied.status,'applied');
+      rev=applied.revision;
+      const current=await pool.query(
+        'SELECT battle_turn_state FROM game_encounter_reservations WHERE id=$1',
+        [ids.encounterId]);
+      session=current.rows[0].battle_turn_state;
+    }
+    assert.equal(session.phase,'resolved');
+    assert.equal(session.outcome,'win','level 20 Pikachu vs R1 should win');
+    const certified=await certifyResolvedWildTurn(pool,{
+      ...ids,actionId:'loadout-pg-certificate-0001',expectedRevision:rev});
+    assert.equal(certified.status,'certified');
+    rev=certified.revision;
+    const payout=await payCertifiedWildTurns(pool,{
+      ...ids,actionId:'loadout-pg-payout-0001',expectedRevision:rev,entropyKey:key});
+    assert.equal(payout.status,'paid');
+    rev=payout.revision;
+    const finish=await finishPaidWildTurnEncounter(pool,{
+      ...ids,actionId:'loadout-pg-finish-0001',expectedRevision:rev,
+      choice:'skip',entropyKey:key});
+    assert.equal(finish.status,'finished');
+    rev=finish.revision;
+    assert.equal(finish.result.outcome,'skipped');
+    const nextEquip=await equipPokemonMoves(pool,{
+      ...action,actionId:'move-equip-after-finish-0001',
+      expectedRevision:rev,moveNames:['thunder-shock','growl']});
+    assert.equal(nextEquip.status,'equipped',
+      'completion releases Pokémon equipment writer');
+    assert.equal(nextEquip.revision,rev+1);
+    const snapshot=await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[accountId]);
+    const end=JSON.parse(snapshot.rows[0].state.journal.raw);
+    assert.deepEqual(end.roster[0].equippedMoveNames,['thunder-shock','growl']);
+    assert.equal(end.roster[0].moveName,'thunder-shock');
+    assert.equal(end.roster[0].pokemonId,25);
+    assert.deepEqual(end.badges,[]);
+    const acctReceipts=await pool.query(
+      "SELECT kind FROM game_action_receipts WHERE account_id=$1 AND kind='pokemon-moves-equip'",
+      [accountId]);
+    assert.equal(acctReceipts.rowCount,2,'only each equipment change is receipted');
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
     await pool.end();
   }
 });

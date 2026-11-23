@@ -4,8 +4,8 @@
  * canonical combatant HP/SP and move slots, but DOES NOT resolve a turn or
  * grant rewards. Later turn actions must use an audited canonical resolver.
  *
- * The current online snapshot carries exactly one PLAYER-EQUIPPED move.
- * Do not pretend other learned moves are equipped or expose 4 usable slots.
+ * The v1 snapshot carries one move; v2 freezes 1–4 explicitly equipped,
+ * level-legal moves. Never auto-equip a Pokémon's whole learned catalog.
  * Wild AI uses the existing fair max-four-move FRLG loadout from game-core.
  */
 import {canonicalFrozenCombatants} from './serverFrozenBattle.js';
@@ -21,7 +21,9 @@ export function createFrozenWildTurnSession(snapshot:unknown){
   const {player,wild}=actors;
   const playerMoves=player.moves??[player.move];
   const wildMoves=wild.moves??[wild.move];
-  if(playerMoves.length!==1||wildMoves.length<1||wildMoves.length>4||
+  if(playerMoves.length<1||playerMoves.length>4||
+     new Set(moveSlots(playerMoves)).size!==playerMoves.length||
+     wildMoves.length<1||wildMoves.length>4||
      new Set(moveSlots(wildMoves)).size!==wildMoves.length)return null;
   const playerMaxSp=kantoMaxSp(player.level,player.speciesId);
   const wildMaxSp=kantoMaxSp(wild.level,wild.speciesId);
@@ -33,7 +35,7 @@ export function createFrozenWildTurnSession(snapshot:unknown){
       hp:player.stats.hp,maxHp:player.stats.hp,
       sp:playerMaxSp,maxSp:playerMaxSp,
       status:null,focusUses:0,lastFocusTurn:-100,
-      // Frozen player equipment: exactly one move in snapshot v1.
+      // Frozen explicit equipment: legacy v1 one slot, v2 up to four.
       equippedMoves:moveSlots(playerMoves)
     },
     wild:{
@@ -56,7 +58,7 @@ export function initialFrozenWildTurnActions(snapshot:unknown){
   if(!actors)return null;
   const player=actors.player;
   const moves=player.moves??[player.move];
-  if(moves.length!==1)return null;
+  if(moves.length<1||moves.length>4)return null;
   const sp=kantoMaxSp(player.level,player.speciesId);
   return Object.freeze([
     {kind:'basic',moveName:KANTO_BASIC_ATTACK.name,spCost:0},
