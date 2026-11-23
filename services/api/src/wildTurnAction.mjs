@@ -13,7 +13,9 @@ const rollback=async(client,value)=>{await client.query('ROLLBACK');return value
 const validAction=action=>action!==null&&typeof action==='object'&&!Array.isArray(action)&&
   ((Object.keys(action).length===1&&['basic','focus'].includes(action.kind))||
    (Object.keys(action).length===2&&action.kind==='move'&&
-    typeof action.moveName==='string'&&/^[a-z][a-z-]{1,63}$/.test(action.moveName)));
+    typeof action.moveName==='string'&&/^[a-z][a-z-]{1,63}$/.test(action.moveName))||
+   (Object.keys(action).length===2&&action.kind==='switch'&&
+    Number.isSafeInteger(action.toIndex)&&action.toIndex>=0&&action.toIndex<=2));
 
 export async function applyReservedWildTurn(pool,{
   accountId,encounterId,actionId,expectedRevision,action,entropyKey
