@@ -89,11 +89,11 @@ describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
     expect(owned.totals.hp).toBe(3);
     expect(owned.totals.attack).toBe(3);
     const copied=copy(raw);
-    copied.inventory.ownedEquipment.cap=0;
+    copied.inventory!.ownedEquipment.cap=0;
     expect(canonicalOnlineGymTrainerBonuses(copied)).toBeNull();
-    copied.inventory.ownedEquipment={visor:1,gloves:1};
+    copied.inventory!.ownedEquipment={visor:1,gloves:1};
     expect(canonicalOnlineGymTrainerBonuses(copied)).toBeNull();
-    copied.inventory.ownedEquipment={cap:1,gloves:1};
+    copied.inventory!.ownedEquipment={cap:1,gloves:1};
     copied.trainer.equipped={hat:'coat'};
     expect(canonicalOnlineGymTrainerBonuses(copied)).toBeNull();
     copied.trainer.equipped={hat:'not-a-real-item'};
