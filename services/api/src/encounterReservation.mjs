@@ -49,6 +49,10 @@ export async function reserveEncounter(pool,{accountId,actionId,expectedRevision
       "SELECT id FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved'",
       [accountId]);
     if(pending.rowCount)return await rollback(client,{status:'busy'});
+    const gymBusy=await client.query(
+      "SELECT id FROM game_gym_reservations WHERE account_id=$1 AND status='reserved'",
+      [accountId]);
+    if(gymBusy.rowCount)return await rollback(client,{status:'busy'});
     const nextRevision=revision+1;
     const reserved=await client.query(
       `INSERT INTO game_encounter_reservations
