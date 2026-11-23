@@ -70,3 +70,32 @@ test('ONLINE-01C-23A: v2 freezes exactly explicit equipped moves, not learned ca
  delete raw.roster[0].equippedMoveNames;
  assert.equal(buildBattleSnapshot(make(raw),opponent).version,1);
 });
+
+
+test('ONLINE-01C-23 correction: a three-Pokémon Gym team never becomes a regional squad',()=>{
+ const save=initial();
+ const raw=JSON.parse(save.journal.raw);
+ raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25,
+   level:20,moveName:'thunder-shock'});
+ raw.roster.push({...structuredClone(raw.roster[0]),uid:3,pokemonId:7,
+   level:20,moveName:'tackle'});
+ raw.team=[1,2,3];raw.nextUid=4;
+ const withRaw=data=>({...save,journal:{...save.journal,raw:JSON.stringify(data)}});
+ const one=buildBattleSnapshot(withRaw(raw),opponent);
+ assert.equal(one.version,1,'regions keep the legacy single-fighter snapshot');
+ assert.equal(one.activePokemon.uid,1);
+ assert.equal(one.activePokemon.speciesId,4);
+ assert.equal(Object.hasOwn(one,'party'),false);
+ assert.equal(Object.hasOwn(one,'playerParty'),false);
+ raw.roster[0].equippedMoveNames=['scratch','growl'];
+ const equipped=buildBattleSnapshot(withRaw(raw),opponent);
+ assert.equal(equipped.version,2,'one fighter can still equip multiple moves');
+ assert.deepEqual(equipped.activePokemon.moveNames,['scratch','growl']);
+ assert.equal(Object.hasOwn(equipped,'party'),false);
+ raw.team=[2,1,3];
+ const otherLead=buildBattleSnapshot(withRaw(raw),opponent);
+ assert.equal(otherLead.version,1);
+ assert.equal(otherLead.activePokemon.uid,2,
+   'only the selected lead of the stored team enters the regional battle');
+ assert.equal(otherLead.activePokemon.speciesId,25);
+});
