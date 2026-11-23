@@ -15,6 +15,7 @@ import {issuePasswordReset,consumePasswordReset} from './passwordReset.mjs';
 import {deliverAccountEmail} from './mailer.mjs';
 import {createFirstAdventure} from './initialAdventure.mjs';
 import {applyTrainerInvestment} from './trainerInvestment.mjs';
+import {setCollectionTeam} from './collectionTeam.mjs';
 import {reserveNextGym} from './gymReservation.mjs';
 import {startReservedGymTurnSession} from './gymTurnSession.mjs';
 import {loadGymEntropyKeyringFromEnv} from './gymEntropyKeyring.mjs';
@@ -262,6 +263,32 @@ const server=createServer(async(req,res)=>{
       const status=result.status==='ok'?200:
         result.status==='missing'?404:result.status==='invalid'?400:409;
       return json(res,status,result.status==='ok'?result:{error:result.status});
+    }
+    if(pathname==='/api/v1/collection/team'&&req.method==='POST'){
+      // ONLINE-01C-23C5: authenticated CI-only Collection team writer.
+      // The selected 1–3 real UIDs must already belong to this account.
+      // During a Gym encounter, this action is blocked by the canonical
+      // server writer, so a battle cannot silently change its frozen team.
+      if(!enabled)return json(res,503,{error:'Coleção online em preparação'});
+      requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)
+        return json(res,403,{error:'E-mail não verificado'});
+      if(!await enforceThrottle(req,res,{scope:'collection-team-account',
+        identifier:account.id,limit:60}))return;
+      const data=await readJson(req);
+      if(Object.keys(data).sort().join(',')!==
+          'actionId,expectedRevision,teamUids')
+        return json(res,400,{error:'Ação de Coleção inválida'});
+      const result=await setCollectionTeam(pool,{
+        accountId:account.id,actionId:data.actionId,
+        expectedRevision:data.expectedRevision,teamUids:data.teamUids
+      });
+      const ok=['set','replay'].includes(result.status);
+      const status=ok?200:result.status==='invalid'?400:
+        ['missing','missing-save'].includes(result.status)?404:409;
+      return json(res,status,ok?result:{error:result.status});
     }
     if((pathname==='/api/v1/gym/reserve'||
         pathname==='/api/v1/gym/start')&&req.method==='POST'){
