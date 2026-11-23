@@ -47,6 +47,8 @@ describe('ONLINE-01C-14 — server reward quote parity (no grants)',()=>{
     expect([veteran.coins,veteran.trainerXp,veteran.pokemonXp,
       veteran.affinityDelta,veteran.wins]).toEqual([0,0,0,0,0]);
     expect(veteran.battleRecordIncrement).toBeNull();
+    const capped=quoteFrozenBattleRewards(snapshot(1,99),outcomePreview('win'),3)!;
+    expect(capped.affinityDelta).toBe(1);
     expect(quoteFrozenBattleRewards(snapshot(),outcomePreview('win'),-1)).toBeNull();
     expect(quoteFrozenBattleRewards(snapshot(),outcomePreview('win'),4)).toBeNull();
     expect(quoteFrozenBattleRewards(snapshot(),{outcome:'win'},1)).toBeNull();
