@@ -96,3 +96,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - `services/api/Dockerfile` compila `packages/game-core/src/combat/serverFrozenBattle.ts` em ESM auto-suficiente (esbuild do lock monorepo) e copia apenas `/srv/api/game-core/frozenBattle.mjs` para o runtime isolado. CI verifica existência e importação do bundle.
 - Migração `007_canonical_battle_preview.sql` registra `battle_preview` + data e exige existência de snapshot/materialização. `previewReservedBattle` acessa somente reserva existente, valida snapshot, usa HMAC privado e `previewFrozenWildBattle`, faz commit da prévia uma única vez com `FOR UPDATE`. Com corrida/retry, a prévia persistida é retornada sem reroll.
 - Função interna **sem endpoint**, sem logs de segredo, sem save/recompensas, sem captura; reserva segue pendente. Não configurar chave ou abrir contas reais neste release. No CI, variável CORE_BUNDLE_PATH permite apontar para bundle temporário em NODE_ENV=test; produção ignora override.
+
+## ONLINE-01C-13 — selagem de batalha (somente backend)
+- Migration `008_battle_outcome_seal.sql` adiciona campos de selagem com CHECK e índice único de ação. Não marca reserva como encerrada nem concede qualquer progresso.
+- `sealReservedBattle` é função privada sem rota HTTP. Executa transação com lock no save e depois no encontro, confere resultado da prévia no banco e usa actionId/expectedRevision para salvar receipt `battle-seal` e avançar revisão. Replays da mesma ação retornam o mesmo resultado; segunda ação distinta não produz nova selagem. O save bruto `journal.raw` fica inalterado.
+- Não habilitar cadastro público nem exposição da função nesta etapa: payout, captura, despesas e conclusão segura de reservas são passos posteriores.

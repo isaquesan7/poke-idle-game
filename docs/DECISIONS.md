@@ -339,3 +339,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - O bundle canônico de jogo é compilado em estágio Docker isolado e executado pela API apenas via funções internas; nunca disponibilizar game-core source/build tooling no runtime.
 - Cada encontro reservável recebe no máximo uma prévia de combate persistida; não guardar seed nem HMAC, não aceitar identidade/combate enviados pelo cliente. A fase `wild-battle` deriva seed da identidade de conta e encontro já persistidos. Repetição de chamada usa a prévia congelada, não roda novo simulador.
 - Prévia não é confirmação de premiação e não finaliza a reserva. O motor legado tem mensagens de auto-captura/rewards removidas pelo adaptador; premiações e Pokébolas somente por transações/receipts próprios futuros. Public account registration segue fechado.
+
+### ONLINE-01C-13 — desfecho selado não equivale a recompensa
+- Antes de qualquer payout, congelar o outcome da batalha originado do preview persistido e da identidade da reserva no PostgreSQL. A operação aceita SOMENTE IDs de conta/encontro e actionId+revisão esperada; jamais aceitar resultado, dano, Pokémon, seed ou moedas do navegador.
+- Receipt `battle-seal` e revisão do save são atômicos. Mesmo actionId devolve resultado imutável; actionId concorrente é rejeitado. Reserva NÃO muda para completed: ela bloqueia novas batalhas até que um payout/capture writer confiável finalize a etapa, impedindo exploração de sequências RNG sem custo.
+- Não migrar ou tocar saves locais do /play. Cadastro público permanece proibido até os gates reais de resiliência e segurança.
