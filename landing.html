@@ -74,10 +74,12 @@ function render(next){
  tabs.hidden=reset||verify;
  $('name-wrap').hidden=!register;
  $('password-label').textContent=reset&&token?'Nova senha':'Senha';
- password.hidden=reset&&!token || verify;
+ password.hidden=(reset&&!token)||verify;
+ password.required=!password.hidden;
  $('password-label').hidden=password.hidden;
- $('email').parentElement; // no address or password is persisted locally
- $('email').hidden=verify||reset&&!!token;
+ // No address or password is persisted locally.
+ $('email').hidden=verify||(reset&&!!token);
+ $('email').required=!$('email').hidden;
  $('email').previousElementSibling.hidden=$('email').hidden;
  $('reset-link-wrap').hidden=reset||verify;
  $('tab-login').setAttribute('aria-selected',String(!register));
