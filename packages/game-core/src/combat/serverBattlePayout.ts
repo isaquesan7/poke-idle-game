@@ -4,7 +4,8 @@
  */
 import {grantXp} from '../progression/xp.js';
 import {quoteFrozenBattleRewards} from './serverBattleRewards.js';
-import {KANTO_REGION_WINS_CAP} from '../capture/draftBallSupply.js';
+import {KANTO_REGION_WINS_CAP,d064BattleBallDropRates} from '../capture/draftBallSupply.js';
+import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
 
 const natural=(n:unknown):n is number=>
   typeof n==='number'&&Number.isSafeInteger(n)&&n>=0;
@@ -16,15 +17,39 @@ export function applyFrozenBattleRewardQuote(raw:string,snapshot:unknown,preview
   if(typeof raw!=='string'||!quote||typeof quote!=='object'||Array.isArray(quote)
     ||!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return null;
   const input=quote as Record<string,unknown>;
-  const legal=[0,1,2,3].map(roll=>quoteFrozenBattleRewards(snapshot,preview,roll))
-    .filter(x=>x!==null);
+  const regionId=(snapshot as {regionId?:number}).regionId;
+  const rates=regionId===undefined?null:d064BattleBallDropRates(regionId);
+  if(!rates)return null;
+  // Verify the persisted HMAC quote against every LEGAL outcome of the public
+  // regional drop policy, not against arbitrary client inventory claims.
+  // A deterministic representative roll per nonempty bucket suffices.
+  const pokeEnd=rates['poke-ball']*100;
+  const greatEnd=pokeEnd+rates['great-ball']*100;
+  const dropRolls=[
+    9999,
+    ...(rates['poke-ball']>0?[0]:[]),
+    ...(rates['great-ball']>0?[pokeEnd]:[]),
+    ...(rates['ultra-ball']>0?[greatEnd]:[])
+  ];
+  // Migration-free compatibility for quotes sealed before this release:
+  // older quotes had no ballDropId and can be paid with ZERO ball drops.
+  const legacy=!Object.hasOwn(input,'ballDropId');
+  const legal=[0,1,2,3].flatMap(affinityRoll=>dropRolls.map(ballRoll=>{
+    const q=quoteFrozenBattleRewards(snapshot,preview,affinityRoll,ballRoll);
+    if(!q)return null;
+    if(legacy){
+      if(q.ballDropId!==null)return null;
+      const {ballDropId:ignored,...prior}=q;
+      return prior;
+    }
+    return q;
+  })).filter(q=>q!==null);
   if(!legal.length)return null;
-  // JSONB key ordering is not stable. Compare exact known keys, values and
-  // count rather than JSON.stringify(object).
+  // JSONB key ordering is not stable: compare complete sets and values.
   const keys=Object.keys(legal[0]!);
   if(Object.keys(input).length!==keys.length||keys.some(k=>!Object.hasOwn(input,k))
     ||!legal.some(candidate=>keys.every(k=>
-      Object.is(input[k],(candidate as unknown as Record<string,unknown>)[k]))))
+      Object.is(input[k],(candidate as Record<string,unknown>)[k]))))
     return null;
   const s=snapshot as {trainer:{level:number};activePokemon:{
     uid:number;speciesId:number;level:number;affinity:number}};
@@ -77,8 +102,28 @@ export function applyFrozenBattleRewardQuote(raw:string,snapshot:unknown,preview
   const regionIndex=(input.regionId as number)-1;
   if(regionIndex!==0)return null; // only Bosque Inicial online presently
   const regionWins=state.regionWins as number[];
+  const oldWins=regionWins[regionIndex]??0;
   regionWins[regionIndex]=Math.min(KANTO_REGION_WINS_CAP,
-    (regionWins[regionIndex]??0)+(input.wins as number));
+    oldWins+(input.wins as number));
+
+  // One optional ball is credited in the SAME transaction as XP/coins.
+  // An eligible victory at the 100k regional-win cap cannot farm items.
+  const bag=inspectKantoBallPocket(state.ballPocket);
+  if(bag.status!=='valid')return null;
+  const rolledId=legacy?null:input.ballDropId;
+  if(rolledId!==null&&rolledId!=='poke-ball'&&rolledId!=='great-ball'&&
+    rolledId!=='ultra-ball')return null;
+  if(rolledId!==null&&(input.wins!==1||oldWins>=KANTO_REGION_WINS_CAP))
+    return null;
+  let ballDrop:null|{ballId:'poke-ball'|'great-ball'|'ultra-ball';quantity:number}=null;
+  if(rolledId!==null){
+    const old=bag.pocket.quantities[rolledId]??0;
+    const quantity=Math.min(100000,old+1)-old; // Pocket max from validator.
+    state.ballPocket={version:1,quantities:{
+      ...bag.pocket.quantities,[rolledId]:old+quantity
+    }};
+    ballDrop={ballId:rolledId,quantity};
+  }
   state.coins=(state.coins as number)+coins;
   const t=grantXp('trainer',{level:trainer.level as number,xp:trainer.xp as number},trainerXp);
   const p=grantXp('pokemon',{level:pokemon.level as number,xp:pokemon.xp as number},pokemonXp);
@@ -92,9 +137,10 @@ export function applyFrozenBattleRewardQuote(raw:string,snapshot:unknown,preview
        !Number.isSafeInteger((record[name] as number)+1))return null;
     record[name]=(record[name] as number)+1;
   }
-  // No ball drops, new Pokémon, badges or release of encounter.
+  // No captured Pokémon, badges, or release of encounter here.
   return {raw:JSON.stringify(state),paid:Object.freeze({
     coins,trainerXp,pokemonXp,affinityDelta,outcome:input.outcome,
-    activeUid:input.activeUid,trainerLevel:t.level,pokemonLevel:p.level
+    activeUid:input.activeUid,trainerLevel:t.level,pokemonLevel:p.level,
+    ballDrop
   })};
 }
