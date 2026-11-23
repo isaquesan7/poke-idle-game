@@ -90,8 +90,8 @@ describe('ONLINE-01C-17 — regional victory drops, canonical thresholds',()=>{
     expect(applyFrozenBattleRewardQuote(JSON.stringify(raw()),s,p,
       {...q,ballDropId:'poke-ball',freeBalls:5})).toBeNull();
     const noDrop=quoteFrozenBattleRewards(s,p,2,9999)!;
-    const legacy={...noDrop} as Partial<typeof noDrop>;
-    delete legacy.ballDropId;
+    const legacy=Object.fromEntries(Object.entries(noDrop)
+      .filter(([key])=>key!=='ballDropId'));
     const prior=applyFrozenBattleRewardQuote(JSON.stringify(raw()),s,p,legacy)!;
     expect(JSON.parse(prior.raw).ballPocket.quantities['poke-ball']).toBe(12);
     expect(prior.paid).toMatchObject({ballDrop:null});
