@@ -46,7 +46,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           node scripts/build-api-game-core.mjs "$RUNNER_TEMP/frozenBattle.mjs"
           echo "CORE_BUNDLE_PATH=$RUNNER_TEMP/frozenBattle.mjs" >> "$GITHUB_ENV"
-          node --input-type=module -e '
+          CORE_BUNDLE_PATH="$RUNNER_TEMP/frozenBattle.mjs" node --input-type=module -e '
             const m=await import(process.env.CORE_BUNDLE_PATH);
             if(typeof m.previewFrozenWildBattle!=="function")process.exit(1)
           '
