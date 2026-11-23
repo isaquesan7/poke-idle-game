@@ -992,3 +992,88 @@ test('ONLINE-01C-16: finish after payout atomically, replay once and unlock next
     await pool.end();
   }
 });
+
+test('ONLINE-01C-16: successful capture debits one ball and creates one canonical UID atomically',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {previewReservedBattle}=await import('../src/battlePreview.mjs');
+  const {sealReservedBattle}=await import('../src/battleSeal.mjs');
+  const {quoteSealedBattleRewards}=await import('../src/battleRewardQuote.mjs');
+  const {paySealedBattleRewards}=await import('../src/battlePayout.mjs');
+  const {finishPaidWildEncounter}=await import('../src/encounterFinalization.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const account=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['capture-final-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=account.rows[0].id;
+    // Deterministic isolated DB fixture: experienced Charmander vs Caterpie.
+    // Nothing in the production server allows choosing a wild species/level.
+    const first=firstSave('Capture CI',4,1740000000000);
+    const raw=JSON.parse(first.journal.raw);
+    raw.roster[0].level=10;
+    first.journal.raw=JSON.stringify(raw);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(first)]);
+    const book=await reserveEncounter(pool,{
+      accountId,actionId:'capture-final-booking-0001',expectedRevision:0,regionId:1});
+    assert.equal(book.status,'reserved');
+    const ids={accountId,encounterId:book.encounterId};
+    const entropyKey=Buffer.alloc(32,0x59);
+    assert.equal((await materializeReservedEncounter(pool,{...ids,entropyKey})).status,
+      'materialized');
+    await pool.query(
+      'UPDATE game_encounter_reservations SET species_id=10,pokemon_level=2 WHERE id=$1',
+      [book.encounterId]);
+    assert.equal((await prepareReservedBattle(pool,ids)).status,'prepared');
+    const preview=await previewReservedBattle(pool,{...ids,entropyKey});
+    assert.equal(preview.status,'previewed');
+    assert.equal(preview.preview.outcome,'win');
+    assert.equal((await sealReservedBattle(pool,{...ids,
+      actionId:'capture-final-seal-0001',expectedRevision:1})).status,'sealed');
+    assert.equal((await quoteSealedBattleRewards(pool,{...ids,entropyKey})).status,'quoted');
+    assert.equal((await paySealedBattleRewards(pool,{...ids,
+      actionId:'capture-final-payout-0001',expectedRevision:2})).status,'paid');
+    const before=await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[accountId]);
+    const oldRaw=JSON.parse(before.rows[0].state.journal.raw);
+    assert.equal(oldRaw.roster.length,1);
+    const cmd={...ids,actionId:'capture-final-throw-0001',
+      expectedRevision:3,choice:'poke-ball',entropyKey};
+    const race=await Promise.all([finishPaidWildEncounter(pool,cmd),
+      finishPaidWildEncounter(pool,cmd)]);
+    assert.deepEqual(race.map(x=>x.status).sort(),['finished','replay']);
+    assert.deepEqual(race[0].result,race[1].result);
+    assert.equal(race[0].result.outcome,'captured');
+    assert.equal(race[0].result.speciesId,10);
+    assert.equal(race[0].result.caughtUid,2);
+    const saved=await pool.query('SELECT state,revision FROM game_saves WHERE account_id=$1',
+      [accountId]);
+    assert.equal(Number(saved.rows[0].revision),4);
+    const updated=JSON.parse(saved.rows[0].state.journal.raw);
+    assert.equal(updated.ballPocket.quantities['poke-ball'],
+      oldRaw.ballPocket.quantities['poke-ball']-1);
+    assert.equal(updated.nextUid,3);
+    assert.equal(updated.roster.length,2);
+    assert.equal(updated.roster[1].pokemonId,10);
+    assert.equal(updated.roster[1].uid,2);
+    assert.equal(updated.roster[1].level,1);
+    assert.equal(updated.roster[1].xp,0);
+    assert.ok(updated.seen.includes(10));
+    assert.ok(updated.caughtSpecies.includes(10));
+    assert.deepEqual(updated.badges,[]);
+    const counts=await pool.query(
+      "SELECT kind,count(*)::int AS n FROM game_action_receipts WHERE account_id=$1 AND kind='encounter-finish' GROUP BY kind",
+      [accountId]);
+    assert.equal(counts.rows[0].n,1);
+    const status=await pool.query('SELECT status FROM game_encounter_reservations WHERE id=$1',
+      [book.encounterId]);
+    assert.equal(status.rows[0].status,'completed');
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
