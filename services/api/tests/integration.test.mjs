@@ -440,6 +440,11 @@ test('ONLINE-01C-9: one materialized encounter survives retries and worker races
     [reserved.encounterId]);
   assert.equal(result.rows[0].status,'reserved');
   assert.equal(Number(result.rows[0].species_id),first.speciesId);
+  await assert.rejects(pool.query(
+    'UPDATE game_encounter_reservations SET pokemon_level=NULL WHERE id=$1',
+    [reserved.encounterId]),
+    error=>error.code==='23514','partial materialization must violate CHECK');
+
   assert.ok(result.rows[0].materialized_at);
   const save=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',
     [accountId]);
