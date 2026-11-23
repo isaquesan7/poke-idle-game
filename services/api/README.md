@@ -91,3 +91,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - `006_battle_snapshot.sql` preserva `battle_snapshot` e `battle_prepared_at`; só aceita snapshot se o encontro já foi materializado. Runner checksum passa a aplicar seis migrações.
 - `prepareReservedBattle(pool,{accountId,encounterId})` lê os dados da reserva e do save da conta no servidor, congela o líder da equipe e o adversário e retorna replay imutável por consulta ao DB. Não recebe dados de luta nem resultados do navegador; é função interna sem rota.
 - Próximo serviço usará o game-core canônico para conferir learnset, stats, HP/SP, IA e resolver turnos. Sem recompensa, XP ou captura nesta fase, sem alterar localStorage. Cadastro público continua desativado.
+
+## ONLINE-01C-12 — bundle Node de batalha Kanto e prévia interna
+- `services/api/Dockerfile` compila `packages/game-core/src/combat/serverFrozenBattle.ts` em ESM auto-suficiente (esbuild do lock monorepo) e copia apenas `/srv/api/game-core/frozenBattle.mjs` para o runtime isolado. CI verifica existência e importação do bundle.
+- Migração `007_canonical_battle_preview.sql` registra `battle_preview` + data e exige existência de snapshot/materialização. `previewReservedBattle` acessa somente reserva existente, valida snapshot, usa HMAC privado e `previewFrozenWildBattle`, faz commit da prévia uma única vez com `FOR UPDATE`. Com corrida/retry, a prévia persistida é retornada sem reroll.
+- Função interna **sem endpoint**, sem logs de segredo, sem save/recompensas, sem captura; reserva segue pendente. Não configurar chave ou abrir contas reais neste release. No CI, variável CORE_BUNDLE_PATH permite apontar para bundle temporário em NODE_ENV=test; produção ignora override.
