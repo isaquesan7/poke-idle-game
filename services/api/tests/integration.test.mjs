@@ -897,3 +897,98 @@ test('ONLINE-01C-15: battle payout commits exactly once, preserves capture choic
     await pool.end();
   }
 });
+
+test('ONLINE-01C-16: finish after payout atomically, replay once and unlock next encounter',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {previewReservedBattle}=await import('../src/battlePreview.mjs');
+  const {sealReservedBattle}=await import('../src/battleSeal.mjs');
+  const {quoteSealedBattleRewards}=await import('../src/battleRewardQuote.mjs');
+  const {paySealedBattleRewards}=await import('../src/battlePayout.mjs');
+  const {finishPaidWildEncounter}=await import('../src/encounterFinalization.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const account=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['finish-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=account.rows[0].id;
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(firstSave('Final CI',4,1740000000000))]);
+    const booked=await reserveEncounter(pool,{
+      accountId,actionId:'finish-reservation-0001',expectedRevision:0,regionId:1});
+    assert.equal(booked.status,'reserved');
+    const ids={accountId,encounterId:booked.encounterId};
+    const entropyKey=Buffer.alloc(32,0x4f);
+    const finish={...ids,actionId:'finish-skip-action-0001',
+      expectedRevision:3,choice:'skip',entropyKey};
+    assert.equal((await finishPaidWildEncounter(pool,finish)).status,'stale');
+    assert.equal((await materializeReservedEncounter(pool,{...ids,entropyKey})).status,'materialized');
+    assert.equal((await prepareReservedBattle(pool,ids)).status,'prepared');
+    assert.equal((await previewReservedBattle(pool,{...ids,entropyKey})).status,'previewed');
+    assert.equal((await sealReservedBattle(pool,{...ids,
+      actionId:'finish-seal-action-0001',expectedRevision:1})).status,'sealed');
+    assert.equal((await quoteSealedBattleRewards(pool,{...ids,entropyKey})).status,'quoted');
+    assert.equal((await finishPaidWildEncounter(pool,finish)).status,'stale',
+      'cannot complete before payout revision');
+    assert.equal((await paySealedBattleRewards(pool,{...ids,
+      actionId:'finish-payout-action-0001',expectedRevision:2})).status,'paid');
+    assert.equal((await finishPaidWildEncounter(pool,{...finish,
+      expectedRevision:2})).status,'stale');
+    assert.equal((await finishPaidWildEncounter(pool,{...finish,
+      actionId:'finish-payout-action-0001'})).status,'duplicate-action');
+    const competing=await Promise.all([
+      finishPaidWildEncounter(pool,finish),
+      finishPaidWildEncounter(pool,{...finish,actionId:'finish-skip-action-0002'})
+    ]);
+    assert.deepEqual(competing.map(x=>x.status).sort(),['already-finished','finished']);
+    const winner=competing.find(x=>x.status==='finished');
+    assert.equal(winner.revision,4);
+    assert.equal(winner.result.outcome,'skipped');
+    assert.equal(winner.result.ballId,null);
+    const winningAction=competing[0].status==='finished'?
+      'finish-skip-action-0001':'finish-skip-action-0002';
+    const replay=await finishPaidWildEncounter(pool,{
+      ...finish,actionId:winningAction,expectedRevision:3});
+    assert.equal(replay.status,'replay');
+    assert.deepEqual(replay.result,winner.result);
+    assert.equal((await finishPaidWildEncounter(pool,{...finish,
+      actionId:winningAction,choice:'poke-ball'})).status,'already-finished');
+    const row=await pool.query(
+      'SELECT status,final_action_id,final_choice,final_revision,final_result FROM game_encounter_reservations WHERE id=$1',
+      [booked.encounterId]);
+    assert.equal(row.rows[0].status,'completed');
+    assert.equal(row.rows[0].final_choice,'skip');
+    assert.equal(row.rows[0].final_action_id,winningAction);
+    assert.equal(Number(row.rows[0].final_revision),4);
+    assert.deepEqual(row.rows[0].final_result,winner.result);
+    await assert.rejects(pool.query(
+      'UPDATE game_encounter_reservations SET final_result=NULL WHERE id=$1',
+      [booked.encounterId]),err=>err.code==='23514');
+    await assert.rejects(pool.query(
+      'UPDATE game_encounter_reservations SET status=\'reserved\' WHERE id=$1',
+      [booked.encounterId]),err=>err.code==='23514');
+    const saved=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',
+      [accountId]);
+    assert.equal(Number(saved.rows[0].revision),4);
+    const raw=JSON.parse(saved.rows[0].state.journal.raw);
+    assert.equal(raw.ballPocket.quantities['poke-ball'],12);
+    assert.equal(raw.roster.length,1);
+    assert.deepEqual(raw.badges,[]);
+    const receipts=await pool.query(
+      'SELECT kind,save_revision FROM game_action_receipts WHERE account_id=$1 ORDER BY save_revision',
+      [accountId]);
+    assert.deepEqual(receipts.rows.map(x=>x.kind),
+      ['encounter-reserve','battle-seal','battle-payout','encounter-finish']);
+    assert.deepEqual(receipts.rows.map(x=>Number(x.save_revision)),[1,2,3,4]);
+    const next=await reserveEncounter(pool,{
+      accountId,actionId:'finish-reservation-0002',expectedRevision:4,regionId:1});
+    assert.equal(next.status,'reserved','after completion, next encounter is available');
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
