@@ -1078,3 +1078,105 @@ test('ONLINE-01C-16: successful capture debits one ball and creates one canonica
     await pool.end();
   }
 });
+
+test('ONLINE-01C-17: canonical HMAC R1 Poké Ball drop is quoted and credited once',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {previewReservedBattle}=await import('../src/battlePreview.mjs');
+  const {sealReservedBattle}=await import('../src/battleSeal.mjs');
+  const {quoteSealedBattleRewards}=await import('../src/battleRewardQuote.mjs');
+  const {paySealedBattleRewards}=await import('../src/battlePayout.mjs');
+  const {finishPaidWildEncounter}=await import('../src/encounterFinalization.mjs');
+  const {createPrivateBattleRandom}=await import('../src/battleEntropy.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const account=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['ball-drop-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=account.rows[0].id;
+    const first=firstSave('Ball Drop CI',4,1740000000000);
+    const starter=JSON.parse(first.journal.raw);
+    starter.roster[0].level=10; // strong enough for reliable test-only wild KO
+    first.journal.raw=JSON.stringify(starter);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(first)]);
+    const reserve=await reserveEncounter(pool,{accountId,
+      actionId:'ball-drop-booking-0001',expectedRevision:0,regionId:1});
+    assert.equal(reserve.status,'reserved');
+    const ids={accountId,encounterId:reserve.encounterId};
+    // Rejection sampling is performed by the private HMAC tool; the test
+    // chooses a key solely in this throwaway account to cover a DROP path.
+    let key;
+    for(let n=1;n<256;n++){
+      const candidate=Buffer.alloc(32,n);
+      const rng=createPrivateBattleRandom(candidate,{
+        ...ids,phase:'wild-battle-ball-drop'});
+      if(rng.integer(10000)<3000){key=candidate;break;}
+    }
+    assert.ok(key,'expected a test key that rolls into R1 30% bucket');
+    assert.equal((await materializeReservedEncounter(pool,{
+      ...ids,entropyKey:key})).status,'materialized');
+    // Override random wild species only in isolated PG18 test fixture.
+    await pool.query(
+      'UPDATE game_encounter_reservations SET species_id=10,pokemon_level=2 WHERE id=$1',
+      [reserve.encounterId]);
+    assert.equal((await prepareReservedBattle(pool,ids)).status,'prepared');
+    const battle=await previewReservedBattle(pool,{...ids,entropyKey:key});
+    assert.equal(battle.status,'previewed');
+    assert.equal(battle.preview.outcome,'win');
+    assert.equal((await sealReservedBattle(pool,{...ids,
+      actionId:'ball-drop-seal-0001',expectedRevision:1})).status,'sealed');
+    const quoted=await quoteSealedBattleRewards(pool,{...ids,entropyKey:key});
+    assert.equal(quoted.status,'quoted');
+    assert.equal(quoted.quote.outcome,'win');
+    assert.equal(quoted.quote.ballDropId,'poke-ball');
+    const afterRotation=await quoteSealedBattleRewards(pool,{
+      ...ids,entropyKey:Buffer.alloc(32,0xa5)});
+    assert.equal(afterRotation.status,'replay');
+    assert.deepEqual(afterRotation.quote,quoted.quote);
+    const payout={...ids,actionId:'ball-drop-payout-0001',expectedRevision:2};
+    const raced=await Promise.all([
+      paySealedBattleRewards(pool,payout),
+      paySealedBattleRewards(pool,payout)
+    ]);
+    assert.deepEqual(raced.map(x=>x.status).sort(),['paid','replay']);
+    assert.deepEqual(raced[0].paid,raced[1].paid);
+    assert.deepEqual(raced[0].paid.ballDrop,{ballId:'poke-ball',quantity:1});
+    assert.equal((await paySealedBattleRewards(pool,{...payout,
+      actionId:'ball-drop-payout-0002'})).status,'already-paid');
+    const after=await pool.query('SELECT state,revision FROM game_saves WHERE account_id=$1',
+      [accountId]);
+    assert.equal(Number(after.rows[0].revision),3);
+    const raw=JSON.parse(after.rows[0].state.journal.raw);
+    assert.equal(raw.ballPocket.quantities['poke-ball'],13);
+    assert.equal(raw.coins,quoted.quote.coins);
+    assert.equal(raw.roster.length,1);
+    const finished=await finishPaidWildEncounter(pool,{
+      ...ids,actionId:'ball-drop-skip-0001',
+      expectedRevision:3,choice:'skip',entropyKey:key
+    });
+    assert.equal(finished.status,'finished');
+    const end=await pool.query('SELECT state FROM game_saves WHERE account_id=$1',
+      [accountId]);
+    assert.equal(JSON.parse(end.rows[0].state.journal.raw)
+      .ballPocket.quantities['poke-ball'],13,
+      'skip never removes already-earned random ball drop');
+    const receipts=await pool.query(
+      'SELECT kind,save_revision FROM game_action_receipts WHERE account_id=$1 ORDER BY save_revision',
+      [accountId]);
+    assert.deepEqual(receipts.rows.map(x=>x.kind),[
+      'encounter-reserve','battle-seal','battle-payout','encounter-finish'
+    ]);
+    assert.deepEqual(receipts.rows.map(x=>Number(x.save_revision)),[1,2,3,4]);
+    const next=await reserveEncounter(pool,{
+      accountId,actionId:'ball-drop-booking-0002',expectedRevision:4,regionId:1});
+    assert.equal(next.status,'reserved');
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
