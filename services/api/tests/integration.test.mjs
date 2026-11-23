@@ -678,7 +678,7 @@ test('ONLINE-01C-13 battle seal is atomic, idempotent, immutable and reward-free
     assert.equal(Number(persisted.battle_seal_revision),2);
     assert.ok(persisted.battle_sealed_at);
     await assert.rejects(pool.query(
-      "UPDATE game_encounter_reservations SET battle_sealed_outcome='invalid' WHERE id=$1",
+      "UPDATE game_encounter_reservations SET battle_sealed_outcome='nope' WHERE id=$1",
       [booking.encounterId]),error=>error.code==='23514');
     await assert.rejects(pool.query(
       "UPDATE game_encounter_reservations SET status='completed' WHERE id=$1",
