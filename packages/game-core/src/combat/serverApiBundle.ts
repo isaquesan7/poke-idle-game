@@ -2,3 +2,5 @@
 export {previewFrozenWildBattle,canonicalFrozenCombatants}
   from './serverFrozenBattle.js';
 export {quoteFrozenBattleRewards} from './serverBattleRewards.js';
+
+export {applyFrozenBattleRewardQuote} from './serverBattlePayout.js';

@@ -349,3 +349,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - A cotação econômica do combate online usa funções canônicas Kanto de XP, escala regional e perdas de afinidade, com sorteio de afinidade independente e privado, criado pelo servidor. Nunca incluir captura automática ou insígnias; drop de Pokébolas e consumo de captura terão subsistemas autoritativos próprios.
 - Cotação é imutável por encontro selado e fica no PostgreSQL; chaves rotacionadas ou retries não mudam cotação existente. Não modifica o save do treinador nem permite nova reserva enquanto o encontro está aberto.
 - A escrita de recompensas real depende da revisão sob lock, validação do Pokémon, do estado e caps, e receipt atômico; não inventar pagamentos quando ainda faltarem controles antifraude.
+
+### ONLINE-01C-15 — crédito econômico e escolha de captura devem ser separados
+- O payout de XP, moedas e afinidade de um combate selvagem selado é exclusivamente uma transação PostgreSQL, com recibo tipado `battle-payout`, revisão e a cotação revalidada por core. Não receber XP, dano, moeda ou outcome do cliente, nem conceder por meio do simulador legado.
+- Pagamento não finaliza reserva, não cria Pokébola/drop/captura. Apenas escritor posterior de captura/encerramento poderá liberar a reserva sob lock; isso evita repetir encontros gratuitamente, e preserva chance de captura depois da vitória.
+- Manter um único encontro reservado por conta. Não abrir cadastro público antes de testes completos, restore Railway real e entrega de e-mail, sem migrar saves locais do /play.

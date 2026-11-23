@@ -106,3 +106,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - Migração `009_battle_reward_quote.sql`: campos `battle_reward_quote` (JSONB) e timestamp. CHECK exige outcome selado idêntico ao da proposta e status reservado.
 - `quoteSealedBattleRewards` é serviço INTERNO sem rota. Sob `FOR UPDATE` do encontro, exige preview/selagem anteriores, chama bundle `quoteFrozenBattleRewards` do game-core e usa HMAC `wild-battle-affinity` apenas para derivar 2–5 de afinidade. A proposta é persistida antes de responder; retries retornam valor idêntico.
 - Não concede XP, moedas, afinidade, Pokébolas ou capturas, não escreve no save, não recebe identidade/payload de luta do browser. Backend só ficará acessível ao público após writer integral e gates de resiliência.
+
+## ONLINE-01C-15 — payout interno e uma única vez
+- Migration `010_battle_payout.sql` registra recibo/ação/revisão de pagamento no encontro sem marcar o encontro como concluído. `paySealedBattleRewards` trava save e encontro, revalida cotação via game-core, atualiza coins/XP/afinidade/histórico e grava receipt `battle-payout` em uma única transação.
+- Mesmo actionId retorna replay durável. IDs novos não pagam novamente; revisões obsoletas e save alterado/inconsistente são recusados. A bolsa de Pokébolas, elenco e badges não mudam, nenhum drop/captura é concedido. Sem HTTP e sem registro público.
+- O fluxo completo ainda precisa da decisão de captura, débito de Pokébolas e conclusão segura da reserva. O `/play` não migra para PostgreSQL.

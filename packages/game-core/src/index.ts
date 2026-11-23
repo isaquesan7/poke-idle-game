@@ -185,3 +185,6 @@ export type {ServerBattleSnapshotV1} from './combat/serverFrozenBattle.js';
 
 // ONLINE-01C-14: canonical regional reward QUOTE (no payout).
 export {quoteFrozenBattleRewards} from './combat/serverBattleRewards.js';
+
+// ONLINE-01C-15: pure server-side candidate battle payout, no HTTP.
+export {applyFrozenBattleRewardQuote} from './combat/serverBattlePayout.js';
