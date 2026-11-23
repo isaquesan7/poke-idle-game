@@ -1394,6 +1394,12 @@ test('ONLINE-01C-19: one transactional wild turn, replay, audit and no rewards',
     assert.equal((await applyReservedWildTurn(pool,{
       ...command,action:{kind:'move',moveName:'scratch'}})).status,
       'duplicate-action','same actionId cannot change command');
+    if(result.phase==='await-player'){
+      assert.equal((await applyReservedWildTurn(pool,{
+        ...command,actionId:'turn-writer-wrong-key-0001',
+        expectedRevision:2,entropyKey:Buffer.alloc(32,0xb7)})).status,
+        'entropy-mismatch','a new turn cannot switch the historical HMAC key');
+    }
     assert.equal((await applyReservedWildTurn(pool,{
       ...command,actionId:'turn-writer-reserve-0001'})).status,
       'duplicate-action','action identifiers cannot cross receipt kinds');
@@ -1649,6 +1655,15 @@ test('ONLINE-01C-21: verify every HMAC turn and pay exactly once (never auto-pre
     assert.equal((await payCertifiedWildTurns(pool,{
       ...command,expectedRevision:revision})).status,'unavailable',
       'a final session without an independent certificate cannot pay');
+    const {createPrivateBattleKeyProof}=await import('../src/battleEntropy.mjs');
+    const proofRow=await pool.query(
+      'SELECT battle_turn_entropy_proof FROM game_encounter_reservations WHERE id=$1',
+      [ids.encounterId]);
+    assert.match(proofRow.rows[0].battle_turn_entropy_proof,/^[0-9a-f]{64}$/);
+    assert.equal(proofRow.rows[0].battle_turn_entropy_proof,
+      createPrivateBattleKeyProof(key,ids));
+    assert.notEqual(createPrivateBattleKeyProof(corruptedKey,ids),
+      proofRow.rows[0].battle_turn_entropy_proof);
     const certify=await certifyResolvedWildTurn(pool,{
       ...ids,actionId:'turn-payout-certificate-0001',
       expectedRevision:revision});
@@ -1661,7 +1676,7 @@ test('ONLINE-01C-21: verify every HMAC turn and pay exactly once (never auto-pre
       ...args,actionId:'turn-payout-certificate-0001'})).status,
       'duplicate-action');
     assert.equal((await payCertifiedWildTurns(pool,{
-      ...args,entropyKey:corruptedKey})).status,'invalid-history',
+      ...args,entropyKey:corruptedKey})).status,'entropy-mismatch',
       'key rotation without old key must fail closed and never reroll');
     const original=await pool.query(
       `SELECT battle_snapshot,battle_turn_state,battle_turn_certificate_digest
