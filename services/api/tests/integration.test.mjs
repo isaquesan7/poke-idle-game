@@ -2415,3 +2415,172 @@ test('ONLINE-01C-23 correction: a stored 3-member Gym team has only ONE regional
     await pool.end();
   }
 });
+
+
+test('ONLINE-01C-23B2A: Collection team writer owns ordered UIDs, receipts and R1 solo lead',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {setCollectionTeam}=await import('../src/collectionTeam.mjs');
+  const {buildBattleSnapshot}=await import('../src/battlePreparation.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {loadCombatAdapter}=await import('../src/battlePreview.mjs');
+  const core=await loadCombatAdapter();
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const inserted=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['collection-team-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=inserted.rows[0].id;
+    const save=firstSave('Coleção CI',4,1740000000000);
+    const raw=JSON.parse(save.journal.raw);
+    raw.roster.push({...structuredClone(raw.roster[0]),uid:2,
+      pokemonId:25,level:20,moveName:'thunder-shock'});
+    raw.roster.push({...structuredClone(raw.roster[0]),uid:3,
+      pokemonId:7,level:10,moveName:'tackle'});
+    raw.nextUid=4;
+    save.journal.raw=JSON.stringify(raw);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(save)]);
+    const action={accountId,expectedRevision:0,
+      actionId:'collection-team-set-0001',teamUids:[2,3,1]};
+    for(const bad of [
+      {...action,teamUids:[]},
+      {...action,teamUids:[1,1]},
+      {...action,teamUids:[1,2,3,4]},
+      {...action,teamUids:[1,'2']},
+      {...action,teamUids:[-1]},
+      {...action,teamUids:[1,1.2]},
+      {...action,actionId:'no'},
+      {...action,expectedRevision:-1}
+    ])assert.equal((await setCollectionTeam(pool,bad)).status,'invalid');
+    assert.equal((await setCollectionTeam(pool,{
+      ...action,teamUids:[999]})).status,'missing-pokemon');
+    assert.equal((await setCollectionTeam(pool,{
+      ...action,expectedRevision:7})).status,'stale');
+    const committed=await setCollectionTeam(pool,action);
+    assert.deepEqual(committed,{status:'set',revision:1,teamUids:[2,3,1]});
+    assert.deepEqual(await setCollectionTeam(pool,action),
+      {status:'replay',revision:1,teamUids:[2,3,1]});
+    assert.equal((await setCollectionTeam(pool,{
+      ...action,teamUids:[3,2,1]})).status,'duplicate-action');
+    const row=await pool.query(
+      'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    const stored=row.rows[0].state,game=JSON.parse(stored.journal.raw);
+    assert.equal(Number(row.rows[0].revision),1);
+    assert.deepEqual(game.team,[2,3,1]);
+    assert.deepEqual(game.roster,raw.roster);
+    assert.deepEqual(game.trainer,raw.trainer);
+    assert.deepEqual(game.badges,raw.badges);
+    assert.deepEqual(game.ballPocket,raw.ballPocket);
+    assert.equal(game.coins,0);
+    const frozen=buildBattleSnapshot(stored,{regionId:1,speciesId:10,level:2});
+    assert.equal(frozen.version,1);
+    assert.equal(frozen.activePokemon.uid,2,'only selected team[0] fights in regions');
+    assert.equal(frozen.activePokemon.speciesId,25);
+    assert.equal(Object.hasOwn(frozen,'party'),false);
+    assert.equal(Object.hasOwn(core.createFrozenWildTurnSession(frozen),'playerParty'),false);
+    assert.equal(core.initialFrozenWildTurnActions(frozen).some(a=>a.kind==='switch'),
+      false,'regional combat cannot use either bench member');
+    const receipts=await pool.query(
+      'SELECT team_uids,save_revision FROM game_collection_team_receipts WHERE account_id=$1',
+      [accountId]);
+    assert.deepEqual(receipts.rows[0].team_uids,[2,3,1]);
+    assert.equal(Number(receipts.rows[0].save_revision),1);
+    await assert.rejects(pool.query(
+      `UPDATE game_collection_team_receipts
+        SET team_uids='[]'::jsonb WHERE account_id=$1`,
+      [accountId]),e=>e.code==='23514');
+
+    // Only one CAS writer can win; the others must not mutate the roster.
+    const race=await Promise.all([
+      setCollectionTeam(pool,{accountId,actionId:'collection-team-race-0002',
+        expectedRevision:1,teamUids:[1,2,3]}),
+      setCollectionTeam(pool,{accountId,actionId:'collection-team-race-0003',
+        expectedRevision:1,teamUids:[3,2,1]})
+    ]);
+    assert.deepEqual(race.map(r=>r.status).sort(),['set','stale']);
+    assert.equal(race.find(r=>r.status==='set').revision,2);
+    assert.equal((await setCollectionTeam(pool,action)).status,'replay',
+      'an old receipt remains replayable after later revisions');
+    assert.equal((await setCollectionTeam(pool,{
+      accountId,actionId:'collection-team-race-0002',
+      expectedRevision:2,teamUids:[2,3,1]})).status,
+      race[0].status==='set'?'duplicate-action':'stale');
+    const afterRace=await pool.query(
+      'SELECT state FROM game_saves WHERE account_id=$1',[accountId]);
+    const preBattleTeam=JSON.parse(afterRace.rows[0].state.journal.raw).team;
+    assert.ok([[1,2,3],[3,2,1]].some(t=>JSON.stringify(t)===JSON.stringify(preBattleTeam)));
+
+    const reserved=await reserveEncounter(pool,{
+      accountId,actionId:'collection-team-battle-0001',
+      expectedRevision:2,regionId:1});
+    assert.equal(reserved.status,'reserved');
+    const locked=await setCollectionTeam(pool,{
+      accountId,actionId:'collection-team-locked-0001',
+      expectedRevision:3,teamUids:[2,3,1]});
+    assert.equal(locked.status,'busy',
+      'even a leader swap before battle preparation would invalidate snapshot');
+    const after=await pool.query(
+      'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    assert.equal(Number(after.rows[0].revision),3);
+    assert.deepEqual(JSON.parse(after.rows[0].state.journal.raw).team,
+      preBattleTeam);
+    assert.equal((await pool.query(
+      "SELECT count(*)::int AS n FROM game_action_receipts WHERE account_id=$1 AND kind='collection-team-set'",
+      [accountId])).rows[0].n,2);
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
+
+test('ONLINE-01C-23B2A: Collection changes are forbidden during Gym, expedition and capture',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {setCollectionTeam}=await import('../src/collectionTeam.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const inserted=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['team-locks-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=inserted.rows[0].id;
+    const save=firstSave('Gym Locks CI',1,1740000000000);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(save)]);
+    const action={accountId,expectedRevision:0,
+      actionId:'collection-team-lock-test',teamUids:[1]};
+    const cases=[
+      {gymSession:{version:1,gymId:'boulder',uids:[1,2,3]}},
+      {expedition:{startedAt:1740000000000}},
+      {pendingBattle:{regionId:1}},
+      {lastBattle:{captureStatus:'available'}},
+    ];
+    for(const overlay of cases){
+      const patched=structuredClone(save);
+      patched.journal.raw=JSON.stringify({
+        ...JSON.parse(save.journal.raw),...overlay});
+      await pool.query(
+        'UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',
+        [accountId,JSON.stringify(patched)]);
+      const result=await setCollectionTeam(pool,action);
+      assert.equal(result.status,'busy',JSON.stringify(overlay));
+      const observed=await pool.query(
+        'SELECT state,revision FROM game_saves WHERE account_id=$1',[accountId]);
+      assert.deepEqual(observed.rows[0].state,patched);
+      assert.equal(Number(observed.rows[0].revision),0);
+    }
+    await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',
+      [accountId,JSON.stringify(save)]);
+    assert.deepEqual(await setCollectionTeam(pool,action),
+      {status:'set',revision:1,teamUids:[1]});
+    const receipt=await pool.query(
+      'SELECT kind FROM game_action_receipts WHERE account_id=$1 AND action_id=$2',
+      [accountId,action.actionId]);
+    assert.equal(receipt.rows[0].kind,'collection-team-set');
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
