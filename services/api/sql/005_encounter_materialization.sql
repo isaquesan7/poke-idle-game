@@ -11,6 +11,7 @@ ALTER TABLE game_encounter_reservations
     (species_id IS NULL AND pokemon_level IS NULL AND entropy_version IS NULL
       AND materialized_at IS NULL)
     OR
-    (species_id BETWEEN 1 AND 151 AND pokemon_level BETWEEN 1 AND 100
+    (species_id IS NOT NULL AND species_id BETWEEN 1 AND 151
+      AND pokemon_level IS NOT NULL AND pokemon_level BETWEEN 1 AND 100
       AND entropy_version IS NOT NULL AND materialized_at IS NOT NULL)
   );
