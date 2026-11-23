@@ -362,7 +362,7 @@ test('ONLINE-01C-8: an encounter reservation is durable, idempotent, one at a ti
       reserveEncounter(pool,params),
       reserveEncounter(pool,{...params,actionId:'encounter-reserve-ci-0002'})
     ]);
-    assert.deepEqual(result.map(x=>x.status).sort(),['busy','reserved']);
+    assert.deepEqual(result.map(x=>x.status).sort(),['reserved','stale']);
     const winner=result.find(x=>x.status==='reserved');
     assert.match(winner.encounterId,/^[0-9a-f-]{36}$/);
     const used=result[0].status==='reserved'?params.actionId:'encounter-reserve-ci-0002';
