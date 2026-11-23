@@ -2829,6 +2829,30 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       [race[0].gymReservationId]);
     assert.deepEqual(persisted.rows[0].turn_state,turns[0].result.state);
     assert.match(persisted.rows[0].turn_entropy_proof,/^[0-9a-f]{64}$/);
+    const {auditReservedGymBattle}=await import('../src/gymReplayAudit.mjs');
+    const audited=await auditReservedGymBattle(pool,{
+      accountId,gymReservationId:race[0].gymReservationId,entropyKey:key
+    });
+    assert.deepEqual(audited,{
+      status:'verified-progress',turns:1,outcome:'ongoing',
+      gymReservationId:race[0].gymReservationId,eligibleForBadge:false
+    });
+    assert.equal((await auditReservedGymBattle(pool,{
+      accountId,gymReservationId:race[0].gymReservationId,entropyKey:badKey
+    })).status,'entropy-mismatch');
+    await pool.query(
+      `UPDATE game_gym_turn_receipts SET
+        turn_result=jsonb_set(turn_result,'{outcome}','"player-win"'::jsonb)
+        WHERE gym_reservation_id=$1`,[race[0].gymReservationId]);
+    assert.deepEqual((await auditReservedGymBattle(pool,{
+      accountId,gymReservationId:race[0].gymReservationId,entropyKey:key
+    })).status,'invalid-history');
+    await pool.query(
+      'UPDATE game_gym_turn_receipts SET turn_result=$2::jsonb WHERE gym_reservation_id=$1',
+      [race[0].gymReservationId,JSON.stringify(turns[0].result)]);
+    assert.equal((await auditReservedGymBattle(pool,{
+      accountId,gymReservationId:race[0].gymReservationId,entropyKey:key
+    })).status,'verified-progress');
     assert.equal((await applyReservedGymTurn(pool,{...turnArgs,
       expectedRevision:0})).status,'replay',
       'an old turn can be replayed without new attack or RNG');
