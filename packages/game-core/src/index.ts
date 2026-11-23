@@ -116,6 +116,7 @@ export {inspectKantoBallPocket,spendKantoBallForAttempt}
   from './capture/kantoBallPocket.js';
 export {resolveKantoCaptureAttempt} from './capture/regionalCaptureAttempt.js';
 export {d064DraftBallDrop,d064BattleBallRoll,d064BattleBallDropRates,
+  d064BattleBallDropFromRoll,
   d064DraftBallSupply,D064_DRAFT_STARTER_BALLS,KANTO_REGION_WINS_CAP}
   from './capture/draftBallSupply.js';
 export type {KantoBattleBallDropRates,D064DraftBallDrop} from './capture/draftBallSupply.js';
