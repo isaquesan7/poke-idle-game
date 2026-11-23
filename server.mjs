@@ -15,7 +15,7 @@ createServer((req, res) => {
   const url = new URL(req.url || '/', 'http://localhost');
   // Only explicitly approved routes reach the private API; opt-in defaults OFF.
   if (proxyOnlineApi(req,res,url.pathname)) return;
-  if (url.pathname === '/') {
+  if (url.pathname === '/' || url.pathname === '/verify-email' || url.pathname === '/reset-password') {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405, {Allow:'GET, HEAD'});res.end();return;
     }
