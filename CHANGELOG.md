@@ -792,3 +792,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Utilitário interno da API `createPrivateBattleRandom`: fluxo reprodutível de HMAC-SHA256, chave exclusivamente do servidor com >=32 bytes, separado por conta/encounter UUID/etapa, seleção inteira sem viés de módulo, limites estritos de entrada. Testes Node cobrem reprodução, domínios e parâmetros inválidos.
 - Nenhum endpoint novo, nenhum encontro concedido, nenhuma batalha/captura simulada e nenhum lançamento de contas. Antes de usar o utilitário, o servidor PRECISA persistir/reservar encounter ID e recibo em transação, derivar contexto de sessão, aplicar motor oficial da batalha e gravar resultado/efeitos na mesma sequência transacional. Nunca aceitar seed, batalha, recompensa ou resultado do navegador.
 - Produção e `/play` preservados; PR e CI ainda pendentes.
+
+## ONLINE-01C-8 — reserva persistente de encontros (branch, sem rota pública)
+- Migração PostgreSQL `004_encounter_reservations.sql` cria identificador UUID de encontro gerado no banco, restrição `UNIQUE(account_id,action_id)`, histórico por conta e índice único parcial de encontro reservado pendente.
+- Serviço interno `reserveEncounter` verifica revisão e recibo de ação, serializa modificações pelo lock da linha `game_saves`, reserva a primeira região somente, grava encounter+revision+receipt na mesma transação e devolve o mesmo UUID a retries do mesmo actionId.
+- Nada é sorteado nem concedido: sem espécie, recompensas, HP ou consumo de Pokébolas. Não há endpoint de criação/fechamento de encontro; não permite criar outro encontro enquanto o anterior está reservado. Teste PG18 cobre concorrência, stale, replay e invariantes de não-recompensa.
+- Não altera `/play` nem migra save local. CI, merge e deploy pendentes.
