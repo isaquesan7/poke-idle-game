@@ -35,6 +35,22 @@ export interface ServerBattleSnapshotV2 extends
     readonly moveNames:readonly string[];
   };
 }
+/** v3: real 2–3 participant party, each with explicit 1–4 legal slots.
+ * The lead remains the reward recipient for this first regional slice.
+ */
+export interface ServerBattleSnapshotV3 extends
+  Omit<ServerBattleSnapshotV2,'version'> {
+  readonly version:3;
+  readonly party:readonly ServerBattleSnapshotV2['activePokemon'][];
+}
+const sameFighter=(a:ServerBattleSnapshotV2['activePokemon'],
+  b:ServerBattleSnapshotV2['activePokemon'])=>
+  !!a&&!!b&&a.uid===b.uid&&a.speciesId===b.speciesId&&
+  a.level===b.level&&a.affinity===b.affinity&&a.moveName===b.moveName&&
+  Array.isArray(a.moveNames)&&Array.isArray(b.moveNames)&&
+  a.moveNames.join(',')===b.moveNames.join(',')&&
+  STATS.every(stat=>a.manual?.[stat]===b.manual?.[stat]);
+
 /** Only canonical FRLG learned/implemented moves (plus the historical
  * no-offense fallback) are legal. No TM/egg/tutor or level-locked moves.
  * This is used by BOTH the equip writer and frozen battle constructor.
@@ -80,7 +96,21 @@ function manualValid(values:unknown,maxBudget:number):values is StatValues{
 export function canonicalFrozenCombatants(snapshot:unknown):
   {readonly player:Combatant;readonly wild:Combatant}|null{
   if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return null;
-  const s=snapshot as Partial<ServerBattleSnapshotV1|ServerBattleSnapshotV2>;
+  const s=snapshot as Partial<ServerBattleSnapshotV1|ServerBattleSnapshotV2|ServerBattleSnapshotV3>;
+  if(s.version===3){
+    const group=s as ServerBattleSnapshotV3;
+    if(group.regionId!==1||!Array.isArray(group.party)||
+       group.party.length<2||group.party.length>3||
+       !sameFighter(group.activePokemon,group.party[0]!)||
+       new Set(group.party.map(p=>p?.uid)).size!==group.party.length)
+      return null;
+    const actors=group.party.map(p=>canonicalFrozenCombatants({
+      version:2,regionId:group.regionId,opponent:group.opponent,
+      trainer:group.trainer,activePokemon:p
+    }));
+    if(actors.some(actor=>!actor))return null;
+    return actors[0]!;
+  }
   const player=s.activePokemon,trainer=s.trainer,enemy=s.opponent;
   if((s.version!==1&&s.version!==2)||s.regionId!==1||!player||!trainer||!enemy
      ||!Number.isSafeInteger(trainer.level)||trainer.level<1||trainer.level>100

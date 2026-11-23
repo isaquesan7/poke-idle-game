@@ -46,6 +46,7 @@ export async function previewReservedBattle(pool,{accountId,encounterId,entropyK
     const snap=encounter.battle_snapshot;
     // No action on malformed/tampered snapshots, including mismatch of
     // opponent to materialized identity. Complete legality is core-owned.
+    // Team battles must use audited per-turn actions, never auto-preview.
     if(snap?.version!==1||snap?.regionId!==1||
        snap?.opponent?.speciesId!==Number(encounter.species_id)||
        snap?.opponent?.level!==Number(encounter.pokemon_level))

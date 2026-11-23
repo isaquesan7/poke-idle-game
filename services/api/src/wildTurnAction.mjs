@@ -13,7 +13,9 @@ const rollback=async(client,value)=>{await client.query('ROLLBACK');return value
 const validAction=action=>action!==null&&typeof action==='object'&&!Array.isArray(action)&&
   ((Object.keys(action).length===1&&['basic','focus'].includes(action.kind))||
    (Object.keys(action).length===2&&action.kind==='move'&&
-    typeof action.moveName==='string'&&/^[a-z][a-z-]{1,63}$/.test(action.moveName)));
+    typeof action.moveName==='string'&&/^[a-z][a-z-]{1,63}$/.test(action.moveName))||
+   (Object.keys(action).length===2&&action.kind==='switch'&&
+    Number.isSafeInteger(action.toIndex)&&action.toIndex>=0&&action.toIndex<=2));
 
 export async function applyReservedWildTurn(pool,{
   accountId,encounterId,actionId,expectedRevision,action,entropyKey
@@ -65,6 +67,10 @@ export async function applyReservedWildTurn(pool,{
        save?.revision!==revision||save?.journal?.revision!==revision||
        typeof save?.journal?.raw!=='string')
       return await rollback(client,{status:'invalid-save'});
+    // Legacy v1/v2 encounters never expose switch commands. Preserve the
+    // prior writer's invalid-input contract for old battles and their tests.
+    if(action.kind==='switch'&&encounter.battle_snapshot?.version!==3)
+      return await rollback(client,{status:'invalid'});
     const session=encounter.battle_turn_state;
     if(encounter.status!=='reserved'||encounter.region_id!==1||
        !encounter.battle_snapshot||!session||
