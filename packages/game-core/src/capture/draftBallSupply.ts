@@ -59,15 +59,15 @@ export function d064BattleBallRoll(regionId:number,seed:number,battleId:string):
   return(hash>>>0)%10000;
 }
 
-/** Nenhum tipo é garantido por quantidade de vitórias. Um roll sorteia
- * no máximo UMA bola; não depende nem modifica regionWins (cap 100k).
+/** Shared canonical 0..9999 roll interpretation. The API derives this
+ * integer from private HMAC entropy; /play keeps its existing local hashing.
+ * Exactly zero or one ball per eligible victory, never a milestone award.
  */
-export function d064DraftBallDrop(
-  regionId:number,seed:number,battleId:string
+export function d064BattleBallDropFromRoll(
+  regionId:number,roll:number
 ):D064DraftBallDrop|null{
   const rates=d064BattleBallDropRates(regionId);
-  const roll=d064BattleBallRoll(regionId,seed,battleId);
-  if(!rates||roll===null)return null;
+  if(!rates||!Number.isSafeInteger(roll)||roll<0||roll>=10000)return null;
   const poke=rates['poke-ball']*100;
   const great=poke+rates['great-ball']*100;
   const ultra=great+rates['ultra-ball']*100;
@@ -76,6 +76,14 @@ export function d064DraftBallDrop(
     'great-ball':roll>=poke&&roll<great?1:0,
     'ultra-ball':roll>=great&&roll<ultra?1:0
   };
+}
+
+/** Existing local battle seed/hash policy is unchanged. */
+export function d064DraftBallDrop(
+  regionId:number,seed:number,battleId:string
+):D064DraftBallDrop|null{
+  const roll=d064BattleBallRoll(regionId,seed,battleId);
+  return roll===null?null:d064BattleBallDropFromRoll(regionId,roll);
 }
 
 /** SOMENTE expectativa estatística, jamais quantidade prometida por vitórias.
