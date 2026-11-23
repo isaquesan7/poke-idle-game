@@ -86,3 +86,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - Migração `005_encounter_materialization.sql` congela espécie, nível, versão RNG e instante de um encontro reservado, de modo transacional e com CHECK de preenchimento completo.
 - `materializeReservedEncounter` precisa de UUIDs de conta/encontro já validados pelo servidor, chave HMAC privada 32+ bytes, reserva `status=reserved` e save do backend. Aplica só região 1, fonte sincronizada e testada contra `kantoRegions.ts`; concorrência/retries leem resultado congelado mesmo se trocar a chave em processo novo.
 - Nunca expor secret ou dados de controle em HTTP ou logs. Não é endpoint de jogo; sem combate, captura, recompensas ou mutação de /play. Sem registro público.
+
+## ONLINE-01C-10 — snapshot de preparação de combate (interno)
+- `006_battle_snapshot.sql` preserva `battle_snapshot` e `battle_prepared_at`; só aceita snapshot se o encontro já foi materializado. Runner checksum passa a aplicar seis migrações.
+- `prepareReservedBattle(pool,{accountId,encounterId})` lê os dados da reserva e do save da conta no servidor, congela o líder da equipe e o adversário e retorna replay imutável por consulta ao DB. Não recebe dados de luta nem resultados do navegador; é função interna sem rota.
+- Próximo serviço usará o game-core canônico para conferir learnset, stats, HP/SP, IA e resolver turnos. Sem recompensa, XP ou captura nesta fase, sem alterar localStorage. Cadastro público continua desativado.

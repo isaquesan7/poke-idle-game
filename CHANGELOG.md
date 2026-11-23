@@ -803,3 +803,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Migração `005_encounter_materialization.sql` acrescenta espécie, nível, versão do RNG e data de materialização a reservas já persistidas; um CHECK exige os quatro campos juntos, sem estados parciais.
 - Serviço INTERNO `materializeReservedEncounter` lê reserva do banco com `FOR UPDATE`, escolhe espécie/nível R1 com HMAC privado do servidor e persiste antes de responder. Retries/worker concorrente (ou chave trocada) retornam espécie e nível já gravados, sem reroll. Pool e faixas da região 1 são verificadas contra a fonte game-core em teste automatizado.
 - Não é batalha/captura nem recompensa; não adiciona endpoint, não configura segredo de produção, não altera `/play`. Testes PostgreSQL 18 verificam concorrência, replay, preservação do inventário/progresso e constraint SQL.
+
+## ONLINE-01C-10 — preparação persistida do combate (branch)
+- Migração `006_battle_snapshot.sql`: congela dados mínimos do encontro preparado em `battle_snapshot` JSONB e data, com CHECK exigindo materialização prévia completa.
+- Serviço INTERNO `prepareReservedBattle` lê a conta/UUID de reserva pertencentes ao servidor; valida o save, líder de equipe, nível, atributos manuais e espécie/nível já materializados. Persiste no banco uma fotografia da equipe ativa e do adversário; chamadas repetidas/concorrentes retornam a mesma fotografia.
+- Não calcula dano, status, SP, IA, drops ou XP; não abre endpoint, não grava seeds, não expõe cálculo arbitrário do cliente, não altera save ou recibos. Os cálculos oficiais de combate/moves/stats devem ser reutilizados do game-core no próximo estágio.
+- Testes Node/PG18 cobrem campos esperados, dados ilegais, concorrência, replay após modificação do save, CHECK e ausência de recompensas. CI e merge ainda pendentes.

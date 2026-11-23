@@ -324,3 +324,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - A primeira espécie e seu nível são derivados EXCLUSIVAMENTE no backend a partir do identificador reservado no PostgreSQL, chave HMAC secreta e regras da região. Resultado é gravado no banco dentro da transação antes da resposta e não muda com retry/concor­rência/rotação de chave.
 - A implementação inicial trata apenas R1 Bosque Inicial; o teste de paridade garante a mesma composição e limites do game-core. Não criar catálogos paralelos para demais regiões; integrar a fonte canônica ao backend antes de ampliar.
 - Materialização não altera save, não concede recompensas, não encerra encontro e não constitui gameplay online completo. Nenhuma rota é exposta antes das transições e receipts do motor de combate.
+
+### ONLINE-01C-10 — batalha começa por snapshot congelado no servidor
+- Após reservar e materializar um encontro, o backend registra em JSONB os identificadores, níveis, pontos manuais e afinidade do primeiro Pokémon válido da equipe, o treinador e o adversário. Esse registro é criado somente uma vez sob trava da reserva; retentativas retornam a mesma fotografia, sem olhar novamente o save atual.
+- Não persistir credenciais nem seed privada; cliente não pode enviar estatísticas, Pokémon, golpes ou desfecho para esse passo. Snapshot de identidade não equivale a combate resolvido: golpistas não podem usar o snapshot para atribuir danos, resultados ou recompensas.
+- Evoluir com adaptador de game-core compilado e testado, sem reimplementar mecânicas de HP/SP, boosts, ataques e capturas. Nenhuma etapa libera contas públicas isoladamente.
