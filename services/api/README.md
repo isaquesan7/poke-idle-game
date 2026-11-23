@@ -111,3 +111,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - Migration `010_battle_payout.sql` registra recibo/ação/revisão de pagamento no encontro sem marcar o encontro como concluído. `paySealedBattleRewards` trava save e encontro, revalida cotação via game-core, atualiza coins/XP/afinidade/histórico e grava receipt `battle-payout` em uma única transação.
 - Mesmo actionId retorna replay durável. IDs novos não pagam novamente; revisões obsoletas e save alterado/inconsistente são recusados. A bolsa de Pokébolas, elenco e badges não mudam, nenhum drop/captura é concedido. Sem HTTP e sem registro público.
 - O fluxo completo ainda precisa da decisão de captura, débito de Pokébolas e conclusão segura da reserva. O `/play` não migra para PostgreSQL.
+
+## ONLINE-01C-16 — captura ou desistência e encerramento do encontro (somente interno)
+- `011_capture_finalization.sql`: campos finais, constraint de completude e ação única por conta; versões anteriores de constraints 008/009/010 são reeditadas em migração append-only para permitir conclusão somente com o pagamento já registrado.
+- `finishPaidWildEncounter(pool,{accountId,encounterId,actionId,expectedRevision,choice,entropyKey})`: executado SOMENTE por contexto servidor autenticado. Choice `skip` ou uma bola Poké/Great/Ultra. Seed de captura é HMAC derivada do encontro; core valida vitória/HP/bolso, gasta 1 bola inclusive na falha, cria 1 UID no sucesso. Lock save→encontro e commit único salva estado, receipt, status e resultado.
+- Retry da mesma ação e escolha devolve a conclusão já persistida. Ação distinta não concede outro lançamento. Sem rota HTTP e sem cadastro público; `/play` independente.

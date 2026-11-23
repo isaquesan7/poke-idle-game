@@ -354,3 +354,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - O payout de XP, moedas e afinidade de um combate selvagem selado é exclusivamente uma transação PostgreSQL, com recibo tipado `battle-payout`, revisão e a cotação revalidada por core. Não receber XP, dano, moeda ou outcome do cliente, nem conceder por meio do simulador legado.
 - Pagamento não finaliza reserva, não cria Pokébola/drop/captura. Apenas escritor posterior de captura/encerramento poderá liberar a reserva sob lock; isso evita repetir encontros gratuitamente, e preserva chance de captura depois da vitória.
 - Manter um único encontro reservado por conta. Não abrir cadastro público antes de testes completos, restore Railway real e entrega de e-mail, sem migrar saves locais do /play.
+
+### ONLINE-01C-16 — captura é decisão final única e consome uma bola, mesmo se falhar
+- Somente depois de resultado selado e recompensa paga o backend permite `skip` ou um lançamento (Poké/Great/Ultra) após vitória. Falhar gasta exatamente uma bola e fecha o encontro; não há recurso de repetir lançamento no mesmo selvagem. Encerrar sem tentar não consome bola e funciona após vitória/derrota/empate.
+- Quem decide sucesso/fracasso é o motor Kanto com seed HMAC fase `wild-capture`, sem controle do navegador. UID do Pokémon capturado pertence ao backend, com nível inicial canônico, histórico limpo e golpe aprendido compatível. Master Ball ainda bloqueada.
+- Save, revisão, receipt, consumo de item e transição `reserved` → `completed` acontecem na mesma transação com locks conta/encounter. A conclusão libera somente então a próxima reserva. Nenhuma rota pública, no registration nem migração de save local nesta entrega.
