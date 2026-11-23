@@ -5,10 +5,24 @@ import {
 } from './serverGymPreparation.js';
 import {KANTO_GYMS,KANTO_GYM_MASTER_TITLE_STATS} from '../gyms/kantoGyms.js';
 
-const blank=()=>({
+type Stats={hp:number;attack:number;defense:number;specialAttack:number;
+  specialDefense:number;speed:number};
+interface Fixture {
+  version:number;mode:string;wins:number;seen:number[];badges:string[];
+  trainer:{level:number;xp:number;manual:Stats;
+    equipped:Record<string,string>;title:string};
+  roster:Array<{uid:number;pokemonId:number;level:number;affinity:number;
+    manual:Stats;moveName:string;equippedMoveNames:string[];
+    upgrades:Record<string,number>}>;
+  team:number[];nextUid:number;expedition:unknown;
+  inventory?:{version:number;extraBagSlots:number;
+    ownedEquipment:Record<string,number>};
+  gymSession?:unknown;pendingBattle?:unknown;lastBattle?:unknown;
+}
+const blank=():Stats=>({
   hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0
 });
-function fixture(){
+function fixture():Fixture{
   return {
     version:1,mode:'normal',wins:0,seen:[4,7,25],badges:[],
     trainer:{level:1,xp:0,manual:blank(),equipped:{},title:'aprendiz'},
@@ -113,7 +127,7 @@ describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
     const finished=canonicalOnlineGymTrainerBonuses(raw)!;
     expect(finished.totals.attack).toBeGreaterThanOrEqual(
       KANTO_GYM_MASTER_TITLE_STATS.attack!);
-    expect(canonicalOnlineGymPreparation(raw)).toBeNull(),
+    expect(canonicalOnlineGymPreparation(raw)).toBeNull();
     // A complete trainer has no ninth Kanto Gym.
     raw.badges=[];
     expect(canonicalOnlineGymTrainerBonuses(raw)).toBeNull();
