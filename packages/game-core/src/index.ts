@@ -192,3 +192,7 @@ export {applyFrozenBattleRewardQuote} from './combat/serverBattlePayout.js';
 
 // ONLINE-01C-16: server-authoritative postbattle capture or skip.
 export {finalizeFrozenWildEncounter} from './capture/serverEncounterFinalization.js';
+
+// ONLINE-01C-18: canonical turn-zero contract, not turn resolution.
+export {createFrozenWildTurnSession,initialFrozenWildTurnActions}
+  from './combat/serverWildTurnSession.js';
