@@ -35,11 +35,20 @@ describe('ONLINE-01C-11 — canonical frozen PvE adapter (no grants)',()=>{
    const canonical=simulateKantoBattle(pair.player,pair.wild,2026);
    const preview=previewFrozenWildBattle(input,2026)!;
    expect(preview.outcome).toBe(canonical.outcome);
-   expect(preview.frames).toEqual(canonical.frames);
-   expect(preview.log).toEqual(canonical.log);
+   expect(preview.frames.length).toBe(preview.log.length);
+   expect(preview.log.filter(line=>line.startsWith('Captura! '))).toEqual([]);
+   expect(preview.log.some(line=>line.includes('Recompensas de combate recebidas'))).toBe(false);
+   expect(preview.frames).toEqual(canonical.frames.filter((frame,index)=>
+     !canonical.log[index]?.startsWith('Captura! ')));
    expect(preview.playerRemainingHp).toBe(canonical.playerRemainingHp);
    expect(preview.wildRemainingSp).toBe(canonical.wildRemainingSp);
    expect(preview).toEqual(previewFrozenWildBattle(input,2026));
+   for(let seed=0;seed<50;seed++){
+     const sample=previewFrozenWildBattle(input,seed)!;
+     expect(sample.frames.length).toBe(sample.log.length);
+     expect(sample.log.some(line=>line.startsWith('Captura! ')||
+       line.includes('Recompensas de combate recebidas'))).toBe(false);
+   }
    expect(Object.keys(preview)).not.toContain('captured');
    expect(Object.keys(preview)).not.toContain('affinityGain');
    expect(Object.keys(preview)).not.toContain('coins');
