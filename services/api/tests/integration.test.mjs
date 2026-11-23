@@ -2350,3 +2350,68 @@ test('ONLINE-01C-23A: private FRLG four-move equip, frozen turn combat and safe 
     await pool.end();
   }
 });
+
+
+test('ONLINE-01C-23 correction: a stored 3-member Gym team has only ONE regional fighter',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {startReservedWildTurnSession}=await import('../src/wildTurnSession.mjs');
+  const {applyReservedWildTurn}=await import('../src/wildTurnAction.mjs');
+  const {loadCombatAdapter}=await import('../src/battlePreview.mjs');
+  const core=await loadCombatAdapter();
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const inserted=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['regional-one-fighter-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=inserted.rows[0].id;
+    const save=firstSave('Regional Single CI',4,1740000000000);
+    const raw=JSON.parse(save.journal.raw);
+    raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25,
+      level:20,moveName:'thunder-shock'});
+    raw.roster.push({...structuredClone(raw.roster[0]),uid:3,pokemonId:7,
+      level:20,moveName:'tackle'});
+    raw.team=[1,2,3];raw.nextUid=4;
+    save.journal.raw=JSON.stringify(raw);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(save)]);
+    const reserved=await reserveEncounter(pool,{
+      accountId,actionId:'regional-single-booking-0001',
+      expectedRevision:0,regionId:1});
+    assert.equal(reserved.status,'reserved');
+    const ids={accountId,encounterId:reserved.encounterId};
+    const key=Buffer.alloc(32,0x69);
+    assert.equal((await materializeReservedEncounter(pool,{
+      ...ids,entropyKey:key})).status,'materialized');
+    const prepared=await prepareReservedBattle(pool,ids);
+    assert.equal(prepared.status,'prepared');
+    assert.equal(prepared.snapshot.version,1);
+    assert.equal(prepared.snapshot.activePokemon.uid,1);
+    assert.equal(Object.hasOwn(prepared.snapshot,'party'),false);
+    assert.equal(Object.hasOwn(prepared.snapshot,'playerParty'),false);
+    const started=await startReservedWildTurnSession(pool,{
+      ...ids,expectedRevision:1});
+    assert.equal(started.status,'started');
+    assert.equal(Object.hasOwn(started.turnState,'playerParty'),false);
+    assert.equal(started.turnState.player.uid,1);
+    assert.equal(started.actions.some(a=>a.kind==='switch'),false);
+    assert.equal(core.legalFrozenWildTurnActions(
+      prepared.snapshot,started.turnState).some(a=>a.kind==='switch'),false);
+    const illegal=await applyReservedWildTurn(pool,{
+      ...ids,actionId:'regional-single-switch-0001',
+      expectedRevision:1,action:{kind:'switch',toIndex:1},entropyKey:key});
+    assert.equal(illegal.status,'invalid');
+    const after=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',
+      [accountId]);
+    assert.equal(Number(after.rows[0].revision),1,
+      'invalid bench switch must never consume a turn or save revision');
+    assert.deepEqual(JSON.parse(after.rows[0].state.journal.raw).team,[1,2,3]);
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
