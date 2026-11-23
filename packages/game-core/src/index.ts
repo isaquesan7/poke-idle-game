@@ -176,3 +176,9 @@ export {applyGymResidual} from './gyms/gymBattleState.js';
 // GYM-02D: escolha tática validada pelas mesmas ações legais do jogador.
 export {gymLegalTurnActions,GYM_MAX_TURNS} from './gyms/gymTurn.js';
 export {gymChooseAiAction,resolveGymAiTurn} from './gyms/gymAiTurn.js';
+
+
+// ONLINE-01C-11: pure adapter of server-owned frozen snapshots, NOT an HTTP route.
+export {canonicalFrozenCombatants,previewFrozenWildBattle}
+  from './combat/serverFrozenBattle.js';
+export type {ServerBattleSnapshotV1} from './combat/serverFrozenBattle.js';

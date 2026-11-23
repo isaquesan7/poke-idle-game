@@ -809,3 +809,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Serviço INTERNO `prepareReservedBattle` lê a conta/UUID de reserva pertencentes ao servidor; valida o save, líder de equipe, nível, atributos manuais e espécie/nível já materializados. Persiste no banco uma fotografia da equipe ativa e do adversário; chamadas repetidas/concorrentes retornam a mesma fotografia.
 - Não calcula dano, status, SP, IA, drops ou XP; não abre endpoint, não grava seeds, não expõe cálculo arbitrário do cliente, não altera save ou recibos. Os cálculos oficiais de combate/moves/stats devem ser reutilizados do game-core no próximo estágio.
 - Testes Node/PG18 cobrem campos esperados, dados ilegais, concorrência, replay após modificação do save, CHECK e ausência de recompensas. CI e merge ainda pendentes.
+
+## ONLINE-01C-11 — adaptador puro de combate canônico para snapshots online (branch)
+- Adicionado `packages/game-core/src/combat/serverFrozenBattle.ts`: valida contrato da fotografia `ONLINE-01C-10`, reconstrói combatentes exclusivamente com catálogo Kanto, atributos oficiais, pontos manuais e aprendizado de golpes FRLG permitido para o nível, e monta conjunto de golpes selvagens pela mesma regra usada em `/play`.
+- `previewFrozenWildBattle` usa o MESMO `simulateKantoBattle` com seed uint32 fornecida pelo backend; retorna HP/SP, resultado e log/frame, mas NÃO expõe a captura automática do simulador legado, afinidade ou moedas. Não escreve nenhuma recompensa ou save; nenhuma rota HTTP foi aberta.
+- Testes Vitest verificam paridade exata de motor, estatísticas, IA selvagem, validação de golpes de nível futuro, orçamento de pontos e resultados reproduzíveis. CI e merge pendentes.

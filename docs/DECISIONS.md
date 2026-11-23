@@ -329,3 +329,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - Após reservar e materializar um encontro, o backend registra em JSONB os identificadores, níveis, pontos manuais e afinidade do primeiro Pokémon válido da equipe, o treinador e o adversário. Esse registro é criado somente uma vez sob trava da reserva; retentativas retornam a mesma fotografia, sem olhar novamente o save atual.
 - Não persistir credenciais nem seed privada; cliente não pode enviar estatísticas, Pokémon, golpes ou desfecho para esse passo. Snapshot de identidade não equivale a combate resolvido: golpistas não podem usar o snapshot para atribuir danos, resultados ou recompensas.
 - Evoluir com adaptador de game-core compilado e testado, sem reimplementar mecânicas de HP/SP, boosts, ataques e capturas. Nenhuma etapa libera contas públicas isoladamente.
+
+### ONLINE-01C-11 — o backend reutilizará o motor Kanto, não uma simulação paralela
+- A integração de combate é construída sobre `simulateKantoBattle` e os catálogos atuais de espécies, stats e IA. Snapshot sozinho não autoriza tipos, poderes, golpe futuro, rank ou status. Calcular combatentes novamente pelo game-core.
+- Prévia de batalha não pode usar a chance de captura automática do simulador legado como captura online: capturar exige requisição separada com gasto atômico de Pokébolas e receipt. Resultado e recompensas não são persistidos neste adaptador.
+- Ainda não é versão final dos atributos pois o snapshot atual não inclui equipamentos/títulos/bônus de insígnias, nem 4 slots completos do jogador. Completar contrato antes de disponibilizar combate online real.
