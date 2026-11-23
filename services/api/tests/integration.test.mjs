@@ -338,3 +338,64 @@ test('ONLINE-01C-6 trainer investment is serialized, revision-bound and receipt-
       ['adventure-initialization','trainer-invest','trainer-invest']);
   }finally{child.kill('SIGTERM');await pool.end();}
 });
+
+test('ONLINE-01C-8: an encounter reservation is durable, idempotent, one at a time and reward-free',async()=>{
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  const email='encounter-'+process.pid+'@example.test';
+  let accountId;
+  try{
+    const account=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      [email,'x'.repeat(48)]);
+    accountId=account.rows[0].id;
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(firstSave('CI Kanto',1,1740000000000))]);
+    const params={accountId,actionId:'encounter-reserve-ci-0001',
+      expectedRevision:0,regionId:1};
+    assert.equal((await reserveEncounter(pool,{...params,regionId:10})).status,'invalid',
+      'region eligibility requires separate server policy before unlocking');
+    assert.equal((await reserveEncounter(pool,{...params,actionId:'x'})).status,'invalid');
+    const result=await Promise.all([
+      reserveEncounter(pool,params),
+      reserveEncounter(pool,{...params,actionId:'encounter-reserve-ci-0002'})
+    ]);
+    assert.deepEqual(result.map(x=>x.status).sort(),['busy','reserved']);
+    const winner=result.find(x=>x.status==='reserved');
+    assert.match(winner.encounterId,/^[0-9a-f-]{36}$/);
+    const used=result[0].status==='reserved'?params.actionId:'encounter-reserve-ci-0002';
+    const replay=await reserveEncounter(pool,{...params,actionId:used,expectedRevision:0});
+    assert.equal(replay.status,'replay');
+    assert.equal(replay.encounterId,winner.encounterId);
+    assert.equal(replay.revision,1);
+    assert.equal((await reserveEncounter(pool,{...params,actionId:'encounter-reserve-ci-0003',
+      expectedRevision:0})).status,'stale');
+    assert.equal((await reserveEncounter(pool,{...params,actionId:'encounter-reserve-ci-0004',
+      expectedRevision:1})).status,'busy');
+    const saved=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',
+      [accountId]);
+    assert.equal(Number(saved.rows[0].revision),1);
+    assert.equal(saved.rows[0].state.revision,1);
+    assert.equal(saved.rows[0].state.journal.revision,1);
+    const raw=JSON.parse(saved.rows[0].state.journal.raw);
+    assert.equal(raw.coins,0);
+    assert.equal(raw.trainer.xp,0);
+    assert.equal(raw.roster[0].level,1);
+    assert.deepEqual(raw.badges,[]);
+    assert.equal(raw.ballPocket.quantities['poke-ball'],12);
+    const encounters=await pool.query(
+      'SELECT id,status,region_id FROM game_encounter_reservations WHERE account_id=$1',
+      [accountId]);
+    assert.equal(encounters.rowCount,1);
+    assert.equal(encounters.rows[0].id,winner.encounterId);
+    assert.equal(encounters.rows[0].status,'reserved');
+    const receipts=await pool.query(
+      'SELECT kind,save_revision FROM game_action_receipts WHERE account_id=$1',[accountId]);
+    assert.deepEqual(receipts.rows,[{kind:'encounter-reserve',save_revision:'1'}]);
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
