@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { createReadStream, existsSync, readFileSync } from 'node:fs';
+import { proxyOnlineApi } from './online-api-proxy.mjs';
 
 /**
  * Servidor mínimo do laboratório: expõe apenas as rotas públicas conhecidas.
@@ -12,6 +13,8 @@ const landing=readFileSync(new URL('./landing.html',import.meta.url));
 
 createServer((req, res) => {
   const url = new URL(req.url || '/', 'http://localhost');
+  // Only explicitly approved routes reach the private API; opt-in defaults OFF.
+  if (proxyOnlineApi(req,res,url.pathname)) return;
   if (url.pathname === '/') {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405, {Allow:'GET, HEAD'});res.end();return;

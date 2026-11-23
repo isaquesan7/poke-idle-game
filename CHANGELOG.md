@@ -770,3 +770,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - `initialAdventure.mjs` constrói perfil novo 1/4/7 lv1 só a partir de perfil autenticado + relógio do servidor. Endpoint test-only `POST /api/v1/adventure/start` aceita apenas starterId e grava save + receipt em transação PostgreSQL com unicidade por conta; dupla tentativa retorna 409 sem remuneração duplicada. Conta existente não pode sobrescrever save.
 - Testes unitários dos 3 iniciais, integração PG de rejeição de payload forjado e corrida de duas solicitações. Workflow executa `pg_dump` + `pg_restore` num segundo banco CI descartável para simular recuperação lógica, não se confunde com backup/restauração real do Railway.
 - Não habilita cadastro de produção, não conecta /play à API e não migra localStorage. Limite de nome API alinhado com /play em 24 caracteres.
+
+## ONLINE-01C-4 — proxy privado same-origin (branch; NÃO publicado)
+- Novo `online-api-proxy.mjs` permite encaminhar apenas rotas `/api/v1` explicitamente autorizadas ao serviço interno, quando `ONLINE_API_INTERNAL_URL` for configurada de forma privada. Sem variável, retorna 503 e nenhuma conexão é feita.
+- Preserva cookies de sessão e `Origin`, elimina cabeçalhos Forwarded não confiáveis, limita corpo a 16 KiB, não expõe CORS e impede proxy genérico. Docker runtime inclui o módulo. Testes Node verificam isolamento e encaminhamento.
+- Nenhuma alteração no `/play`, nos saves locais, nas regras de ginásio ou na ativação de contas. A API de produção mantém autenticação bloqueada. CI, revisão e deploy ainda pendentes.

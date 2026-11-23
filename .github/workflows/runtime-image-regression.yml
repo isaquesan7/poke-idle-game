@@ -9,6 +9,8 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'server.mjs'
+      - 'online-api-proxy.mjs'
+      - 'tests/online-api-proxy.test.mjs'
       - 'apps/**'
       - 'packages/**'
       - 'landing.html'

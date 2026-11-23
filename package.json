@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --check server.mjs && node --check scripts/pokemon-sprites.js && node --test tests/*.test.mjs && node --check services/api/src/server.mjs && node --check services/api/src/migrate.mjs && node --test services/api/tests/auth.test.mjs",
+    "test": "node --check server.mjs && node --check online-api-proxy.mjs && node --check scripts/pokemon-sprites.js && node --test tests/*.test.mjs && node --check services/api/src/server.mjs && node --check services/api/src/migrate.mjs && node --test services/api/tests/auth.test.mjs",
     "sync:gifs": "node scripts/sync-pokemon-gifs.mjs",
     "verify:gifs": "node scripts/verify-pokemon-gifs.mjs",
     "test:core": "npm run test --workspace @kanto/game-core",
