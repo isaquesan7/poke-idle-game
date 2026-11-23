@@ -17,6 +17,8 @@ import {createFirstAdventure} from './initialAdventure.mjs';
 import {applyTrainerInvestment} from './trainerInvestment.mjs';
 import {reserveNextGym} from './gymReservation.mjs';
 import {startReservedGymTurnSession} from './gymTurnSession.mjs';
+import {loadGymEntropyKeyringFromEnv} from './gymEntropyKeyring.mjs';
+import {applyGymTurnWithKeyring} from './gymKeyedOperations.mjs';
 
 const port=Number(process.env.PORT??3001);
 const connectionString=process.env.DATABASE_URL;
@@ -290,6 +292,36 @@ const server=createServer(async(req,res)=>{
         result.status==='invalid'?400:
         ['missing','missing-save'].includes(result.status)?404:409;
       return json(res,status,success?result:{error:result.status});
+    }
+    if(pathname==='/api/v1/gym/turn'&&req.method==='POST'){
+      // ONLINE-01C-23C3: ONLY in isolated CI/test harness.
+      // Secrets, player identity and all RNG stay server-side.
+      if(!enabled)return json(res,503,{error:'Ginásios online em preparação'});
+      requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)
+        return json(res,403,{error:'E-mail não verificado'});
+      if(!await enforceThrottle(req,res,{scope:'gym-turn-account',
+        identifier:account.id,limit:150}))return;
+      const data=await readJson(req);
+      if(Object.keys(data).sort().join(',')!==
+         'action,actionId,expectedRevision,gymReservationId')
+        return json(res,400,{error:'Ação de Ginásio inválida'});
+      let keyring;
+      try{keyring=loadGymEntropyKeyringFromEnv();}
+      catch{return json(res,503,{error:'Ginásios online em preparação'});}
+      const result=await applyGymTurnWithKeyring(pool,keyring,{
+        accountId:account.id,gymReservationId:data.gymReservationId,
+        actionId:data.actionId,expectedRevision:data.expectedRevision,
+        action:data.action
+      });
+      const ok=['applied','replay'].includes(result.status);
+      const status=ok?200:result.status==='invalid'?400:
+        ['missing','missing-save'].includes(result.status)?404:409;
+      return json(res,status,ok?result:{
+        error:result.status,reason:result.reason??undefined
+      });
     }
     if(pathname==='/api/v1/save'&&req.method==='GET'){
       const account=await accountForSession(req);

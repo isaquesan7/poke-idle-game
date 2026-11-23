@@ -92,6 +92,23 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
     assert.equal((await json(origin,'/api/v1/gym/reserve','POST',{
       actionId:'gym-http-unauthorized-0001',expectedRevision:0
     })).status,401,'Gym reserve requires an authenticated server session');
+    assert.equal((await json(origin,'/api/v1/gym/turn','POST',{
+      actionId:'gym-unauthorized-first-turn-0001',expectedRevision:0,
+      gymReservationId:'00000000-0000-4000-8000-000000000001',
+      action:{kind:'basic'}
+    })).status,401,'Gym turn requires a verified authenticated account');
+    assert.equal((await json(origin,'/api/v1/gym/turn','POST',{
+      actionId:'gym-browser-seed-attack-0001',expectedRevision:0,
+      gymReservationId:'00000000-0000-4000-8000-000000000001',
+      action:{kind:'basic'},entropyKey:'attacker-owned',seed:999
+    },{Cookie:sessionCookie})).status,400,
+    'Gym turn rejects all browser-controlled entropy and secrets');
+    assert.equal((await json(origin,'/api/v1/gym/turn','POST',{
+      actionId:'gym-cross-site-turn-0001',expectedRevision:0,
+      gymReservationId:'00000000-0000-4000-8000-000000000001',
+      action:{kind:'basic'}
+    },{Cookie:sessionCookie,Origin:'https://attacker.example'})).status,400,
+    'Gym turn requires the exact expected Origin');
     assert.equal((await json(origin,'/api/v1/gym/reserve','POST',{
       actionId:'gym-http-other-user-0001',expectedRevision:0,
       accountId:'00000000-0000-4000-8000-000000000001'
@@ -276,6 +293,11 @@ test('production stays registration-disabled even with the feature flag misconfi
       gymReservationId:'00000000-0000-4000-8000-000000000001',
       expectedRevision:0
     })).status,503,'production cannot start Gyms while beta gated');
+    assert.equal((await json(base,'/api/v1/gym/turn','POST',{
+      actionId:'gym-prod-turn-denied-0001',expectedRevision:0,
+      gymReservationId:'00000000-0000-4000-8000-000000000001',
+      action:{kind:'basic'}
+    })).status,503,'production cannot execute Gym turns during CI-only stage');
   }finally{child.kill('SIGTERM');}
 });
 
@@ -2801,7 +2823,12 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
     httpChild=spawn(process.execPath,['src/server.mjs'],{
       cwd:new URL('../',import.meta.url).pathname,
       env:{...process.env,PORT:'43145',NODE_ENV:'test',
-        APP_ORIGIN:origin,ONLINE_REGISTRATION_ENABLED:'true'},
+        APP_ORIGIN:origin,ONLINE_REGISTRATION_ENABLED:'true',
+        GYM_HMAC_ACTIVE_KEY_ID:'v1',
+        GYM_HMAC_KEYRING_JSON:JSON.stringify({
+          v1:Buffer.alloc(32,0x72).toString('base64'),
+          v2:Buffer.alloc(32,0x73).toString('base64')
+        })},
       stdio:'ignore'
     });
     let httpReady=false;
@@ -2881,7 +2908,15 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       actionId:turnArgs.actionId,expectedRevision:2,action:turnArgs.action
     };
     const turns=await Promise.all([
-      applyGymTurnWithKeyring(pool,originalRing,keyedTurnArgs),
+      json(gymBase,'/api/v1/gym/turn','POST',{
+        gymReservationId:keyedTurnArgs.gymReservationId,
+        actionId:keyedTurnArgs.actionId,
+        expectedRevision:keyedTurnArgs.expectedRevision,
+        action:keyedTurnArgs.action
+      },{Cookie:authCookie}).then(response=>{
+        assert.equal(response.status,200);
+        return response.data;
+      }),
       applyGymTurnWithKeyring(pool,originalRing,keyedTurnArgs)
     ]);
     assert.deepEqual(turns.map(x=>x.status).sort(),['applied','replay']);
@@ -2892,6 +2927,19 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
     assert.equal(Object.hasOwn(turns[0].result,'seed'),false);
     assert.equal(Object.hasOwn(turns[0].result,'seedAfter'),false);
     assert.deepEqual(turns[0].result.playerAction,{kind:'basic'});
+    const httpReplay=await json(gymBase,'/api/v1/gym/turn','POST',{
+      gymReservationId:keyedTurnArgs.gymReservationId,
+      actionId:keyedTurnArgs.actionId,expectedRevision:0,
+      action:keyedTurnArgs.action
+    },{Cookie:authCookie});
+    assert.equal(httpReplay.status,200);
+    assert.equal(httpReplay.data.status,'replay');
+    assert.deepEqual(httpReplay.data.result,turns[0].result);
+    assert.equal((await json(gymBase,'/api/v1/gym/turn','POST',{
+      gymReservationId:keyedTurnArgs.gymReservationId,
+      actionId:'gym-forged-rng-in-body-0001',expectedRevision:3,
+      action:{kind:'basic'},seed:1
+    },{Cookie:authCookie})).status,400);
     assert.equal((await applyReservedGymTurn(pool,{...turnArgs,
       action:{kind:'focus'}})).status,'duplicate-action');
     assert.equal((await applyReservedGymTurn(pool,{...turnArgs,
