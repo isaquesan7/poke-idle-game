@@ -7,8 +7,10 @@ import {auditReservedGymBattle} from './gymReplayAudit.mjs';
 import {certifyReservedGymBattle} from './gymCertificate.mjs';
 import {settleCertifiedGym} from './gymSettlement.mjs';
 
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function historicalContext(pool,keyring,{accountId,gymReservationId}){
-  if(typeof accountId!=='string'||typeof gymReservationId!=='string'||
+  if(typeof accountId!=='string'||!UUID.test(accountId)||
+     typeof gymReservationId!=='string'||!UUID.test(gymReservationId)||
      !keyring||typeof keyring.resolve!=='function')
     return {status:'invalid'};
   const row=await pool.query(
