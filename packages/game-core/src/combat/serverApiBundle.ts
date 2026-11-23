@@ -13,5 +13,3 @@ export {createFrozenWildTurnSession,initialFrozenWildTurnActions}
 
 export {legalFrozenWildTurnActions,resolveFrozenWildTurn}
   from './serverWildTurnResolver.js';
-
-export {canonicalFrozenWildParty} from './serverWildParty.js';
