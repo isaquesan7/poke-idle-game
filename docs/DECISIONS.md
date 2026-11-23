@@ -344,3 +344,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - Antes de qualquer payout, congelar o outcome da batalha originado do preview persistido e da identidade da reserva no PostgreSQL. A operação aceita SOMENTE IDs de conta/encontro e actionId+revisão esperada; jamais aceitar resultado, dano, Pokémon, seed ou moedas do navegador.
 - Receipt `battle-seal` e revisão do save são atômicos. Mesmo actionId devolve resultado imutável; actionId concorrente é rejeitado. Reserva NÃO muda para completed: ela bloqueia novas batalhas até que um payout/capture writer confiável finalize a etapa, impedindo exploração de sequências RNG sem custo.
 - Não migrar ou tocar saves locais do /play. Cadastro público permanece proibido até os gates reais de resiliência e segurança.
+
+### ONLINE-01C-14 — primeiro cotar, só depois conceder
+- A cotação econômica do combate online usa funções canônicas Kanto de XP, escala regional e perdas de afinidade, com sorteio de afinidade independente e privado, criado pelo servidor. Nunca incluir captura automática ou insígnias; drop de Pokébolas e consumo de captura terão subsistemas autoritativos próprios.
+- Cotação é imutável por encontro selado e fica no PostgreSQL; chaves rotacionadas ou retries não mudam cotação existente. Não modifica o save do treinador nem permite nova reserva enquanto o encontro está aberto.
+- A escrita de recompensas real depende da revisão sob lock, validação do Pokémon, do estado e caps, e receipt atômico; não inventar pagamentos quando ainda faltarem controles antifraude.
