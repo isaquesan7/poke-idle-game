@@ -14,6 +14,7 @@ import {resolveGymAiTurn,gymChooseAiAction} from '../gyms/gymAiTurn.js';
 import type {GymBattleState,GymFighterState,GymSideState} from '../gyms/gymBattleState.js';
 import type {GymTurnAction} from '../gyms/gymTurn.js';
 import type {Combatant,KantoBattleVisualFrame} from './kantoBattle.js';
+import type {KantoBattleStatus} from './kantoStatusEffects.js';
 
 type FrozenState=NonNullable<ReturnType<typeof createFrozenWildTurnSession>>;
 export type WildTurnPlayerAction=
@@ -21,7 +22,13 @@ export type WildTurnPlayerAction=
   | {readonly kind:'focus'}
   | {readonly kind:'move';readonly moveName:string};
 
-type Persisted=FrozenState&{
+type Persisted=Omit<FrozenState,'player'|'wild'|'log'|'frames'>&{
+  readonly player:Omit<FrozenState['player'],'status'>&{
+    readonly status:KantoBattleStatus|null};
+  readonly wild:Omit<FrozenState['wild'],'status'>&{
+    readonly status:KantoBattleStatus|null};
+  readonly log:readonly string[];
+  readonly frames:readonly KantoBattleVisualFrame[];
   readonly engine?:GymBattleState;
   readonly outcome?:'win'|'loss'|'draw';
 };
@@ -121,9 +128,10 @@ export function legalFrozenWildTurnActions(
      engine.player.fighters[0]!.sp!==state.player.sp||
      engine.leader.fighters[0]!.sp!==state.wild.sp)
     return null;
-  return gymLegalTurnActions(engine,'player').flatMap(a=>
-    a.kind==='move'?[{kind:'move' as const,moveName:a.moveName}]
-      :a.kind==='basic'||a.kind==='focus'?[{kind:a.kind}]:[]);
+  return gymLegalTurnActions(engine,'player').flatMap<WildTurnPlayerAction>(a=>
+    a.kind==='move'?[{kind:'move',moveName:a.moveName}]
+      :a.kind==='basic'?[{kind:'basic'}]
+      :a.kind==='focus'?[{kind:'focus'}]:[]);
 }
 
 /** Exactly one human action and one fair wild AI decision per round.
