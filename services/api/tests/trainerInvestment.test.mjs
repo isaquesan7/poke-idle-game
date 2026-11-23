@@ -23,6 +23,9 @@ test('only server-earned level budget allows one point per action',()=>{
  assert.equal(after.coins,0);
  assert.deepEqual(after.badges,[]);
  assert.equal(after.roster[0].pokemonId,4);
+ assert.equal(after.roster[0].level,1);
+ assert.equal(after.trainer.xp,0);
+ assert.deepEqual(after.ballPocket.quantities,{'poke-ball':12});
  assert.equal(investTrainerPoint(edited.next,'hp').status,'ok');
  const final=investTrainerPoint(investTrainerPoint(edited.next,'hp').next,'speed');
  assert.equal(final.status,'unavailable');
