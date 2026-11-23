@@ -775,3 +775,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Novo `online-api-proxy.mjs` permite encaminhar apenas rotas `/api/v1` explicitamente autorizadas ao serviço interno, quando `ONLINE_API_INTERNAL_URL` for configurada de forma privada. Sem variável, retorna 503 e nenhuma conexão é feita.
 - Preserva cookies de sessão e `Origin`, elimina cabeçalhos Forwarded não confiáveis, limita corpo a 16 KiB, não expõe CORS e impede proxy genérico. Docker runtime inclui o módulo. Testes Node verificam isolamento e encaminhamento.
 - Nenhuma alteração no `/play`, nos saves locais, nas regras de ginásio ou na ativação de contas. A API de produção mantém autenticação bloqueada. CI, revisão e deploy ainda pendentes.
+
+## ONLINE-01C-5 — interface de contas preparada (branch, não publicada)
+- Landing `/` redesenhada como portal de treinadores responsivo com login, cadastro e recuperação; `/verify-email` e `/reset-password` servem o mesmo shell de autenticação.
+- Formulários desabilitados por padrão; somente podem executar chamadas same-origin se `/api/v1/status` retornar explicitamente `registrationEnabled:true`. Ambiente real ainda retorna false/503. URLs com token são limpas do histórico ao iniciar e sem referrer.
+- Nenhuma migração de saves `/play`; nenhum cadastro habilitado e nenhum endpoint de escrita de progresso local alterado. Smoke Docker estendido; testes e merge pendentes.

@@ -61,3 +61,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - Web possui proxy `/api/v1/*` com allowlist para o serviço API interno, via `ONLINE_API_INTERNAL_URL` (somente origem privada definida pelo operador; **não adicionar credenciais ou endpoint secreto ao Git**). Sem essa variável, responde 503. O backend permanece independente, sem domínio público.
 - `Origin` e `Cookie` de entrada seguem intactos; `Forwarded`, `X-Forwarded-For`, `X-Forwarded-Host` e `X-Forwarded-Proto` são descartados, sem confiar em cabeçalhos controlados pelo cliente. O destino é configuração fixa, sem redirects controlados pelo browser ou proxy aberto; body limitado a 16KiB.
 - Configuração NÃO está ativada no Railway. Fazer revisão de segurança da rede interna, `APP_ORIGIN`, cookies, backup e restore e email operacional antes de conectar a variável. Mesmo com proxy, o guard `NODE_ENV=production` ainda bloqueia auth e início da aventura. Não existe fluxo online aberto.
+
+
+## ONLINE-01C-5 — portal HTML do treinador (ainda em PR)
+- A página `/` possui campos de entrada/cadastro e links de recuperação; `/verify-email` e `/reset-password` respondem HTML sem credenciais. O cliente verifica `/api/v1/status` e desabilita ações até o backend declarar `registrationEnabled:true` — um sinal que a produção atualmente nunca fornece.
+- Token de e-mail/red­efinição da query string é lido e removido do histórico antes da requisição; política `no-referrer`. Não é fluxo de conta liberado ao público nem migra progresso do `/play`. UI deverá receber revisão de acessibilidade e de proteção antifraude antes da beta.
