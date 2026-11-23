@@ -268,6 +268,13 @@ test('production stays registration-disabled even with the feature flag misconfi
       password:'never-used-passphrase-123'
     });
     assert.equal(registration.status,503);
+    assert.equal((await json(base,'/api/v1/gym/reserve','POST',{
+      actionId:'gym-test-disabled-prod-0001',expectedRevision:0
+    })).status,503,'production cannot reserve Gyms while beta gated');
+    assert.equal((await json(base,'/api/v1/gym/start','POST',{
+      gymReservationId:'00000000-0000-4000-8000-000000000001',
+      expectedRevision:0
+    })).status,503,'production cannot start Gyms while beta gated');
   }finally{child.kill('SIGTERM');}
 });
 
