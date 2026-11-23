@@ -67,6 +67,10 @@ export async function applyReservedWildTurn(pool,{
        save?.revision!==revision||save?.journal?.revision!==revision||
        typeof save?.journal?.raw!=='string')
       return await rollback(client,{status:'invalid-save'});
+    // Legacy v1/v2 encounters never expose switch commands. Preserve the
+    // prior writer's invalid-input contract for old battles and their tests.
+    if(action.kind==='switch'&&encounter.battle_snapshot?.version!==3)
+      return await rollback(client,{status:'invalid'});
     const session=encounter.battle_turn_state;
     if(encounter.status!=='reserved'||encounter.region_id!==1||
        !encounter.battle_snapshot||!session||
