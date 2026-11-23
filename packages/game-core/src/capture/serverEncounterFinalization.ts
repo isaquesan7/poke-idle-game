@@ -39,7 +39,8 @@ export function finalizeFrozenWildEncounter(
   if(!pair||!preview||typeof preview!=='object'||Array.isArray(preview))
     return null;
   const result=preview as Record<string,unknown>;
-  if(!['win','loss','draw'].includes(result.outcome)||
+  if(typeof result.outcome!=='string'||
+    !['win','loss','draw'].includes(result.outcome)||
     !validInt(result.wildRemainingHp,0,pair.wild.stats.hp)||
     (result.outcome==='win'&&result.wildRemainingHp!==0)||
     !Array.isArray(result.log)||!Array.isArray(result.frames)||
@@ -54,10 +55,12 @@ export function finalizeFrozenWildEncounter(
     !validInt(state.nextUid,1)||!state.ballPocket||
     !state.roster.every((p:unknown)=>p&&typeof p==='object'&&!Array.isArray(p)&&
       validInt((p as Record<string,unknown>).uid,1))||
-    !state.team.includes((snapshot as {activePokemon:{uid:number}}).activePokemon.uid))
+    state.team[0]!==(snapshot as {activePokemon:{uid:number}}).activePokemon.uid)
     return null;
   const roster=state.roster as Record<string,unknown>[];
+  const active=(snapshot as {activePokemon:{uid:number;speciesId:number}}).activePokemon;
   if(new Set(roster.map(p=>p.uid)).size!==roster.length||
+    !roster.some(p=>p.uid===active.uid&&p.pokemonId===active.speciesId)||
     roster.some(p=>Number(p.uid)>=Number(state.nextUid)))
     return null;
   const bag=inspectKantoBallPocket(state.ballPocket);
