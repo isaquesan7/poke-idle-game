@@ -56,7 +56,7 @@ describe('ONLINE-01C-15 — canonical payout candidate',()=>{
     s,preview('win'),q)).toBeNull();
   expect(applyFrozenBattleRewardQuote(JSON.stringify({...orig,coins:Number.MAX_SAFE_INTEGER}),
     s,preview('win'),q)).toBeNull();
-  const tampered=structuredClone(orig);
+  const tampered=JSON.parse(JSON.stringify(orig));
   tampered.roster[0].affinity=20;
   expect(applyFrozenBattleRewardQuote(JSON.stringify(tampered),
     s,preview('win'),q)).toBeNull();
