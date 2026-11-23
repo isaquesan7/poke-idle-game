@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'services/api/**'
+      - 'packages/game-core/src/**'
+      - 'scripts/build-api-game-core.mjs'
       - '.github/workflows/online-api.yml'
   workflow_dispatch:
 permissions:
@@ -39,6 +41,19 @@ jobs:
           node-version: '22'
       - name: Check committed lock with clean npm install
         run: npm ci --prefix services/api --ignore-scripts --no-audit --no-fund
+      - name: Build private game-core adapter from monorepo lock
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          node scripts/build-api-game-core.mjs "$RUNNER_TEMP/frozenBattle.mjs"
+          echo "CORE_BUNDLE_PATH=$RUNNER_TEMP/frozenBattle.mjs" >> "$GITHUB_ENV"
+          node --input-type=module -e '
+            const m=await import(process.env.CORE_BUNDLE_PATH);
+            if(typeof m.previewFrozenWildBattle!=="function")process.exit(1)
+          '
+          docker run --rm --entrypoint node kanto-online-api --input-type=module -e '
+            const m=await import("./game-core/frozenBattle.mjs");
+            if(typeof m.previewFrozenWildBattle!=="function")process.exit(1)
+          '
       - name: Validate npm lock & code
         run: |
           npm run check --prefix services/api
@@ -67,7 +82,7 @@ jobs:
             < "$RUNNER_TEMP/kanto-ci.dump"
           versions=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
             -d kanto_ci_restore -c 'SELECT count(*) FROM game_schema_migrations')
-          test "$versions" = 6
+          test "$versions" = 7
           saves=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
             -d kanto_ci_restore -c 'SELECT count(*) FROM game_saves')
           test "$saves" -ge 2
@@ -84,6 +99,7 @@ jobs:
             test "$(id -un)" = node
             test -e /srv/api/src/server.mjs
             test -e /srv/api/sql/001_online_foundation.sql
+            test -s /srv/api/game-core/frozenBattle.mjs
             test ! -e /srv/api/apps
             test ! -e /srv/api/landing.html
             test ! -e /srv/api/assets
