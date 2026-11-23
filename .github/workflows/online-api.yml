@@ -48,7 +48,7 @@ jobs:
           echo "CORE_BUNDLE_PATH=$RUNNER_TEMP/frozenBattle.mjs" >> "$GITHUB_ENV"
           CORE_BUNDLE_PATH="$RUNNER_TEMP/frozenBattle.mjs" node --input-type=module -e '
             const m=await import(process.env.CORE_BUNDLE_PATH);
-            if(typeof m.previewFrozenWildBattle!=="function"||typeof m.quoteFrozenBattleRewards!=="function"||typeof m.applyFrozenBattleRewardQuote!=="function")process.exit(1)
+            if(typeof m.previewFrozenWildBattle!=="function"||typeof m.quoteFrozenBattleRewards!=="function"||typeof m.applyFrozenBattleRewardQuote!=="function"||typeof m.finalizeFrozenWildEncounter!=="function")process.exit(1)
           '
       - name: Validate npm lock & code
         run: |
@@ -78,7 +78,7 @@ jobs:
             < "$RUNNER_TEMP/kanto-ci.dump"
           versions=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
             -d kanto_ci_restore -c 'SELECT count(*) FROM game_schema_migrations')
-          test "$versions" = 10
+          test "$versions" = 11
           saves=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
             -d kanto_ci_restore -c 'SELECT count(*) FROM game_saves')
           test "$saves" -ge 2
