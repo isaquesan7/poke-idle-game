@@ -18,7 +18,14 @@ ALTER TABLE game_gym_reservations
       AND certificate_action_id IS NOT NULL
       AND certificate_outcome=payout_receipt->>'outcome'
       AND (certificate_outcome='player-win')=
-        (payout_receipt->>'badgeId'=gym_id))
+        coalesce(payout_receipt->>'badgeId'=gym_id,false)
+      AND ((certificate_outcome='player-win' AND
+        (payout_receipt->>'coins')::bigint>0 AND
+        (payout_receipt->>'trainerXp')::bigint>0)
+       OR (certificate_outcome IN ('leader-win','draw') AND
+        payout_receipt->>'badgeId' IS NULL AND
+        payout_receipt->>'coins'='0' AND
+        payout_receipt->>'trainerXp'='0')))
   );
 CREATE UNIQUE INDEX game_gym_payout_once_action
   ON game_gym_reservations(account_id,payout_action_id)
