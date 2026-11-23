@@ -10,7 +10,7 @@ import {isDeepStrictEqual} from 'node:util';
 import {auditResolvedWildTurnTranscript} from './wildTurnCertificate.mjs';
 import {buildBattleSnapshot} from './battlePreparation.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
-import {BATTLE_ENTROPY_VERSION,createPrivateBattleRandom} from './battleEntropy.mjs';
+import {BATTLE_ENTROPY_VERSION,createPrivateBattleRandom,createPrivateBattleKeyProof} from './battleEntropy.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACTION=/^[A-Za-z0-9_-]{12,100}$/;
@@ -101,7 +101,7 @@ export async function payCertifiedWildTurns(pool,{
               battle_sealed_outcome,battle_reward_quote,battle_payout_action_id,
               battle_turn_certificate_action_id,battle_turn_certificate_outcome,
               battle_turn_certificate_revision,battle_turn_certificate_digest,
-              battle_turn_certificate_turns,
+              battle_turn_certificate_turns,battle_turn_entropy_proof,
               battle_turn_payout_action_id,battle_turn_payout_revision,
               battle_turn_payout_quote,battle_turn_payout_receipt,final_action_id
          FROM game_encounter_reservations
@@ -141,6 +141,10 @@ export async function payCertifiedWildTurns(pool,{
        encounter.battle_snapshot?.opponent?.speciesId!==Number(encounter.species_id)||
        encounter.battle_snapshot?.opponent?.level!==Number(encounter.pokemon_level))
       return await rollback(client,{status:'unavailable'});
+    if(!encounter.battle_turn_entropy_proof||
+       encounter.battle_turn_entropy_proof!==createPrivateBattleKeyProof(
+         entropyKey,{accountId,encounterId}))
+      return await rollback(client,{status:'entropy-mismatch'});
     // A certification must be an actual committed account receipt.
     const certRow=await client.query(
       'SELECT kind,save_revision FROM game_action_receipts WHERE account_id=$1 AND action_id=$2',
