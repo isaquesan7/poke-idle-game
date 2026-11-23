@@ -45,10 +45,16 @@ function dispatch(x:ReturnType<typeof setup>,action:Parameters<typeof updatePlay
 describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
   it('iniciar congela três UIDs; turnos persistem e são reproduzidos após reload',()=>{
     const x=setup();
-    expect(dispatch(x,{type:'gym-start',seed:778,uids:[1,2,3]}).status).toBe('ok');
+    const previous=x.get();
+    // A ordem da Coleção (não a seleção improvisada no Ginásio) é autoridade.
+    previous.game.team=[2,3,1];
+    const envelope=JSON.parse(x.map.get(PLAY_SAVE_KEY)!);
+    envelope.journal.raw=JSON.stringify(previous.game);
+    x.map.set(PLAY_SAVE_KEY,JSON.stringify(envelope));
+    expect(dispatch(x,{type:'gym-start',seed:778}).status).toBe('ok');
     const a=x.get(),session=a.game.gymSession as GymSessionV1;
     expect(session).toMatchObject({
-      id:'gym-v02-1',gymId:'boulder',seed:778,uids:[1,2,3],actions:[]
+      id:'gym-v02-1',gymId:'boulder',seed:778,uids:[2,3,1],actions:[]
     });
     expect(dispatch(x,{type:'gym-turn',sessionId:session.id,
       action:{kind:'basic'}}).status).toBe('ok');
@@ -87,12 +93,17 @@ describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
   });
   it('bloqueia alterações concorrentes, 2ª sessão, seleção falsificada e revisão stale',()=>{
     const x=setup();
-    expect(dispatch(x,{type:'gym-start',seed:11,uids:[1,1,3]}).status).toBe('blocked');
-    expect(dispatch(x,{type:'gym-start',seed:11,uids:[1,2,999]}).status).toBe('blocked');
-    expect(dispatch(x,{type:'gym-start',seed:11,uids:[1,2,3]}).status).toBe('ok');
+    // Even a valid-looking list sent at gym start is prohibited.
+    expect(dispatch(x,{type:'gym-start',seed:11,uids:[1,1,3]} as unknown as
+      Parameters<typeof updatePlaySave>[2]).status).toBe('blocked');
+    expect(dispatch(x,{type:'gym-start',seed:11,uids:[1,2,999]} as unknown as
+      Parameters<typeof updatePlaySave>[2]).status).toBe('blocked');
+    expect(dispatch(x,{type:'gym-start',seed:11,uids:[1,2,3]} as unknown as
+      Parameters<typeof updatePlaySave>[2]).status).toBe('blocked');
+    expect(dispatch(x,{type:'gym-start',seed:11}).status).toBe('ok');
     const session=x.get().game.gymSession as GymSessionV1;
     const before=x.map.get(PLAY_SAVE_KEY);
-    expect(dispatch(x,{type:'gym-start',seed:11,uids:[1,2,3]}).status).toBe('blocked');
+    expect(dispatch(x,{type:'gym-start',seed:11}).status).toBe('blocked');
     expect(dispatch(x,{type:'buy-ball',purchaseId:'oops',ballId:'poke-ball',quantity:1}).status)
       .toBe('blocked');
     expect(dispatch(x,{type:'trainer-invest-batch',increments:{attack:1}}).status)
@@ -106,9 +117,40 @@ describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
       .toBe('blocked');
     expect(x.map.get(PLAY_SAVE_KEY)).toBe(before);
   });
+
+  it('sem trio completo na Coleção não inicia, e a escalação ativa não pode mudar',()=>{
+    const x=setup();
+    const envelope=JSON.parse(x.map.get(PLAY_SAVE_KEY)!);
+    const game:Progress=JSON.parse(envelope.journal.raw);
+    game.team=[1,2];
+    envelope.journal.raw=JSON.stringify(game);
+    x.map.set(PLAY_SAVE_KEY,JSON.stringify(envelope));
+    const before=x.map.get(PLAY_SAVE_KEY);
+    expect(dispatch(x,{type:'gym-start',seed:44}).status).toBe('blocked');
+    expect(x.map.get(PLAY_SAVE_KEY)).toBe(before);
+    game.team=[1,2,3];
+    envelope.journal.raw=JSON.stringify(game);
+    x.map.set(PLAY_SAVE_KEY,JSON.stringify(envelope));
+    expect(dispatch(x,{type:'gym-start',seed:44}).status).toBe('ok');
+    const session=x.get().game.gymSession as GymSessionV1;
+    expect(session.uids).toEqual([1,2,3]);
+    expect(dispatch(x,{type:'pokemon',value:{type:'set-active',uid:2}}).status)
+      .toBe('blocked');
+    expect(dispatch(x,{type:'pokemon',value:{type:'remove-team',uid:3}}).status)
+      .toBe('blocked');
+    // Even a tampered journal cannot replay a Gym team different from the
+    // frozen Collection selection.
+    const corrupted=JSON.parse(x.map.get(PLAY_SAVE_KEY)!);
+    const altered=JSON.parse(corrupted.journal.raw);
+    altered.team=[2,1,3];
+    corrupted.journal.raw=JSON.stringify(altered);
+    x.map.set(PLAY_SAVE_KEY,JSON.stringify(corrupted));
+    expect(dispatch(x,{type:'gym-turn',sessionId:session.id,
+      action:{kind:'basic'}}).status).toBe('blocked');
+  });
   it('abandono apaga sessão sem tocar moedas, insígnias nem XP; replay bloqueado',()=>{
     const x=setup();
-    expect(dispatch(x,{type:'gym-start',seed:22,uids:[1,2,3]}).status).toBe('ok');
+    expect(dispatch(x,{type:'gym-start',seed:22}).status).toBe('ok');
     const a=x.get(),id=(a.game.gymSession as GymSessionV1).id;
     expect(dispatch(x,{type:'gym-abandon',sessionId:id}).status).toBe('ok');
     const b=x.get();
@@ -122,7 +164,7 @@ describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
   });
   it('vitória real: só finalização paga e registra receipt; replay não paga novamente',()=>{
     const x=setup();
-    expect(dispatch(x,{type:'gym-start',seed:99,uids:[1,2,3]}).status).toBe('ok');
+    expect(dispatch(x,{type:'gym-start',seed:99}).status).toBe('ok');
     const before=x.get(),id=(before.game.gymSession as GymSessionV1).id;
     let result:'ongoing'|'player-win'|'leader-win'|'draw'='ongoing';
     for(let i=0;i<140;i++){
@@ -156,7 +198,7 @@ describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
   });
   it('transcript adulterado no save bloqueia turnos e finalização sem prêmios',()=>{
     const x=setup();
-    expect(dispatch(x,{type:'gym-start',seed:31,uids:[1,2,3]}).status).toBe('ok');
+    expect(dispatch(x,{type:'gym-start',seed:31}).status).toBe('ok');
     const env=JSON.parse(x.map.get(PLAY_SAVE_KEY)!);
     const game:Progress=JSON.parse(env.journal.raw);
     const id=game.gymSession.id;
