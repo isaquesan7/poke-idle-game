@@ -24,6 +24,7 @@ type Props={
   readonly busy:boolean;
   readonly revision:number;
   readonly onAction:(action:PlayAction)=>void;
+  readonly onOpenCollection:()=>void;
 };
 const isRecord=(v:unknown):v is Record<string,unknown>=>
   v!==null&&typeof v==='object'&&!Array.isArray(v);
@@ -42,8 +43,7 @@ function status(value:GymBattleState['player']['fighters'][number]):string{
     .filter(Boolean);
   return conditions.join(' · ')||'Pronto';
 }
-export function GymScreen({game,data,busy,revision,onAction}:Props){
-  const [selected,setSelected]=useState<readonly number[]>([]);
+export function GymScreen({game,data,busy,revision,onAction,onOpenCollection}:Props){
   const [confirmAbandon,setConfirmAbandon]=useState(false);
   const detailsRef=useRef<HTMLElement|null>(null);
   const finishRef=useRef<HTMLButtonElement|null>(null);
@@ -105,7 +105,11 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
     return ()=>window.clearTimeout(timer);
   },[automatic,session?.id,actionCount,busy,donePresentation,revision]);
   const earned=new Set(data.badges);
-  const starting=selected.length===3&&!session;
+  // Read the stored Collection team; never allow gym-only lineup selection.
+  const selected=data.team;
+  const starting=!session&&selected.length===3&&
+    new Set(selected).size===3&&
+    selected.every(uid=>data.roster.some(p=>p.uid===uid));
   const roundKey=(session?.id??'')+':'+actionCount;
   // Callback estável: BattlePlayback emite índice apenas quando progride,
   // evitando loops e sem produzir nenhuma gravação no save.
@@ -174,7 +178,8 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
       <div>
         <p className={styles.kicker}>DESAFIO OFICIAL · KANTO</p>
         <h2>Ginásios Pokémon</h2>
-        <p>Monte uma equipe de três Pokémon: a IA conduz o duelo contra o líder.
+        <p>Defina três Pokémon na Coleção antes de entrar no Ginásio.
+          A mesma equipe participará de todo o desafio; a IA conduz o duelo.
           HP e SP persistem entre as trocas. Apenas vencer os três adversários
           concede a insígnia.</p>
       </div>
@@ -211,27 +216,40 @@ export function GymScreen({game,data,busy,revision,onAction}:Props){
           <span>{KANTO_BATTLE_SPECIES[foe.speciesId]?.name} · Nv. {foe.level}</span>
         </div>)}
       </div>
-      <fieldset className={styles.choices}>
-        <legend>Escolha exatamente três Pokémon para o desafio ({selected.length}/3)</legend>
-        {data.roster.map(p=>{
-          const checked=selected.includes(p.uid);
-          return <label key={p.uid} className={checked?styles.choiceOn:styles.choice}>
-            <input type="checkbox" checked={checked}
-              disabled={busy||(!checked&&selected.length>=3)}
-              onChange={()=>setSelected(previous=>checked
-                ?previous.filter(uid=>uid!==p.uid):[...previous,p.uid])}/>
-            {art(p.pokemonId,KANTO_BATTLE_SPECIES[p.pokemonId]?.name??'Pokémon')}
-            <span>{KANTO_BATTLE_SPECIES[p.pokemonId]?.name??'Pokémon'}
-              <small>UID {p.uid} · Nv. {p.level}</small></span>
-          </label>;
-        })}
-      </fieldset>
+      <div className={styles.teamSetup}>
+        <h4>Equipe definida na Coleção ({selected.length}/3)</h4>
+        <p>Estes são os Pokémon que entrarão no confronto, na ordem escolhida
+          na Coleção. Não é possível trocar a escalação ao entrar no Ginásio.</p>
+        <div className={styles.choices} role="list" aria-label="Equipe escalada na Coleção">
+          {selected.map((uid,index)=>{
+            const p=data.roster.find(member=>member.uid===uid);
+            if(!p)return <div key={uid} role="listitem" className={styles.choice}>
+              UID inválido #{uid}</div>;
+            return <div key={uid} role="listitem" className={styles.choiceOn}
+              data-testid={'gym-preselected-'+index}>
+              {art(p.pokemonId,KANTO_BATTLE_SPECIES[p.pokemonId]?.name??'Pokémon')}
+              <span>{index===0?'Líder · ':''}
+                {KANTO_BATTLE_SPECIES[p.pokemonId]?.name??'Pokémon'}
+                <small>UID {p.uid} · Nv. {p.level}</small>
+              </span>
+            </div>;
+          })}
+        </div>
+        {!starting&&<p role="status" className={styles.hint}>
+          É necessário ter três Pokémon distintos escalados na Coleção para desafiar o Ginásio.
+        </p>}
+        <button type="button" className={styles.secondary}
+          onClick={onOpenCollection}>
+          <i className="fa-solid fa-layer-group" aria-hidden="true"/>
+          {' '}Abrir Coleção para definir a equipe
+        </button>
+      </div>
       <button type="button" className={styles.primary} disabled={busy||!starting}
         onClick={()=>{
           const seed=window.crypto.getRandomValues(new Uint32Array(1))[0];
           if(seed!==undefined){
             setPresented(0);setAutomatic(true);lastSent.current=null;
-            onAction({type:'gym-start',seed,uids:selected});
+            onAction({type:'gym-start',seed});
           }
         }}>Iniciar batalha contra {gym.leader}</button>
       <p className={styles.hint}>Batalha local alfa: dados e resultados ainda não
