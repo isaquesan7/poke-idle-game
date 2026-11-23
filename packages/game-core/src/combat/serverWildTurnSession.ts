@@ -9,6 +9,7 @@
  * Wild AI uses the existing fair max-four-move FRLG loadout from game-core.
  */
 import {canonicalFrozenCombatants} from './serverFrozenBattle.js';
+import {canonicalFrozenWildParty} from './serverWildParty.js';
 import {kantoMaxSp,kantoMoveSpCost,KANTO_BASIC_ATTACK}
   from './kantoSkillEnergy.js';
 
@@ -17,7 +18,7 @@ const moveSlots=(moves:readonly {name:string}[])=>moves.map(move=>move.name);
 export function createFrozenWildTurnSession(snapshot:unknown){
   const actors=canonicalFrozenCombatants(snapshot);
   if(!actors)return null;
-  const s=snapshot as {regionId:number;activePokemon:{uid:number}};
+  const s=snapshot as {regionId:number;version:number;activePokemon:{uid:number};party?:{uid:number}[]};
   const {player,wild}=actors;
   const playerMoves=player.moves??[player.move];
   const wildMoves=wild.moves??[wild.move];
@@ -25,6 +26,18 @@ export function createFrozenWildTurnSession(snapshot:unknown){
      new Set(moveSlots(playerMoves)).size!==playerMoves.length||
      wildMoves.length<1||wildMoves.length>4||
      new Set(moveSlots(wildMoves)).size!==wildMoves.length)return null;
+  const squad=s.version===3?canonicalFrozenWildParty(snapshot):null;
+  if(s.version===3&&!squad)return null;
+  const playerParty=squad?.party.map((combatant,index)=>{
+    const uid=s.party?.[index]?.uid;
+    if(!Number.isSafeInteger(uid)||!uid)return null;
+    const sp=kantoMaxSp(combatant.level,combatant.speciesId);
+    return {uid,speciesId:combatant.speciesId,
+      hp:combatant.stats.hp,maxHp:combatant.stats.hp,
+      sp,maxSp:sp,status:null,focusUses:0,lastFocusTurn:-100,
+      equippedMoves:moveSlots(combatant.moves??[combatant.move])};
+  });
+  if(playerParty?.some(member=>member===null))return null;
   const playerMaxSp=kantoMaxSp(player.level,player.speciesId);
   const wildMaxSp=kantoMaxSp(wild.level,wild.speciesId);
   return {
@@ -45,6 +58,7 @@ export function createFrozenWildTurnSession(snapshot:unknown){
       status:null,focusUses:0,lastFocusTurn:-100,
       equippedMoves:moveSlots(wildMoves)
     },
+    ...(squad?{playerParty}:{}),
     log:[],frames:[]
   };
 }
@@ -60,11 +74,17 @@ export function initialFrozenWildTurnActions(snapshot:unknown){
   const moves=player.moves??[player.move];
   if(moves.length<1||moves.length>4)return null;
   const sp=kantoMaxSp(player.level,player.speciesId);
+  const isSquad=(snapshot as {version?:number}).version===3;
+  const party=isSquad?canonicalFrozenWildParty(snapshot):null;
+  if(isSquad&&!party)return null;
   return Object.freeze([
     {kind:'basic',moveName:KANTO_BASIC_ATTACK.name,spCost:0},
     ...moves.filter(move=>kantoMoveSpCost(move)<=sp).map(move=>({
       kind:'move',moveName:move.name,spCost:kantoMoveSpCost(move)
-    }))
+    })),
+    ...(party?party.party.slice(1).map((_,i)=>({
+      kind:'switch' as const,toIndex:i+1,spCost:0
+    })):[])
     // Focus cannot be used at full SP; it is not a starting action.
   ]);
 }
