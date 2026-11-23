@@ -14,6 +14,7 @@ import {throttle,requesterIp,issueVerification,consumeVerification} from './auth
 import {issuePasswordReset,consumePasswordReset} from './passwordReset.mjs';
 import {deliverAccountEmail} from './mailer.mjs';
 import {createFirstAdventure} from './initialAdventure.mjs';
+import {applyTrainerInvestment} from './trainerInvestment.mjs';
 
 const port=Number(process.env.PORT??3001);
 const connectionString=process.env.DATABASE_URL;
@@ -238,6 +239,23 @@ const server=createServer(async(req,res)=>{
       if(outcome.status==='exists')
         return json(res,409,{error:'Aventura já iniciada'});
       return json(res,201,{created:true,revision:0,starterId:data.starterId});
+    }
+    if(pathname==='/api/v1/trainer/invest'&&req.method==='POST'){
+      if(!enabled)return json(res,503,{error:'Aventura online em preparação'});
+      requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
+      const data=await readJson(req);
+      if(Object.keys(data).sort().join(',')!=='actionId,expectedRevision,stat')
+        return json(res,400,{error:'Ação inválida'});
+      const result=await applyTrainerInvestment(pool,{
+        accountId:account.id,actionId:data.actionId,
+        expectedRevision:data.expectedRevision,stat:data.stat
+      });
+      const status=result.status==='ok'?200:
+        result.status==='missing'?404:result.status==='invalid'?400:409;
+      return json(res,status,result.status==='ok'?result:{error:result.status});
     }
     if(pathname==='/api/v1/save'&&req.method==='GET'){
       const account=await accountForSession(req);
