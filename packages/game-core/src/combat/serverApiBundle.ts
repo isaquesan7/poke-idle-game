@@ -21,3 +21,7 @@ export {canonicalOnlineGymTrainerBonuses,canonicalOnlineGymEquippedMoves,
 
 // ONLINE-01C-23B2D: identical legal actions used by local Gym core.
 export {gymLegalTurnActions} from '../gyms/gymTurn.js';
+
+// ONLINE-01C-23B2E: shared canonical 3v3 resolver and fair Gym AI.
+export {resolveGymTurn} from '../gyms/gymTurn.js';
+export {gymChooseAiAction} from '../gyms/gymAiTurn.js';
