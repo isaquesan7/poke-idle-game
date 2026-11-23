@@ -877,3 +877,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - SQL append-only 015 e CI 15 migrações, testes concorrência/replay/fraude estrutural/HMAC/PG18/restore descartável. Cadastro real e captura/skip nesse modo NÃO liberados; `/play` local sem migração. PR/CI/merge/Railway a verificar.
 
 - Segurança adicional: prova HMAC-SHA256 persistida no primeiro turno de combate, comparada em todo turno posterior e antes do pagamento. Protege também contra chaves diferentes que, por coincidência, produzam o mesmo log/HP; replays de receipt permanecem idempotentes.
+
+## ONLINE-01C-21 — payout autoritativo por turnos confirmado (23/11/2026)
+- PR #203 merged `main` `1d3e69d8b5ad0f7f5030c68567975d3c1a649264`. GitHub Actions API PG18 `45164653052 SUCCESS`, geral React/Chromium `45164653117 SUCCESS`. Migrar schema 015/15 e restaurar banco DESCARTÁVEL/testes do fluxo HMAC/payout OK.
+- Railway API privada `616bbb6d-4027-44d0-8ead-4d307442879a SUCCESS`: logs SQL 015 aplicada e cadastro desabilitado. Web `67daaf7b-7776-447a-af28-35c691a0c31c SUCCESS` mesmo SHA funcional; HTTP público externo não conferido.
+- Payout de batalha por turnos é somente interno, exige prova HMAC histórica e replay integral antes de aplicar política pura de recompensa. Receipt idempotente, sem captura/skip, sem concluir reserva ou abrir novos encontros; `/play` local sem migração. Próxima ONLINE-01C-22 finalização segura por turno e snapshots completos.
