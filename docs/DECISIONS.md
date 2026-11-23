@@ -319,3 +319,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - Cada tentativa de combate online deve começar por reserva transacional no banco, com encounter UUID exclusivo gerado pelo PostgreSQL e associada a accountId da sessão; actionId da solicitação é apenas chave idempotente, não seed nem identidade do encontro.
 - Não haver mais de uma reserva pendente por conta; mesma ação retorna a mesma reserva, sem novo RNG, e ação diferente é negada. O motor de sorteio e combate só será acionado em etapa posterior com direito regional, nível e balanço de recompensas validados pelo servidor.
 - Reserva não gera espécie, dano, moedas, XP, afinidade, drops ou insígnias. Deve continuar bloqueada ao público até que conclusão/aborto seguro e replay íntegro existam.
+
+### ONLINE-01C-9 — identidade e resultado do encontro são duráveis antes da batalha
+- A primeira espécie e seu nível são derivados EXCLUSIVAMENTE no backend a partir do identificador reservado no PostgreSQL, chave HMAC secreta e regras da região. Resultado é gravado no banco dentro da transação antes da resposta e não muda com retry/concor­rência/rotação de chave.
+- A implementação inicial trata apenas R1 Bosque Inicial; o teste de paridade garante a mesma composição e limites do game-core. Não criar catálogos paralelos para demais regiões; integrar a fonte canônica ao backend antes de ampliar.
+- Materialização não altera save, não concede recompensas, não encerra encontro e não constitui gameplay online completo. Nenhuma rota é exposta antes das transições e receipts do motor de combate.

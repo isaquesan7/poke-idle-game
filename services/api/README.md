@@ -81,3 +81,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - Migrar `004_encounter_reservations.sql` com o runner checksum/lock já existente. `reserveEncounter` é função server-only, não há rota HTTP nem geração de espécies/recompensas.
 - Usa actionId idempotente, revisão esperada e um único encontro reservado por treinador, com `FOR UPDATE` do save, UUID do DB e gravação atômica do receipt. Região 1 apenas até validar progressão regional. Mesmo actionId lê ID persistido; nenhuma fonte de seed do cliente. CI de restauração valida quatro migrações em banco descartável.
 - Não habilitar cadastro público nem configurar RNG de produção nesta fase; /play sem migração.
+
+## ONLINE-01C-9 — materializar reserva com RNG privado (somente interno)
+- Migração `005_encounter_materialization.sql` congela espécie, nível, versão RNG e instante de um encontro reservado, de modo transacional e com CHECK de preenchimento completo.
+- `materializeReservedEncounter` precisa de UUIDs de conta/encontro já validados pelo servidor, chave HMAC privada 32+ bytes, reserva `status=reserved` e save do backend. Aplica só região 1, fonte sincronizada e testada contra `kantoRegions.ts`; concorrência/retries leem resultado congelado mesmo se trocar a chave em processo novo.
+- Nunca expor secret ou dados de controle em HTTP ou logs. Não é endpoint de jogo; sem combate, captura, recompensas ou mutação de /play. Sem registro público.
