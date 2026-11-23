@@ -50,10 +50,6 @@ jobs:
             const m=await import(process.env.CORE_BUNDLE_PATH);
             if(typeof m.previewFrozenWildBattle!=="function")process.exit(1)
           '
-          docker run --rm --entrypoint node kanto-online-api --input-type=module -e '
-            const m=await import("./game-core/frozenBattle.mjs");
-            if(typeof m.previewFrozenWildBattle!=="function")process.exit(1)
-          '
       - name: Validate npm lock & code
         run: |
           npm run check --prefix services/api
@@ -105,4 +101,8 @@ jobs:
             test ! -e /srv/api/assets
             test ! -e /srv/api/.env
             test ! -e /srv/api/package-lock.json.bak
+          '
+          docker run --rm --entrypoint node kanto-online-api --input-type=module -e '
+            const m=await import("./game-core/frozenBattle.mjs");
+            if(typeof m.previewFrozenWildBattle!=="function")process.exit(1)
           '
