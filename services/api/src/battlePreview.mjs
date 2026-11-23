@@ -8,7 +8,7 @@ import {createPrivateBattleRandom} from './battleEntropy.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 let adapterPromise;
-function loadCombatAdapter(){
+export function loadCombatAdapter(){
   // Explicit path override only in tests/build verification, never in Railway.
   const path=process.env.NODE_ENV==='test'&&process.env.CORE_BUNDLE_PATH
     ?resolve(process.env.CORE_BUNDLE_PATH)
