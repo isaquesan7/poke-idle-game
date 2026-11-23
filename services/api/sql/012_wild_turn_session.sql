@@ -22,6 +22,6 @@ ALTER TABLE game_encounter_reservations
       AND coalesce(battle_turn_state->>'regionId','')='1'
       AND coalesce(battle_turn_state->>'phase','')
         IN ('await-player','resolved')
-      AND jsonb_typeof(battle_turn_state->'player')='object'
-      AND jsonb_typeof(battle_turn_state->'wild')='object')
+      AND coalesce(jsonb_typeof(battle_turn_state->'player'),'')='object'
+      AND coalesce(jsonb_typeof(battle_turn_state->'wild'),'')='object')
   );
