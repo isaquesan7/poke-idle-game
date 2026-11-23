@@ -101,3 +101,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - Migration `008_battle_outcome_seal.sql` adiciona campos de selagem com CHECK e índice único de ação. Não marca reserva como encerrada nem concede qualquer progresso.
 - `sealReservedBattle` é função privada sem rota HTTP. Executa transação com lock no save e depois no encontro, confere resultado da prévia no banco e usa actionId/expectedRevision para salvar receipt `battle-seal` e avançar revisão. Replays da mesma ação retornam o mesmo resultado; segunda ação distinta não produz nova selagem. O save bruto `journal.raw` fica inalterado.
 - Não habilitar cadastro público nem exposição da função nesta etapa: payout, captura, despesas e conclusão segura de reservas são passos posteriores.
+
+## ONLINE-01C-14 — cotação de recompensas pós-selagem, ainda sem pagamento
+- Migração `009_battle_reward_quote.sql`: campos `battle_reward_quote` (JSONB) e timestamp. CHECK exige outcome selado idêntico ao da proposta e status reservado.
+- `quoteSealedBattleRewards` é serviço INTERNO sem rota. Sob `FOR UPDATE` do encontro, exige preview/selagem anteriores, chama bundle `quoteFrozenBattleRewards` do game-core e usa HMAC `wild-battle-affinity` apenas para derivar 2–5 de afinidade. A proposta é persistida antes de responder; retries retornam valor idêntico.
+- Não concede XP, moedas, afinidade, Pokébolas ou capturas, não escreve no save, não recebe identidade/payload de luta do browser. Backend só ficará acessível ao público após writer integral e gates de resiliência.
