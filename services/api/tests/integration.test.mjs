@@ -1943,7 +1943,8 @@ test('ONLINE-01C-22: losing interactive battle can only skip, with receipt and n
     assert.equal((await finishPaidWildTurnEncounter(pool,{
       ...args,choice:'poke-ball'})).status,'already-finished');
     assert.equal((await finishPaidWildEncounter(pool,{
-      ...args,actionId:'turn-finish-legacy-0001'})).status,'unavailable',
+      ...args,actionId:'turn-finish-legacy-0001',
+      expectedRevision:rev+1})).status,'unavailable',
       'old auto-preview finalizer must be unavailable after turn completion');
     const after=await pool.query(
       'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
