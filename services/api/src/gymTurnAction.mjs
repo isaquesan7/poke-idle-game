@@ -31,16 +31,19 @@ function legalIncludes(list,action){
 export async function applyReservedGymTurn(pool,params){
   if(!params||typeof params!=='object'||Array.isArray(params)||
      Object.keys(params).some(k=>![
-       'accountId','gymReservationId','actionId','expectedRevision','action','entropyKey'
+       'accountId','gymReservationId','actionId','expectedRevision','action','entropyKey','entropyKeyId'
      ].includes(k))||
      typeof params.accountId!=='string'||!UUID.test(params.accountId)||
      typeof params.gymReservationId!=='string'||!UUID.test(params.gymReservationId)||
      typeof params.actionId!=='string'||!ACTION.test(params.actionId)||
      !Number.isSafeInteger(params.expectedRevision)||params.expectedRevision<0||
      !validAction(params.action)||!Buffer.isBuffer(params.entropyKey)||
-     params.entropyKey.length<32)
+     params.entropyKey.length<32||
+     (params.entropyKeyId!==undefined&&
+       (typeof params.entropyKeyId!=='string'||
+         !/^[a-z][a-z0-9_-]{0,31}$/.test(params.entropyKeyId))))
     return {status:'invalid'};
-  const {accountId,gymReservationId,actionId,expectedRevision,action,entropyKey}=params;
+  const {accountId,gymReservationId,actionId,expectedRevision,action,entropyKey,entropyKeyId}=params;
   const client=await pool.connect();
   try{
     await client.query('BEGIN');
@@ -54,7 +57,7 @@ export async function applyReservedGymTurn(pool,params){
     if(earlier.rowCount&&earlier.rows[0].kind!=='gym-turn')
       return await rollback(client,{status:'duplicate-action'});
     const selected=await client.query(
-      `SELECT status,opened_revision,turn_state,turn_entropy_proof
+      `SELECT status,opened_revision,turn_state,turn_entropy_proof,turn_entropy_key_id
          FROM game_gym_reservations WHERE account_id=$1 AND id=$2 FOR UPDATE`,
       [accountId,gymReservationId]);
     if(!selected.rowCount)return await rollback(client,{status:'missing'});
@@ -86,6 +89,9 @@ export async function applyReservedGymTurn(pool,params){
        !Number.isSafeInteger(state.turn)||state.turn<0||state.turn>=120)
       return await rollback(client,{status:'unavailable'});
     const proof=keyProof(entropyKey,{accountId,gymReservationId});
+    if(gym.turn_entropy_key_id!==null&&entropyKeyId!==undefined&&
+       gym.turn_entropy_key_id!==entropyKeyId)
+      return await rollback(client,{status:'entropy-key-version-mismatch'});
     if(gym.turn_entropy_proof!==null&&gym.turn_entropy_proof!==proof)
       return await rollback(client,{status:'entropy-mismatch'});
     const count=await client.query(
@@ -137,9 +143,10 @@ export async function applyReservedGymTurn(pool,params){
       journal:{...save.journal,revision:nextRevision}};
     await client.query(
       `UPDATE game_gym_reservations SET turn_state=$3::jsonb,
-          turn_entropy_proof=COALESCE(turn_entropy_proof,$4)
+          turn_entropy_proof=COALESCE(turn_entropy_proof,$4),
+          turn_entropy_key_id=COALESCE(turn_entropy_key_id,$5)
         WHERE account_id=$1 AND id=$2`,
-      [accountId,gymReservationId,JSON.stringify(next),proof]);
+      [accountId,gymReservationId,JSON.stringify(next),proof,entropyKeyId??null]);
     await client.query(
       'UPDATE game_saves SET state=$2::jsonb,revision=$3,updated_at=now() WHERE account_id=$1',
       [accountId,JSON.stringify(updated),nextRevision]);

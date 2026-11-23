@@ -181,7 +181,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,23,'all migrations applied exactly once');
+    assert.equal(migrations.rows.length,24,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
@@ -2795,7 +2795,13 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       ...turnZeroArgs,expectedRevision:0})).status,'replay',
       'turn-zero retries are immutable even with an old revision');
     const {applyReservedGymTurn}=await import('../src/gymTurnAction.mjs');
+    const {createGymEntropyKeyring}=await import('../src/gymEntropyKeyring.mjs');
+    const {applyGymTurnWithKeyring,auditGymWithKeyring}=await import(
+      '../src/gymKeyedOperations.mjs');
     const key=Buffer.alloc(32,0x72),badKey=Buffer.alloc(32,0x73);
+    const versions={v1:key.toString('base64'),v2:badKey.toString('base64')};
+    const originalRing=createGymEntropyKeyring({activeId:'v1',keys:versions});
+    const rotatedRing=createGymEntropyKeyring({activeId:'v2',keys:versions});
     const turnArgs={accountId,gymReservationId:race[0].gymReservationId,
       actionId:'gym-first-canonical-turn-0001',expectedRevision:2,
       action:{kind:'basic'},entropyKey:key};
@@ -2803,8 +2809,13 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       action:{kind:'switch',toIndex:8}})).status,'invalid');
     assert.equal((await applyReservedGymTurn(pool,{...turnArgs,
       action:{kind:'move',moveName:'illegal-move'}})).status,'blocked');
+    const keyedTurnArgs={
+      accountId,gymReservationId:race[0].gymReservationId,
+      actionId:turnArgs.actionId,expectedRevision:2,action:turnArgs.action
+    };
     const turns=await Promise.all([
-      applyReservedGymTurn(pool,turnArgs),applyReservedGymTurn(pool,turnArgs)
+      applyGymTurnWithKeyring(pool,originalRing,keyedTurnArgs),
+      applyGymTurnWithKeyring(pool,originalRing,keyedTurnArgs)
     ]);
     assert.deepEqual(turns.map(x=>x.status).sort(),['applied','replay']);
     assert.deepEqual(turns[0].result,turns[1].result);
@@ -2829,6 +2840,20 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       [race[0].gymReservationId]);
     assert.deepEqual(persisted.rows[0].turn_state,turns[0].result.state);
     assert.match(persisted.rows[0].turn_entropy_proof,/^[0-9a-f]{64}$/);
+    const pinned=await pool.query(
+      'SELECT turn_entropy_key_id FROM game_gym_reservations WHERE id=$1',
+      [race[0].gymReservationId]);
+    assert.equal(pinned.rows[0].turn_entropy_key_id,'v1',
+      'first authoritative turn pins the active server key version');
+    assert.equal((await auditGymWithKeyring(pool,rotatedRing,{
+      accountId,gymReservationId:race[0].gymReservationId
+    })).status,'verified-progress',
+      'rotating active key keeps historical replay deterministic');
+    assert.equal((await auditGymWithKeyring(pool,
+      createGymEntropyKeyring({activeId:'v2',keys:{v2:versions.v2}}),{
+      accountId,gymReservationId:race[0].gymReservationId
+    })).status,'historical-key-missing',
+      'cannot silently replay under a new key after retiring v1');
     const {auditReservedGymBattle}=await import('../src/gymReplayAudit.mjs');
     const audited=await auditReservedGymBattle(pool,{
       accountId,gymReservationId:race[0].gymReservationId,entropyKey:key
