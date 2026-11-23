@@ -56,7 +56,7 @@ export function frozenValidatedEquippedMoves(
   // The legacy fallback is legal only if NO implementable offensive move
   // has been learned yet, regardless of whether supports exist.
   const legal=new Map([...unlocked,...(unlockedAttacks.length===0?
-    [species.move]:[])].map(move=>[move.name,move]));
+    [species.move]:[])].map(move=>[move.name,move] as const));
   const result=names.map(name=>legal.get(name));
   return result.every((move):move is KantoMove=>!!move)?
     Object.freeze(result as KantoMove[]):null;
