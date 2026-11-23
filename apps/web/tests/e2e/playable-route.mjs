@@ -1322,6 +1322,7 @@ async function exerciseGymDuel(browser,label,viewport){
     assert.equal(await screen.getByRole('button',{
       name:'Abrir Coleção para definir a equipe'}).count(),1);
     await screen.getByRole('button',{name:'Iniciar batalha contra Brock'}).click();
+    await screen.getByTestId('gym-duel-scene').waitFor();
     const selectedInSession=await page.evaluate(key=>{
       const raw=JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw);
       return {team:raw.team,selected:raw.gymSession.uids};
