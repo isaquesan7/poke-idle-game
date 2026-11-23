@@ -13,3 +13,8 @@ export {createFrozenWildTurnSession,initialFrozenWildTurnActions}
 
 export {legalFrozenWildTurnActions,resolveFrozenWildTurn}
   from './serverWildTurnResolver.js';
+
+// ONLINE-01C-23B2B: pure, read-only Gym bonuses and 3v3 opening preview.
+export {canonicalOnlineGymTrainerBonuses,canonicalOnlineGymEquippedMoves,
+  canonicalOnlineGymPreparation,canonicalOnlineGymOpeningState}
+  from './serverGymPreparation.js';
