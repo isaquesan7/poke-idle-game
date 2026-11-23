@@ -50,9 +50,11 @@ export function replayVerifiedWildTurnHistory(core,{
       logDelta:applied.logDelta,framesDelta:applied.framesDelta,
       nextActions:applied.nextActions
     });
+    // Receipts are JSONB: canonical actions may have optional undefined
+    // fields that JSON serialization drops. Compare the durable wire shape.
     if(!isDeepStrictEqual(expectedReceipt,record.turn_result)||
-       !isDeepStrictEqual(applied.playerAction,record.player_action)||
-       !isDeepStrictEqual(applied.wildAction,record.wild_action)||
+       !isDeepStrictEqual(jsonValue(applied.playerAction),record.player_action)||
+       !isDeepStrictEqual(jsonValue(applied.wildAction),record.wild_action)||
        (i+1<history.length&&next.phase!=='await-player')||
        (i+1===history.length&&next.phase!=='resolved'))return null;
     current=next;
