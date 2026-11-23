@@ -798,3 +798,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Serviço interno `reserveEncounter` verifica revisão e recibo de ação, serializa modificações pelo lock da linha `game_saves`, reserva a primeira região somente, grava encounter+revision+receipt na mesma transação e devolve o mesmo UUID a retries do mesmo actionId.
 - Nada é sorteado nem concedido: sem espécie, recompensas, HP ou consumo de Pokébolas. Não há endpoint de criação/fechamento de encontro; não permite criar outro encontro enquanto o anterior está reservado. Teste PG18 cobre concorrência, stale, replay e invariantes de não-recompensa.
 - Não altera `/play` nem migra save local. CI, merge e deploy pendentes.
+
+## ONLINE-01C-9 — materialização do primeiro encontro no backend (PR, sem acesso público)
+- Migração `005_encounter_materialization.sql` acrescenta espécie, nível, versão do RNG e data de materialização a reservas já persistidas; um CHECK exige os quatro campos juntos, sem estados parciais.
+- Serviço INTERNO `materializeReservedEncounter` lê reserva do banco com `FOR UPDATE`, escolhe espécie/nível R1 com HMAC privado do servidor e persiste antes de responder. Retries/worker concorrente (ou chave trocada) retornam espécie e nível já gravados, sem reroll. Pool e faixas da região 1 são verificadas contra a fonte game-core em teste automatizado.
+- Não é batalha/captura nem recompensa; não adiciona endpoint, não configura segredo de produção, não altera `/play`. Testes PostgreSQL 18 verificam concorrência, replay, preservação do inventário/progresso e constraint SQL.
