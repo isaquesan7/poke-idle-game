@@ -16,7 +16,8 @@ const allowed=new Set([
   '/api/v1/status','/api/v1/me','/api/v1/save',
   '/api/v1/auth/register','/api/v1/auth/verify','/api/v1/auth/login',
   '/api/v1/auth/logout','/api/v1/auth/request-reset',
-  '/api/v1/auth/confirm-reset','/api/v1/adventure/start'
+  '/api/v1/auth/confirm-reset','/api/v1/adventure/start',
+  '/api/v1/trainer/invest'
 ]);
 const hopByHop=new Set(['connection','keep-alive','proxy-authenticate',
   'proxy-authorization','te','trailer','transfer-encoding','upgrade',
