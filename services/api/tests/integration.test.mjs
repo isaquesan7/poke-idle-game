@@ -218,12 +218,13 @@ test('rate limiting persists across requests and rejects repeated login attempts
   });
   try{
     let ready=false;
-    for(let i=0;i<80;i++){
+    for(let i=0;i<160;i++){
       try{if((await json(base,'/health')).status===200){ready=true;break;}}
       catch{}
-      await new Promise(done=>setTimeout(done,70));
+      if(child.exitCode!==null)break;
+      await new Promise(done=>setTimeout(done,100));
     }
-    assert.equal(ready,true);
+    assert.equal(ready,true,'throttle test server did not start in CI');
     const email='rate-ci-'+process.pid+'@example.test';
     const responses=[];
     for(let i=0;i<8;i++){
