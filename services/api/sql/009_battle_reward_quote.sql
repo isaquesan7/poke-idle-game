@@ -11,6 +11,6 @@ ALTER TABLE game_encounter_reservations
      AND jsonb_typeof(battle_reward_quote)='object'
      AND battle_reward_quote_at IS NOT NULL
      AND battle_sealed_outcome IS NOT NULL
-     AND battle_reward_quote->>'outcome'=battle_sealed_outcome
+     AND coalesce(battle_reward_quote->>'outcome','')=battle_sealed_outcome
      AND status='reserved')
   );
