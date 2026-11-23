@@ -158,6 +158,11 @@ async function exercise(browser, label, viewport) {
   await gymPanel.getByLabel(/2º Ginásio: Cascata, Misty, bloqueado/).waitFor();
   assert.equal(await gymPanel.getByRole('button',{name:'Iniciar batalha contra Brock'}).isDisabled(),true,
     'Equipe com menos de três UIDs nunca pode iniciar Ginásio');
+  assert.equal(await gymPanel.locator('fieldset input[type="checkbox"]').count(),0,
+    'Ginásios never offer a second lineup picker');
+  await gymPanel.getByRole('button',{name:'Abrir Coleção para definir a equipe'}).click();
+  await page.getByRole('heading',{name:'Coleção Pokémon'}).waitFor();
+  await page.getByRole('button',{name:'Ginásios',exact:true}).click();
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeGymBrowse,
     'Inspecionar Ginásios nunca altera o save');
   await page.getByRole('button',{name:'Treinador',exact:true}).click();
@@ -1300,12 +1305,29 @@ async function exerciseGymDuel(browser,label,viewport){
       localStorage.setItem(key,JSON.stringify(env));
     },SAVE);
     await page.reload();
+    await page.getByRole('button',{name:'Coleção',exact:true}).click();
+    const collectedTeam=await page.evaluate(key=>
+      JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).team,SAVE);
+    assert.deepEqual(collectedTeam,[1,2,3],
+      'a lineup for the Gym is defined in the Collection before entering');
+    for(let index=0;index<3;index++)
+      await page.getByTestId('team-slot-'+index).getByText('UID #'+
+        collectedTeam[index],{exact:false}).waitFor();
     await page.getByRole('button',{name:'Ginásios',exact:true}).click();
     const screen=page.getByTestId('gym-screen');
-    const choices=screen.locator('fieldset input[type="checkbox"]');
-    assert.equal(await choices.count(),3);
-    for(let i=0;i<3;i++)await choices.nth(i).check();
+    const prepared=screen.getByRole('list',{name:'Equipe escalada na Coleção'});
+    assert.equal(await prepared.getByRole('listitem').count(),3);
+    assert.equal(await screen.locator('fieldset input[type="checkbox"]').count(),0,
+      'the Gym can no longer assemble a separate squad');
+    assert.equal(await screen.getByRole('button',{
+      name:'Abrir Coleção para definir a equipe'}).count(),1);
     await screen.getByRole('button',{name:'Iniciar batalha contra Brock'}).click();
+    const selectedInSession=await page.evaluate(key=>{
+      const raw=JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw);
+      return {team:raw.team,selected:raw.gymSession.uids};
+    },SAVE);
+    assert.deepEqual(selectedInSession.selected,selectedInSession.team,
+      'the locked Gym team must exactly match the Collection lineup');
     await screen.getByTestId('gym-duel-scene').waitFor();
     await screen.getByRole('heading',{name:/Brock.*Teste Ginásio/}).waitFor();
     await screen.getByRole('button',{name:'Pausar após a rodada'}).click();
