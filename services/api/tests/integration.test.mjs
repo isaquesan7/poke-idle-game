@@ -881,7 +881,8 @@ test('ONLINE-01C-15: battle payout commits exactly once, preserves capture choic
     assert.equal(raw.roster[0].affinity,quoted.quote.affinityDelta);
     assert.equal(raw.wins,quoted.quote.wins);
     assert.equal(raw.losses,quoted.quote.losses);
-    assert.equal(raw.ballPocket.quantities['poke-ball'],12);
+    assert.equal(raw.ballPocket.quantities['poke-ball'],
+      12+(quoted.quote.ballDropId==='poke-ball'?1:0));
     assert.equal(raw.roster.length,1);
     assert.deepEqual(raw.badges,[]);
     const receipts=await pool.query(
