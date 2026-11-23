@@ -151,13 +151,17 @@ export async function payCertifiedWildTurns(pool,{
          Number(encounter.battle_turn_certificate_revision)||
        Number(encounter.battle_turn_certificate_revision)>revision)
       return await rollback(client,{status:'invalid-certificate'});
-    const snapshot=buildBattleSnapshot(save,{
+    const fresh=buildBattleSnapshot(save,{
       regionId:Number(encounter.region_id),
       speciesId:Number(encounter.species_id),
       level:Number(encounter.pokemon_level)
     });
-    if(!snapshot||!isDeepStrictEqual(snapshot,encounter.battle_snapshot))
+    if(!fresh||!isDeepStrictEqual(fresh,encounter.battle_snapshot))
       return await rollback(client,{status:'stale-snapshot'});
+    // 01C-20 digests the PostgreSQL JSONB snapshot, whose object key order
+    // can differ from an equivalent newly constructed JS object. Validate
+    // equivalence above, but replay/hash the canonical persisted snapshot.
+    const snapshot=encounter.battle_snapshot;
     const history=await client.query(
       `SELECT t.action_id,t.turn_number,t.player_action,t.wild_action,
               t.turn_result,t.save_revision,a.kind,
