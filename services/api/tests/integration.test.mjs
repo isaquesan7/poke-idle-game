@@ -2933,6 +2933,16 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
     )).rows[0].state.journal.raw);
     assert.deepEqual(rewardsStillZero.badges,[],
       'certification cannot grant a Gym badge before a separate payout');
+    // The later payout may complete the reservation WITHOUT dropping its
+    // historical certificate; a separate writer will authorize that event.
+    await pool.query(
+      "UPDATE game_gym_reservations SET status='completed' WHERE id=$1",
+      [race[0].gymReservationId]);
+    const kept=await pool.query(
+      'SELECT certificate_outcome,certificate_digest FROM game_gym_reservations WHERE id=$1',
+      [race[0].gymReservationId]);
+    assert.equal(kept.rows[0].certificate_outcome,state.outcome);
+    assert.equal(kept.rows[0].certificate_digest,certificate.certificate.digest);
 
   }finally{
     if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
