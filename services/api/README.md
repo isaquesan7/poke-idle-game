@@ -61,3 +61,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - Web possui proxy `/api/v1/*` com allowlist para o serviço API interno, via `ONLINE_API_INTERNAL_URL` (somente origem privada definida pelo operador; **não adicionar credenciais ou endpoint secreto ao Git**). Sem essa variável, responde 503. O backend permanece independente, sem domínio público.
 - `Origin` e `Cookie` de entrada seguem intactos; `Forwarded`, `X-Forwarded-For`, `X-Forwarded-Host` e `X-Forwarded-Proto` são descartados, sem confiar em cabeçalhos controlados pelo cliente. O destino é configuração fixa, sem redirects controlados pelo browser ou proxy aberto; body limitado a 16KiB.
 - Configuração NÃO está ativada no Railway. Fazer revisão de segurança da rede interna, `APP_ORIGIN`, cookies, backup e restore e email operacional antes de conectar a variável. Mesmo com proxy, o guard `NODE_ENV=production` ainda bloqueia auth e início da aventura. Não existe fluxo online aberto.
+
+
+## ONLINE-01C-6 — ação transacional inicial no servidor (branch)
+- `POST /api/v1/trainer/invest`: recebe exatamente `{actionId,expectedRevision,stat}`, sessão verificada e Origin exigidos. Verifica orçamento calculado do nível persistido, máximo 40 pontos manuais por atributo, save esperado e receipt único. `FOR UPDATE` protege chamadas concorrentes e commit da revisão + receipt é atômico.
+- Não existe rota pública para conceder nível, XP, moeda, insígnia ou capturas. A ação é test-only, produção tem `enabled=false`; o teste Nv2 usa fixture direta em PostgreSQL descartável. Sem importação de localStorage.
