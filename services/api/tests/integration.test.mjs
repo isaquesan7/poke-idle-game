@@ -2778,6 +2778,16 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       expectedRevision:2,regionId:1})).status,'busy');
     assert.equal((await inspectNextGym(pool,{
       accountId,expectedRevision:2})).status,'busy');
+    const {equipPokemonMoves}=await import('../src/pokemonMoveEquipment.mjs');
+    assert.equal((await equipPokemonMoves(pool,{
+      accountId,actionId:'gym-reserve-loadout-block-0001',
+      expectedRevision:2,pokemonUid:3,moveNames:['thunder-shock']
+    })).status,'busy','a Gym lock freezes all equipped moves');
+    const {applyTrainerInvestment}=await import('../src/trainerInvestment.mjs');
+    assert.equal((await applyTrainerInvestment(pool,{
+      accountId,actionId:'gym-reserve-stat-block-0001',
+      expectedRevision:2,stat:'hp'
+    })).status,'busy','a Gym lock freezes trainer bonuses');
     const unchanged=await pool.query(
       'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
     assert.equal(Number(unchanged.rows[0].revision),2);
