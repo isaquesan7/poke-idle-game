@@ -18,7 +18,7 @@ ALTER TABLE game_encounter_reservations
      AND length(battle_seal_action_id) BETWEEN 12 AND 100
      AND battle_seal_revision IS NOT NULL AND battle_seal_revision>=1
      AND battle_preview IS NOT NULL
-     AND battle_preview->>'outcome'=battle_sealed_outcome
+     AND coalesce(battle_preview->>'outcome','')=battle_sealed_outcome
      AND status='reserved')
   );
 CREATE UNIQUE INDEX game_encounter_battle_seal_action_unique
