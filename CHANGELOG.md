@@ -865,3 +865,8 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Migração 014 e serviço privado `wildTurnCertificate.mjs` conferem histórico de recibos, HP/fases e resultado real da sessão selvagem concluída. SHA-256 persistido apenas como identificador de integridade do transcript; sem payout, captura, fim da reserva ou alteração do save bruto.
 - Recibo único `wild-turn-certificate` e revisão transacional; testes PG18: sessão não resolvida, histórico adulterado, corrida/replay, constraints, créditos zero e nova reserva bloqueada. Workflow de restore descartável passa a esperar 14 migrações.
 - Sem abertura de contas, sem rota pública, sem migração de /play. PR/CI/merge/deploy pendentes, backup real e email remetente ainda não validados.
+
+## ONLINE-01C-20 — release privado confirmado (23/11/2026)
+- PR #201 merged `main` `02664059f9000f4ebda0cf1a95f7b8d0f790f83c`; CI PostgreSQL18 `45161503524 SUCCESS` e regressão geral `45161503432 SUCCESS`. Tentativa anterior falhou no assert de 13 migrations, atualizada e revalidada com 14.
+- Railway API privada `abe302ea-4166-4476-958f-ba31dc29506e SUCCESS` (migração 014 aplicada, registro OFF) e web `0ff38a72-4e8c-4c95-a55d-c6ad1ca6e6ec SUCCESS` no mesmo SHA. Sem teste HTTP externo do site neste registro.
+- Certificado de desfecho de turnos é interno, sem recursos, sem concluir encontro, sem alterar `/play`. Próximo: liquidação por turnos com verificação independente; gates de backup/Resend/LGPD e abertura de contas permanecem pendentes.
