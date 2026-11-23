@@ -399,3 +399,65 @@ test('ONLINE-01C-8: an encounter reservation is durable, idempotent, one at a ti
     await pool.end();
   }
 });
+
+test('ONLINE-01C-9: one materialized encounter survives retries and worker races without grants',async()=>{
+ const {firstSave}=await import('../src/initialAdventure.mjs');
+ const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+ const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+ const {FIRST_REGION_SPECIES}=await import('../src/encounterMaterialization.mjs');
+ const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+ let accountId;
+ try{
+  const account=await pool.query(
+    'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+    ['materialize-'+process.pid+'@example.test','x'.repeat(48)]);
+  accountId=account.rows[0].id;
+  await pool.query(
+    'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+    [accountId,JSON.stringify(firstSave('CI Kanto',4,1740000000000))]);
+  const action={accountId,actionId:'materialize-ci-action-0001',expectedRevision:0,regionId:1};
+  const reserved=await reserveEncounter(pool,action);
+  assert.equal(reserved.status,'reserved');
+  assert.equal((await materializeReservedEncounter(pool,{accountId,encounterId:reserved.encounterId,
+    entropyKey:Buffer.alloc(16)})).status,'invalid');
+  const params={accountId,encounterId:reserved.encounterId,entropyKey:Buffer.alloc(32,0x71)};
+  const race=await Promise.all([
+    materializeReservedEncounter(pool,params),
+    materializeReservedEncounter(pool,params)
+  ]);
+  assert.deepEqual(race.map(r=>r.status).sort(),['materialized','replay']);
+  const first=race.find(r=>r.status==='materialized');
+  assert.ok(FIRST_REGION_SPECIES.includes(first.speciesId));
+  assert.ok(first.level>=2&&first.level<=10);
+  const restarted=await materializeReservedEncounter(pool,{
+    ...params,entropyKey:Buffer.alloc(32,0x82)});
+  assert.equal(restarted.status,'replay',
+    'new process or key rotation reads persisted encounter instead of rerolling');
+  assert.deepEqual([restarted.speciesId,restarted.level],
+    [first.speciesId,first.level]);
+  const result=await pool.query(
+    'SELECT status,species_id,pokemon_level,entropy_version,materialized_at FROM game_encounter_reservations WHERE id=$1',
+    [reserved.encounterId]);
+  assert.equal(result.rows[0].status,'reserved');
+  assert.equal(Number(result.rows[0].species_id),first.speciesId);
+  assert.ok(result.rows[0].materialized_at);
+  const save=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',
+    [accountId]);
+  assert.equal(Number(save.rows[0].revision),1);
+  const raw=JSON.parse(save.rows[0].state.journal.raw);
+  assert.equal(raw.coins,0);
+  assert.equal(raw.trainer.xp,0);
+  assert.equal(raw.roster[0].pokemonId,4);
+  assert.deepEqual(raw.badges,[]);
+  assert.equal(raw.ballPocket.quantities['poke-ball'],12);
+  const receipts=await pool.query(
+    'SELECT kind FROM game_action_receipts WHERE account_id=$1',
+    [accountId]);
+  assert.deepEqual(receipts.rows.map(x=>x.kind),['encounter-reserve']);
+  assert.equal((await reserveEncounter(pool,{...action,actionId:'materialize-ci-action-0002',
+    expectedRevision:1})).status,'busy');
+ }finally{
+  if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+  await pool.end();
+ }
+});
