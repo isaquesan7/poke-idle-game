@@ -166,6 +166,40 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       [register.data.id]);
     assert.deepEqual(receipts.rows,[{action_id:'adventure:create:v1',
       kind:'adventure-initialization'}]);
+    const teamArgs={actionId:'http-collection-team-first-0001',
+      expectedRevision:0,teamUids:[1]};
+    assert.equal((await json(origin,'/api/v1/collection/team','POST',
+      teamArgs)).status,401,'Collection writes require a session');
+    assert.equal((await json(origin,'/api/v1/collection/team','POST',
+      {...teamArgs,accountId:register.data.id},
+      {Cookie:sessionCookie})).status,400,
+      'browser cannot supply its own accountId');
+    assert.equal((await json(origin,'/api/v1/collection/team','POST',
+      {...teamArgs,seed:88},
+      {Cookie:sessionCookie})).status,400,
+      'browser cannot supply seeds or extra fields to Collection');
+    assert.equal((await json(origin,'/api/v1/collection/team','POST',
+      teamArgs,{Cookie:sessionCookie,Origin:'https://attacker.example'})).status,
+      400,'Collection team writes reject cross-site request origin');
+    assert.equal((await json(origin,'/api/v1/collection/team','POST',
+      {...teamArgs,teamUids:[1,2,3]},
+      {Cookie:sessionCookie})).status,409,
+      'Collection team UIDs must be truly owned by the server account');
+    const teamSet=await json(origin,'/api/v1/collection/team','POST',
+      teamArgs,{Cookie:sessionCookie});
+    assert.equal(teamSet.status,200);
+    assert.equal(teamSet.data.status,'set');
+    assert.deepEqual(teamSet.data.teamUids,[1]);
+    assert.equal(teamSet.data.revision,1);
+    const teamReplay=await json(origin,'/api/v1/collection/team','POST',
+      {...teamArgs,expectedRevision:0},{Cookie:sessionCookie});
+    assert.equal(teamReplay.status,200);
+    assert.equal(teamReplay.data.status,'replay');
+    assert.deepEqual(teamReplay.data.teamUids,[1]);
+    const teamStored=await pool.query(
+      'SELECT state FROM game_saves WHERE account_id=$1',[register.data.id]);
+    assert.deepEqual(JSON.parse(teamStored.rows[0].state.journal.raw).team,[1]);
+
     // Two concurrent starts from the SAME authenticated account must commit
     // one save/receipt only. Different starter requests cannot overwrite it.
     const another={email:'concurrency-'+process.pid+'@example.test',
@@ -318,6 +352,10 @@ test('production stays registration-disabled even with the feature flag misconfi
         gymReservationId:'00000000-0000-4000-8000-000000000001'
       })).status,503,'production must deny all Gym terminal writes');
     }
+    assert.equal((await json(base,'/api/v1/collection/team','POST',{
+      actionId:'collection-prod-forbidden-0001',expectedRevision:0,
+      teamUids:[1]
+    })).status,503,'production must deny Collection writes while beta is gated');
   }finally{child.kill('SIGTERM');}
 });
 
@@ -2866,6 +2904,13 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
     assert.equal(reserveReplay.data.status,'replay');
     assert.equal(reserveReplay.data.gymReservationId,race[0].gymReservationId);
     assert.deepEqual(reserveReplay.data.teamUids,[2,3,1]);
+    const midGymTeam=await json(gymBase,'/api/v1/collection/team','POST',{
+      actionId:'gym-mid-battle-team-forbidden-0001',
+      expectedRevision:race[0].revision,teamUids:[3,1,2]
+    },{Cookie:authCookie});
+    assert.equal(midGymTeam.status,409);
+    assert.equal(midGymTeam.data.error,'busy',
+      'Collection cannot change the frozen Gym trio mid-battle');
     const frozen=await pool.query(
       'SELECT * FROM game_gym_reservations WHERE account_id=$1',[accountId]);
     assert.equal(frozen.rowCount,1);
