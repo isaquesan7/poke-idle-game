@@ -97,6 +97,20 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       gymReservationId:'00000000-0000-4000-8000-000000000001',
       action:{kind:'basic'}
     })).status,401,'Gym turn requires a verified authenticated account');
+    for(const endpoint of ['certify','settle']){
+      const path='/api/v1/gym/'+endpoint;
+      const args={actionId:'gym-http-unauthorized-final-0001',expectedRevision:0,
+        gymReservationId:'00000000-0000-4000-8000-000000000001'};
+      assert.equal((await json(origin,path,'POST',args)).status,401,
+        'final Gym actions require a session');
+      assert.equal((await json(origin,path,'POST',{
+        ...args,seed:123,accountId:'00000000-0000-4000-8000-000000000001'
+      },{Cookie:sessionCookie})).status,400,
+        'final Gym actions reject forged account and seed');
+      assert.equal((await json(origin,path,'POST',args,{
+        Cookie:sessionCookie,Origin:'https://attacker.example'
+      })).status,400,'final Gym actions reject cross-site Origin');
+    }
     assert.equal((await json(origin,'/api/v1/gym/turn','POST',{
       actionId:'gym-browser-seed-attack-0001',expectedRevision:0,
       gymReservationId:'00000000-0000-4000-8000-000000000001',
@@ -298,6 +312,12 @@ test('production stays registration-disabled even with the feature flag misconfi
       gymReservationId:'00000000-0000-4000-8000-000000000001',
       action:{kind:'basic'}
     })).status,503,'production cannot execute Gym turns during CI-only stage');
+    for(const endpoint of ['certify','settle']){
+      assert.equal((await json(base,'/api/v1/gym/'+endpoint,'POST',{
+        actionId:'gym-prod-final-denied-0001',expectedRevision:0,
+        gymReservationId:'00000000-0000-4000-8000-000000000001'
+      })).status,503,'production must deny all Gym terminal writes');
+    }
   }finally{child.kill('SIGTERM');}
 });
 
@@ -3054,14 +3074,22 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       legal=result.result.nextActions;
     }
     assert.notEqual(state.outcome,'ongoing','canonical Gym reached a terminal outcome');
-    const certificate=await certifyReservedGymBattle(pool,{
-      ...certArgs,expectedRevision:currentRevision
-    });
+    const certResponse=await json(gymBase,'/api/v1/gym/certify','POST',{
+      actionId:certArgs.actionId,expectedRevision:currentRevision,
+      gymReservationId:certArgs.gymReservationId
+    },{Cookie:authCookie});
+    assert.equal(certResponse.status,200);
+    const certificate=certResponse.data;
     assert.equal(certificate.status,'certified');
     assert.equal(certificate.certificate.outcome,state.outcome);
     assert.match(certificate.certificate.digest,/^[0-9a-f]{64}$/);
-    assert.equal((await certifyReservedGymBattle(pool,{
-      ...certArgs,expectedRevision:0})).status,'replay');
+    const certRetry=await json(gymBase,'/api/v1/gym/certify','POST',{
+      actionId:certArgs.actionId,expectedRevision:0,
+      gymReservationId:certArgs.gymReservationId
+    },{Cookie:authCookie});
+    assert.equal(certRetry.status,200);
+    assert.equal(certRetry.data.status,'replay');
+    assert.deepEqual(certRetry.data.certificate,certificate.certificate);
     assert.equal((await certifyReservedGymBattle(pool,{
       ...certArgs,actionId:'gym-second-terminal-certificate-0001',
       expectedRevision:certificate.revision})).status,'already-certified');
@@ -3081,9 +3109,15 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       expectedRevision:certificate.revision,entropyKey:key};
     assert.equal((await settleCertifiedGym(pool,{
       ...payoutArgs,entropyKey:badKey})).status,'invalid-history');
+    const httpPayout=()=>json(gymBase,'/api/v1/gym/settle','POST',{
+      actionId:payoutArgs.actionId,expectedRevision:payoutArgs.expectedRevision,
+      gymReservationId:payoutArgs.gymReservationId
+    },{Cookie:authCookie}).then(response=>{
+      assert.equal(response.status,200);
+      return response.data;
+    });
     const payouts=await Promise.all([
-      settleCertifiedGym(pool,payoutArgs),
-      settleCertifiedGym(pool,payoutArgs)
+      httpPayout(),httpPayout()
     ]);
     assert.deepEqual(payouts.map(p=>p.status).sort(),['paid','replay']);
     assert.deepEqual(payouts[0].paid,payouts[1].paid);
@@ -3094,9 +3128,13 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       state.outcome==='player-win'?1500:0);
     assert.equal(payouts[0].paid.trainerXp,
       state.outcome==='player-win'?120:0);
-    assert.equal((await settleCertifiedGym(pool,{
-      ...payoutArgs,actionId:'gym-settle-again-blocked-0001',
-      expectedRevision:payouts[0].revision})).status,'already-paid');
+    const deniedRepeat=await json(gymBase,'/api/v1/gym/settle','POST',{
+      actionId:'gym-settle-again-blocked-0001',
+      expectedRevision:payouts[0].revision,
+      gymReservationId:payoutArgs.gymReservationId
+    },{Cookie:authCookie});
+    assert.equal(deniedRepeat.status,409);
+    assert.equal(deniedRepeat.data.error,'already-paid');
     const afterPayout=JSON.parse((await pool.query(
       'SELECT state FROM game_saves WHERE account_id=$1',[accountId]
     )).rows[0].state.journal.raw);
