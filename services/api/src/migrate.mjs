@@ -10,7 +10,7 @@ if(!process.env.DATABASE_URL)throw new Error('DATABASE_URL ausente.');
 const client=new pg.Client({connectionString:process.env.DATABASE_URL,
   connectionTimeoutMillis:5000});
 const migrations=['001_online_foundation.sql','002_auth_limits_verification.sql',
-  '003_password_reset.sql','004_encounter_reservations.sql','005_encounter_materialization.sql','006_battle_snapshot.sql','007_canonical_battle_preview.sql','008_battle_outcome_seal.sql','009_battle_reward_quote.sql'];
+  '003_password_reset.sql','004_encounter_reservations.sql','005_encounter_materialization.sql','006_battle_snapshot.sql','007_canonical_battle_preview.sql','008_battle_outcome_seal.sql','009_battle_reward_quote.sql','010_battle_payout.sql'];
 await client.connect();
 try{
   await client.query('BEGIN');
