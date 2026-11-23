@@ -870,3 +870,10 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - PR #201 merged `main` `02664059f9000f4ebda0cf1a95f7b8d0f790f83c`; CI PostgreSQL18 `45161503524 SUCCESS` e regressão geral `45161503432 SUCCESS`. Tentativa anterior falhou no assert de 13 migrations, atualizada e revalidada com 14.
 - Railway API privada `abe302ea-4166-4476-958f-ba31dc29506e SUCCESS` (migração 014 aplicada, registro OFF) e web `0ff38a72-4e8c-4c95-a55d-c6ad1ca6e6ec SUCCESS` no mesmo SHA. Sem teste HTTP externo do site neste registro.
 - Certificado de desfecho de turnos é interno, sem recursos, sem concluir encontro, sem alterar `/play`. Próximo: liquidação por turnos com verificação independente; gates de backup/Resend/LGPD e abertura de contas permanecem pendentes.
+
+## ONLINE-01C-21 — liquidação privada de combate interativo (23/11/2026, branch)
+- Adiciona `wildTurnSettlement.mjs` com replay independente e determinístico por ação/ordem usando motor Kanto + RNG HMAC privado; compara 100% dos turnos e estado terminal com o histórico, sem assumir que digest SHA-256 basta. Chave trocada sem histórico bloqueia o prêmio.
+- Após validação, reutiliza somente a **política pura de recompensa** do core para calcular XP/moeda/afinidade e uma bola aleatória de vitória elegível, em transação única `journal.raw + revisão + wild-turn-payout receipt + quote/receipt PG`. Não grava `battle_preview` e não usa o writer legado de preview.
+- SQL append-only 015 e CI 15 migrações, testes concorrência/replay/fraude estrutural/HMAC/PG18/restore descartável. Cadastro real e captura/skip nesse modo NÃO liberados; `/play` local sem migração. PR/CI/merge/Railway a verificar.
+
+- Segurança adicional: prova HMAC-SHA256 persistida no primeiro turno de combate, comparada em todo turno posterior e antes do pagamento. Protege também contra chaves diferentes que, por coincidência, produzam o mesmo log/HP; replays de receipt permanecem idempotentes.

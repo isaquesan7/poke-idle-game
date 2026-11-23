@@ -47,3 +47,19 @@ export function createPrivateBattleRandom(secret,{accountId,encounterId,phase}){
     unit(){return nextU32()/MAX_U32;}
   });
 }
+
+
+/** Full-strength, encounter-specific proof of the server HMAC key chosen
+ * for the FIRST committed turn. Persist only this MAC, never key or seed.
+ * Subsequent turns and payout must require the same historical key.
+ */
+export function createPrivateBattleKeyProof(secret,{accountId,encounterId}){
+  if(!Buffer.isBuffer(secret)||secret.length<32||
+     typeof accountId!=='string'||!UUID.test(accountId)||
+     typeof encounterId!=='string'||!UUID.test(encounterId))
+    throw new TypeError('Server-only encounter key proof requires valid identity');
+  return createHmac('sha256',secret).update(JSON.stringify([
+    BATTLE_ENTROPY_VERSION,'wild-turn-key-proof-v1',
+    accountId.toLowerCase(),encounterId.toLowerCase()
+  ])).digest('hex');
+}

@@ -4,7 +4,7 @@
  * Never settle battle preview/reward/capture until a later audited bridge.
  */
 import {isDeepStrictEqual} from 'node:util';
-import {createPrivateBattleRandom} from './battleEntropy.mjs';
+import {createPrivateBattleRandom,createPrivateBattleKeyProof} from './battleEntropy.mjs';
 import {buildBattleSnapshot} from './battlePreparation.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -39,7 +39,7 @@ export async function applyReservedWildTurn(pool,{
       return await rollback(client,{status:'duplicate-action'});
     const found=await client.query(
       `SELECT region_id,status,species_id,pokemon_level,battle_snapshot,
-              battle_turn_state,battle_preview,battle_sealed_outcome,
+              battle_turn_state,battle_turn_entropy_proof,battle_preview,battle_sealed_outcome,
               battle_reward_quote,battle_payout_action_id
          FROM game_encounter_reservations
         WHERE account_id=$1 AND id=$2 FOR UPDATE`,[accountId,encounterId]);
@@ -81,6 +81,10 @@ export async function applyReservedWildTurn(pool,{
     });
     if(!frozen||!isDeepStrictEqual(frozen,encounter.battle_snapshot))
       return await rollback(client,{status:'stale-snapshot'});
+    const keyProof=createPrivateBattleKeyProof(entropyKey,{accountId,encounterId});
+    if(encounter.battle_turn_entropy_proof!==null&&
+       encounter.battle_turn_entropy_proof!==keyProof)
+      return await rollback(client,{status:'entropy-mismatch'});
     const core=await loadCombatAdapter();
     if(typeof core.resolveFrozenWildTurn!=='function')
       throw new Error('Missing canonical Kanto wild turn resolver');
@@ -112,9 +116,10 @@ export async function applyReservedWildTurn(pool,{
       journal:{...save.journal,revision:nextRevision}};
     await client.query(
       `UPDATE game_encounter_reservations
-         SET battle_turn_state=$3::jsonb
+         SET battle_turn_state=$3::jsonb,
+             battle_turn_entropy_proof=COALESCE(battle_turn_entropy_proof,$4)
        WHERE account_id=$1 AND id=$2`,
-      [accountId,encounterId,JSON.stringify(next)]);
+      [accountId,encounterId,JSON.stringify(next),keyProof]);
     await client.query(
       `UPDATE game_saves SET revision=$3,state=$2::jsonb,updated_at=now()
         WHERE account_id=$1`,[accountId,JSON.stringify(updated),nextRevision]);
