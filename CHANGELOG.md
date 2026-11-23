@@ -780,3 +780,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Landing `/` redesenhada como portal de treinadores responsivo com login, cadastro e recuperação; `/verify-email` e `/reset-password` servem o mesmo shell de autenticação.
 - Formulários desabilitados por padrão; somente podem executar chamadas same-origin se `/api/v1/status` retornar explicitamente `registrationEnabled:true`. Ambiente real ainda retorna false/503. URLs com token são limpas do histórico ao iniciar e sem referrer.
 - Nenhuma migração de saves `/play`; nenhum cadastro habilitado e nenhum endpoint de escrita de progresso local alterado. Smoke Docker estendido; testes e merge pendentes.
+
+
+## ONLINE-01C-6 — primeira ação incremental autoritativa (branch, sem deploy)
+- Nova operação de API `POST /api/v1/trainer/invest` apenas em harness test-only: recebe somente `actionId`, `expectedRevision`, `stat`. A conta vem da sessão, os pontos vêm do nível e do save no servidor; não aceita moedas, XP, badges ou save arbitrário. Regras: +2 pontos por nível acima do 1, limite de 40 pontos manuais por atributo.
+- Transação com `SELECT FOR UPDATE`, `revision` esperado e recibo único por conta/ação. Concorrência e retries não duplicam investimento. Atualiza JSON envelopado e revisão junto do recibo em PostgreSQL; sem mutação do `/play`.
+- Testes unitários e integração PostgreSQL 18 cobrem orçamento, payload malicioso, origem, corrida, replay, revisão e preservação do inventário/recompensas. Rotas disponíveis apenas no harness, produção permanece bloqueada. CI e merge ainda pendentes.

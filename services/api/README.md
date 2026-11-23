@@ -66,3 +66,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 ## ONLINE-01C-5 — portal HTML do treinador (ainda em PR)
 - A página `/` possui campos de entrada/cadastro e links de recuperação; `/verify-email` e `/reset-password` respondem HTML sem credenciais. O cliente verifica `/api/v1/status` e desabilita ações até o backend declarar `registrationEnabled:true` — um sinal que a produção atualmente nunca fornece.
 - Token de e-mail/red­efinição da query string é lido e removido do histórico antes da requisição; política `no-referrer`. Não é fluxo de conta liberado ao público nem migra progresso do `/play`. UI deverá receber revisão de acessibilidade e de proteção antifraude antes da beta.
+
+
+## ONLINE-01C-6 — ação transacional inicial no servidor (branch)
+- `POST /api/v1/trainer/invest`: recebe exatamente `{actionId,expectedRevision,stat}`, sessão verificada e Origin exigidos. Verifica orçamento calculado do nível persistido, máximo 40 pontos manuais por atributo, save esperado e receipt único. `FOR UPDATE` protege chamadas concorrentes e commit da revisão + receipt é atômico.
+- Não existe rota pública para conceder nível, XP, moeda, insígnia ou capturas. A ação é test-only, produção tem `enabled=false`; o teste Nv2 usa fixture direta em PostgreSQL descartável. Sem importação de localStorage.
