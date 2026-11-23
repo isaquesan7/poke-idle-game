@@ -47,7 +47,8 @@ describe('ONLINE-01C-19 — canonical wild 1v1 turn resolver',()=>{
     if(first.turnState.phase==='await-player'){
       expect(first.nextActions).toEqual(
         legalFrozenWildTurnActions(s,first.turnState));
-      expect(first.nextActions.some(a=>a.kind==='switch')).toBe(false);
+      expect(first.nextActions.every(a=>
+        ['basic','focus','move'].includes(a.kind))).toBe(true);
       const second=resolveFrozenWildTurn(
         s,first.turnState,{kind:'basic'},432)!;
       expect(second.status).toBe('applied');
@@ -60,7 +61,7 @@ describe('ONLINE-01C-19 — canonical wild 1v1 turn resolver',()=>{
   });
   it('finishes within 30 turns, never pays or generates fictitious captures',()=>{
     const s=snapshot();
-    let state=createFrozenWildTurnSession(s)!;
+    let state:unknown=createFrozenWildTurnSession(s)!;
     for(let turn=0;turn<30;turn++){
       const legal=legalFrozenWildTurnActions(s,state);
       expect(legal).not.toBeNull();
@@ -68,17 +69,18 @@ describe('ONLINE-01C-19 — canonical wild 1v1 turn resolver',()=>{
       const next=resolveFrozenWildTurn(s,state,action,900+turn)!;
       expect(next.status).toBe('applied');
       if(next.status!=='applied')break;
-      state=next.turnState;
-      expect(state.log.length).toBe(state.frames.length);
-      expect(state.turn).toBe(turn+1);
-      expect(state.player.hp).toBeGreaterThanOrEqual(0);
-      expect(state.wild.hp).toBeGreaterThanOrEqual(0);
-      expect(state.player.sp).toBeGreaterThanOrEqual(0);
-      expect(state.wild.sp).toBeGreaterThanOrEqual(0);
-      expect(state.player.hp).toBeLessThanOrEqual(state.player.maxHp);
-      expect(state.wild.hp).toBeLessThanOrEqual(state.wild.maxHp);
-      if(state.phase==='resolved'){
-        expect(['win','loss','draw']).toContain(state.outcome);
+      const current=next.turnState;
+      state=current;
+      expect(current.log.length).toBe(current.frames.length);
+      expect(current.turn).toBe(turn+1);
+      expect(current.player.hp).toBeGreaterThanOrEqual(0);
+      expect(current.wild.hp).toBeGreaterThanOrEqual(0);
+      expect(current.player.sp).toBeGreaterThanOrEqual(0);
+      expect(current.wild.sp).toBeGreaterThanOrEqual(0);
+      expect(current.player.hp).toBeLessThanOrEqual(current.player.maxHp);
+      expect(current.wild.hp).toBeLessThanOrEqual(current.wild.maxHp);
+      if(current.phase==='resolved'){
+        expect(['win','loss','draw']).toContain(current.outcome);
         expect(next.nextActions).toEqual([]);
         expect(legalFrozenWildTurnActions(s,state)).toBeNull();
         expect(Object.hasOwn(state,'rewards')).toBe(false);
