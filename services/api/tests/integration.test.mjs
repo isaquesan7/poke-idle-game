@@ -713,3 +713,95 @@ test('ONLINE-01C-13 battle seal is atomic, idempotent, immutable and reward-free
     await pool.end();
   }
 });
+
+test('ONLINE-01C-14 reward quote is idempotent, server-bound and does not credit anything',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {previewReservedBattle}=await import('../src/battlePreview.mjs');
+  const {sealReservedBattle}=await import('../src/battleSeal.mjs');
+  const {quoteSealedBattleRewards}=await import('../src/battleRewardQuote.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const account=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['reward-quote-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=account.rows[0].id;
+    const first=firstSave('Reward CI',4,1740000000000);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(first)]);
+    const reserve=await reserveEncounter(pool,{accountId,
+      actionId:'reward-quote-book-0001',expectedRevision:0,regionId:1});
+    assert.equal(reserve.status,'reserved');
+    const identity={accountId,encounterId:reserve.encounterId};
+    const entropyKey=Buffer.alloc(32,0x67);
+    const args={...identity,entropyKey};
+    assert.equal((await quoteSealedBattleRewards(pool,args)).status,'unavailable');
+    assert.equal((await materializeReservedEncounter(pool,args)).status,'materialized');
+    assert.equal((await prepareReservedBattle(pool,identity)).status,'prepared');
+    assert.equal((await previewReservedBattle(pool,args)).status,'previewed');
+    assert.equal((await quoteSealedBattleRewards(pool,args)).status,'unavailable',
+      'no reward quote before a sealed result');
+    assert.equal((await sealReservedBattle(pool,{...identity,
+      actionId:'reward-quote-seal-0001',expectedRevision:1})).status,'sealed');
+    const attempts=await Promise.all([
+      quoteSealedBattleRewards(pool,args),
+      quoteSealedBattleRewards(pool,{...identity,entropyKey:Buffer.alloc(32,0x28)})
+    ]);
+    assert.deepEqual(attempts.map(x=>x.status).sort(),['quoted','replay']);
+    assert.deepEqual(attempts[0].quote,attempts[1].quote);
+    const quote=attempts[0].quote;
+    assert.equal(quote.version,1);
+    assert.equal(quote.activeUid,1);
+    assert.equal(quote.activeLevel,1);
+    assert.equal(quote.regionId,1);
+    assert.ok(quote.wildLevel>=2&&quote.wildLevel<=10);
+    assert.equal(quote.progressFactorTenths,10);
+    assert.equal(quote.outcome,
+      (await pool.query('SELECT battle_sealed_outcome FROM game_encounter_reservations WHERE id=$1',
+        [reserve.encounterId])).rows[0].battle_sealed_outcome);
+    assert.ok(Number.isSafeInteger(quote.coins)&&quote.coins>=0);
+    assert.ok(Number.isSafeInteger(quote.pokemonXp)&&quote.pokemonXp>=0);
+    assert.equal(Object.hasOwn(quote,'capture'),false);
+    assert.equal(Object.hasOwn(quote,'seed'),false);
+    const replay=await quoteSealedBattleRewards(pool,{
+      ...identity,entropyKey:Buffer.alloc(32,0x99)});
+    assert.equal(replay.status,'replay');
+    assert.deepEqual(replay.quote,quote);
+    const row=await pool.query(
+      'SELECT status,battle_reward_quote,battle_reward_quote_at FROM game_encounter_reservations WHERE id=$1',
+      [reserve.encounterId]);
+    assert.equal(row.rows[0].status,'reserved');
+    assert.deepEqual(row.rows[0].battle_reward_quote,quote);
+    assert.ok(row.rows[0].battle_reward_quote_at);
+    await assert.rejects(pool.query(
+      'UPDATE game_encounter_reservations SET battle_reward_quote_at=NULL WHERE id=$1',
+      [reserve.encounterId]),error=>error.code==='23514');
+    await assert.rejects(pool.query(
+      "UPDATE game_encounter_reservations SET battle_reward_quote=battle_reward_quote - 'outcome' WHERE id=$1",
+      [reserve.encounterId]),error=>error.code==='23514');
+    const saved=await pool.query(
+      'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    assert.equal(Number(saved.rows[0].revision),2);
+    assert.equal(saved.rows[0].state.journal.raw,first.journal.raw);
+    const raw=JSON.parse(saved.rows[0].state.journal.raw);
+    assert.equal(raw.coins,0);
+    assert.equal(raw.trainer.xp,0);
+    assert.equal(raw.roster[0].xp,0);
+    assert.equal(raw.roster[0].affinity,0);
+    assert.deepEqual(raw.badges,[]);
+    assert.equal(raw.ballPocket.quantities['poke-ball'],12);
+    const receipts=await pool.query(
+      'SELECT kind FROM game_action_receipts WHERE account_id=$1 ORDER BY save_revision',
+      [accountId]);
+    assert.deepEqual(receipts.rows.map(x=>x.kind),['encounter-reserve','battle-seal']);
+    assert.equal((await reserveEncounter(pool,{accountId,actionId:'reward-quote-book-0002',
+      expectedRevision:2,regionId:1})).status,'busy');
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
