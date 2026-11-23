@@ -22,7 +22,7 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
      !Number.isSafeInteger(v.wildRemainingHp)||
      !Array.isArray(v.log)||!Array.isArray(v.frames)||
      v.log.length!==v.frames.length)return null;
-  const s=snapshot as {activePokemon:{uid:number};regionId:number};
+  const s=snapshot as {activePokemon:{uid:number;affinity:number};regionId:number};
   const {player,wild}=pair;
   const outcome=v.outcome as 'win'|'loss'|'draw';
   const factor=battleProgressFactor(player.level,wild.level);
@@ -30,7 +30,7 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
   const affinityBase=win?2+affinityRoll:0;
   const affinityDelta=win?
     scaledRegionalReward(affinityBase,factor):
-    -Math.min(player.level>=1?((snapshot as any).activePokemon.affinity):0,
+    -Math.min(s.activePokemon.affinity,
       outcome==='draw'?AFFINITY_LOSS_ON_DRAW:AFFINITY_LOSS_ON_DEFEAT);
   return Object.freeze({
     version:1,regionId:s.regionId,activeUid:s.activePokemon.uid,
