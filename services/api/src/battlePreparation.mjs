@@ -1,5 +1,6 @@
 /** ONLINE-01C-10: freeze a minimal, SERVER-OWNED battle input.
  * Not a combat engine or HTTP endpoint. Never grant XP/coins/captures here.
+ * A move roster is explicit only when persisted by the equip writer.
  * A later server game-core adapter must recompute stats/moves from trusted
  * catalogs and must not use client-supplied stats or moves.
  */
@@ -49,16 +50,25 @@ export function buildBattleSnapshot(save,encounter){
   const pokemonManual=manualStats(selected.manual);
   if(!pokemonManual||STATS.reduce((n,s)=>n+pokemonManual[s],0)>
       (selected.level-1)*2)return null;
+  const equipped=selected.equippedMoveNames;
+  if(equipped!==undefined&&
+    (!Array.isArray(equipped)||equipped.length<1||equipped.length>4||
+     equipped[0]!==selected.moveName||
+     equipped.some(name=>typeof name!=='string'||
+       !/^[a-z][a-z-]{1,63}$/.test(name))||
+     new Set(equipped).size!==equipped.length))
+    return null;
   // Canonical move legality, HP/SP, types, and stats remain the engine's
   // responsibility. Snapshot freezes identities/levels only.
   return {
-    version:1,regionId:1,opponent:{
+    version:equipped===undefined?1:2,regionId:1,opponent:{
       speciesId:encounter.speciesId,level:encounter.level
     },trainer:{level:trainerLevel,manual:trainerManual},
     activePokemon:{
       uid:selected.uid,speciesId:selected.pokemonId,
       level:selected.level,affinity:selected.affinity,
-      manual:pokemonManual,moveName:selected.moveName
+      manual:pokemonManual,moveName:selected.moveName,
+      ...(equipped===undefined?{}:{moveNames:[...equipped]})
     }
   };
 }
