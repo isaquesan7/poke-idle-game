@@ -96,6 +96,7 @@ export function canonicalOnlineGymTrainerBonuses(source:unknown):
      source.badges.some((id,i)=>id!==KANTO_GYMS[i]?.id))
     return null;
   const trainer=source.trainer;
+  if(!integer(trainer.level,1,100))return null;
   const manual=manualStats(trainer.manual,trainer.level);
   if(!manual||!isRecord(trainer.equipped)||
      Object.keys(trainer.equipped).some(slot=>
@@ -156,7 +157,7 @@ export function canonicalOnlineGymPreparation(source:unknown):
      !Array.isArray(source.roster)||source.roster.length<3||
      !integer(source.nextUid,4,Number.MAX_SAFE_INTEGER)||
      !source.roster.every(p=>isRecord(p)&&
-       integer(p.uid,1,source.nextUid-1))||
+       integer(p.uid,1,Number(source.nextUid)-1))||
      new Set(source.roster.map(p=>(p as RecordValue).uid)).size!==
        source.roster.length||
      source.expedition!==null||
@@ -199,7 +200,7 @@ export function canonicalOnlineGymPreparation(source:unknown):
   const opponent=prepareGymOpponent(gym);
   return {
     version:1,gymId:gym.id,leader:gym.leader,
-    teamUids:[source.team[0],source.team[1],source.team[2]],
+    teamUids:[source.team[0]!,source.team[1]!,source.team[2]!],
     trainer:bonuses,
     player:players as unknown as OnlineGymPreparationV1['player'],
     leaderTeam:opponent.team
