@@ -11,7 +11,6 @@ import {createFrozenWildTurnSession} from './serverWildTurnSession.js';
 import {createGymBattleState} from '../gyms/gymBattleState.js';
 import {gymLegalTurnActions} from '../gyms/gymTurn.js';
 import {resolveGymAiTurn,gymChooseAiAction} from '../gyms/gymAiTurn.js';
-import {KANTO_BASIC_ATTACK} from './kantoSkillEnergy.js';
 import type {GymBattleState,GymFighterState,GymSideState} from '../gyms/gymBattleState.js';
 import type {GymTurnAction} from '../gyms/gymTurn.js';
 import type {Combatant,KantoBattleVisualFrame} from './kantoBattle.js';
