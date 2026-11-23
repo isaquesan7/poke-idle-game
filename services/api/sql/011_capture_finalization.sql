@@ -79,7 +79,7 @@ ALTER TABLE game_encounter_reservations
          AND final_result->>'ballId' IS NULL)
          OR (final_choice<>'skip'
            AND final_result->>'outcome' IN ('failed','captured')
-           AND final_result->>'ballId'=final_choice))))
+           AND final_result->>'ballId'=final_choice)))
   );
 CREATE UNIQUE INDEX game_encounter_final_action_unique
   ON game_encounter_reservations(account_id,final_action_id)
