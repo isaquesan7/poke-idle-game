@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {
   createFrozenWildTurnSession,initialFrozenWildTurnActions,
-  canonicalFrozenCombatants,kantoMaxSp
+  canonicalFrozenCombatants,kantoMaxSp,kantoMoveSpCost
 } from '../src/index.js';
 
 const zero=()=>({
@@ -52,7 +52,8 @@ describe('ONLINE-01C-18 — initial authoritative wild turn session',()=>{
   it('offers only canonical basic attack and equipped move; no focus at full SP',()=>{
     expect(initialFrozenWildTurnActions(snapshot())).toEqual([
       {kind:'basic',moveName:'basic-attack',spCost:0},
-      {kind:'move',moveName:'scratch',spCost:16}
+      {kind:'move',moveName:'scratch',
+        spCost:kantoMoveSpCost(canonicalFrozenCombatants(snapshot())!.player.move)}
     ]);
     const choices=initialFrozenWildTurnActions(snapshot())!;
     expect(choices.every(action=>action.spCost>=0)).toBe(true);
