@@ -181,7 +181,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,22,'all migrations applied exactly once');
+    assert.equal(migrations.rows.length,23,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
@@ -2933,11 +2933,36 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
     )).rows[0].state.journal.raw);
     assert.deepEqual(rewardsStillZero.badges,[],
       'certification cannot grant a Gym badge before a separate payout');
-    // The later payout may complete the reservation WITHOUT dropping its
-    // historical certificate; a separate writer will authorize that event.
-    await pool.query(
-      "UPDATE game_gym_reservations SET status='completed' WHERE id=$1",
-      [race[0].gymReservationId]);
+    // Settlement derives the SAME original Gym catalog and trainer XP
+    // progression, and credits no badge for loss/draw.
+    const {settleCertifiedGym}=await import('../src/gymSettlement.mjs');
+    const payoutArgs={accountId,gymReservationId:race[0].gymReservationId,
+      actionId:'gym-settle-terminal-outcome-0001',
+      expectedRevision:certificate.revision,entropyKey:key};
+    assert.equal((await settleCertifiedGym(pool,{
+      ...payoutArgs,entropyKey:badKey})).status,'invalid-history');
+    const payouts=await Promise.all([
+      settleCertifiedGym(pool,payoutArgs),
+      settleCertifiedGym(pool,payoutArgs)
+    ]);
+    assert.deepEqual(payouts.map(p=>p.status).sort(),['paid','replay']);
+    assert.deepEqual(payouts[0].paid,payouts[1].paid);
+    assert.equal(payouts[0].paid.outcome,state.outcome);
+    assert.equal(payouts[0].paid.badgeId,
+      state.outcome==='player-win'?'boulder':null);
+    assert.equal(payouts[0].paid.coins,
+      state.outcome==='player-win'?1500:0);
+    assert.equal(payouts[0].paid.trainerXp,
+      state.outcome==='player-win'?120:0);
+    assert.equal((await settleCertifiedGym(pool,{
+      ...payoutArgs,actionId:'gym-settle-again-blocked-0001',
+      expectedRevision:payouts[0].revision})).status,'already-paid');
+    const afterPayout=JSON.parse((await pool.query(
+      'SELECT state FROM game_saves WHERE account_id=$1',[accountId]
+    )).rows[0].state.journal.raw);
+    assert.deepEqual(afterPayout.badges,state.outcome==='player-win'?['boulder']:[]);
+    assert.equal(afterPayout.coins,payouts[0].paid.coins);
+    // Completion retains historical certificate for future audit.
     const kept=await pool.query(
       'SELECT certificate_outcome,certificate_digest FROM game_gym_reservations WHERE id=$1',
       [race[0].gymReservationId]);
