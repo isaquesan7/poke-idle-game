@@ -303,3 +303,9 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 ### ONLINE-01C-3 — origem autoritativa do save inicial
 - Somente backend autenticado cria o save inicial após confirmação do e-mail e escolha legal do starterId (1/4/7). Hora, nome, XP, dinheiro, nível, Pokébolas e insígnias vêm do perfil e da política do servidor, nunca de um JSON arbitrário nem do localStorage. Transação salva snapshot e recibo único juntos; concorrência nunca cria duas aventuras.
 - O save do laboratório /play não será migrado. A criação da aventura segue indisponível em produção até conta pública, backup de Railway e ações server-side seguras. Teste de restore no CI em banco descartável não substitui restauração operacional do volume em produção.
+
+
+### ONLINE-01C-6 — investimento manual de atributos como primeira ação incremental do servidor (22/11/2026, implementação em branch)
+- A primeira ação após criação de save será `trainer/invest`, sem gerar recursos nem aceitar estados enviados pelo navegador. Mantém regra já aprovada de 2 pontos por nível acima de 1 e teto manual de 40 por atributo.
+- `actionId` é único por conta, `expectedRevision` implementa concorrência otimista e `SELECT FOR UPDATE` serializa commits. Toda concessão persistida deve atualizar save e receipt em uma transação; retries retornam conflito sem efeito duplicado. A sessão autenticada é a única fonte de conta.
+- Este endpoint não habilita gameplay online nem migra saves locais. Guards de produção permanecem fechados até pré-requisitos operacionais.
