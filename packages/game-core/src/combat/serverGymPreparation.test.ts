@@ -19,6 +19,7 @@ interface Fixture {
     ownedEquipment:Record<string,number>};
   gymSession?:unknown;pendingBattle?:unknown;lastBattle?:unknown;
 }
+const copy=<T>(value:T):T=>JSON.parse(JSON.stringify(value)) as T;
 const blank=():Stats=>({
   hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0
 });
@@ -87,7 +88,7 @@ describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
     ]);
     expect(owned.totals.hp).toBe(3);
     expect(owned.totals.attack).toBe(3);
-    const copied=structuredClone(raw);
+    const copied=copy(raw);
     copied.inventory.ownedEquipment.cap=0;
     expect(canonicalOnlineGymTrainerBonuses(copied)).toBeNull();
     copied.inventory.ownedEquipment={visor:1,gloves:1};
@@ -144,19 +145,19 @@ describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
     expect(canonicalOnlineGymEquippedMoves(25,20,
       ['thunder-shock','thunder-shock'])).toBeNull();
     const make=(edit:(obj:ReturnType<typeof fixture>)=>void)=>{
-      const p=structuredClone(raw);edit(p);
+      const p=copy(raw);edit(p);
       return canonicalOnlineGymPreparation(p);
     };
     expect(make(p=>{p.team=[1,2]})).toBeNull();
     expect(make(p=>{p.team=[1,1,3]})).toBeNull();
     expect(make(p=>{p.team=[1,2,99]})).toBeNull();
-    expect(make(p=>{p.roster[1].uid=1})).toBeNull();
-    expect(make(p=>{p.roster[1].manual.attack=40})).toBeNull();
+    expect(make(p=>{p.roster[1]!.uid=1})).toBeNull();
+    expect(make(p=>{p.roster[1]!.manual.attack=40})).toBeNull();
     expect(make(p=>{p.trainer.manual.attack=40})).toBeNull();
-    expect(make(p=>{p.roster[1].upgrades={'tackle':4}})).toBeNull();
-    expect(make(p=>{p.roster[1].equippedMoveNames=['tackle','hydro-pump']}))
+    expect(make(p=>{p.roster[1]!.upgrades={'tackle':4}})).toBeNull();
+    expect(make(p=>{p.roster[1]!.equippedMoveNames=['tackle','hydro-pump']}))
       .toBeNull();
-    expect(make(p=>{p.roster[1].equippedMoveNames=['tackle','tackle']}))
+    expect(make(p=>{p.roster[1]!.equippedMoveNames=['tackle','tackle']}))
       .toBeNull();
     expect(make(p=>{p.expedition={startedAt:1}})).toBeNull();
     expect(make(p=>{p.gymSession={id:'forged'}})).toBeNull();
