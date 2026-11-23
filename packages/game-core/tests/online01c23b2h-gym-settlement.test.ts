@@ -19,11 +19,17 @@ const raw=()=>JSON.stringify({
     level:p.level,xp:0,affinity:0}))
 });
 const playerWon={...base,turn:7,outcome:'player-win' as const,
-  leader:{...base.leader,fighters:(base.leader.fighters.map(f=>({...f,hp:0}))
-    as unknown as typeof base.leader.fighters)}};
+  leader:{...base.leader,fighters:[
+    {...base.leader.fighters[0]!,hp:0},
+    {...base.leader.fighters[1]!,hp:0},
+    {...base.leader.fighters[2]!,hp:0}
+  ] as const}};
 const playerLost={...base,turn:7,outcome:'leader-win' as const,
-  player:{...base.player,fighters:(base.player.fighters.map(f=>({...f,hp:0}))
-    as unknown as typeof base.player.fighters)}};
+  player:{...base.player,fighters:[
+    {...base.player.fighters[0]!,hp:0},
+    {...base.player.fighters[1]!,hp:0},
+    {...base.player.fighters[2]!,hp:0}
+  ] as const}};
 const event='gym-settlement-test-0001';
 
 describe('ONLINE-01C-23B2H: same GYM-03A economy through private pure transition',()=>{
