@@ -196,3 +196,7 @@ export {finalizeFrozenWildEncounter} from './capture/serverEncounterFinalization
 // ONLINE-01C-18: canonical turn-zero contract, not turn resolution.
 export {createFrozenWildTurnSession,initialFrozenWildTurnActions}
   from './combat/serverWildTurnSession.js';
+
+// ONLINE-01C-19 — one canonical Gym-engine round for server wild battles.
+export {legalFrozenWildTurnActions,resolveFrozenWildTurn}
+  from './combat/serverWildTurnResolver.js';
