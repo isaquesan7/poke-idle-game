@@ -10,6 +10,7 @@
  */
 import {KANTO_GYMS,kantoNextGym} from '../gyms/kantoGyms.js';
 import {prepareGymOpponent} from '../gyms/gymTactics.js';
+import {createGymBattleState} from '../gyms/gymBattleState.js';
 import {gymPsychicLevelMoves} from '../gyms/gymPsychicMoves.js';
 import {LEGACY_ITEMS,LEGACY_TITLES,legacyTitleIsUnlocked}
   from '../legacy/catalog.js';
@@ -24,6 +25,7 @@ import {STATS,zeroStats} from '../stats/types.js';
 import type {StatValues,StatBonus} from '../stats/types.js';
 import type {KantoMove,Combatant} from './kantoBattle.js';
 import type {EquipmentSlot} from '../stats/trainer.js';
+import type {GymBattleState} from '../gyms/gymBattleState.js';
 
 type RecordValue=Record<string,unknown>;
 const isRecord=(value:unknown):value is RecordValue=>
@@ -202,4 +204,17 @@ export function canonicalOnlineGymPreparation(source:unknown):
     player:players as unknown as OnlineGymPreparationV1['player'],
     leaderTeam:opponent.team
   };
+}
+
+/** Server-only start-of-fight fixture, NOT a stored or resolved Gym match.
+ * A future authenticated writer must lock the save, freeze the trio and sign
+ * turns/settlement before exposing this to any player-facing online route.
+ */
+export function canonicalOnlineGymOpeningState(source:unknown):
+ {readonly preparation:OnlineGymPreparationV1;
+  readonly battle:GymBattleState}|null{
+  const preparation=canonicalOnlineGymPreparation(source);
+  if(!preparation)return null;
+  return {preparation,battle:createGymBattleState(
+    preparation.player,preparation.leaderTeam)};
 }
