@@ -131,3 +131,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - `applyReservedWildTurn(pool,{accountId,encounterId,actionId,expectedRevision,action,entropyKey})`: somente contexto interno. Aceita `basic`, `focus`, ou `move` com `moveName` equipado; bloqueia extras, golpes fora de nível, SP insuficiente e trocas não definidas. Reusa `resolveGymAiTurn` via bundle core e persiste estado HP/SP/turn/log no `battle_turn_state`.
 - Migration `013_wild_turn_receipts.sql` impõe unicidade por ação e por número de rodada. Recibo `wild-turn`, revisão do save e estado de batalha são gravados juntos. HMAC `wild-turn-N` independente dos demais sorteios; sem seed enviada ao navegador.
 - Resultado do combate interativo **não** gera `battle_preview` ou prêmio; settlement posterior ainda pendente. Sem rotas HTTP nem liberação do cadastro.
+
+## ONLINE-01C-20 — certificado isolado de desfecho interativo
+- `014_wild_turn_certificate.sql` e `src/wildTurnCertificate.mjs` selam SOMENTE um transcript de turnos `resolved` com até 30 etapas, recibos e logs coerentes. Certificado, revisão e receipt `wild-turn-certificate` são escritos atomicamente; a reserva continua `reserved`.
+- É uma fronteira de auditoria: SHA-256 não substitui re-simulação independente com RNG e não concede XP, saldo, Pokébolas, captura nem acesso HTTP. O pipeline anterior de `battle_preview` continua incompatível com `battle_turn_state`.
+- CI roda PostgreSQL18 com migrações 001–014 e restauração lógica descartável. Em Railway ainda faltam backups/PITR + restore isolado reais; autenticação pública e /play local permanecem inalterados.

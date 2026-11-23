@@ -181,7 +181,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,13,'all migrations applied exactly once');
+    assert.equal(migrations.rows.length,14,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
@@ -1457,6 +1457,132 @@ test('ONLINE-01C-19: one transactional wild turn, replay, audit and no rewards',
         ...command,actionId:'turn-writer-action-0002',
         expectedRevision:2,entropyKey:Buffer.alloc(32,0x7a)})).status,'replay');
     }
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
+
+
+test('ONLINE-01C-20: certify terminal wild transcript once without any payout',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {startReservedWildTurnSession}=await import('../src/wildTurnSession.mjs');
+  const {applyReservedWildTurn}=await import('../src/wildTurnAction.mjs');
+  const {certifyResolvedWildTurn}=await import('../src/wildTurnCertificate.mjs');
+  const {paySealedBattleRewards}=await import('../src/battlePayout.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const account=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['turn-certificate-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=account.rows[0].id;
+    const initial=firstSave('Turn Cert CI',4,1740000000000);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(initial)]);
+    const reserve=await reserveEncounter(pool,{
+      accountId,actionId:'turn-certificate-reserve-0001',expectedRevision:0,regionId:1});
+    assert.equal(reserve.status,'reserved');
+    const ids={accountId,encounterId:reserve.encounterId};
+    const key=Buffer.alloc(32,0x2f);
+    const sealArgs={...ids,actionId:'turn-certificate-seal-0001',expectedRevision:1};
+    assert.equal((await certifyResolvedWildTurn(pool,sealArgs)).status,'unavailable',
+      'cannot certify before preparing/playing');
+    assert.equal((await materializeReservedEncounter(pool,{
+      ...ids,entropyKey:key})).status,'materialized');
+    assert.equal((await prepareReservedBattle(pool,ids)).status,'prepared');
+    const started=await startReservedWildTurnSession(pool,{
+      ...ids,expectedRevision:1});
+    assert.equal(started.status,'started');
+    assert.equal((await certifyResolvedWildTurn(pool,sealArgs)).status,'unavailable',
+      'turn zero must never be a payable or certifiable outcome');
+    let session=started.turnState,revision=1,turns=0;
+    while(session.phase==='await-player'&&turns<30){
+      turns++;
+      const resolved=await applyReservedWildTurn(pool,{
+        ...ids,actionId:'turn-certificate-step-'+String(turns).padStart(4,'0'),
+        expectedRevision:revision,action:{kind:'basic'},entropyKey:key});
+      assert.equal(resolved.status,'applied');
+      revision=resolved.revision;
+      const next=await pool.query(
+        'SELECT battle_turn_state FROM game_encounter_reservations WHERE id=$1',
+        [ids.encounterId]);
+      session=next.rows[0].battle_turn_state;
+      assert.equal(session.turn,turns);
+      assert.equal(session.log.length,session.frames.length);
+    }
+    assert.equal(session.phase,'resolved','turns must finish by KO or round 30');
+    assert.ok(['win','loss','draw'].includes(session.outcome));
+    const command={...sealArgs,expectedRevision:revision};
+    assert.equal((await certifyResolvedWildTurn(pool,{
+      ...command,expectedRevision:revision-1})).status,'stale');
+    assert.equal((await certifyResolvedWildTurn(pool,{
+      ...command,actionId:'turn-certificate-step-0001'})).status,'duplicate-action');
+    const lastAction='turn-certificate-step-'+String(turns).padStart(4,'0');
+    const original=await pool.query(
+      'SELECT turn_result FROM game_wild_turn_receipts WHERE encounter_id=$1 AND action_id=$2',
+      [ids.encounterId,lastAction]);
+    assert.equal(original.rowCount,1);
+    await pool.query(
+      "UPDATE game_wild_turn_receipts SET turn_result=jsonb_set(turn_result,'{logDelta}','[\"forged\"]'::jsonb) WHERE encounter_id=$1 AND action_id=$2",
+      [ids.encounterId,lastAction]);
+    assert.equal((await certifyResolvedWildTurn(pool,command)).status,
+      'invalid-history','mutated audit log must not create a certificate');
+    await pool.query(
+      'UPDATE game_wild_turn_receipts SET turn_result=$3::jsonb WHERE encounter_id=$1 AND action_id=$2',
+      [ids.encounterId,lastAction,JSON.stringify(original.rows[0].turn_result)]);
+    const race=await Promise.all([
+      certifyResolvedWildTurn(pool,command),
+      certifyResolvedWildTurn(pool,command)
+    ]);
+    assert.deepEqual(race.map(x=>x.status).sort(),['certified','replay']);
+    assert.deepEqual(race[0].certificate,race[1].certificate);
+    assert.equal(race[0].certificate.outcome,session.outcome);
+    assert.equal(race[0].certificate.turns,turns);
+    assert.match(race[0].certificate.digest,/^[0-9a-f]{64}$/);
+    assert.equal(race[0].revision,revision+1);
+    assert.equal((await certifyResolvedWildTurn(pool,{
+      ...command,actionId:'turn-certificate-second-0001',
+      expectedRevision:revision+1})).status,'already-certified');
+    const encounter=await pool.query(
+      'SELECT status,battle_preview,battle_sealed_outcome,battle_reward_quote,battle_payout_action_id,battle_turn_certificate_revision,battle_turn_certificate_outcome,battle_turn_certificate_digest FROM game_encounter_reservations WHERE id=$1',
+      [ids.encounterId]);
+    assert.equal(encounter.rows[0].status,'reserved');
+    assert.equal(encounter.rows[0].battle_preview,null);
+    assert.equal(encounter.rows[0].battle_sealed_outcome,null);
+    assert.equal(encounter.rows[0].battle_reward_quote,null);
+    assert.equal(encounter.rows[0].battle_payout_action_id,null);
+    assert.equal(Number(encounter.rows[0].battle_turn_certificate_revision),revision+1);
+    assert.equal(encounter.rows[0].battle_turn_certificate_outcome,session.outcome);
+    assert.equal(encounter.rows[0].battle_turn_certificate_digest,race[0].certificate.digest);
+    const saved=await pool.query(
+      'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    assert.equal(Number(saved.rows[0].revision),revision+1);
+    assert.equal(saved.rows[0].state.journal.revision,revision+1);
+    assert.equal(saved.rows[0].state.journal.raw,initial.journal.raw);
+    const raw=JSON.parse(saved.rows[0].state.journal.raw);
+    assert.equal(raw.coins,0);
+    assert.equal(raw.trainer.xp,0);
+    assert.equal(raw.roster[0].xp,0);
+    assert.equal(raw.ballPocket.quantities['poke-ball'],12);
+    assert.equal((await paySealedBattleRewards(pool,{
+      ...ids,actionId:'turn-certificate-payout-0001',
+      expectedRevision:revision+1})).status,'unavailable',
+      'turn certificate is not a license to call auto-preview payout');
+    assert.equal((await reserveEncounter(pool,{
+      accountId,actionId:'turn-certificate-reroll-0001',
+      expectedRevision:revision+1,regionId:1})).status,'busy');
+    const receipts=await pool.query(
+      'SELECT kind FROM game_action_receipts WHERE account_id=$1 AND kind=$2',
+      [accountId,'wild-turn-certificate']);
+    assert.equal(receipts.rowCount,1);
+    await assert.rejects(pool.query(
+      "UPDATE game_encounter_reservations SET battle_turn_certificate_outcome='fake' WHERE id=$1",
+      [ids.encounterId]),error=>error.code==='23514');
   }finally{
     if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
     await pool.end();
