@@ -59,8 +59,8 @@ export async function startReservedGymTurnSession(pool,params){
     const opening=core.canonicalOnlineGymOpeningState(raw);
     if(!opening||opening.preparation.gymId!==gym.gym_id||
        !isDeepStrictEqual(opening.preparation.teamUids,gym.team_uids)||
-       !isDeepStrictEqual(opening.preparation,gym.frozen_preparation)||
-       !isDeepStrictEqual(opening.battle,gym.frozen_battle))
+       !isDeepStrictEqual(JSON.parse(JSON.stringify(opening.preparation)),gym.frozen_preparation)||
+       !isDeepStrictEqual(JSON.parse(JSON.stringify(opening.battle)),gym.frozen_battle))
       return await rollback(client,{status:'stale-snapshot'});
     const state=opening.battle;
     const actions=core.gymLegalTurnActions(state,'player');
