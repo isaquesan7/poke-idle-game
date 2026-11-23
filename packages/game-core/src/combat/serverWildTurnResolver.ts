@@ -10,6 +10,7 @@ import {canonicalFrozenCombatants} from './serverFrozenBattle.js';
 import {createFrozenWildTurnSession} from './serverWildTurnSession.js';
 import {legalFrozenSquadActions,resolveFrozenSquadTurn}
   from './serverWildSquadTurnResolver.js';
+import type {SquadTurnState} from './serverWildSquadTurnResolver.js';
 import {createGymBattleState} from '../gyms/gymBattleState.js';
 import {gymLegalTurnActions} from '../gyms/gymTurn.js';
 import {resolveGymAiTurn,gymChooseAiAction} from '../gyms/gymAiTurn.js';
@@ -147,7 +148,7 @@ export function legalFrozenWildTurnActions(
 export function resolveFrozenWildTurn(
   snapshot:unknown,current:unknown,action:unknown,serverSeed:number
 ):null|{readonly status:'blocked';readonly reason:string}|
- {readonly status:'applied';readonly turnState:Persisted;
+ {readonly status:'applied';readonly turnState:Persisted|SquadTurnState;
   readonly playerAction:WildTurnPlayerAction;
   readonly wildAction:GymTurnAction;readonly logDelta:readonly string[];
   readonly framesDelta:readonly KantoBattleVisualFrame[];
