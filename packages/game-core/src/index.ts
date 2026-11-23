@@ -182,3 +182,6 @@ export {gymChooseAiAction,resolveGymAiTurn} from './gyms/gymAiTurn.js';
 export {canonicalFrozenCombatants,previewFrozenWildBattle}
   from './combat/serverFrozenBattle.js';
 export type {ServerBattleSnapshotV1} from './combat/serverFrozenBattle.js';
+
+// ONLINE-01C-14: canonical regional reward QUOTE (no payout).
+export {quoteFrozenBattleRewards} from './combat/serverBattleRewards.js';

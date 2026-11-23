@@ -9,7 +9,7 @@ const output=resolve(process.argv[2]??'services/api/game-core/frozenBattle.mjs')
 mkdirSync(dirname(output),{recursive:true});
 const command=process.platform==='win32'?'node_modules/.bin/esbuild.cmd':'node_modules/.bin/esbuild';
 const result=spawnSync(resolve(command),[
-  'packages/game-core/src/combat/serverFrozenBattle.ts',
+  'packages/game-core/src/combat/serverApiBundle.ts',
   '--bundle','--platform=node','--format=esm','--target=node22',
   '--legal-comments=none','--outfile='+output
 ],{cwd:resolve(import.meta.dirname,'..'),stdio:'inherit'});
