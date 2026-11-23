@@ -1708,6 +1708,44 @@ test('ONLINE-01C-21: verify every HMAC turn and pay exactly once (never auto-pre
         WHERE account_id=$1 AND id=$2`,
       [accountId,ids.encounterId,JSON.stringify(session),
         original.rows[0].battle_turn_certificate_digest]);
+    const core=await import(process.env.CORE_BUNDLE_PATH);
+    const {createPrivateBattleRandom}=await import('../src/battleEntropy.mjs');
+    const stableHistory=await pool.query(
+      `SELECT t.action_id,t.turn_number,t.player_action,t.wild_action,
+              t.turn_result,t.save_revision,a.kind,
+              a.save_revision AS receipt_revision
+         FROM game_wild_turn_receipts t JOIN game_action_receipts a
+           ON a.account_id=t.account_id AND a.action_id=t.action_id
+        WHERE t.account_id=$1 AND t.encounter_id=$2 ORDER BY t.turn_number`,
+      [accountId,ids.encounterId]);
+    const stableAudit=auditResolvedWildTurnTranscript(
+      original.rows[0].battle_snapshot,session,stableHistory.rows);
+    assert.ok(stableAudit,'restored structural transcript');
+    assert.equal(stableAudit.digest,certify.certificate.digest,
+      'canonical transcript digest must match before replay');
+    let calculated=core.createFrozenWildTurnSession(original.rows[0].battle_snapshot);
+    assert.ok(calculated);
+    for(let index=0;index<stableHistory.rows.length;index++){
+      const record=stableHistory.rows[index];
+      const seed=createPrivateBattleRandom(key,{
+        accountId,encounterId:ids.encounterId,phase:'wild-turn-'+(index+1)
+      }).integer(2**32);
+      const resolved=core.resolveFrozenWildTurn(
+        original.rows[0].battle_snapshot,calculated,record.player_action,seed);
+      assert.equal(resolved?.status,'applied','replay should resolve turn '+(index+1));
+      const next=JSON.parse(JSON.stringify(resolved.turnState));
+      const expected=JSON.parse(JSON.stringify({
+        turn:index+1,phase:next.phase,outcome:next.outcome??null,
+        player:next.player,wild:next.wild,
+        playerAction:resolved.playerAction,wildAction:resolved.wildAction,
+        logDelta:resolved.logDelta,framesDelta:resolved.framesDelta,
+        nextActions:resolved.nextActions
+      }));
+      assert.deepEqual(expected,record.turn_result,
+        'canonical HMAC receipt mismatch at turn '+(index+1));
+      calculated=next;
+    }
+    assert.deepEqual(calculated,session,'canonical final state equals DB snapshot');
     const parallel=await Promise.all([
       payCertifiedWildTurns(pool,args),
       payCertifiedWildTurns(pool,args)
