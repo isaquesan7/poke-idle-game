@@ -18,7 +18,9 @@ import {applyTrainerInvestment} from './trainerInvestment.mjs';
 import {reserveNextGym} from './gymReservation.mjs';
 import {startReservedGymTurnSession} from './gymTurnSession.mjs';
 import {loadGymEntropyKeyringFromEnv} from './gymEntropyKeyring.mjs';
-import {applyGymTurnWithKeyring} from './gymKeyedOperations.mjs';
+import {
+  applyGymTurnWithKeyring,certifyGymWithKeyring,settleGymWithKeyring
+} from './gymKeyedOperations.mjs';
 
 const port=Number(process.env.PORT??3001);
 const connectionString=process.env.DATABASE_URL;
@@ -322,6 +324,39 @@ const server=createServer(async(req,res)=>{
       return json(res,status,ok?result:{
         error:result.status,reason:result.reason??undefined
       });
+    }
+    if((pathname==='/api/v1/gym/certify'||
+        pathname==='/api/v1/gym/settle')&&req.method==='POST'){
+      // ONLINE-01C-23C4: same verified account and immutable HMAC replay,
+      // test harness ONLY. Real production returns 503 even if flag is set.
+      if(!enabled)return json(res,503,{error:'Ginásios online em preparação'});
+      requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)
+        return json(res,403,{error:'E-mail não verificado'});
+      if(!await enforceThrottle(req,res,{scope:'gym-final-account',
+        identifier:account.id,limit:60}))return;
+      const data=await readJson(req);
+      if(Object.keys(data).sort().join(',')!==
+          'actionId,expectedRevision,gymReservationId')
+        return json(res,400,{error:'Ação de Ginásio inválida'});
+      let keyring;
+      try{keyring=loadGymEntropyKeyringFromEnv();}
+      catch{return json(res,503,{error:'Ginásios online em preparação'});}
+      const action={
+        accountId:account.id,gymReservationId:data.gymReservationId,
+        actionId:data.actionId,expectedRevision:data.expectedRevision
+      };
+      const isCertificate=pathname==='/api/v1/gym/certify';
+      const result=isCertificate?
+        await certifyGymWithKeyring(pool,keyring,action):
+        await settleGymWithKeyring(pool,keyring,action);
+      const ok=(isCertificate?['certified','replay']:
+        ['paid','replay']).includes(result.status);
+      const status=ok?200:result.status==='invalid'?400:
+        ['missing','missing-save'].includes(result.status)?404:409;
+      return json(res,status,ok?result:{error:result.status});
     }
     if(pathname==='/api/v1/save'&&req.method==='GET'){
       const account=await accountForSession(req);
