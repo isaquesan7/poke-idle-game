@@ -181,7 +181,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,15,'all migrations applied exactly once');
+    assert.equal(migrations.rows.length,16,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
@@ -1828,6 +1828,355 @@ test('ONLINE-01C-21: verify every HMAC turn and pay exactly once (never auto-pre
       [ids.encounterId]),e=>e.code==='23514');
   }finally{
     if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
+
+
+test('ONLINE-01C-22: losing interactive battle can only skip, with receipt and next reservation',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {startReservedWildTurnSession}=await import('../src/wildTurnSession.mjs');
+  const {applyReservedWildTurn}=await import('../src/wildTurnAction.mjs');
+  const {certifyResolvedWildTurn}=await import('../src/wildTurnCertificate.mjs');
+  const {payCertifiedWildTurns}=await import('../src/wildTurnSettlement.mjs');
+  const {finishPaidWildTurnEncounter}=await import('../src/wildTurnFinalization.mjs');
+  const {finishPaidWildEncounter}=await import('../src/encounterFinalization.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const account=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['turn-finish-skip-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=account.rows[0].id;
+    const first=firstSave('Turn Skip CI',4,1740000000000);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(first)]);
+    const reserved=await reserveEncounter(pool,{
+      accountId,actionId:'turn-finish-skip-reserve-0001',
+      expectedRevision:0,regionId:1});
+    assert.equal(reserved.status,'reserved');
+    const ids={accountId,encounterId:reserved.encounterId};
+    const key=Buffer.alloc(32,0x57);
+    const finalize={...ids,actionId:'turn-finish-skip-choice-0001',
+      expectedRevision:1,choice:'skip',entropyKey:key};
+    assert.equal((await finishPaidWildTurnEncounter(pool,finalize)).status,'unavailable');
+    assert.equal((await materializeReservedEncounter(pool,{
+      ...ids,entropyKey:key})).status,'materialized');
+    // A deliberately stronger wild Charmander guarantees the losing path;
+    // no browser can select this opponent: the override is CI-only fixture.
+    await pool.query(
+      'UPDATE game_encounter_reservations SET species_id=4,pokemon_level=10 WHERE id=$1',
+      [ids.encounterId]);
+    assert.equal((await prepareReservedBattle(pool,ids)).status,'prepared');
+    const opened=await startReservedWildTurnSession(pool,{
+      ...ids,expectedRevision:1});
+    assert.equal(opened.status,'started');
+    assert.equal((await finishPaidWildTurnEncounter(pool,finalize)).status,'unavailable');
+    let turnState=opened.turnState,rev=1,round=0;
+    while(turnState.phase==='await-player'&&round<30){
+      round++;
+      const done=await applyReservedWildTurn(pool,{
+        ...ids,actionId:'turn-finish-skip-step-'+String(round).padStart(4,'0'),
+        expectedRevision:rev,action:{kind:'basic'},entropyKey:key});
+      assert.equal(done.status,'applied');
+      rev=done.revision;
+      const current=await pool.query(
+        'SELECT battle_turn_state FROM game_encounter_reservations WHERE id=$1',
+        [ids.encounterId]);
+      turnState=current.rows[0].battle_turn_state;
+    }
+    assert.equal(turnState.phase,'resolved');
+    assert.equal(turnState.outcome,'loss');
+    assert.equal((await finishPaidWildTurnEncounter(pool,{
+      ...finalize,expectedRevision:rev})).status,'unavailable',
+      'no early finish without certified and paid result');
+    const cert=await certifyResolvedWildTurn(pool,{
+      ...ids,actionId:'turn-finish-skip-certificate-0001',expectedRevision:rev});
+    assert.equal(cert.status,'certified');
+    rev=cert.revision;
+    assert.equal((await finishPaidWildTurnEncounter(pool,{
+      ...finalize,expectedRevision:rev})).status,'unavailable',
+      'certification is not payment');
+    const payout=await payCertifiedWildTurns(pool,{
+      ...ids,actionId:'turn-finish-skip-payout-0001',
+      expectedRevision:rev,entropyKey:key});
+    assert.equal(payout.status,'paid');
+    rev=payout.revision;
+    const afterPayout=await pool.query(
+      'SELECT state FROM game_saves WHERE account_id=$1',[accountId]);
+    const paidRaw=JSON.parse(afterPayout.rows[0].state.journal.raw);
+    assert.equal((await reserveEncounter(pool,{
+      accountId,actionId:'turn-finish-skip-next-early',
+      expectedRevision:rev,regionId:1})).status,'busy');
+    const args={...finalize,expectedRevision:rev};
+    assert.equal((await finishPaidWildTurnEncounter(pool,{
+      ...args,choice:'poke-ball'})).status,'unavailable',
+      'loss/draw never gets a capture choice');
+    assert.equal((await finishPaidWildTurnEncounter(pool,{
+      ...args,entropyKey:Buffer.alloc(32,0x92)})).status,
+      'entropy-mismatch');
+    assert.equal((await finishPaidWildTurnEncounter(pool,{
+      ...args,expectedRevision:rev-1})).status,'stale');
+    assert.equal((await finishPaidWildTurnEncounter(pool,{
+      ...args,actionId:'turn-finish-skip-payout-0001'})).status,
+      'duplicate-action');
+    await assert.rejects(pool.query(
+      "UPDATE game_encounter_reservations SET status='completed' WHERE id=$1",
+      [ids.encounterId]),e=>e.code==='23514',
+      'completed requires its own transactionally signed final result');
+    const race=await Promise.all([
+      finishPaidWildTurnEncounter(pool,args),
+      finishPaidWildTurnEncounter(pool,args)
+    ]);
+    assert.deepEqual(race.map(x=>x.status).sort(),['finished','replay']);
+    assert.deepEqual(race[0].result,race[1].result);
+    assert.deepEqual(race[0].result,{
+      outcome:'skipped',ballId:null,speciesId:4,caughtUid:null});
+    assert.equal(race[0].revision,rev+1);
+    assert.equal((await finishPaidWildTurnEncounter(pool,{
+      ...args,actionId:'turn-finish-skip-choice-0002',
+      expectedRevision:rev+1})).status,'already-finished');
+    assert.equal((await finishPaidWildTurnEncounter(pool,{
+      ...args,choice:'poke-ball'})).status,'already-finished');
+    assert.equal((await finishPaidWildEncounter(pool,{
+      ...args,actionId:'turn-finish-legacy-0001',
+      expectedRevision:rev+1})).status,'unavailable',
+      'old auto-preview finalizer must be unavailable after turn completion');
+    const after=await pool.query(
+      'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    assert.equal(Number(after.rows[0].revision),rev+1);
+    assert.deepEqual(JSON.parse(after.rows[0].state.journal.raw),paidRaw,
+      'skip must not change coins, XP, balls, Pokémon or badges');
+    const encounter=await pool.query(
+      `SELECT status,final_action_id,battle_preview,battle_sealed_outcome,
+              battle_turn_payout_action_id,battle_turn_final_action_id,
+              battle_turn_final_choice,battle_turn_final_revision,
+              battle_turn_final_result FROM game_encounter_reservations
+         WHERE id=$1`,[ids.encounterId]);
+    assert.equal(encounter.rows[0].status,'completed');
+    assert.equal(encounter.rows[0].final_action_id,null);
+    assert.equal(encounter.rows[0].battle_preview,null);
+    assert.equal(encounter.rows[0].battle_sealed_outcome,null);
+    assert.ok(encounter.rows[0].battle_turn_payout_action_id);
+    assert.equal(encounter.rows[0].battle_turn_final_action_id,args.actionId);
+    assert.equal(encounter.rows[0].battle_turn_final_choice,'skip');
+    assert.equal(Number(encounter.rows[0].battle_turn_final_revision),rev+1);
+    assert.deepEqual(encounter.rows[0].battle_turn_final_result,race[0].result);
+    await assert.rejects(pool.query(
+      'UPDATE game_encounter_reservations SET battle_turn_final_result=NULL WHERE id=$1',
+      [ids.encounterId]),e=>e.code==='23514');
+    await assert.rejects(pool.query(
+      "UPDATE game_encounter_reservations SET status='reserved' WHERE id=$1",
+      [ids.encounterId]),e=>e.code==='23514');
+    const receipts=await pool.query(
+      "SELECT kind FROM game_action_receipts WHERE account_id=$1 AND kind='wild-turn-finish'",
+      [accountId]);
+    assert.equal(receipts.rowCount,1);
+    const next=await reserveEncounter(pool,{
+      accountId,actionId:'turn-finish-skip-next-0001',
+      expectedRevision:rev+1,regionId:1});
+    assert.equal(next.status,'reserved');
+    assert.equal((await finishPaidWildTurnEncounter(pool,{
+      ...args,expectedRevision:0,
+      entropyKey:Buffer.alloc(32,0x05)})).status,'replay',
+      'committed finalization must replay after next encounter without reroll');
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
+
+test('ONLINE-01C-22: winning turn encounter captures or fails exactly once',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {buildBattleSnapshot,prepareReservedBattle}=
+    await import('../src/battlePreparation.mjs');
+  const {loadCombatAdapter}=await import('../src/battlePreview.mjs');
+  const {createPrivateBattleRandom}=await import('../src/battleEntropy.mjs');
+  const {startReservedWildTurnSession}=await import('../src/wildTurnSession.mjs');
+  const {applyReservedWildTurn}=await import('../src/wildTurnAction.mjs');
+  const {certifyResolvedWildTurn}=await import('../src/wildTurnCertificate.mjs');
+  const {payCertifiedWildTurns}=await import('../src/wildTurnSettlement.mjs');
+  const {finishPaidWildTurnEncounter}=await import('../src/wildTurnFinalization.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  const core=await loadCombatAdapter();
+  const accounts=[];
+  try{
+    for(const [target,species] of [['captured',10],['failed',4]]){
+      const account=await pool.query(
+        'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+        ['turn-finish-'+target+'-'+process.pid+'@example.test','x'.repeat(48)]);
+      const accountId=account.rows[0].id;
+      accounts.push(accountId);
+      const first=firstSave('Turn '+target+' CI',4,1740000000000);
+      const original=JSON.parse(first.journal.raw);
+      original.roster[0].level=20; // deliberately experienced CI fixture
+      first.journal.raw=JSON.stringify(original);
+      await pool.query(
+        'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+        [accountId,JSON.stringify(first)]);
+      const booked=await reserveEncounter(pool,{
+        accountId,actionId:'turn-final-'+target+'-reserve-0001',
+        expectedRevision:0,regionId:1});
+      assert.equal(booked.status,'reserved');
+      const ids={accountId,encounterId:booked.encounterId};
+      // Select a CI-only secret that deterministically exercises capture OR
+      // failed throw for a legitimate R1 species. Production never lets
+      // callers choose this seed, encounter species, level or capture roll.
+      const trialSnapshot=buildBattleSnapshot(first,{
+        regionId:1,speciesId:species,level:2});
+      assert.ok(trialSnapshot);
+      let key=null;
+      for(let byte=1;byte<=140;byte++){
+        const candidateKey=Buffer.alloc(32,byte);
+        const trialSeed=createPrivateBattleRandom(candidateKey,{
+          ...ids,phase:'wild-turn-capture'
+        }).integer(2**32);
+        const projected=core.finalizeFrozenWildEncounter(
+          first.journal.raw,trialSnapshot,{
+            outcome:'win',wildRemainingHp:0,log:[],frames:[]
+          },'poke-ball',trialSeed,1740000000000);
+        if(projected?.result?.outcome===target){key=candidateKey;break;}
+      }
+      assert.ok(key,'a deterministic test seed must exercise '+target);
+      assert.equal((await materializeReservedEncounter(pool,{
+        ...ids,entropyKey:key})).status,'materialized');
+      await pool.query(
+        'UPDATE game_encounter_reservations SET species_id=$2,pokemon_level=2 WHERE id=$1',
+        [ids.encounterId,species]);
+      const prepared=await prepareReservedBattle(pool,ids);
+      assert.equal(prepared.status,'prepared');
+      const started=await startReservedWildTurnSession(pool,{
+        ...ids,expectedRevision:1});
+      assert.equal(started.status,'started');
+      let rev=1,session=started.turnState,turn=0;
+      while(session.phase==='await-player'&&turn<30){
+        turn++;
+        const applied=await applyReservedWildTurn(pool,{
+          ...ids,actionId:'turn-final-'+target+'-step-'+String(turn).padStart(4,'0'),
+          expectedRevision:rev,action:{kind:'basic'},entropyKey:key});
+        assert.equal(applied.status,'applied');
+        rev=applied.revision;
+        const row=await pool.query(
+          'SELECT battle_turn_state FROM game_encounter_reservations WHERE id=$1',
+          [ids.encounterId]);
+        session=row.rows[0].battle_turn_state;
+      }
+      assert.equal(session.phase,'resolved');
+      assert.equal(session.outcome,'win','strong starter must win CI-only battle');
+      const cert=await certifyResolvedWildTurn(pool,{
+        ...ids,actionId:'turn-final-'+target+'-certificate-0001',
+        expectedRevision:rev});
+      assert.equal(cert.status,'certified');
+      rev=cert.revision;
+      const payout=await payCertifiedWildTurns(pool,{
+        ...ids,actionId:'turn-final-'+target+'-payout-0001',
+        expectedRevision:rev,entropyKey:key});
+      assert.equal(payout.status,'paid');
+      rev=payout.revision;
+      const before=await pool.query('SELECT state FROM game_saves WHERE account_id=$1',
+        [accountId]);
+      const paidRaw=JSON.parse(before.rows[0].state.journal.raw);
+      const args={...ids,actionId:'turn-final-'+target+'-ball-0001',
+        expectedRevision:rev,choice:'poke-ball',entropyKey:key};
+      // A forged payout quote may not authorize capture.
+      const payoutRow=await pool.query(
+        'SELECT battle_turn_payout_quote FROM game_encounter_reservations WHERE id=$1',
+        [ids.encounterId]);
+      await pool.query(
+        `UPDATE game_encounter_reservations
+            SET battle_turn_payout_quote=jsonb_set(battle_turn_payout_quote,'{coins}','99999'::jsonb)
+          WHERE id=$1`,[ids.encounterId]);
+      assert.equal((await finishPaidWildTurnEncounter(pool,args)).status,
+        'invalid-payout','tampered reward quote must block capture');
+      await pool.query(
+        'UPDATE game_encounter_reservations SET battle_turn_payout_quote=$2::jsonb WHERE id=$1',
+        [ids.encounterId,JSON.stringify(payoutRow.rows[0].battle_turn_payout_quote)]);
+      // A forged original transcript blocks finalization even after payout.
+      const event=await pool.query(
+        'SELECT turn_result FROM game_wild_turn_receipts WHERE encounter_id=$1 AND turn_number=1',
+        [ids.encounterId]);
+      await pool.query(
+        `UPDATE game_wild_turn_receipts
+            SET turn_result=jsonb_set(turn_result,'{logDelta}','["forged"]'::jsonb)
+          WHERE encounter_id=$1 AND turn_number=1`,[ids.encounterId]);
+      assert.equal((await finishPaidWildTurnEncounter(pool,args)).status,
+        'invalid-history');
+      await pool.query(
+        'UPDATE game_wild_turn_receipts SET turn_result=$2::jsonb WHERE encounter_id=$1 AND turn_number=1',
+        [ids.encounterId,JSON.stringify(event.rows[0].turn_result)]);
+      const race=await Promise.all([
+        finishPaidWildTurnEncounter(pool,args),
+        finishPaidWildTurnEncounter(pool,args)
+      ]);
+      assert.deepEqual(race.map(x=>x.status).sort(),['finished','replay']);
+      assert.deepEqual(race[0].result,race[1].result);
+      assert.equal(race[0].result.outcome,target);
+      assert.equal(race[0].result.speciesId,species);
+      assert.equal(race[0].result.ballId,'poke-ball');
+      assert.equal((await finishPaidWildTurnEncounter(pool,{
+        ...args,actionId:'turn-final-'+target+'-ball-0002',
+        expectedRevision:rev+1})).status,'already-finished');
+      assert.equal((await finishPaidWildTurnEncounter(pool,{
+        ...args,choice:'skip'})).status,'already-finished');
+      const saved=await pool.query(
+        'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+      assert.equal(Number(saved.rows[0].revision),rev+1);
+      const after=JSON.parse(saved.rows[0].state.journal.raw);
+      assert.equal(after.ballPocket.quantities['poke-ball'],
+        paidRaw.ballPocket.quantities['poke-ball']-1,
+        'exactly one ball must be spent even on a failed capture');
+      assert.equal(after.coins,paidRaw.coins);
+      assert.equal(after.trainer.xp,paidRaw.trainer.xp);
+      assert.equal(after.roster[0].xp,paidRaw.roster[0].xp);
+      assert.equal(after.roster[0].affinity,paidRaw.roster[0].affinity);
+      assert.deepEqual(after.badges,paidRaw.badges);
+      if(target==='captured'){
+        assert.equal(race[0].result.caughtUid,paidRaw.nextUid);
+        assert.equal(after.roster.length,paidRaw.roster.length+1);
+        assert.equal(after.nextUid,paidRaw.nextUid+1);
+        assert.equal(after.roster.at(-1).uid,paidRaw.nextUid);
+        assert.equal(after.roster.at(-1).pokemonId,species);
+        assert.ok(after.seen.includes(species));
+        assert.ok(after.caughtSpecies.includes(species));
+      }else{
+        assert.equal(race[0].result.caughtUid,null);
+        assert.equal(after.roster.length,paidRaw.roster.length);
+        assert.equal(after.nextUid,paidRaw.nextUid);
+        assert.deepEqual(after.caughtSpecies,paidRaw.caughtSpecies);
+      }
+      const finalized=await pool.query(
+        `SELECT status,final_action_id,battle_preview,
+                battle_turn_final_action_id,battle_turn_final_choice,
+                battle_turn_final_result FROM game_encounter_reservations WHERE id=$1`,
+        [ids.encounterId]);
+      assert.equal(finalized.rows[0].status,'completed');
+      assert.equal(finalized.rows[0].final_action_id,null);
+      assert.equal(finalized.rows[0].battle_preview,null);
+      assert.equal(finalized.rows[0].battle_turn_final_action_id,args.actionId);
+      assert.equal(finalized.rows[0].battle_turn_final_choice,'poke-ball');
+      assert.deepEqual(finalized.rows[0].battle_turn_final_result,race[0].result);
+      const receipts=await pool.query(
+        "SELECT count(*)::int AS n FROM game_action_receipts WHERE account_id=$1 AND kind='wild-turn-finish'",
+        [accountId]);
+      assert.equal(receipts.rows[0].n,1);
+      const next=await reserveEncounter(pool,{
+        accountId,actionId:'turn-final-'+target+'-next-0001',
+        expectedRevision:rev+1,regionId:1});
+      assert.equal(next.status,'reserved',
+        'the next encounter must unlock whether capture succeeded or failed');
+      assert.equal((await finishPaidWildTurnEncounter(pool,{
+        ...args,expectedRevision:0,entropyKey:Buffer.alloc(32,0xdf)})).status,
+        'replay','a final receipt must be stable after key rotation');
+    }
+  }finally{
+    for(const accountId of accounts)
+      await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
     await pool.end();
   }
 });
