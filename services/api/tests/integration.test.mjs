@@ -2595,3 +2595,124 @@ test('ONLINE-01C-23B2A: Collection changes are forbidden during Gym, expedition 
     await pool.end();
   }
 });
+
+
+test('ONLINE-01C-23B2B: Gym preflight reads the stored Collection trio and canonical owned bonuses',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {setCollectionTeam}=await import('../src/collectionTeam.mjs');
+  const {inspectNextGym}=await import('../src/gymPreparation.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const inserted=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['gym-bonus-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=inserted.rows[0].id;
+    const save=firstSave('Brock CI',4,1740000000000);
+    const raw=JSON.parse(save.journal.raw);
+    const baseline=structuredClone(raw.roster[0]);
+    raw.roster.push({...structuredClone(baseline),uid:2,
+      pokemonId:7,level:20,moveName:'tackle',upgrades:{}});
+    raw.roster.push({...structuredClone(baseline),uid:3,
+      pokemonId:25,level:20,moveName:'thunder-shock',upgrades:{}});
+    raw.seen=[4,7,25];
+    raw.nextUid=4;
+    save.journal.raw=JSON.stringify(raw);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(save)]);
+    const query={accountId,expectedRevision:0};
+    assert.equal((await inspectNextGym(pool,query)).status,'unavailable',
+      'one Collection member cannot be treated as three Gym participants');
+    assert.equal((await inspectNextGym(pool,{...query,
+      teamUids:[1,2,3]})).status,'invalid',
+      'no Gym-level team input is allowed');
+    const selected=await setCollectionTeam(pool,{accountId,
+      actionId:'gym-bonus-collection-team-0001',expectedRevision:0,
+      teamUids:[2,3,1]});
+    assert.equal(selected.status,'set');
+    assert.equal((await inspectNextGym(pool,query)).status,'stale');
+    const ready=await inspectNextGym(pool,{accountId,expectedRevision:1});
+    assert.equal(ready.status,'ready');
+    assert.equal(ready.revision,1);
+    assert.equal(ready.preparation.gymId,'boulder');
+    assert.equal(ready.preparation.leader,'Brock');
+    assert.deepEqual(ready.preparation.teamUids,[2,3,1]);
+    assert.deepEqual(ready.initialBattle.player.fighters.map(x=>x.uid),[2,3,1]);
+    assert.deepEqual(ready.preparation.player.map(x=>x.combatant.speciesId),
+      [7,25,4]);
+    assert.deepEqual(ready.initialBattle.leader.fighters
+      .map(x=>x.combatant.speciesId),[74,27,95]);
+    assert.equal(ready.preparation.trainer.activeTitle,'aprendiz');
+    assert.deepEqual(ready.preparation.trainer.equipment,[]);
+    assert.equal(ready.preparation.trainer.totals.hp,1);
+    assert.equal(ready.initialBattle.outcome,'ongoing');
+    assert.ok(ready.initialBattle.player.fighters.every(x=>
+      x.hp===x.combatant.stats.hp&&x.sp===x.maxSp));
+    const checked=await pool.query(
+      'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    assert.equal(Number(checked.rows[0].revision),1);
+    assert.deepEqual(checked.rows[0].state,
+      {...save,revision:1,journal:{...save.journal,revision:1,
+        raw:JSON.stringify({...raw,team:[2,3,1]})}},
+      'Gym inspection is absolutely read-only and must never modify the save');
+    const count=await pool.query(
+      "SELECT count(*)::int AS n FROM game_action_receipts WHERE account_id=$1",
+      [accountId]);
+    assert.equal(count.rows[0].n,1,
+      'only Collection writer created a receipt, no Gym start or prize');
+
+    const setRaw=async(edit)=>{
+      const res=await pool.query(
+        'SELECT state FROM game_saves WHERE account_id=$1',[accountId]);
+      const patched=structuredClone(res.rows[0].state);
+      const content=JSON.parse(patched.journal.raw);
+      edit(content);
+      patched.journal.raw=JSON.stringify(content);
+      await pool.query(
+        'UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',
+        [accountId,JSON.stringify(patched)]);
+    };
+    await setRaw(r=>{r.badges=['cascade']});
+    assert.equal((await inspectNextGym(pool,{
+      accountId,expectedRevision:1})).status,'unavailable',
+      'out-of-order badges cannot mint trainer buffs');
+    await setRaw(r=>{r.badges=[];r.trainer.title='mestre'});
+    assert.equal((await inspectNextGym(pool,{
+      accountId,expectedRevision:1})).status,'unavailable',
+      'unearned master title cannot be used');
+    await setRaw(r=>{r.trainer.title='aprendiz';r.trainer.equipped={hat:'cap'}});
+    assert.equal((await inspectNextGym(pool,{
+      accountId,expectedRevision:1})).status,'unavailable',
+      'legacy equipment without an ownership ledger is not owned');
+    await setRaw(r=>{
+      r.inventory={version:1,ownedEquipment:{cap:1},extraBagSlots:0};
+      r.badges=['boulder'];
+    });
+    const misty=await inspectNextGym(pool,{accountId,expectedRevision:1});
+    assert.equal(misty.status,'ready');
+    assert.equal(misty.preparation.gymId,'cascade');
+    assert.deepEqual(misty.preparation.trainer.badges,['boulder']);
+    assert.deepEqual(misty.preparation.trainer.equipment,
+      [{slot:'hat',itemId:'cap'}]);
+    assert.equal(misty.preparation.trainer.totals.hp,5,
+      'apprentice hp1 + earned Boulder hp2 + owned cap hp2');
+    assert.equal(misty.preparation.trainer.totals.defense,4);
+
+    const pending=await reserveEncounter(pool,{accountId,
+      actionId:'gym-bonus-regional-reserve-0001',expectedRevision:1,regionId:1});
+    assert.equal(pending.status,'reserved');
+    assert.equal((await inspectNextGym(pool,{
+      accountId,expectedRevision:2})).status,'busy',
+      'cannot prepare Gym while a Region encounter awaits capture or settlement');
+    const after=await pool.query(
+      'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    assert.equal(Number(after.rows[0].revision),2);
+    assert.deepEqual(JSON.parse(after.rows[0].state.journal.raw).team,
+      [2,3,1]);
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
