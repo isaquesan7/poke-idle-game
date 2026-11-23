@@ -83,8 +83,8 @@ describe('ONLINE-01C-19 — canonical wild 1v1 turn resolver',()=>{
         expect(['win','loss','draw']).toContain(current.outcome);
         expect(next.nextActions).toEqual([]);
         expect(legalFrozenWildTurnActions(s,state)).toBeNull();
-        expect(Object.hasOwn(state,'rewards')).toBe(false);
-        expect(Object.hasOwn(state,'captured')).toBe(false);
+        expect(Object.hasOwn(current,'rewards')).toBe(false);
+        expect(Object.hasOwn(current,'captured')).toBe(false);
         return;
       }
     }
