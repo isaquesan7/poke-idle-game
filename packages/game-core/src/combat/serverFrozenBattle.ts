@@ -100,12 +100,25 @@ export function previewFrozenWildBattle(snapshot:unknown,serverSeed:number){
   const pair=canonicalFrozenCombatants(snapshot);
   if(!pair)return null;
   const result=simulateKantoBattle(pair.player,pair.wild,serverSeed);
+  // Legacy engine auto-rolls a 35% capture and says rewards were granted.
+  // Those are NOT authoritative online actions. Preserve one frame per
+  // retained line, without exposing a fictitious capture or grant.
+  const log:string[]=[];
+  const frames:typeof result.frames[number][]=[];
+  for(let index=0;index<result.log.length;index++){
+    const line=result.log[index]!;
+    if(line.startsWith('Captura! '))continue;
+    log.push(line==='Vitória! Recompensas de combate recebidas.'
+      ?'Vitória! Resultado calculado; recompensas ainda não concedidas.'
+      :line);
+    frames.push(result.frames[index]!);
+  }
   return {
     outcome:result.outcome,turns:result.turns,
     playerRemainingHp:result.playerRemainingHp,
     wildRemainingHp:result.wildRemainingHp,
     playerRemainingSp:result.playerRemainingSp,
     wildRemainingSp:result.wildRemainingSp,
-    log:result.log,frames:result.frames
+    log,frames
   };
 }
