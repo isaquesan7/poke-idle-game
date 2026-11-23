@@ -44,6 +44,14 @@ assert.match(landing.body.toString(),/Poke Idle Game/);
 assert.match(landing.body.toString(),/href="\/play"/);
 assert.doesNotMatch(landing.body.toString(),/Protótipo v0\.1/);
 assert.match(landing.headers.get('content-type')??'',/text\/html/);
+assert.match(landing.body.toString(),/id="submit" type="submit" disabled/);
+assert.match(landing.body.toString(),/registrationEnabled===true/);
+for(const route of ['/verify-email','/reset-password']){
+  const authPage=await request(route);
+  assert.equal(authPage.status,200,'Página de conta deve carregar: '+route);
+  assert.match(authPage.body.toString(),/id="auth-form"/);
+  assert.match(authPage.body.toString(),/name="password"/);
+}
 
 const modern=await request('/play');
 assert.equal(modern.status,200,'build React precisa existir ANTES do start');
