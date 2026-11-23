@@ -188,3 +188,6 @@ export {quoteFrozenBattleRewards} from './combat/serverBattleRewards.js';
 
 // ONLINE-01C-15: pure server-side candidate battle payout, no HTTP.
 export {applyFrozenBattleRewardQuote} from './combat/serverBattlePayout.js';
+
+// ONLINE-01C-16: server-authoritative postbattle capture or skip.
+export {finalizeFrozenWildEncounter} from './capture/serverEncounterFinalization.js';
