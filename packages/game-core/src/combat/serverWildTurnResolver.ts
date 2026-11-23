@@ -8,6 +8,8 @@
  */
 import {canonicalFrozenCombatants} from './serverFrozenBattle.js';
 import {createFrozenWildTurnSession} from './serverWildTurnSession.js';
+import {legalFrozenSquadActions,resolveFrozenSquadTurn}
+  from './serverWildSquadTurnResolver.js';
 import {createGymBattleState} from '../gyms/gymBattleState.js';
 import {gymLegalTurnActions} from '../gyms/gymTurn.js';
 import {resolveGymAiTurn,gymChooseAiAction} from '../gyms/gymAiTurn.js';
@@ -20,7 +22,8 @@ type FrozenState=NonNullable<ReturnType<typeof createFrozenWildTurnSession>>;
 export type WildTurnPlayerAction=
   | {readonly kind:'basic'}
   | {readonly kind:'focus'}
-  | {readonly kind:'move';readonly moveName:string};
+  | {readonly kind:'move';readonly moveName:string}
+  | {readonly kind:'switch';readonly toIndex:number};
 
 type Persisted=Omit<FrozenState,'player'|'wild'|'log'|'frames'>&{
   readonly player:Omit<FrozenState['player'],'status'>&{
@@ -98,6 +101,8 @@ const equalActions=(a:GymTurnAction,b:WildTurnPlayerAction)=>
 export function legalFrozenWildTurnActions(
   snapshot:unknown,current:unknown
 ):readonly WildTurnPlayerAction[]|null{
+  if((snapshot as {version?:number})?.version===3)
+    return legalFrozenSquadActions(snapshot,current);
   if(!current||typeof current!=='object'||Array.isArray(current))
     return null;
   const state=current as Persisted;
@@ -147,6 +152,8 @@ export function resolveFrozenWildTurn(
   readonly wildAction:GymTurnAction;readonly logDelta:readonly string[];
   readonly framesDelta:readonly KantoBattleVisualFrame[];
   readonly nextActions:readonly WildTurnPlayerAction[]}{
+  if((snapshot as {version?:number})?.version===3)
+    return resolveFrozenSquadTurn(snapshot,current,action,serverSeed);
   if(!uint32(serverSeed))return null;
   const legal=legalFrozenWildTurnActions(snapshot,current);
   if(!legal)return null;
