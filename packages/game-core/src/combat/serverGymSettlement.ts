@@ -33,7 +33,7 @@ export function applyCertifiedGymSettlement(raw:string,params:{
   if(!gym||gym.id!==params.gymId)return null;
   const battle=params.battle;
   if(!record(battle)||battle.outcome!==params.outcome||
-     !Number.isSafeInteger(battle.turn)||battle.turn<1||battle.turn>120||
+     !Number.isSafeInteger(battle.turn)||(battle.turn as number)<1||(battle.turn as number)>120||
      !record(battle.player)||!record(battle.leader)||
      !Array.isArray(battle.player.fighters)||battle.player.fighters.length!==3||
      !Array.isArray(battle.leader.fighters)||battle.leader.fighters.length!==3)
@@ -44,7 +44,7 @@ export function applyCertifiedGymSettlement(raw:string,params:{
        (source.team as unknown[]).includes(p.uid)&&record(p.combatant)&&
        natural(p.hp)&&natural(p.sp)&&
        (source.roster as unknown[]).some(r=>record(r)&&r.uid===p.uid&&
-         r.pokemonId===p.combatant.speciesId&&r.level===p.combatant.level))||
+         r.pokemonId===(p.combatant as Rec).speciesId&&r.level===(p.combatant as Rec).level))||
      players.some((p,i)=>!record(p)||p.uid!==(source.team as unknown[])[i])||
      !enemies.every((p,i)=>record(p)&&record(p.combatant)&&
        p.combatant.speciesId===gym.team[i]?.speciesId&&
@@ -54,7 +54,7 @@ export function applyCertifiedGymSettlement(raw:string,params:{
   const lAlive=enemies.some(x=>record(x)&&Number(x.hp)>0);
   if(params.outcome==='player-win'&&(lAlive||!pAlive)||
      params.outcome==='leader-win'&&(pAlive||!lAlive)||
-     params.outcome==='draw'&&pAlive&&lAlive&&battle.turn<120)
+     params.outcome==='draw'&&pAlive&&lAlive&&(battle.turn as number)<120)
     return null;
   if(params.outcome!=='player-win'){
     source.lastGymOutcome={gymId:gym.id,outcome:params.outcome};
