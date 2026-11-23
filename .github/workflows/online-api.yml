@@ -67,7 +67,7 @@ jobs:
             < "$RUNNER_TEMP/kanto-ci.dump"
           versions=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
             -d kanto_ci_restore -c 'SELECT count(*) FROM game_schema_migrations')
-          test "$versions" = 5
+          test "$versions" = 6
           saves=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
             -d kanto_ci_restore -c 'SELECT count(*) FROM game_saves')
           test "$saves" -ge 2
