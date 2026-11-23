@@ -58,41 +58,6 @@ export function buildBattleSnapshot(save,encounter){
        !/^[a-z][a-z-]{1,63}$/.test(name))||
      new Set(equipped).size!==equipped.length))
     return null;
-  // Version 3 freezes every REAL member of the selected team, in order.
-  // Do not silently promote a fainted bench Pokémon or auto-equip moves.
-  if(raw.team.length>1){
-    if(new Set(raw.team).size!==raw.team.length||
-       new Set(raw.roster.map(p=>p?.uid)).size!==raw.roster.length)
-      return null;
-    const party=[];
-    for(const uid of raw.team){
-      const p=raw.roster.find(entry=>entry?.uid===uid);
-      if(!p||!Number.isSafeInteger(p.uid)||p.uid<1||
-         !Number.isSafeInteger(p.pokemonId)||p.pokemonId<1||p.pokemonId>151||
-         !Number.isSafeInteger(p.level)||p.level<1||p.level>100||
-         !Number.isSafeInteger(p.affinity)||p.affinity<0||p.affinity>100||
-         !/^[a-z][a-z-]{1,63}$/.test(p.moveName??''))
-        return null;
-      const manual=manualStats(p.manual);
-      if(!manual||STATS.reduce((n,stat)=>n+manual[stat],0)>(p.level-1)*2)
-        return null;
-      const names=p.equippedMoveNames===undefined?[p.moveName]:p.equippedMoveNames;
-      if(!Array.isArray(names)||names.length<1||names.length>4||
-         names[0]!==p.moveName||
-         names.some(name=>typeof name!=='string'||
-           !/^[a-z][a-z-]{1,63}$/.test(name))||
-         new Set(names).size!==names.length)
-        return null;
-      party.push({uid:p.uid,speciesId:p.pokemonId,level:p.level,
-        affinity:p.affinity,manual,moveName:p.moveName,moveNames:[...names]});
-    }
-    return {
-      version:3,regionId:1,
-      opponent:{speciesId:encounter.speciesId,level:encounter.level},
-      trainer:{level:trainerLevel,manual:trainerManual},
-      activePokemon:party[0],party
-    };
-  }
   // Canonical move legality, HP/SP, types, and stats remain the engine's
   // responsibility. Snapshot freezes identities/levels only.
   return {
