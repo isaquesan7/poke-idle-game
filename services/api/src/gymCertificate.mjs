@@ -55,7 +55,7 @@ export async function certifyReservedGymBattle(pool,params){
       return await rollback(client,{status:'stale'});
     if(row.schema_version!==2||save?.schemaVersion!==2||
        save?.revision!==revision||save?.journal?.revision!==revision||
-       typeof save?.journal?.raw!=='string)
+       typeof save?.journal?.raw!=='string')
       return await rollback(client,{status:'invalid-save'});
     if(gym.status!=='reserved')return await rollback(client,{status:'unavailable'});
     // Re-simulation happens UNDER the same save and reservation locks, so
