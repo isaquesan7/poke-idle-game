@@ -683,6 +683,10 @@ test('ONLINE-01C-13 battle seal is atomic, idempotent, immutable and reward-free
     await assert.rejects(pool.query(
       "UPDATE game_encounter_reservations SET status='completed' WHERE id=$1",
       [booking.encounterId]),error=>error.code==='23514');
+    await assert.rejects(pool.query(
+      "UPDATE game_encounter_reservations SET battle_preview=battle_preview - 'outcome' WHERE id=$1",
+      [booking.encounterId]),error=>error.code==='23514',
+      'a missing preview outcome must not pass a nullable SQL CHECK');
     const newBooking=await reserveEncounter(pool,{accountId,
       actionId:'battle-seal-booking-0002',expectedRevision:2,regionId:1});
     assert.equal(newBooking.status,'busy');
