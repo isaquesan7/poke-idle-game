@@ -2573,6 +2573,17 @@ test('ONLINE-01C-23B2A: Collection changes are forbidden during Gym, expedition 
     }
     await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',
       [accountId,JSON.stringify(save)]);
+    assert.equal((await setCollectionTeam(pool,{...action,teamUids:[2]})).status,
+      'missing-pokemon',
+      'a UID belonging only to another account is never owned here');
+    await pool.query(
+      `INSERT INTO game_action_receipts(account_id,action_id,kind,save_revision)
+       VALUES($1,$2,'wild-turn',0)`,
+      [accountId,'collection-team-collision-001']);
+    assert.equal((await setCollectionTeam(pool,{
+      ...action,actionId:'collection-team-collision-001'})).status,
+      'duplicate-action',
+      'an existing ID from another writer cannot be repurposed as a team change');
     assert.deepEqual(await setCollectionTeam(pool,action),
       {status:'set',revision:1,teamUids:[1]});
     const receipt=await pool.query(
