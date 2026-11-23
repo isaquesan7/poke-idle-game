@@ -55,6 +55,12 @@ export async function applyTrainerInvestment(pool,{accountId,actionId,expectedRe
        save?.journal?.revision!==revision){
       await client.query('ROLLBACK');return {status:'invalid'};
     }
+    const gymBusy=await client.query(
+      "SELECT id FROM game_gym_reservations WHERE account_id=$1 AND status='reserved'",
+      [accountId]);
+    if(gymBusy.rowCount){
+      await client.query('ROLLBACK');return {status:'busy'};
+    }
     const applied=investTrainerPoint(save,stat);
     if(applied.status!=='ok'){
       await client.query('ROLLBACK');return {status:applied.status};

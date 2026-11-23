@@ -39,6 +39,10 @@ export async function inspectNextGym(pool,params){
       "SELECT id FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved'",
       [accountId]);
     if(pending.rowCount)return await rollback(client,{status:'busy'});
+    const gymBusy=await client.query(
+      "SELECT id FROM game_gym_reservations WHERE account_id=$1 AND status='reserved'",
+      [accountId]);
+    if(gymBusy.rowCount)return await rollback(client,{status:'busy'});
     let raw;
     try{raw=JSON.parse(save.journal.raw);}catch{
       return await rollback(client,{status:'invalid-save'});

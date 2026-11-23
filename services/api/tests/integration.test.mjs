@@ -181,7 +181,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,18,'all migrations applied exactly once');
+    assert.equal(migrations.rows.length,19,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
@@ -2712,6 +2712,92 @@ test('ONLINE-01C-23B2B: Gym preflight reads the stored Collection trio and canon
     assert.equal(Number(after.rows[0].revision),2);
     assert.deepEqual(JSON.parse(after.rows[0].state.journal.raw).team,
       [2,3,1]);
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
+
+
+test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blocks Regions',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {setCollectionTeam}=await import('../src/collectionTeam.mjs');
+  const {reserveNextGym}=await import('../src/gymReservation.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {inspectNextGym}=await import('../src/gymPreparation.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const created=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['gym-reserve-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=created.rows[0].id;
+    const save=firstSave('Gym Reserve CI',4,1740000000000);
+    const raw=JSON.parse(save.journal.raw);
+    const base=structuredClone(raw.roster[0]);
+    raw.roster.push({...structuredClone(base),uid:2,pokemonId:7,
+      level:20,moveName:'tackle',upgrades:{}});
+    raw.roster.push({...structuredClone(base),uid:3,pokemonId:25,
+      level:20,moveName:'thunder-shock',upgrades:{}});
+    raw.nextUid=4;
+    raw.seen=[4,7,25];
+    save.journal.raw=JSON.stringify(raw);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(save)]);
+    const first={accountId,actionId:'gym-start-private-action-0001',
+      expectedRevision:0};
+    assert.equal((await reserveNextGym(pool,first)).status,'unavailable');
+    assert.equal((await reserveNextGym(pool,{...first,teamUids:[1,2,3]})).status,'invalid');
+    assert.equal((await reserveNextGym(pool,{...first,seed:123})).status,'invalid');
+    assert.equal((await setCollectionTeam(pool,{accountId,
+      actionId:'gym-start-select-in-collection-0001',expectedRevision:0,
+      teamUids:[2,3,1]})).status,'set');
+    const args={...first,expectedRevision:1};
+    const race=await Promise.all([reserveNextGym(pool,args),reserveNextGym(pool,args)]);
+    assert.deepEqual(race.map(x=>x.status).sort(),['replay','reserved']);
+    assert.equal(race[0].gymReservationId,race[1].gymReservationId);
+    assert.equal(race[0].revision,2);
+    assert.deepEqual(race[0].teamUids,[2,3,1]);
+    assert.equal(race[0].gymId,'boulder');
+    const frozen=await pool.query(
+      'SELECT * FROM game_gym_reservations WHERE account_id=$1',[accountId]);
+    assert.equal(frozen.rowCount,1);
+    assert.deepEqual(frozen.rows[0].team_uids,[2,3,1]);
+    assert.equal(frozen.rows[0].frozen_preparation.gymId,'boulder');
+    assert.deepEqual(frozen.rows[0].frozen_battle.player.fighters.map(x=>x.uid),
+      [2,3,1]);
+    assert.equal(frozen.rows[0].frozen_battle.outcome,'ongoing');
+    assert.equal((await reserveNextGym(pool,{...args,
+      actionId:'gym-start-another-action-0001',expectedRevision:2})).status,'busy');
+    assert.equal((await setCollectionTeam(pool,{accountId,
+      actionId:'gym-start-change-team-0001',expectedRevision:2,
+      teamUids:[1,3,2]})).status,'busy');
+    assert.equal((await reserveEncounter(pool,{accountId,
+      actionId:'gym-start-region-denied-0001',
+      expectedRevision:2,regionId:1})).status,'busy');
+    assert.equal((await inspectNextGym(pool,{
+      accountId,expectedRevision:2})).status,'busy');
+    const {equipPokemonMoves}=await import('../src/pokemonMoveEquipment.mjs');
+    assert.equal((await equipPokemonMoves(pool,{
+      accountId,actionId:'gym-reserve-loadout-block-0001',
+      expectedRevision:2,pokemonUid:3,moveNames:['thunder-shock']
+    })).status,'busy','a Gym lock freezes all equipped moves');
+    const {applyTrainerInvestment}=await import('../src/trainerInvestment.mjs');
+    assert.equal((await applyTrainerInvestment(pool,{
+      accountId,actionId:'gym-reserve-stat-block-0001',
+      expectedRevision:2,stat:'hp'
+    })).status,'busy','a Gym lock freezes trainer bonuses');
+    const unchanged=await pool.query(
+      'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    assert.equal(Number(unchanged.rows[0].revision),2);
+    assert.deepEqual(JSON.parse(unchanged.rows[0].state.journal.raw).team,[2,3,1]);
+    assert.deepEqual(JSON.parse(unchanged.rows[0].state.journal.raw).badges,[]);
+    const receipts=await pool.query(
+      "SELECT kind FROM game_action_receipts WHERE account_id=$1 ORDER BY save_revision",
+      [accountId]);
+    assert.deepEqual(receipts.rows.map(x=>x.kind),
+      ['collection-team-set','gym-reserve']);
   }finally{
     if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
     await pool.end();
