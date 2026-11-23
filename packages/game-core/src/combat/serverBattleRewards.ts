@@ -30,8 +30,9 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
   const affinityBase=win?2+affinityRoll:0;
   const affinityDelta=win?
     Math.min(100-s.activePokemon.affinity,scaledRegionalReward(affinityBase,factor)):
-    -Math.min(s.activePokemon.affinity,
-      outcome==='draw'?AFFINITY_LOSS_ON_DRAW:AFFINITY_LOSS_ON_DEFEAT);
+    Math.max(0,s.activePokemon.affinity-
+      (outcome==='draw'?AFFINITY_LOSS_ON_DRAW:AFFINITY_LOSS_ON_DEFEAT))
+      -s.activePokemon.affinity;
   return Object.freeze({
     version:1,regionId:s.regionId,activeUid:s.activePokemon.uid,
     wildSpeciesId:wild.speciesId,wildLevel:wild.level,activeLevel:player.level,
