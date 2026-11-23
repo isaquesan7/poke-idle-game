@@ -253,3 +253,88 @@ test('production stays registration-disabled even with the feature flag misconfi
     assert.equal(registration.status,503);
   }finally{child.kill('SIGTERM');}
 });
+
+test('ONLINE-01C-6 trainer investment is serialized, revision-bound and receipt-idempotent',async()=>{
+  assert.ok(process.env.DATABASE_URL,'Only disposable CI PG');
+  const base='http://127.0.0.1:43146';
+  const child=spawn(process.execPath,['src/server.mjs'],{
+    cwd:new URL('../',import.meta.url).pathname,
+    env:{...process.env,PORT:'43146',NODE_ENV:'test',
+      ONLINE_REGISTRATION_ENABLED:'true'},
+    stdio:'ignore'
+  });
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  try{
+    let ready=false;
+    for(let i=0;i<80;i++){
+      try{if((await json(base,'/health')).status===200){ready=true;break;}}
+      catch{}
+      await new Promise(done=>setTimeout(done,80));
+    }
+    assert.equal(ready,true);
+    const user={email:'invest-'+process.pid+'@example.test',
+      password:'trainer investment CI 2026 long passphrase',
+      trainerName:'Progresso CI'};
+    const reg=await json(base,'/api/v1/auth/register','POST',user);
+    assert.equal(reg.status,201);
+    assert.equal((await json(base,'/api/v1/auth/verify','POST',
+      {token:reg.data.verificationToken})).status,200);
+    const login=await json(base,'/api/v1/auth/login','POST',
+      {email:user.email,password:user.password});
+    const cookie=login.headers.get('set-cookie').split(';')[0];
+    assert.equal((await json(base,'/api/v1/adventure/start','POST',
+      {starterId:7},{Cookie:cookie})).status,201);
+    const invest=(data,headers={})=>json(base,'/api/v1/trainer/invest',
+      'POST',data,{Cookie:cookie,...headers});
+    assert.equal((await invest({actionId:'invest-initial-0001',
+      expectedRevision:0,stat:'hp'})).status,409,
+      'level 1 must not have trainable points');
+    assert.equal((await invest({actionId:'invest-invalid-0001',
+      expectedRevision:0,stat:'coins'})).status,400);
+    assert.equal((await invest({actionId:'invest-extra-0001',
+      expectedRevision:0,stat:'hp',coins:999})).status,400);
+    assert.equal((await invest({actionId:'invest-origin-0001',
+      expectedRevision:0,stat:'hp'}, {Origin:'https://bad.test'})).status,400);
+    // Only a CI-side fixture adds level; there is no level-grant HTTP route.
+    const saved=await pool.query(
+      'SELECT state FROM game_saves WHERE account_id=$1',[reg.data.id]);
+    const fixture= saved.rows[0].state;
+    const trainer=JSON.parse(fixture.journal.raw);
+    trainer.trainer.level=2;
+    fixture.journal.raw=JSON.stringify(trainer);
+    await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',
+      [reg.data.id,JSON.stringify(fixture)]);
+    const outcomes=await Promise.all([
+      invest({actionId:'invest-concurrent-0001',expectedRevision:0,stat:'hp'}),
+      invest({actionId:'invest-concurrent-0002',expectedRevision:0,stat:'attack'})
+    ]);
+    assert.deepEqual(outcomes.map(v=>v.status).sort(),[200,409]);
+    const accepted=outcomes.find(v=>v.status===200);
+    assert.equal(accepted.data.revision,1);
+    assert.equal((await invest({actionId:'invest-concurrent-0001',
+      expectedRevision:0,stat:'hp'})).status,409,
+      'receipt and revision must block replay');
+    const second=await invest({actionId:'invest-followup-0003',
+      expectedRevision:1,stat:'speed'});
+    assert.equal(second.status,200);
+    assert.equal(second.data.revision,2);
+    assert.equal((await invest({actionId:'invest-overbudget-0004',
+      expectedRevision:2,stat:'defense'})).status,409);
+    const finalSave=await json(base,'/api/v1/save','GET',undefined,
+      {Cookie:cookie});
+    assert.equal(Number(finalSave.data.revision),2);
+    assert.equal(finalSave.data.state.journal.revision,2);
+    const state=JSON.parse(finalSave.data.state.journal.raw);
+    assert.equal(state.trainer.level,2);
+    const points=Object.values(state.trainer.manual).reduce((a,b)=>a+b,0);
+    assert.equal(points,2);
+    assert.equal(state.coins,0);
+    assert.deepEqual(state.badges,[]);
+    const receipts=await pool.query(
+      'SELECT kind,save_revision FROM game_action_receipts WHERE account_id=$1 ORDER BY save_revision',
+      [reg.data.id]);
+    assert.equal(receipts.rowCount,3);
+    assert.deepEqual(receipts.rows.map(row=>row.kind),
+      ['adventure-initialization','trainer-invest','trainer-invest']);
+  }finally{child.kill('SIGTERM');await pool.end();}
+});
