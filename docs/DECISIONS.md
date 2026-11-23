@@ -314,3 +314,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 ### ONLINE-01C-7 — contrato preliminar de aleatoriedade de batalhas online
 - Seed/Nº de encontros não podem ser escolhidos nem influenciados pelo cliente. O backend gera/reserva UUID único de encontro, autentica conta, fixa região e estado admissível, persiste identidade da ação e só então utiliza HMAC-SHA256 com chave secreta e domínio versão+conta+encontro+etapa, derivando sequência reprodutível.
 - Testes de reinício/idempotência e replay exigem identidade e resultados persistidos; chave de produção é segredo operacional e rotação deve conservar chaves antigas por versão ou preservar resultados sem reexecutar. Não há endpoint público nem geração de recompensas nesta etapa.
+
+### ONLINE-01C-8 — primeiro reservar, depois sortear
+- Cada tentativa de combate online deve começar por reserva transacional no banco, com encounter UUID exclusivo gerado pelo PostgreSQL e associada a accountId da sessão; actionId da solicitação é apenas chave idempotente, não seed nem identidade do encontro.
+- Não haver mais de uma reserva pendente por conta; mesma ação retorna a mesma reserva, sem novo RNG, e ação diferente é negada. O motor de sorteio e combate só será acionado em etapa posterior com direito regional, nível e balanço de recompensas validados pelo servidor.
+- Reserva não gera espécie, dano, moedas, XP, afinidade, drops ou insígnias. Deve continuar bloqueada ao público até que conclusão/aborto seguro e replay íntegro existam.
