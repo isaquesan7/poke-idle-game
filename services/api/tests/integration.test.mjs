@@ -181,7 +181,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,21,'all migrations applied exactly once');
+    assert.equal(migrations.rows.length,22,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
@@ -2886,6 +2886,64 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
       [accountId]);
     assert.deepEqual(receipts.rows.map(x=>x.kind),
       ['collection-team-set','gym-reserve','gym-turn']);
+    const {certifyReservedGymBattle}=await import('../src/gymCertificate.mjs');
+    const certArgs={accountId,gymReservationId:race[0].gymReservationId,
+      actionId:'gym-first-terminal-certificate-0001',
+      expectedRevision:3,entropyKey:key};
+    assert.equal((await certifyReservedGymBattle(pool,certArgs)).status,
+      'not-terminal','a progress snapshot is never a certified victory');
+    assert.equal((await certifyReservedGymBattle(pool,{
+      ...certArgs,entropyKey:badKey})).status,'entropy-mismatch',
+      'a different historical key cannot certify a Gym');
+    // Resolve the original audited Gym engine until a real terminal result.
+    // No fake winner, manual HP mutation, artificial DB state or client seed.
+    let state=turns[0].result.state,legal=turns[0].result.nextActions;
+    let currentRevision=3,extraTurns=0;
+    while(state.outcome==='ongoing'&&extraTurns<139){
+      const selected=legal.find(a=>a.kind==='move')||
+        legal.find(a=>a.kind==='basic')||legal[0];
+      assert.ok(selected,'ongoing Gym always requires a legal action');
+      const result=await applyReservedGymTurn(pool,{
+        accountId,gymReservationId:race[0].gymReservationId,
+        actionId:'gym-audited-followup-'+String(++extraTurns).padStart(4,'0'),
+        expectedRevision:currentRevision,action:selected,entropyKey:key
+      });
+      assert.equal(result.status,'applied');
+      currentRevision=result.revision;
+      state=result.result.state;
+      legal=result.result.nextActions;
+    }
+    assert.notEqual(state.outcome,'ongoing','canonical Gym reached a terminal outcome');
+    const certificate=await certifyReservedGymBattle(pool,{
+      ...certArgs,expectedRevision:currentRevision
+    });
+    assert.equal(certificate.status,'certified');
+    assert.equal(certificate.certificate.outcome,state.outcome);
+    assert.match(certificate.certificate.digest,/^[0-9a-f]{64}$/);
+    assert.equal((await certifyReservedGymBattle(pool,{
+      ...certArgs,expectedRevision:0})).status,'replay');
+    assert.equal((await certifyReservedGymBattle(pool,{
+      ...certArgs,actionId:'gym-second-terminal-certificate-0001',
+      expectedRevision:certificate.revision})).status,'already-certified');
+    assert.equal((await auditReservedGymBattle(pool,{
+      accountId,gymReservationId:race[0].gymReservationId,entropyKey:key
+    })).status,'verified-terminal');
+    const rewardsStillZero=JSON.parse((await pool.query(
+      'SELECT state FROM game_saves WHERE account_id=$1',[accountId]
+    )).rows[0].state.journal.raw);
+    assert.deepEqual(rewardsStillZero.badges,[],
+      'certification cannot grant a Gym badge before a separate payout');
+    // The later payout may complete the reservation WITHOUT dropping its
+    // historical certificate; a separate writer will authorize that event.
+    await pool.query(
+      "UPDATE game_gym_reservations SET status='completed' WHERE id=$1",
+      [race[0].gymReservationId]);
+    const kept=await pool.query(
+      'SELECT certificate_outcome,certificate_digest FROM game_gym_reservations WHERE id=$1',
+      [race[0].gymReservationId]);
+    assert.equal(kept.rows[0].certificate_outcome,state.outcome);
+    assert.equal(kept.rows[0].certificate_digest,certificate.certificate.digest);
+
   }finally{
     if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
     await pool.end();
