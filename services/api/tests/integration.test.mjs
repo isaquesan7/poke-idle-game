@@ -89,6 +89,23 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
     assert.equal((await json(origin,'/api/v1/adventure/start','POST',
       {starterId:1},{Cookie:sessionCookie})).status,409,
       'duplicate and concurrent starts may not mint another initial reward');
+    assert.equal((await json(origin,'/api/v1/gym/reserve','POST',{
+      actionId:'gym-http-unauthorized-0001',expectedRevision:0
+    })).status,401,'Gym reserve requires an authenticated server session');
+    assert.equal((await json(origin,'/api/v1/gym/reserve','POST',{
+      actionId:'gym-http-other-user-0001',expectedRevision:0,
+      accountId:'00000000-0000-4000-8000-000000000001'
+    },{Cookie:sessionCookie})).status,400,
+    'browser cannot choose the account or inject other Gym commands');
+    assert.equal((await json(origin,'/api/v1/gym/start','POST',{
+      gymReservationId:'00000000-0000-4000-8000-000000000001',
+      expectedRevision:0,seed:123
+    },{Cookie:sessionCookie})).status,400,
+    'browser seed and extra fields are rejected');
+    assert.equal((await json(origin,'/api/v1/gym/reserve','POST',{
+      actionId:'gym-http-csrf-0001',expectedRevision:0
+    },{Cookie:sessionCookie,Origin:'https://attacker.example'})).status,400,
+    'cross-site Gym commands are blocked');
     const serverSave=await json(origin,'/api/v1/save','GET',undefined,
       {Cookie:sessionCookie});
     assert.equal(serverSave.status,200);
