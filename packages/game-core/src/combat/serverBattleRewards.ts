@@ -8,12 +8,14 @@ import {battleTrainerXp,beginnerBattleXp} from '../progression/xp.js';
 import {AFFINITY_LOSS_ON_DEFEAT,AFFINITY_LOSS_ON_DRAW}
   from '../affinity/affinityDynamics.js';
 import {canonicalFrozenCombatants} from './serverFrozenBattle.js';
+import {d064BattleBallDropFromRoll} from '../capture/draftBallSupply.js';
 
 export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
-  affinityRoll:number){
+  affinityRoll:number,ballRoll=9999){
   const pair=canonicalFrozenCombatants(snapshot);
   if(!pair||!preview||typeof preview!=='object'||Array.isArray(preview)
-    ||!Number.isSafeInteger(affinityRoll)||affinityRoll<0||affinityRoll>3)
+    ||!Number.isSafeInteger(affinityRoll)||affinityRoll<0||affinityRoll>3
+    ||!Number.isSafeInteger(ballRoll)||ballRoll<0||ballRoll>=10000)
     return null;
   const v=preview as Record<string,unknown>;
   if(!['win','loss','draw'].includes(v.outcome as string)||
@@ -28,6 +30,11 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
   const factor=battleProgressFactor(player.level,wild.level);
   const win=outcome==='win';
   const affinityBase=win?2+affinityRoll:0;
+  const drop=d064BattleBallDropFromRoll(s.regionId,ballRoll);
+  if(!drop)return null;
+  const ballDropId=win&&factor>0?
+    (drop['poke-ball']?'poke-ball':drop['great-ball']?'great-ball':
+      drop['ultra-ball']?'ultra-ball':null):null;
   const affinityDelta=win?
     Math.min(100-s.activePokemon.affinity,scaledRegionalReward(affinityBase,factor)):
     Math.max(0,s.activePokemon.affinity-
@@ -41,7 +48,7 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
     trainerXp:win?scaledRegionalReward(battleTrainerXp(wild.level),factor):0,
     pokemonXp:win?scaledRegionalReward(20+wild.level*6,factor):
       beginnerBattleXp(player.level,outcome),
-    affinityDelta,
+    affinityDelta,ballDropId,
     // Legacy rewardEvents.ts increments losses on either loss or draw,
     // tracks draws separately, and gates battle records by progress factor.
     wins:win&&factor>0?1:0,

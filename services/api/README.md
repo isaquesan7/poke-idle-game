@@ -116,3 +116,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - `011_capture_finalization.sql`: campos finais, constraint de completude e ação única por conta; versões anteriores de constraints 008/009/010 são reeditadas em migração append-only para permitir conclusão somente com o pagamento já registrado.
 - `finishPaidWildEncounter(pool,{accountId,encounterId,actionId,expectedRevision,choice,entropyKey})`: executado SOMENTE por contexto servidor autenticado. Choice `skip` ou uma bola Poké/Great/Ultra. Seed de captura é HMAC derivada do encontro; core valida vitória/HP/bolso, gasta 1 bola inclusive na falha, cria 1 UID no sucesso. Lock save→encontro e commit único salva estado, receipt, status e resultado.
 - Retry da mesma ação e escolha devolve a conclusão já persistida. Ação distinta não concede outro lançamento. Sem rota HTTP e sem cadastro público; `/play` independente.
+
+## ONLINE-01C-17 — sorteio privado e crédito de Pokébolas no payout
+- `quoteSealedBattleRewards` também deriva `wild-battle-ball-drop` via HMAC de chave privada com inteiro 0–9999 sem viés de módulo; `quoteFrozenBattleRewards` guarda `ballDropId` na quote PostgreSQL (sem novos campos SQL).
+- `paySealedBattleRewards` usa o redutor canônico para validar a quote completa (afinidade e buckets de drop) e debita/crédita o inventário no mesmo COMMIT de moedas/XP/receipt. Somente uma bola por vitória elegível; nunca ao perder/empatar ou sem fator de progresso. Retentativas não pagam uma segunda bola e o fechamento posterior da batalha não altera o drop.
+- Sem endpoints HTTP, contas públicas ou migração /play; taxas R2–R10 são validadas em core, enquanto serviço de encontro atual segue restrito a R1.

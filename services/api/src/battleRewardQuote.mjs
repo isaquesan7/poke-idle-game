@@ -41,7 +41,13 @@ export async function quoteSealedBattleRewards(pool,{
     const rng=createPrivateBattleRandom(entropyKey,{
       accountId,encounterId,phase:'wild-battle-affinity'
     });
-    const quote=quoteFrozenBattleRewards(snap,preview,rng.integer(4));
+    // Domain-separated HMAC roll independent of moves, capture and affinity.
+    // No modulo bias: battleEntropy.integer(10000) uses rejection sampling.
+    const dropRng=createPrivateBattleRandom(entropyKey,{
+      accountId,encounterId,phase:'wild-battle-ball-drop'
+    });
+    const quote=quoteFrozenBattleRewards(snap,preview,rng.integer(4),
+      dropRng.integer(10000));
     if(!quote||quote.outcome!==row.battle_sealed_outcome||
        !Number.isSafeInteger(quote.coins)||!Number.isSafeInteger(quote.trainerXp)||
        !Number.isSafeInteger(quote.pokemonXp)||!Number.isSafeInteger(quote.affinityDelta))
