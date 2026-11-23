@@ -71,14 +71,14 @@ export function applyFrozenBattleRewardQuote(raw:string,snapshot:unknown,preview
      !Number.isSafeInteger((trainer.xp as number)+trainerXp)||
      !Number.isSafeInteger((pokemon.xp as number)+pokemonXp))
     return null;
-  const affinityNext=(pokemon.affinity as number)+affinityDelta;
+  const affinityNext=(pokemon.affinity as number)+(affinityDelta as number);
   if(!Number.isSafeInteger(affinityNext)||affinityNext<0||affinityNext>100)
     return null;
   const regionIndex=(input.regionId as number)-1;
   if(regionIndex!==0)return null; // only Bosque Inicial online presently
   const regionWins=state.regionWins as number[];
   regionWins[regionIndex]=Math.min(KANTO_REGION_WINS_CAP,
-    regionWins[regionIndex]+(input.wins as number));
+    (regionWins[regionIndex]??0)+(input.wins as number));
   state.coins=(state.coins as number)+coins;
   const t=grantXp('trainer',{level:trainer.level as number,xp:trainer.xp as number},trainerXp);
   const p=grantXp('pokemon',{level:pokemon.level as number,xp:pokemon.xp as number},pokemonXp);
