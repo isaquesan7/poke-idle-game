@@ -29,7 +29,7 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
   const win=outcome==='win';
   const affinityBase=win?2+affinityRoll:0;
   const affinityDelta=win?
-    scaledRegionalReward(affinityBase,factor):
+    Math.min(100-s.activePokemon.affinity,scaledRegionalReward(affinityBase,factor)):
     -Math.min(s.activePokemon.affinity,
       outcome==='draw'?AFFINITY_LOSS_ON_DRAW:AFFINITY_LOSS_ON_DEFEAT);
   return Object.freeze({
