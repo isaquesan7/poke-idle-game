@@ -1,8 +1,9 @@
 /**
  * GYM-03B — sessão persistida no MESMO journal do save v0.2.
  *
- * O browser fornece UIDs, ação e seed de início, nunca HP, SP, dano,
- * resultado ou montante. Cada comando reconstrói o combate do elenco salvo
+ * A equipe de três UIDs já foi definida na Coleção. O comando de início
+ * recebe SOMENTE seed; não permite escolher nem trocar participantes no
+ * Ginásio. Cada comando reconstrói o combate do elenco salvo
  * e reproduz TODO o transcript antes de modificá-lo. Um commit por ação.
  *
  * Importante: armazenamento local e seed fornecida pelo navegador NÃO
@@ -34,7 +35,7 @@ export interface GymSessionV1 {
   readonly actions:readonly GymTurnAction[];
 }
 export type GymSessionCommand=
-  | {readonly type:'gym-start';readonly seed:number;readonly uids:readonly number[]}
+  | {readonly type:'gym-start';readonly seed:number}
   | {readonly type:'gym-turn';readonly sessionId:string;readonly action:GymTurnAction}
   | {readonly type:'gym-finish';readonly sessionId:string}
   | {readonly type:'gym-abandon';readonly sessionId:string};
@@ -72,6 +73,11 @@ function readSession(v:unknown):GymSessionV1|null{
     uids:v.uids as [number,number,number],seed:v.seed,actions};
 }
 function buildStart(game:Entry,session:GymSessionV1):GymBattleState{
+  // A equipe travada no início precisa seguir idêntica à seleção da Coleção.
+  // O writer também bloqueia mudanças de equipe enquanto houver gymSession.
+  if(!Array.isArray(game.team)||game.team.length!==3||
+    game.team.some((uid,i)=>uid!==session.uids[i]))
+    throw new RangeError('A equipe foi alterada após entrar no Ginásio.');
   if(!Array.isArray(game.badges)||!game.badges.every(id=>typeof id==='string')
     ||!Array.isArray(game.roster)||!rec(game.trainer)
     ||!rec(game.trainer.manual)||!Array.isArray(game.seen)
@@ -236,16 +242,18 @@ export function runGymSessionCommand(
   if(action.type==='gym-start'){
     if(pending!==undefined&&pending!==null)
       return blocked('Já existe um confronto de Ginásio em andamento.');
-    if(!seedOk(action.seed)||!Array.isArray(action.uids)
-      ||action.uids.length!==3||new Set(action.uids).size!==3
-      ||!action.uids.every(uid=>nat(uid)&&uid>0))
-      return blocked('Selecione três Pokémon distintos e uma seed válida.');
+    if(!seedOk(action.seed)||Object.hasOwn(action,'uids'))
+      return blocked('Defina sua equipe na Coleção antes do Ginásio; seleção no desafio não é permitida.');
+    if(!Array.isArray(game.team)||game.team.length!==3||
+      new Set(game.team).size!==3||
+      !game.team.every(uid=>nat(uid)&&uid>0))
+      return blocked('Defina exatamente três Pokémon distintos na Coleção antes de entrar no Ginásio.');
     if(!Array.isArray(game.badges))return blocked('Insígnias inválidas.');
     const gym=kantoNextGym(game.badges);
     if(!gym)return blocked('Nenhum Ginásio desbloqueado.');
     const session:GymSessionV1={
       version:1,id:'gym-v02-'+nextRevision,gymId:gym.id,
-      uids:action.uids as [number,number,number],
+      uids:[...game.team] as [number,number,number],
       seed:action.seed,actions:[]
     };
     try{replayGymSession(game,session);}
