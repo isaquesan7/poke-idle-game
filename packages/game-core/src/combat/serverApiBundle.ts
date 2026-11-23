@@ -1,5 +1,6 @@
 /** Production-only Node API entry: exports only approved canonical pure functions. */
-export {previewFrozenWildBattle,canonicalFrozenCombatants}
+export {previewFrozenWildBattle,canonicalFrozenCombatants,
+  frozenValidatedEquippedMoves}
   from './serverFrozenBattle.js';
 export {quoteFrozenBattleRewards} from './serverBattleRewards.js';
 
