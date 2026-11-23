@@ -67,7 +67,7 @@ export function applyCertifiedGymSettlement(raw:string,params:{
   const next=grantXp('trainer',{
     level:source.trainer.level as number,xp:source.trainer.xp as number
   },gym.trainerXp);
-  source.coins+=gym.coins;
+  source.coins=(source.coins as number)+gym.coins;
   source.trainer.level=next.level;
   source.trainer.xp=next.xp;
   source.badges=[...(source.badges as string[]),gym.id];
