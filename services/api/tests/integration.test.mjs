@@ -2504,9 +2504,10 @@ test('ONLINE-01C-23B2A: Collection team writer owns ordered UIDs, receipts and R
     assert.equal((await setCollectionTeam(pool,action)).status,'replay',
       'an old receipt remains replayable after later revisions');
     assert.equal((await setCollectionTeam(pool,{
-      accountId,actionId:'collection-team-race-0002',
+      accountId,actionId:race[0].status==='set'?
+        'collection-team-race-0002':'collection-team-race-0003',
       expectedRevision:2,teamUids:[2,3,1]})).status,
-      race[0].status==='set'?'duplicate-action':'stale');
+      'duplicate-action','both winners must reject a changed action payload');
     const afterRace=await pool.query(
       'SELECT state FROM game_saves WHERE account_id=$1',[accountId]);
     const preBattleTeam=JSON.parse(afterRace.rows[0].state.journal.raw).team;
