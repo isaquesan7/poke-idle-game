@@ -121,3 +121,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - `quoteSealedBattleRewards` também deriva `wild-battle-ball-drop` via HMAC de chave privada com inteiro 0–9999 sem viés de módulo; `quoteFrozenBattleRewards` guarda `ballDropId` na quote PostgreSQL (sem novos campos SQL).
 - `paySealedBattleRewards` usa o redutor canônico para validar a quote completa (afinidade e buckets de drop) e debita/crédita o inventário no mesmo COMMIT de moedas/XP/receipt. Somente uma bola por vitória elegível; nunca ao perder/empatar ou sem fator de progresso. Retentativas não pagam uma segunda bola e o fechamento posterior da batalha não altera o drop.
 - Sem endpoints HTTP, contas públicas ou migração /play; taxas R2–R10 são validadas em core, enquanto serviço de encontro atual segue restrito a R1.
+
+## ONLINE-01C-18 — sessão turn-zero, sem combate executável ainda
+- `012_wild_turn_session.sql` guarda o JSONB da sessão e a data de início; constraint bloqueia prévia automática/selagem/payout no mesmo encontro.
+- `startReservedWildTurnSession` é serviço INTERNO com identidade de conta da futura sessão autenticada, lock em save→encontro, revisão esperada, reconstrução exata do snapshot e persistência idempotente. Replays não criam nova sessão, RNG, recompensas ou recibos. Retorna estado inicial HP/SP, até quatro golpes selvagens FRLG e somente o golpe equipado do jogador mais ataque básico.
+- Não existem ações por turno, comandos públicos, resultados ou pagamentos nesse modo. Previews automáticas anteriores seguem isoladas e intocadas. Cadastro continua desativado; sem importação de save `/play`.

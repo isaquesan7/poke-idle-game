@@ -181,7 +181,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {email,password:'new securely chosen password for CI 2026'})).status,200);
     const migrations=await pool.query(
       'SELECT name FROM game_schema_migrations');
-    assert.equal(migrations.rows.length,11,'all migrations applied exactly once');
+    assert.equal(migrations.rows.length,12,'all migrations applied exactly once');
     const verified=await pool.query(
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
@@ -1177,6 +1177,146 @@ test('ONLINE-01C-17: canonical HMAC R1 Poké Ball drop is quoted and credited on
     const next=await reserveEncounter(pool,{
       accountId,actionId:'ball-drop-booking-0002',expectedRevision:4,regionId:1});
     assert.equal(next.status,'reserved');
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
+
+test('ONLINE-01C-18: turn session begins once and blocks automatic battle preview',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {startReservedWildTurnSession}=await import('../src/wildTurnSession.mjs');
+  const {previewReservedBattle}=await import('../src/battlePreview.mjs');
+  const {sealReservedBattle}=await import('../src/battleSeal.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const account=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['turn-session-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=account.rows[0].id;
+    const first=firstSave('Turn CI',4,1740000000000);
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(first)]);
+    const booked=await reserveEncounter(pool,{
+      accountId,actionId:'turn-session-reserve-0001',
+      expectedRevision:0,regionId:1});
+    assert.equal(booked.status,'reserved');
+    const ids={accountId,encounterId:booked.encounterId};
+    const args={...ids,expectedRevision:1};
+    const entropyKey=Buffer.alloc(32,0x8a);
+    assert.equal((await startReservedWildTurnSession(pool,args)).status,'unavailable',
+      'cannot start without the frozen snapshot');
+    assert.equal((await materializeReservedEncounter(pool,{
+      ...ids,entropyKey})).status,'materialized');
+    assert.equal((await prepareReservedBattle(pool,ids)).status,'prepared');
+    assert.equal((await startReservedWildTurnSession(pool,{
+      ...args,expectedRevision:0})).status,'stale');
+    const race=await Promise.all([
+      startReservedWildTurnSession(pool,args),
+      startReservedWildTurnSession(pool,args)
+    ]);
+    assert.deepEqual(race.map(x=>x.status).sort(),['replay','started']);
+    const winner=race.find(x=>x.status==='started');
+    const replay=race.find(x=>x.status==='replay');
+    assert.deepEqual(winner.turnState,replay.turnState);
+    assert.equal(winner.turnState.phase,'await-player');
+    assert.equal(winner.turnState.turn,0);
+    assert.equal(winner.turnState.player.uid,1);
+    assert.equal(winner.turnState.player.speciesId,4);
+    assert.equal(winner.turnState.player.hp,winner.turnState.player.maxHp);
+    assert.equal(winner.turnState.player.sp,winner.turnState.player.maxSp);
+    assert.equal(winner.turnState.wild.hp,winner.turnState.wild.maxHp);
+    assert.ok(winner.turnState.wild.equippedMoves.length<=4);
+    assert.deepEqual(winner.actions.map(x=>x.kind),['basic','move']);
+    assert.equal(Object.hasOwn(winner.turnState,'seed'),false);
+    const replayAgain=await startReservedWildTurnSession(pool,{
+      ...args,expectedRevision:0});
+    assert.equal(replayAgain.status,'replay');
+    assert.deepEqual(replayAgain.turnState,winner.turnState);
+    assert.equal((await previewReservedBattle(pool,{
+      ...ids,entropyKey})).status,'unavailable',
+      'turn mode cannot fall back to the obsolete whole-battle auto preview');
+    assert.equal((await sealReservedBattle(pool,{
+      ...ids,actionId:'turn-session-seal-0001',expectedRevision:1})).status,
+      'unavailable','no outcome exists before applying legal player turns');
+    const row=await pool.query(
+      `SELECT status,battle_turn_state,battle_turn_started_at,
+              battle_preview,battle_sealed_outcome
+         FROM game_encounter_reservations WHERE id=$1`,
+      [booked.encounterId]);
+    assert.equal(row.rows[0].status,'reserved');
+    assert.ok(row.rows[0].battle_turn_started_at);
+    assert.deepEqual(row.rows[0].battle_turn_state,winner.turnState);
+    assert.equal(row.rows[0].battle_preview,null);
+    assert.equal(row.rows[0].battle_sealed_outcome,null);
+    await assert.rejects(pool.query(
+      `UPDATE game_encounter_reservations
+          SET battle_preview='{}'::jsonb,battle_preview_at=now()
+        WHERE id=$1`,[booked.encounterId]),e=>e.code==='23514');
+    await assert.rejects(pool.query(
+      'UPDATE game_encounter_reservations SET battle_turn_started_at=NULL WHERE id=$1',
+      [booked.encounterId]),e=>e.code==='23514');
+    const save=await pool.query(
+      'SELECT revision,state FROM game_saves WHERE account_id=$1',[accountId]);
+    assert.equal(Number(save.rows[0].revision),1);
+    assert.equal(save.rows[0].state.journal.raw,first.journal.raw);
+    const raw=JSON.parse(save.rows[0].state.journal.raw);
+    assert.equal(raw.coins,0);
+    assert.equal(raw.trainer.xp,0);
+    assert.equal(raw.ballPocket.quantities['poke-ball'],12);
+    assert.deepEqual(raw.badges,[]);
+    const receipts=await pool.query(
+      'SELECT kind FROM game_action_receipts WHERE account_id=$1',
+      [accountId]);
+    assert.deepEqual(receipts.rows.map(x=>x.kind),['encounter-reserve']);
+    assert.equal((await reserveEncounter(pool,{
+      accountId,actionId:'turn-session-reserve-0002',
+      expectedRevision:1,regionId:1})).status,'busy');
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
+
+test('ONLINE-01C-18: automatic preview and turn mode cannot coexist',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {startReservedWildTurnSession}=await import('../src/wildTurnSession.mjs');
+  const {previewReservedBattle}=await import('../src/battlePreview.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    const account=await pool.query(
+      'INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',
+      ['turn-exclusive-'+process.pid+'@example.test','x'.repeat(48)]);
+    accountId=account.rows[0].id;
+    await pool.query(
+      'INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',
+      [accountId,JSON.stringify(firstSave('Legacy CI',7,1740000000000))]);
+    const booked=await reserveEncounter(pool,{
+      accountId,actionId:'turn-exclusive-reserve-0001',
+      expectedRevision:0,regionId:1});
+    assert.equal(booked.status,'reserved');
+    const ids={accountId,encounterId:booked.encounterId};
+    const entropyKey=Buffer.alloc(32,0x22);
+    assert.equal((await materializeReservedEncounter(pool,{
+      ...ids,entropyKey})).status,'materialized');
+    assert.equal((await prepareReservedBattle(pool,ids)).status,'prepared');
+    assert.equal((await previewReservedBattle(pool,{
+      ...ids,entropyKey})).status,'previewed');
+    assert.equal((await startReservedWildTurnSession(pool,{
+      ...ids,expectedRevision:1})).status,'unavailable');
+    const rows=await pool.query(
+      'SELECT battle_turn_state FROM game_encounter_reservations WHERE id=$1',
+      [booked.encounterId]);
+    assert.equal(rows.rows[0].battle_turn_state,null);
   }finally{
     if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
     await pool.end();

@@ -29,12 +29,14 @@ export async function previewReservedBattle(pool,{accountId,encounterId,entropyK
     await client.query('BEGIN');
     const rows=await client.query(
       `SELECT status,region_id,species_id,pokemon_level,
-              battle_snapshot,battle_preview
+              battle_snapshot,battle_preview,battle_turn_state
          FROM game_encounter_reservations
         WHERE account_id=$1 AND id=$2 FOR UPDATE`,
       [accountId,encounterId]);
     if(!rows.rowCount)return await rollback(client,{status:'missing'});
     const encounter=rows.rows[0];
+    if(encounter.battle_turn_state!==null)
+      return await rollback(client,{status:'unavailable'});
     if(encounter.battle_preview!==null)
       return await rollback(client,{status:'replay',preview:encounter.battle_preview});
     if(encounter.status!=='reserved'||encounter.region_id!==1||

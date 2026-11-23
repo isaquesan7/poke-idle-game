@@ -6,3 +6,6 @@ export {quoteFrozenBattleRewards} from './serverBattleRewards.js';
 export {applyFrozenBattleRewardQuote} from './serverBattlePayout.js';
 
 export {finalizeFrozenWildEncounter} from '../capture/serverEncounterFinalization.js';
+
+export {createFrozenWildTurnSession,initialFrozenWildTurnActions}
+  from './serverWildTurnSession.js';
