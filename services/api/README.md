@@ -126,3 +126,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 - `012_wild_turn_session.sql` guarda o JSONB da sessão e a data de início; constraint bloqueia prévia automática/selagem/payout no mesmo encontro.
 - `startReservedWildTurnSession` é serviço INTERNO com identidade de conta da futura sessão autenticada, lock em save→encontro, revisão esperada, reconstrução exata do snapshot e persistência idempotente. Replays não criam nova sessão, RNG, recompensas ou recibos. Retorna estado inicial HP/SP, até quatro golpes selvagens FRLG e somente o golpe equipado do jogador mais ataque básico.
 - Não existem ações por turno, comandos públicos, resultados ou pagamentos nesse modo. Previews automáticas anteriores seguem isoladas e intocadas. Cadastro continua desativado; sem importação de save `/play`.
+
+## ONLINE-01C-19 — ações privadas de turno com receipt durável
+- `applyReservedWildTurn(pool,{accountId,encounterId,actionId,expectedRevision,action,entropyKey})`: somente contexto interno. Aceita `basic`, `focus`, ou `move` com `moveName` equipado; bloqueia extras, golpes fora de nível, SP insuficiente e trocas não definidas. Reusa `resolveGymAiTurn` via bundle core e persiste estado HP/SP/turn/log no `battle_turn_state`.
+- Migration `013_wild_turn_receipts.sql` impõe unicidade por ação e por número de rodada. Recibo `wild-turn`, revisão do save e estado de batalha são gravados juntos. HMAC `wild-turn-N` independente dos demais sorteios; sem seed enviada ao navegador.
+- Resultado do combate interativo **não** gera `battle_preview` ou prêmio; settlement posterior ainda pendente. Sem rotas HTTP nem liberação do cadastro.
