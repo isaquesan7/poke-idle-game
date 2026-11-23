@@ -374,3 +374,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - Não manter duas fórmulas de dano ou duas IA para Ginásio e encontro selvagem; o selvagem usa o mesmo motor já validado, num confronto 1×1 sem trocas (não existem reservas reais no snapshot atual). A AI executa apenas ações legais e está sujeita a SP, cooldown e efeitos como o jogador.
 - Cada turno é uma transação + receipt tipado e imutável, seed HMAC vinculada ao número de rodada e UUID do encontro. Replay e corrida não executam segunda vez o mesmo golpe. 30 rodadas de limite online; empate técnico encerra sem recompensas neste recorte.
 - Sessão por turnos continua incompatível com a prévia automática legacy; ao concluir, outcome permanece em `battle_turn_state` até um settlement específico ser validado, sem liberar XP/bolas/afinidade nem capturas indevidamente. Nenhum cadastro público antes dos gates.
+
+### ONLINE-01C-20 — separar certificação terminal de liquidação econômica (23/11/2026)
+- **Decisão vigente em implementação:** batalhas selvagens por turnos devem encerrar seu histórico em certificado próprio, e NÃO preencher `battle_preview` (prévia automática) nem reutilizar a selagem 008 como se os comandos fossem uma simulação completa.
+- Apenas sessão `resolved` com recibos `wild-turn` íntegros e ordenados pode receber `wild-turn-certificate` transacional e imutável, com revisão e digest SHA-256. Este certificado é prova de coerência interna no banco, não autorização de XP/coins/captura. Receita futura requer writer de settlement dedicado, validação antifraude e proteção da ordem de locks.
+- Política intacta: código exclusivo de teste, sem migração de `/play`, sem contas públicas, sem tocar `isaquesan7/pokedex`.
