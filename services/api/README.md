@@ -71,3 +71,8 @@ A migration `001_online_foundation.sql` **foi aplicada** ao PostgreSQL Railway e
 ## ONLINE-01C-6 — ação transacional inicial no servidor (branch)
 - `POST /api/v1/trainer/invest`: recebe exatamente `{actionId,expectedRevision,stat}`, sessão verificada e Origin exigidos. Verifica orçamento calculado do nível persistido, máximo 40 pontos manuais por atributo, save esperado e receipt único. `FOR UPDATE` protege chamadas concorrentes e commit da revisão + receipt é atômico.
 - Não existe rota pública para conceder nível, XP, moeda, insígnia ou capturas. A ação é test-only, produção tem `enabled=false`; o teste Nv2 usa fixture direta em PostgreSQL descartável. Sem importação de localStorage.
+
+
+## ONLINE-01C-7 — módulo interno de RNG, ainda não integrado
+- `src/battleEntropy.mjs` fornece HMAC-SHA256 determinístico, separado por conta, UUID de encontro e fase. Requer Buffer de chave de servidor com no mínimo 32 bytes; não implementa encontros, drops nem premiações.
+- Regra de integração futura: somente criar stream após reserva/persistência de encontro pelo backend; nunca aceitar ID de encontro ou seed do cliente; ligar ao motor validado e ledger com transações e receipts. Não configurar chave ou expor rota nesta entrega. `/play` e cadastro real continuam inalterados.

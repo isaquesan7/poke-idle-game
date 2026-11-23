@@ -309,3 +309,8 @@ Permitir UI de Ginásios apenas conectada ao `gymSession` versionado e aos mesmo
 - A primeira ação após criação de save será `trainer/invest`, sem gerar recursos nem aceitar estados enviados pelo navegador. Mantém regra já aprovada de 2 pontos por nível acima de 1 e teto manual de 40 por atributo.
 - `actionId` é único por conta, `expectedRevision` implementa concorrência otimista e `SELECT FOR UPDATE` serializa commits. Toda concessão persistida deve atualizar save e receipt em uma transação; retries retornam conflito sem efeito duplicado. A sessão autenticada é a única fonte de conta.
 - Este endpoint não habilita gameplay online nem migra saves locais. Guards de produção permanecem fechados até pré-requisitos operacionais.
+
+
+### ONLINE-01C-7 — contrato preliminar de aleatoriedade de batalhas online
+- Seed/Nº de encontros não podem ser escolhidos nem influenciados pelo cliente. O backend gera/reserva UUID único de encontro, autentica conta, fixa região e estado admissível, persiste identidade da ação e só então utiliza HMAC-SHA256 com chave secreta e domínio versão+conta+encontro+etapa, derivando sequência reprodutível.
+- Testes de reinício/idempotência e replay exigem identidade e resultados persistidos; chave de produção é segredo operacional e rotação deve conservar chaves antigas por versão ou preservar resultados sem reexecutar. Não há endpoint público nem geração de recompensas nesta etapa.

@@ -786,3 +786,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Nova operação de API `POST /api/v1/trainer/invest` apenas em harness test-only: recebe somente `actionId`, `expectedRevision`, `stat`. A conta vem da sessão, os pontos vêm do nível e do save no servidor; não aceita moedas, XP, badges ou save arbitrário. Regras: +2 pontos por nível acima do 1, limite de 40 pontos manuais por atributo.
 - Transação com `SELECT FOR UPDATE`, `revision` esperado e recibo único por conta/ação. Concorrência e retries não duplicam investimento. Atualiza JSON envelopado e revisão junto do recibo em PostgreSQL; sem mutação do `/play`.
 - Testes unitários e integração PostgreSQL 18 cobrem orçamento, payload malicioso, origem, corrida, replay, revisão e preservação do inventário/recompensas. Rotas disponíveis apenas no harness, produção permanece bloqueada. CI e merge ainda pendentes.
+
+
+## ONLINE-01C-7 — entropia privada para batalhas no backend (branch)
+- Utilitário interno da API `createPrivateBattleRandom`: fluxo reprodutível de HMAC-SHA256, chave exclusivamente do servidor com >=32 bytes, separado por conta/encounter UUID/etapa, seleção inteira sem viés de módulo, limites estritos de entrada. Testes Node cobrem reprodução, domínios e parâmetros inválidos.
+- Nenhum endpoint novo, nenhum encontro concedido, nenhuma batalha/captura simulada e nenhum lançamento de contas. Antes de usar o utilitário, o servidor PRECISA persistir/reservar encounter ID e recibo em transação, derivar contexto de sessão, aplicar motor oficial da batalha e gravar resultado/efeitos na mesma sequência transacional. Nunca aceitar seed, batalha, recompensa ou resultado do navegador.
+- Produção e `/play` preservados; PR e CI ainda pendentes.
