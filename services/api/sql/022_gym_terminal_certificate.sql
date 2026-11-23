@@ -19,7 +19,7 @@ ALTER TABLE game_gym_reservations
      AND certificate_turns BETWEEN 1 AND 140
      AND certificate_digest ~ '^[0-9a-f]{64}$'
      AND certified_at IS NOT NULL
-     AND status='reserved'
+     AND status IN ('reserved','completed')
      AND turn_state IS NOT NULL
      AND turn_state->>'outcome'=certificate_outcome
      AND turn_entropy_proof IS NOT NULL)
