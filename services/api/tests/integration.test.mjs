@@ -932,7 +932,8 @@ test('ONLINE-01C-16: finish after payout atomically, replay once and unlock next
     assert.equal((await previewReservedBattle(pool,{...ids,entropyKey})).status,'previewed');
     assert.equal((await sealReservedBattle(pool,{...ids,
       actionId:'finish-seal-action-0001',expectedRevision:1})).status,'sealed');
-    assert.equal((await quoteSealedBattleRewards(pool,{...ids,entropyKey})).status,'quoted');
+    const quoted=await quoteSealedBattleRewards(pool,{...ids,entropyKey});
+    assert.equal(quoted.status,'quoted');
     assert.equal((await finishPaidWildEncounter(pool,finish)).status,'stale',
       'cannot complete before payout revision');
     assert.equal((await paySealedBattleRewards(pool,{...ids,
@@ -976,7 +977,8 @@ test('ONLINE-01C-16: finish after payout atomically, replay once and unlock next
       [accountId]);
     assert.equal(Number(saved.rows[0].revision),4);
     const raw=JSON.parse(saved.rows[0].state.journal.raw);
-    assert.equal(raw.ballPocket.quantities['poke-ball'],12);
+    assert.equal(raw.ballPocket.quantities['poke-ball'],
+      12+(quoted.quote.ballDropId==='poke-ball'?1:0));
     assert.equal(raw.roster.length,1);
     assert.deepEqual(raw.badges,[]);
     const receipts=await pool.query(
