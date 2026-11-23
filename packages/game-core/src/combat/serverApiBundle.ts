@@ -18,3 +18,6 @@ export {legalFrozenWildTurnActions,resolveFrozenWildTurn}
 export {canonicalOnlineGymTrainerBonuses,canonicalOnlineGymEquippedMoves,
   canonicalOnlineGymPreparation,canonicalOnlineGymOpeningState}
   from './serverGymPreparation.js';
+
+// ONLINE-01C-23B2D: identical legal actions used by local Gym core.
+export {gymLegalTurnActions} from '../gyms/gymTurn.js';
