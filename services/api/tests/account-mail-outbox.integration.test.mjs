@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {randomBytes} from 'node:crypto';
+import {randomBytes,createHash} from 'node:crypto';
 import pg from 'pg';
 import {mailKeyring,enqueueAccountMail,processOneAccountMail,claimAccountMail,
   decryptMailPayload,encryptMailPayload} from '../src/accountMailOutbox.mjs';
@@ -35,8 +35,11 @@ test('ONLINE-01C-23D0: transactional queue, leases, idempotency, retry and isola
     const account=await pool.query(
       'INSERT INTO game_accounts(email,password_hash) VALUES($1,$2) RETURNING id',
       [accountEmail,'x'.repeat(48)]);
+    await pool.query('UPDATE game_accounts SET email_verified_at=now() WHERE id=$1',[account.rows[0].id]);
     accountId=account.rows[0].id;
     const expiresAt=expiry(), first=message(accountId,'reset/outbox-001',token(),expiresAt);
+    await pool.query(`INSERT INTO game_password_resets(account_id,token_sha256,expires_at)
+      VALUES($1,$2,$3)`,[accountId,createHash('sha256').update(first.token).digest(),expiresAt]);
     // Rolled back enqueue must be absent, just like rolled-back token issuance.
     const rollbackClient=await pool.connect();
     try{
