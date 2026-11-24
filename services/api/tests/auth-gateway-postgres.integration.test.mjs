@@ -11,6 +11,16 @@ import {createAuthGateway} from '../../../scripts/auth-gateway-candidate.mjs';
 import {createIngressResolver} from '../../../scripts/gateway-ingress-adapter.mjs';
 import {createProxyIssuer} from '../src/proxyKeyring.mjs';
 
+const reviewedTopology={projectId:'11111111-1111-4111-8111-111111111111',
+  environmentId:'22222222-2222-4222-8222-222222222222',
+  serviceId:'33333333-3333-4333-8333-333333333333',
+  commitSha:'a'.repeat(40),publicDomain:'gateway-ci.up.railway.app',
+  serviceCount:1,replicaCount:1,tcpProxyCount:0,publicDomainCount:1,
+  privateCallersExcluded:true,changeControlReviewed:true,reviewReference:'CI synthetic topology'};
+const testRuntime={RAILWAY_PROJECT_ID:reviewedTopology.projectId,
+  RAILWAY_ENVIRONMENT_ID:reviewedTopology.environmentId,RAILWAY_SERVICE_ID:reviewedTopology.serviceId,
+  RAILWAY_GIT_COMMIT_SHA:reviewedTopology.commitSha,RAILWAY_PUBLIC_DOMAIN:reviewedTopology.publicDomain};
+
 const listen=s=>new Promise(resolve=>s.listen(0,'127.0.0.1',()=>resolve(s.address().port)));
 const close=s=>new Promise(resolve=>s.close(resolve));
 async function freePort(){const s=createServer(),p=await listen(s);await close(s);return p;}
@@ -59,7 +69,7 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
     children.push(web);await ready(web,webBase+'/api/v1/status');
     // The fixture supplies a synthetic, ingress-rewritten header over loopback.
     // Actual adapter and issuer are used; capture proof in memory only for replay.
-    const resolver=createIngressResolver({trustedPeers:['127.0.0.1'],topologyReviewed:true,loopbackTest:true});
+    const resolver=createIngressResolver({review:reviewedTopology,testRuntime,loopbackTest:true});
     for(const ip of ingressIPs){
       const server=createAuthGateway({upstreamOrigin:webBase,clientOrigin:origin,loopbackTest:true,
         issuer:{sign(input){lastProof=issuer.sign(input);captured.push(lastProof);return lastProof;}},
