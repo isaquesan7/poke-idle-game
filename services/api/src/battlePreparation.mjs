@@ -55,7 +55,7 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
   if(!pokemonManual||STATS.reduce((n,s)=>n+pokemonManual[s],0)>
       (selected.level-1)*2)return null;
   const history=selected.evolutionHistory;
-  const equipped=selected.equippedMoveNames??(history!==undefined?[selected.moveName]:undefined);
+  const equipped=selected.equippedMoveNames===undefined?(history!==undefined?[selected.moveName]:undefined):selected.equippedMoveNames;
   if(equipped!==undefined&&
     (!Array.isArray(equipped)||equipped.length<1||equipped.length>4||
      equipped[0]!==selected.moveName||
