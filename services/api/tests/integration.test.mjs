@@ -2344,6 +2344,9 @@ test('ONLINE-01C-23A: private FRLG four-move equip, frozen turn combat and safe 
       ...action,pokemonUid:88})).status,'missing-pokemon');
     assert.equal((await equipPokemonMoves(pool,{
       ...action,moveNames:['thunder-shock','thunder-shock']})).status,'invalid');
+    assert.equal((await equipPokemonMoves(pool,{
+      ...action,moveNames:['growl']})).status,'illegal-moves',
+      'an equipped loadout must preserve at least one offensive move');
     const concurrent=await Promise.all([
       equipPokemonMoves(pool,action),equipPokemonMoves(pool,action)
     ]);
