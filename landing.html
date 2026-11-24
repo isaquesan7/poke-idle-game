@@ -30,6 +30,8 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #9fef
 .primary:disabled{background:#436473;color:#b8c9d2;cursor:not-allowed}
 .small-link{background:none;border:0;color:#80ecf9;cursor:pointer;padding:0;text-decoration:underline;font:inherit}
 .sub{font-size:.85rem;color:#bfd3df;margin:17px 0 0}
+.helper{font-size:.8rem;color:#b5d2e1;margin:6px 0 0}
+#feedback.error{color:#ffc2c2;overflow-wrap:anywhere}
 .banner{padding:12px 14px;background:#263c4b;border:1px solid #4a7185;border-radius:12px;color:#e1f3fa;font-size:.86rem;line-height:1.5}
 #feedback{min-height:1.5em;margin-top:14px;font-size:.9rem;color:#b7eff5}
 footer{text-align:center;margin:70px 0 0;color:#96b7c9;font-size:.82rem}
@@ -55,6 +57,7 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <div id="name-wrap" hidden><label for="name">Nome do treinador</label><input id="name" name="trainerName" autocomplete="nickname" minlength="2" maxlength="24"></div>
 <label for="email">E-mail</label><input id="email" name="email" type="email" autocomplete="email" required maxlength="254">
 <label for="password" id="password-label">Senha</label><input id="password" name="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required>
+<div id="confirm-wrap" hidden><label for="confirm-password">Confirmar senha</label><input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128"><p class="helper">Use de 12 a 128 caracteres e repita sua senha.</p></div>
 <button class="primary" id="submit" type="submit" disabled>Disponível em breve</button>
 </form>
 <div id="reset-link-wrap" class="sub"><button id="reset-link" type="button" class="small-link">Esqueceu a senha?</button></div>
@@ -66,11 +69,18 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 const $=id=>document.getElementById(id);
 const form=$('auth-form'), status=$('status'),feedback=$('feedback');
 const submit=$('submit'),tabs=$('tabs'),password=$('password');
+const confirmPassword=$('confirm-password');
 let available=false,view='login',token='';
-function message(text){feedback.textContent=text;}
+function message(text,invalid=false){
+ feedback.textContent=text;feedback.classList.toggle('error',invalid);
+}
 function render(next){
  view=next;message('');
  const register=next==='register',reset=next==='reset',verify=next==='verify';
+ const confirm=register||(reset&&!!token);
+ $('confirm-wrap').hidden=!confirm;
+ confirmPassword.required=confirm;
+ if(!confirm)confirmPassword.value='';
  tabs.hidden=reset||verify;
  $('name-wrap').hidden=!register;
  $('password-label').textContent=reset&&token?'Nova senha':'Senha';
@@ -89,13 +99,15 @@ function render(next){
  else{form.hidden=false;submit.textContent=register?'Criar conta':'Entrar';}
  submit.disabled=!available;
  if(!available)submit.textContent='Disponível em breve';
- if(!reset&&!verify)password.autocomplete=register?'new-password':'current-password';
+ password.autocomplete=register||(reset&&!!token)?'new-password':'current-password';
+ if(reset&&!token)password.value='';
 }
 function cleanToken(){
  const params=new URLSearchParams(location.search);
  token=params.get('token')||'';
  if(token)history.replaceState(null,'',location.pathname);
- if(token&&!/^[A-Za-z0-9_-]{43}$/.test(token)){token='';message('Link inválido.');}
+ if(token&&!/^[A-Za-z0-9_-]{43}$/.test(token)){token='';return false;}
+ return true;
 }
 async function api(path,payload){
  const response=await fetch(path,{method:'POST',credentials:'same-origin',
@@ -105,7 +117,7 @@ async function api(path,payload){
  return body;
 }
 async function init(){
- cleanToken();
+ const validLink=cleanToken();
  const route=location.pathname;
  if(route==='/verify-email')render('verify');
  else if(route==='/reset-password')render('reset');
@@ -117,12 +129,28 @@ async function init(){
  }catch{available=false;}
  status.textContent=available?'Acesso de testes habilitado.':'Cadastro e login online em preparação. Continue explorando em /play.';
  render(view);
+ if(!validLink)message('O link recebido é inválido.',true);
+ else if(route==='/verify-email'&&!token)message('Link de confirmação ausente.',true);
+ else if(route==='/reset-password'&&!token)message('Informe seu e-mail para solicitar um novo link.');
 }
-tabs.addEventListener('click',event=>{const btn=event.target.closest('[data-view]');if(btn)render(btn.dataset.view);});
-$('reset-link').addEventListener('click',()=>{history.pushState(null,'','/reset-password');token='';render('reset');});
+tabs.addEventListener('click',event=>{
+ const btn=event.target.closest('[data-view]');
+ if(!btn)return;
+ history.replaceState(null,'','/');
+ token='';password.value='';confirmPassword.value='';
+ render(btn.dataset.view);
+});
+$('reset-link').addEventListener('click',()=>{
+ history.pushState(null,'','/reset-password');
+ token='';password.value='';confirmPassword.value='';render('reset');
+});
 form.addEventListener('submit',async event=>{
  event.preventDefault();if(!available)return;
  const email=$('email').value.trim(),pass=password.value;
+ if((view==='register'||(view==='reset'&&token))&&pass!==confirmPassword.value)
+   return message('As senhas informadas não coincidem.',true);
+ if((view==='register'||(view==='reset'&&token))&&(pass.length<12||pass.length>128))
+   return message('A senha deve conter de 12 a 128 caracteres.',true);
  let path,payload;
  if(view==='verify'){if(!token)return message('Link de confirmação ausente.');path='/api/v1/auth/verify';payload={token};}
  else if(view==='reset'){
@@ -135,10 +163,20 @@ form.addEventListener('submit',async event=>{
  try{
   await api(path,payload);
   if(view==='register')message('Conta criada. Verifique seu e-mail antes de entrar.');
-  else if(view==='verify')message('E-mail confirmado. Volte à página inicial para entrar.');
-  else if(view==='reset')message(token?'Senha redefinida. Volte à página inicial para entrar.':'Se o e-mail estiver cadastrado, você receberá instruções.');
+  else if(view==='verify'){
+    token='';password.value='';confirmPassword.value='';
+    message('E-mail confirmado. Volte à página inicial para entrar.');
+  }
+  else if(view==='reset'){
+    const changed=Boolean(token);
+    if(changed){token='';password.value='';confirmPassword.value='';}
+    message(changed?'Senha redefinida. Volte à página inicial para entrar.':
+      'Se o e-mail estiver cadastrado, você receberá instruções.');
+  }
   else message('Autenticação concluída. A aventura online ainda está em preparação.');
- }catch(error){message(error.message);}
+ }catch(error){
+   message(error instanceof Error?error.message:'Operação não concluída.',true);
+ }
  finally{submit.disabled=!available;}
 });
 init();
