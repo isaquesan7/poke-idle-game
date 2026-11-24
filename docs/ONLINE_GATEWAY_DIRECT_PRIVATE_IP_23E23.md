@@ -1,0 +1,15 @@
+# ONLINE-01C-23E23 — acesso por endereço privado literal (24/11/2026)
+
+## Contexto e limites
+- PR #262 merged em 342f3027416eba9c7a1655ba7d07695525f931ff; CI geral 45441582088 e imagem cliente 45441583256 SUCCESS. Histórico do operador relata ensaio 23E22 concluído após repetir tentativa de token inválido: controles públicos 200 e privado positivo, DNS/HTTP privado cruzado sem acesso. Inventários dos dois projetos TEMP agora vazios; logs históricos removidos não foram reconsultados nesta etapa.
+- DNS negativo não demonstra ausência de caminho por IP direto. 23E23 acrescenta modo `direct` no mesmo cliente isolado, sem novo endpoint, segredo real, configuração de produção ou SQL.
+- Somente IPv4 RFC1918 e IPv6 ULA literais, porta 3000 e /probe fixos; rejeita hostname, loopback, link-local, IPv4 mapeado, zonas, endereço público, duplicatas e sobreposição ao controle. Até quatro endereços explicitamente inventariados do receptor TEMP; sem varredura. Resolve apenas o controle local; exige controle privado positivo da mesma família antes/depois de cada tentativa e controle HTTPS público antes/depois de toda a rodada. Relatório não imprime IP, token, corpo ou prova.
+- Somente ENETUNREACH/EHOSTUNREACH sem conexão, com controles íntegros, contam como bloqueio de rota observado. Timeout, ECONNREFUSED, falha DNS, controles inválidos ou conexão estabelecida são inconclusivos/negativos para aprovação. O resultado nunca concede confiança de produção.
+
+## Ensaio real (após CI e autorização operacional)
+1. Reutilizar os dois projetos TEMP vazios, exclusivamente serviços sintéticos de 23E22, sem banco/volume nem acesso à produção. Token efêmero novo; usar janela válida e confirmar readiness.
+2. A partir de um shell autorizado **no ambiente do receptor** (ou inventário confiável de rede Railway), resolver gateway-isolation-target.railway.internal e obter todos os endereços privados efetivamente anunciados. Confirmar que pertencem ao receptor temporário atual; não usar IP de produção, não incluir IP em logs, issue, chat ou commit. Se não houver mecanismo de inventário confiável, interromper e registrar ausência de evidência; não adivinhar endereço. Se mais de quatro endereços, não executar este cliente sem revisão.
+3. Configurar o cliente do outro projeto com GATEWAY_CROSS_PROJECT_ISOLATED=true, GATEWAY_CROSS_PROJECT_MODE=direct, GATEWAY_PRIVATE_TARGET_ADDRESSES (lista de literais separada por vírgula, sem espaços), GATEWAY_OBSERVATION_PUBLIC_URL e INGRESS_PROBE_TOKEN. Controle privado deve resolver e responder diretamente na mesma família de cada alvo. Executar uma vez; coletar exclusivamente JSON sanitizado.
+4. Registrar famílias cobertas, controles e razões sem endereços; retirar serviços temporários e variáveis efêmeras, verificar inventários vazios. Se resultado inconclusivo, investigar sem aprovar o gate. Ausência de família não demonstra bloqueio daquela família.
+
+CI/ensaio 23E23 ainda pendentes. Cadastro OFF, SQL026 não registrada, /play local sem migração, Regiões 1v1 e Ginásios 3v3 definidos na Coleção. Revisão de topologia, IPv6, LGPD, restore integral e remetente definitivo permanecem pendentes.
