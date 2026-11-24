@@ -1113,3 +1113,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 - #275 integrada main f767dca38d10639b0826e7407bef32c90b2448ed, cinco CI SUCCESS. #276 reconciliada; novo CI obrigatório. Falha anterior PG18 em startup do teste signed-quota production (assert ready), causa não determinada; não liberar antes de validar.
 - #277 reconciliada com HEAD #276 122c8e0f11572562df1b221e1812bce623d049e3, que inclui main #275; PG18/D044 SUCCESS no #276, demais checks pendentes. Novo CI do #277 obrigatório; aguardar integração de #276.
+
+- #276 integrada main b9f9499635a7134a4e7578e71cfafc016cd5923e após quatro CI SUCCESS (45496299319,45496298918,45496298959,45496298941). #277 PG18 45496592991, browser 45496593098 e D044 45496592885 SUCCESS no HEAD anterior; regressões pendentes na leitura. Reconciliada após squash #276; CI final obrigatório, SQL027 não registrada, cadastro OFF.
