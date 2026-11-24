@@ -45,7 +45,8 @@ function pickHeaders(headers,allow){
 function fail(res,status,message){
   if(res.headersSent){res.destroy();return;}
   res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',
-    'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
+    'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',
+    'X-Frame-Options':'DENY','Referrer-Policy':'no-referrer'});
   res.end(JSON.stringify({error:message}));
 }
 export function proxyOnlineApi(req,res,pathname){
@@ -110,6 +111,8 @@ export function proxyOnlineApi(req,res,pathname){
       const out=pickHeaders(response.headers,responseHeaders);
       out['cache-control']='no-store';
       out['x-content-type-options']='nosniff';
+      out['x-frame-options']='DENY';
+      out['referrer-policy']='no-referrer';
       res.writeHead(response.statusCode??502,out);
       response.on('error',()=>res.destroy());
       response.pipe(res);
