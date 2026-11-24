@@ -2406,13 +2406,19 @@ test('ONLINE-01C-23A: private FRLG four-move equip, frozen turn combat and safe 
     let rev=2,session=started.turnState,ordinal=0;
     while(session.phase==='await-player'&&ordinal<30){
       ordinal++;
-      const chosen=ordinal===1?
-        {kind:'move',moveName:'thunder-wave'}:
-        {kind:'move',moveName:'quick-attack'};
+      // Opponent and turn RNG vary per reservation. Use an available
+      // equipped attack rather than assuming Quick Attack always has SP.
+      const legal=core.legalFrozenWildTurnActions(prepared.snapshot,session);
+      assert.ok(Array.isArray(legal)&&legal.length>0);
+      const desired=ordinal===1?'thunder-wave':'quick-attack';
+      const permitted=legal.find(a=>a.kind==='move'&&a.moveName===desired);
+      if(ordinal===1)assert.ok(permitted,'Thunder Wave must be legal on the first turn');
+      const chosen=permitted?{kind:'move',moveName:desired}:{kind:'basic'};
+      assert.ok(legal.some(a=>a.kind===chosen.kind&&(chosen.kind!=='move'||a.moveName===chosen.moveName)));
       const applied=await applyReservedWildTurn(pool,{
         ...ids,actionId:'loadout-pg-turn-'+String(ordinal).padStart(4,'0'),
         expectedRevision:rev,action:chosen,entropyKey:key});
-      assert.equal(applied.status,'applied');
+      assert.equal(applied.status,'applied',applied.reason??applied.status);
       rev=applied.revision;
       const current=await pool.query(
         'SELECT battle_turn_state FROM game_encounter_reservations WHERE id=$1',
