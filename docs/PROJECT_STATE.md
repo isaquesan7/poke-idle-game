@@ -1972,3 +1972,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - 23E12 revisão: Dockerfile.ingress-probe exclusivo (runtime web D-044 não inclui scripts) e cliente de seis casos sem exposição de IP/token. API real sem domínio/TCP proxy; execução externa indisponível nesta sessão, não provisionado recurso faturável. CI do HEAD atualizado pendente.
 
 - 23E12: CI dedicado de imagem isolada em loopback e roteiro CMD. Sem provisionamento Railway ou alteração de runtime; aguarda CI e execução externa autorizada.
+
+- 23E12C: projeto temporário isolado provisionado com autorização, imagem CI SUCCESS, deploy Railway SUCCESS. Primeira tentativa 6x404 sem observação de identidade; cliente corrigido com Host explícito, confirmado em reprodução local Node 22. Novo ensaio pendente, token anterior a revogar; cadastro OFF. Remover serviço temporário após ensaio.

@@ -46,3 +46,6 @@ Usar um checkout limpo/temporário, não sobrescrever alterações locais. Após
     set "INGRESS_PROBE_URL="
 
 Não executar placeholders nem compartilhar token/IP. Repetir com rede móvel e verificar referência independente de IP. Compartilhar apenas as linhas JSON sanitizadas do cliente. Se a referência mudar durante o teste, repetir dentro da janela. Encerrar serviço ao terminar.
+
+## Primeira tentativa externa (24/11/2026)
+Operador recebeu seis respostas 404, inclusive baseline; nenhum resultado de identidade confirmado. Logs HTTP do serviço não mostraram os seis GET /probe no recorte consultado. Reprodução local Node 22: cabeçalhos em array sem Host retornam 400 antes do handler; com Host explícito retornam 200. Corrigido cliente para informar target.host. Causa provável do 404 de roteamento, a confirmar no novo ensaio. Token renovado após exposição parcial em captura e janela do serviço reiniciada; nunca guardar token/IP no relatório. Logs HTTP do provedor podem conter IP mesmo que o aplicativo não grave. Gate permanece falso.

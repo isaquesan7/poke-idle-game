@@ -10,7 +10,8 @@ if(target.protocol!=='https:'||!target.hostname.endsWith('.up.railway.app')||
    target.hostname==='kanto-idle-web-production.up.railway.app'||!isIP(expected??'')||
    !/^[a-f0-9]{64}$/.test(token??''))
   throw new Error('Configure the temporary HTTPS probe, random token and independently confirmed IP');
-const common=['Authorization','Bearer '+token,'X-Kanto-Probe-Expected',expected,'Connection','close'];
+// Node does not auto-insert Host when headers are supplied as a raw array.
+const common=['Host',target.host,'Authorization','Bearer '+token,'X-Kanto-Probe-Expected',expected,'Connection','close'];
 const cases=[
   ['baseline',[]],
   ['forged-real-ip',['X-Real-IP','192.0.2.123']],

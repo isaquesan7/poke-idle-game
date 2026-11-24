@@ -959,3 +959,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - 23E12: imagem mínima dedicada e cliente HTTPS sanitizado; sem alteração da imagem do jogo ou produção.
 
 - 23E12: workflow específico de imagem diagnóstica e roteiro Windows CMD; sem evidência de ingress real.
+
+- 23E12C: corrigir Host explícito no cliente HTTP com headers em array, primeira tentativa externa inconclusiva (404). Sem alterações no runtime do jogo.
