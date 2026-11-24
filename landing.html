@@ -136,7 +136,7 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <div id="shop-items"></div><p id="shop-note" role="status" aria-live="polite"></p></section>
 <section id="moves-section" hidden aria-labelledby="moves-heading"><h3 id="moves-heading">Golpes da Coleção</h3>
 <label for="moves-pokemon">Pokémon</label><select id="moves-pokemon"></select>
-<p id="moves-info" class="helper">Escolha de 1 a 4 golpes aprendidos, na ordem desejada.</p>
+<p id="moves-info" class="helper">Escolha de 1 a 4 golpes aprendidos, incluindo pelo menos um ofensivo, na ordem desejada.</p>
 <div id="moves-equipped"></div><div id="moves-learned"></div>
 <button id="moves-save" type="button" class="primary" disabled>Salvar golpes</button><p id="moves-note" role="status"></p></section>
 <h4>Atributos do treinador</h4><p id="online-points" class="helper"></p><div id="online-stats"></div>
@@ -463,13 +463,13 @@ function renderMoves(reset=false){
   const btn=actionButton(moveDraft.includes(m.name)?'Equipado':'Equipar',()=>{moveDraft.push(m.name);renderMoves();},locked||moveDraft.includes(m.name)||moveDraft.length>=4);
   btn.dataset.moveName=m.name;row.append(label,btn);learned.append(row);
  });
- $('moves-save').disabled=locked||moveDraft.length<1||moveDraft.length>4||sameTeam(moveDraft,chosen.equipped);
+ $('moves-save').disabled=locked||moveDraft.length<1||moveDraft.length>4||!chosen.learned.some(m=>m.category!=='status'&&moveDraft.includes(m.name))||sameTeam(moveDraft,chosen.equipped);
 }
 $('moves-pokemon').addEventListener('change',()=>{selectedMoveUid=Number($('moves-pokemon').value);renderMoves(true);});
 $('moves-save').addEventListener('click',async()=>{
  if(onlineBusy||adventureBusy()||!moveState||moveState.busy||!serverProgress||moveState.revision!==serverProgress.revision)return;
  const chosen=moveState.pokemon.find(p=>p.uid===selectedMoveUid);
- if(!chosen||moveDraft.length<1||moveDraft.length>4||!moveDraft.every(n=>chosen.learned.some(m=>m.name===n)))return;
+ if(!chosen||moveDraft.length<1||moveDraft.length>4||!moveDraft.every(n=>chosen.learned.some(m=>m.name===n))||!chosen.learned.some(m=>m.category!=='status'&&moveDraft.includes(m.name)))return;
  const args={actionId:crypto.randomUUID(),expectedRevision:moveState.revision,pokemonUid:selectedMoveUid,moveNames:[...moveDraft]};
  setOnlineBusy(true);let ok=false;
  try{await api('/api/v1/moves/equip',args);ok=true;}catch{}
