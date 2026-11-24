@@ -35,6 +35,25 @@ export function canonicalClientIp(ip){
   }
   return normalized;
 }
+// Policy is server configuration, not request data. The envelope stays v1;
+// IPv4 subjects stay stable; only native IPv6 switches HMAC namespace.
+export function validateProxySubjectPolicy(policy='address-v1'){
+  if(policy!=='address-v1'&&policy!=='ipv6-prefix64-v2')
+    throw new TypeError('Unknown proxy subject policy');
+  return policy;
+}
+function subjectBinding(ip,policy){
+  const canonical=canonicalClientIp(ip);
+  if(validateProxySubjectPolicy(policy)==='address-v1'||isIP(canonical)===4)
+    return ['kanto/client-quota/v1',canonical];
+  const halves=canonical.split('::');
+  const left=halves[0]?halves[0].split(':'):[];
+  const right=halves.length===2&&halves[1]?halves[1].split(':'):[];
+  const words=halves.length===2?[...left,...Array(8-left.length-right.length).fill('0'),...right]:left;
+  if(words.length!==8||words.some(word=>!/^[0-9a-f]{1,4}$/.test(word)))
+    throw new TypeError('Invalid canonical IPv6');
+  return ['kanto/client-quota/ipv6-prefix64/v2',words.slice(0,4).map(word=>word.padStart(4,'0')).join(':')];
+}
 function requestBinding(method,path,body){
   if(method!=='POST'||!routes.has(path)||!Buffer.isBuffer(body)||body.length>16384)
     throw new TypeError('Invalid account request binding');
@@ -47,11 +66,11 @@ function time(value){
   if(!Number.isSafeInteger(value)||value<0)throw new TypeError('Invalid clock');
   return value;
 }
-export function signProxyIdentity({trustedClientIp,subjectKey,signingKey,method,path,body,nowMs=Date.now()}){
+export function signProxyIdentity({trustedClientIp,subjectKey,signingKey,method,path,body,subjectPolicy='address-v1',nowMs=Date.now()}){
   key(subjectKey);key(signingKey);
   if(timingSafeEqual(subjectKey,signingKey))throw new TypeError('Use separate keys');
   const binding=requestBinding(method,path,body);
-  const subject=mac(subjectKey,['kanto/client-quota/v1',canonicalClientIp(trustedClientIp)]);
+  const subject=mac(subjectKey,subjectBinding(trustedClientIp,subjectPolicy));
   const timestamp=String(time(nowMs));
   const nonce=randomBytes(16).toString('base64url');
   const signature=mac(signingKey,['kanto/web-to-api/quota/v1',timestamp,nonce,subject,...binding]);

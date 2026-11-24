@@ -31,7 +31,7 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
   const suffix=randomBytes(8).toString('hex'),schema='gateway_ci_'+suffix;
   const admin=new pg.Pool({connectionString:db.href});
   const signingHex=randomBytes(32).toString('hex'),subjectHex=randomBytes(32).toString('hex');
-  const issuer=createProxyIssuer({activeHex:signingHex,subjectHex});
+  const issuer=createProxyIssuer({activeHex:signingHex,subjectHex,subjectPolicy:'ipv6-prefix64-v2'});
   const origin='https://gateway-ci.up.railway.app';
   const email='gateway-'+suffix+'@example.test',password='Synthetic-old-12345',newPassword='Synthetic-new-67890';
   const children=[],gateways=[];let created=false,lastProof;
@@ -55,7 +55,7 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
       env:{NODE_ENV:'test',PORT:String(webPort),ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/',
         ONLINE_GATEWAY_FORWARD_TEST_ONLY:'true'},stdio:'ignore'});
     children.push(web);await ready(web,webBase+'/api/v1/status');
-    for(const ip of ['192.0.2.10','192.0.2.11']){
+    for(const ip of ['192.0.2.10','2001:db8:1:2::1','2001:db8:1:2::ffff','2001:db8:1:3::1']){
       const server=createAuthGateway({upstreamOrigin:webBase,clientOrigin:origin,loopbackTest:true,
         issuer:{sign(input){lastProof=issuer.sign(input);return lastProof;}},
         // Constant trusted identity per synthetic gateway; NOT a real Railway adapter.
@@ -110,14 +110,16 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
     const sprite=await fetch(g(0)+'/assets/pokemon-gifs/poke_1.gif');
     assert.equal(sprite.status,200);assert.equal(sprite.headers.get('content-type'),'image/gif');
     assert.ok((await sprite.arrayBuffer()).byteLength>0);
-    // Second identity exhausts its login IP quota with unique nonexistent accounts.
+    // Two privacy addresses within the same /64 share a quota across gateways.
     for(let i=0;i<30;i++){
-      const attempt=await post(g(1),'login',{email:'missing-'+suffix+'-'+i+'@example.test',password},
+      const attempt=await post(g(1+i%2),'login',{email:'missing-'+suffix+'-'+i+'@example.test',password},
         {'X-Real-IP':'198.51.100.'+(i+1),'X-Railway-Edge':'fake'});
       assert.equal(attempt.status,401);
     }
     const blocked=await post(g(1),'login',{email:'blocked-'+suffix+'@example.test',password});
     assert.equal(blocked.status,429);assert.equal(blocked.retry,'900');
+    assert.equal((await post(g(2),'login',{email:'blocked-other-'+suffix+'@example.test',password})).status,429);
+    assert.equal((await post(g(3),'login',{email:'different-prefix-'+suffix+'@example.test',password})).status,401);
     assert.equal((await post(g(0),'login',{email:'other-'+suffix+'@example.test',password})).status,401);
     assert.equal((await admin.query('SELECT count(*)::int AS n FROM game_accounts WHERE email=$1',[email])).rows[0].n,1);
   }finally{

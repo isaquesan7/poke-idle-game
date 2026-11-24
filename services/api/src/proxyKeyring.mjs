@@ -4,7 +4,7 @@
  * Never pass subject key to the API or previous signing key to the issuer.
  */
 import {timingSafeEqual} from 'node:crypto';
-import {signProxyIdentity,verifyProxyIdentity} from './proxyIdentity.mjs';
+import {signProxyIdentity,verifyProxyIdentity,validateProxySubjectPolicy} from './proxyIdentity.mjs';
 import {consumeProxyIdentity} from './proxyNonceGuard.mjs';
 
 const decode=value=>{
@@ -23,8 +23,9 @@ function configKeys(config,allowed){
     throw new TypeError('Unexpected proxy key configuration');
 }
 export function createProxyIssuer(config){
-  configKeys(config,['activeHex','subjectHex','notBeforeMs']);
-  const {activeHex,subjectHex,notBeforeMs}=config;
+  configKeys(config,['activeHex','subjectHex','notBeforeMs','subjectPolicy']);
+  const {activeHex,subjectHex,notBeforeMs,subjectPolicy}=config;
+  const policy=validateProxySubjectPolicy(subjectPolicy);
   const active=decode(activeHex),subject=decode(subjectHex);
   if(timingSafeEqual(active,subject))throw new TypeError('Proxy keys must differ');
   const notBefore=notBeforeMs===undefined?0:instant(notBeforeMs);
@@ -32,7 +33,7 @@ export function createProxyIssuer(config){
     sign(request,nowMs=Date.now()){
       const now=instant(nowMs);
       if(now<notBefore)throw new Error('Signing key not active yet');
-      return signProxyIdentity({...request,subjectKey:subject,signingKey:active,nowMs:now});
+      return signProxyIdentity({...request,subjectKey:subject,signingKey:active,subjectPolicy:policy,nowMs:now});
     }
   });
 }

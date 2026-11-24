@@ -50,3 +50,23 @@ test('short validity, bounded future skew, distinct keys and bounded body',()=>{
   // Cryptographic verification alone is not single-use; integration must consume nonce.
   assert.equal(verify(assertion).nonce,verify(assertion).nonce);
 });
+
+test('opt-in IPv6 /64 groups privacy addresses and preserves IPv4 v1 subjects',()=>{
+  const v2=ip=>verify(sign(ip,{subjectPolicy:'ipv6-prefix64-v2'})).subject;
+  const v1=ip=>verify(sign(ip)).subject;
+  for(const ip of ['192.0.2.1','::ffff:192.0.2.1','0:0:0:0:0:ffff:c000:201'])
+    assert.equal(v2(ip),v1('192.0.2.1'));
+  assert.notEqual(v2('192.0.2.1'),v2('192.0.2.2'));
+  const prefix=v2('2001:db8:abcd:1234::');
+  for(const ip of ['2001:0DB8:ABCD:1234:0000:0000:0000:0001','2001:db8:abcd:1234:ffff:ffff:ffff:ffff',
+    '2001:db8:abcd:1234::192.0.2.1'])assert.equal(v2(ip),prefix);
+  for(let i=0;i<128;i++)assert.equal(v2('2001:db8:abcd:1234::'+i.toString(16)),prefix);
+  for(const ip of ['2001:db8:abcd:1235::','2001:db8:abcd:1233:ffff:ffff:ffff:ffff','2001:db8:abcd:0::'])
+    assert.notEqual(v2(ip),prefix);
+  assert.equal(v2('2001:db8::1'),v2('2001:db8:0:0:ffff::2'));
+  assert.notEqual(v2('2001:db8::1'),v2('2001:db8:0:1::'));
+  assert.notEqual(v2('2001:db8::1'),v1('2001:db8::1'));
+  assert.notEqual(v1('2001:db8::1'),v1('2001:db8::2'));
+  for(const policy of ['auto','/56',null,64])assert.throws(()=>sign('2001:db8::1',{subjectPolicy:policy}));
+  for(const ip of ['2001:db8::/64','fe80::1%eth0','2001:db8::1, ::2'])assert.throws(()=>v2(ip));
+});
