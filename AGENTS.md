@@ -1,3 +1,5 @@
+> **D064BT CANDIDATA:** #286 integrada seis CI SUCCESS; corrigir encontros selvagens por piso evolutivo no catálogo compartilhado, oito espécies realocadas, Primeape R3 Nv28–30, sem mudar captura D064BF. CI antes de merge. Próximo ranks 23F12B. Cadastro OFF.
+
 > **23F12A2 CANDIDATA:** #285 Web/API SUCCESS; #286 treino manual e reset gratuito D056, UI/HTTP CI-only e testes PG18/browser, CI final obrigatório. Cadastro OFF. Próximo ranks por golpe. docs/ONLINE_POKEMON_TRAINING_23F12A.md.
 
 > **23F12A CANDIDATA:** #285 seis CI SUCCESS e merge 83645592. Treino manual Pokémon privado D056, cap de treinador preservado, testes PG18 e CI obrigatório. Sem HTTP/UI, cadastro OFF. docs/ONLINE_POKEMON_TRAINING_23F12A.md.
