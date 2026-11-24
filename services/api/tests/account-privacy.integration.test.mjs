@@ -46,6 +46,10 @@ test('23D8: internal account portability draft exports scoped gameplay, never cr
     }
     const outsider=await exportAccountData(pool,{accountId:outsiderId});
     assert.equal(outsider.gameplay.revision,'28');
+    await pool.query('UPDATE game_accounts SET disabled_at=now() WHERE id=$1',
+      [outsiderId]);
+    assert.equal(await exportAccountData(pool,{accountId:outsiderId}),null,
+      'disabled accounts cannot use active-account portability');
     assert.equal((await exportAccountData(pool,{accountId:randomUUID()})),null);
     assert.equal((await pool.query('SELECT count(*)::int AS total FROM game_accounts WHERE id=$1',
       [accountId])).rows[0].total,1,'export is read-only');
