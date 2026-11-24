@@ -1,0 +1,6 @@
+# Evolução online — 23F11B
+
+
+## ONLINE-01C-23F11B — evolução privada por UID (candidata)
+- Branch dependente de #284 HEAD e2964f1cbc6e618b371864abe4988e23906b14b4; não integrar antes do CI final, merge e reconciliação de #284. Reutiliza integralmente reducer D-033 para evolução manual por nível/pedra, preserva UID, XP, afinidade, treino, equipe, slots/ranks e Pokédex; troca indisponível, kit de teste nunca concedido. Writer privado PostgreSQL: lock do save, revisão, recibo durável e bloqueio de reserva/expedição/captura. Duplicata exige releitura, sem nova mutação. Teste PG18 descartável inclui concorrência, requisitos, consumo único de pedra e preservação; CI pendente.
+- Lacuna explícita: validadores de batalha online verificam learnset da espécie atual; a evolução local preserva golpes da pré-evolução. Gate TEMPORÁRIO e privado rejeita transição com loadout incompatível (sem gastar pedra nem substituir golpes). Antes de HTTP/UI auditar cadeia e resolver proveniência histórica dos golpes, sem ampliar learnset ou alterar engine arbitrariamente. Nenhum SQL novo, cadastro OFF, /play separado, Regiões 1v1, Gym 3v3. Não criar suprimento de pedras nem repetir probes/PITR. Próximo: validar writer, resolver compatibilidade, então projeção e HTTP/UI CI-only.
