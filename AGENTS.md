@@ -1,3 +1,5 @@
+> **23F6 CANDIDATA:** persistência e seletor das dez regiões CI-only, SQL027 manual no PG descartável; #274 merged, depende #275/#276 e CI final. Nenhuma alteração produção, /play local, 1v1/Gym3v3. Veja docs/ONLINE_REGIONAL_PERSISTENCE_23F6.md. Não repetir probes/PITR.
+
 > **23F5 CANDIDATA:** núcleo puro e SQL027 candidata para dez regiões; R1 única rota operacional CI; SQL026/027 não registradas. #273 integrada, #274/#275 dependências em validação. Próximo conectar writers e PG18 isolado. Cadastro OFF, /play local, 1v1/Gym3v3. Veja docs/ONLINE_REGIONAL_EXTENSION_23F5.md.
 
 > **23F3 CANDIDATA:** contrato HTTP regional R1 CI-only, writers canônicos e GET current, chave sintética PG descartável; UI/keyring histórico e demais regiões pendentes. Depende #272/#273. Sem alteração /play, cadastro OFF. Veja docs/ONLINE_REGION_HTTP_23F3.md.

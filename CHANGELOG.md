@@ -1098,3 +1098,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - #273 integrada após cinco CI SUCCESS. Núcleo puro usa catálogo KANTO_REGIONS, unlock, sorteio HMAC, turnos por região, payout e captura; SQL027 candidata sem registro; teste core pendente. R1 ainda única rota. Próximo writers/PG18 e seletor após validação. docs/ONLINE_REGIONAL_EXTENSION_23F5.md.
 
 - #274 integrada main f7d4bde74f720a781fd9191de7450fa36e386192 após cinco CI SUCCESS; #276 reconciliada. Regressão/core, browser e D044 SUCCESS; PG18 falhou no startup do teste de throttle, sem stderr. CI final obrigatório.
+
+
+## ONLINE-01C-23F6 — persistência e seletor das dez regiões (CI)
+- #274 integrada, #275 browser/PG18/D044 SUCCESS (regressões pendentes na leitura), #276 CI incompleto (falhas startup auth). Branch dependente #275/#276: reserva com unlock, materialização canônica líder/HMAC, snapshots e writers vinculados, catálogo e bolas legais, UI seletor. SQL027 somente PG18 CI após suite; teste nove regiões e browser R2; CI pendente. Cadastro OFF, nenhuma alteração no Railway ou migração registrada; /play local. docs/ONLINE_REGIONAL_PERSISTENCE_23F6.md.
