@@ -52,7 +52,8 @@ async function responseFor(page,route,click){
 try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
-    ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin
+    ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32)
   });
   const web=launch(process.execPath,['server.mjs'],{
     PORT:String(webPort),ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
@@ -168,9 +169,9 @@ try{
   const fixture=persisted.rows[0].state;
   const raw=JSON.parse(fixture.journal.raw);
   raw.trainer.level=3;
-  raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25});
-  raw.roster.push({...structuredClone(raw.roster[0]),uid:3,pokemonId:7});
-  raw.roster.push({...structuredClone(raw.roster[0]),uid:4,pokemonId:1});
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25,moveName:'thunder-shock'});
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:3,pokemonId:7,moveName:'tackle'});
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:4,pokemonId:1,moveName:'tackle'});
   raw.nextUid=5;fixture.journal.raw=JSON.stringify(raw);
   await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(fixture)]);
   await page.locator('#online-refresh').click();
@@ -194,6 +195,40 @@ try{
   assert.equal(afterActions.coins,0);assert.equal(afterActions.roster.length,4);
   const stale=await page.request.post(origin+'/api/v1/collection/team',{data:{actionId:'stale-browser-test-01',expectedRevision:0,teamUids:[1]},headers:{Origin:origin}});
   assert.equal(stale.status(),409);
+
+  // Same authenticated browser context, real Web/API/PG18; UI battle controls
+  // follow after the HTTP contract. Use the account's persisted selected leader.
+  const callRegion=async(command,data)=>{
+    const response=await page.request.post(origin+'/api/v1/region/'+command,{data,headers:{Origin:origin}});
+    const result=await response.json();
+    assert.equal(response.status(),200,command+' failed '+response.status()+' '+String(result.status??result.error??''));
+    return result;
+  };
+  const readRegion=async()=>{const response=await page.request.get(origin+'/api/v1/region/current');assert.equal(response.status(),200);return response.json();};
+  const none=await readRegion();assert.equal(none.encounter,null);assert.equal(none.revision,2);
+  const reserved=await callRegion('reserve',{actionId:'browser-region-reserve-01',expectedRevision:2,regionId:1});
+  const encounterId=reserved.encounter.id;
+  const tamper=await page.request.post(origin+'/api/v1/region/start',{data:{encounterId,expectedRevision:reserved.revision,seed:1},headers:{Origin:origin}});
+  assert.equal(tamper.status(),400);
+  const blockedInvest=await page.request.post(origin+'/api/v1/trainer/invest',{data:{actionId:'browser-region-block-invest',expectedRevision:reserved.revision,stat:'attack'},headers:{Origin:origin}});
+  assert.equal(blockedInvest.status(),409);
+  const start=await callRegion('start',{encounterId,expectedRevision:reserved.revision});
+  assert.equal(start.encounter.player.uid,2);assert.equal(start.encounter.player.speciesId,25);
+  assert.equal(start.encounter.phase,'await-player');assert.equal(start.encounter.engine,undefined);
+  const turnCommand={encounterId,actionId:'browser-region-turn-01',expectedRevision:start.revision,action:{kind:'basic'}};
+  let battle=await callRegion('turn',turnCommand);
+  const replayTurn=await callRegion('turn',turnCommand);
+  assert.equal(replayTurn.status,'replay');assert.equal(replayTurn.revision,battle.revision);
+  const reloadState=await readRegion();assert.deepEqual(reloadState.encounter,battle.encounter);
+  for(let i=2;battle.encounter.phase==='await-player'&&i<=30;i++)
+    battle=await callRegion('turn',{encounterId,actionId:'browser-region-turn-'+String(i).padStart(2,'0'),expectedRevision:battle.revision,action:{kind:'basic'}});
+  assert.equal(battle.encounter.phase,'resolved');
+  const certified=await callRegion('certify',{encounterId,actionId:'browser-region-certify-01',expectedRevision:battle.revision});
+  const paid=await callRegion('settle',{encounterId,actionId:'browser-region-settle-01',expectedRevision:certified.revision});
+  assert.equal(paid.encounter.phase,'paid');
+  const finish=await callRegion('finish',{encounterId,actionId:'browser-region-finish-01',expectedRevision:paid.revision,choice:'skip'});
+  assert.equal(finish.encounter,null);assert.equal(finish.capture,'skipped');
+  assert.equal((await readRegion()).encounter,null);
 
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();
