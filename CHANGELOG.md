@@ -1008,3 +1008,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - PR #259 integrado main ce77aaea3e6f5894641eb2e8c9fef10534adcdf4 após regressão 45437020612 SUCCESS. #260 reconciliado; CI final pendente.
 
 - 23E19: jornada HTTP completa de auth via gateway/Web/API e PG18 descartável; cota separada, rejeição direta/replay, recuperação, cookie, revogação. Bind Web loopback somente harness; sem migration real ou cadastro. CI pendente.
+
+
+## ONLINE-01C-23E20 — roteamento same-origin candidato (24/11/2026; branch)
+- #260 merged após cinco CI SUCCESS. Gateway allowlist landing/play/regions/assets, consultas e logout; retenção de token query no browser, cookies restritos, testes HTTP e PG18. Sem runtime produção, migração ou gameplay. CI pendente.
+
+- 23E21: imagem isolada de observação gateway, prova sintética sem exposição, CI dedicado e plano de ensaio entre projetos. Sem deploy/produção/migration; CI pendente.

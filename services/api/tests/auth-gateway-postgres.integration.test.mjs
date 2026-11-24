@@ -88,7 +88,7 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
     assert.equal(login.status,200);assert.match(login.cookie,/HttpOnly/);assert.match(login.cookie,/Secure/);
     assert.match(login.cookie,/SameSite=Lax/);
     const me=async cookie=>{
-      const res=await fetch(webBase+'/api/v1/me',{headers:{Cookie:cookie.split(';')[0]},signal:AbortSignal.timeout(10000)});
+      const res=await fetch(g(0)+'/api/v1/me',{headers:{Cookie:cookie.split(';')[0]},signal:AbortSignal.timeout(10000)});
       return {status:res.status,body:await res.json()};
     };
     assert.equal((await me(login.cookie)).body.id,accountId);
@@ -100,6 +100,16 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
     assert.equal((await post(g(0),'login',{email,password})).status,401);
     const renewed=await post(g(0),'login',{email,password:newPassword});
     assert.equal(renewed.status,200);assert.equal((await me(renewed.cookie)).body.id,accountId);
+    const logout=await post(g(0),'logout',{}, {Cookie:renewed.cookie.split(';')[0]});
+    assert.equal(logout.status,200);assert.match(logout.cookie,/Max-Age=0/);
+    assert.equal((await me(renewed.cookie)).status,401);
+    const status=await fetch(g(0)+'/api/v1/status');assert.equal(status.status,200);
+    assert.equal((await status.json()).registrationEnabled,true);
+    const home=await fetch(g(0)+'/');assert.equal(home.status,200);
+    assert.match(home.headers.get('content-type'),/text\/html/);await home.text();
+    const sprite=await fetch(g(0)+'/assets/pokemon-gifs/poke_1.gif');
+    assert.equal(sprite.status,200);assert.equal(sprite.headers.get('content-type'),'image/gif');
+    assert.ok((await sprite.arrayBuffer()).byteLength>0);
     // Second identity exhausts its login IP quota with unique nonexistent accounts.
     for(let i=0;i<30;i++){
       const attempt=await post(g(1),'login',{email:'missing-'+suffix+'-'+i+'@example.test',password},

@@ -7,7 +7,29 @@ import {request as httpsRequest} from 'node:https';
 
 const paths=new Set(['/api/v1/auth/register','/api/v1/auth/verify',
   '/api/v1/auth/login','/api/v1/auth/request-reset','/api/v1/auth/confirm-reset']);
-const responseAllow=new Set(['content-type','set-cookie','retry-after']);
+const apiReads=new Set(['/api/v1/status','/api/v1/me','/api/v1/save']);
+const pages=new Set(['/','/verify-email','/reset-password','/play','/play/','/regions','/regions/']);
+const logout='/api/v1/auth/logout';
+const responseAllow=new Set(['content-type','retry-after']);
+function routeFor(raw){
+  if(typeof raw!=='string'||raw.length>2048||!raw.startsWith('/')||raw.startsWith('//')||
+     raw.includes('\\')||raw.includes('#'))return null;
+  if(paths.has(raw))return {path:raw,kind:'signed'};
+  if(apiReads.has(raw))return {path:raw,kind:'read'};
+  if(raw===logout)return {path:raw,kind:'logout'};
+  // Verification/reset landing is static. Never forward bearer query values
+  // into upstream URL/logs; browser retains its own URL for existing JS.
+  const question=raw.indexOf('?');
+  const path=question<0?raw:raw.slice(0,question);
+  if(pages.has(path)&&(question<0||path==='/verify-email'||path==='/reset-password'))
+    return {path,kind:'page'};
+  if(question>=0)return null;
+  if(/^\/assets\/[A-Za-z0-9_.-]+\.(?:js|css|svg|png|webp|woff2?)$/.test(path))
+    return {path,kind:'asset'};
+  const sprite=/^\/assets\/pokemon-gifs\/poke_([1-9]\d{0,2})\.gif$/.exec(path);
+  if(sprite&&Number(sprite[1])<=151)return {path,kind:'asset'};
+  return null;
+}
 function exactOrigin(value,{loopback=false}={}){
   const u=new URL(value);
   if(u.username||u.password||u.search||u.hash||u.pathname!=='/')
@@ -37,17 +59,33 @@ export function createAuthGateway({upstreamOrigin,clientOrigin,issuer,resolveTru
   if(upstream.origin===browser.origin||typeof issuer?.sign!=='function'||
       typeof resolveTrustedClientIp!=='function')throw new TypeError('Invalid isolated gateway configuration');
   const server=createServer(async(req,res)=>{
-    if(!paths.has(req.url)){deny(res,404);req.resume();return;}
-    if(req.method!=='POST'){deny(res,405);req.resume();return;}
-    if(rawValues(req,'origin').length!==1||req.headers.origin!==browser.origin||
-       rawValues(req,'content-type').length!==1||!/^application\/json(?:\s*;|$)/i.test(req.headers['content-type']??'')||
-       connectionTokens(req.headers.connection).some(x=>['origin','content-type'].includes(x))){
+    const route=routeFor(req.url);
+    if(!route){deny(res,404);req.resume();return;}
+    const signed=route.kind==='signed',writing=signed||route.kind==='logout';
+    const session=route.kind==='logout'||route.path==='/api/v1/me'||route.path==='/api/v1/save';
+    const allowed=writing?['POST']:route.kind==='read'?['GET']:['GET','HEAD'];
+    if(!allowed.includes(req.method)){res.setHeader('Allow',allowed.join(', '));deny(res,405);req.resume();return;}
+    const nominated=connectionTokens(req.headers.connection);
+    if(writing&&(rawValues(req,'origin').length!==1||req.headers.origin!==browser.origin||
+       nominated.includes('origin')||nominated.includes('content-type'))){
+      deny(res,400);req.resume();return;
+    }
+    if(signed&&(rawValues(req,'content-type').length!==1||
+       !/^application\/json(?:\s*;|$)/i.test(req.headers['content-type']??''))){
+      deny(res,400);req.resume();return;
+    }
+    if(session&&(rawValues(req,'cookie').length>1||nominated.includes('cookie'))){
+      deny(res,400);req.resume();return;
+    }
+    if(!writing&&(Number(req.headers['content-length']??0)!==0||req.headers['transfer-encoding'])){
       deny(res,400);req.resume();return;
     }
     // Browser-supplied proof is never copied. The trusted adapter is external.
     let ip;
-    try{ip=resolveTrustedClientIp(req);}catch{deny(res,403);req.resume();return;}
-    if(typeof ip!=='string'||!ip){deny(res,403);req.resume();return;}
+    if(signed){
+      try{ip=resolveTrustedClientIp(req);}catch{deny(res,403);req.resume();return;}
+      if(typeof ip!=='string'||!ip){deny(res,403);req.resume();return;}
+    }
     if(Number(req.headers['content-length']??0)>16384){deny(res,413);req.resume();return;}
     let total=0,done=false;const chunks=[];
     const timer=setTimeout(()=>{if(!done){done=true;chunks.length=0;deny(res,408);req.destroy();}},10000);
@@ -62,14 +100,21 @@ export function createAuthGateway({upstreamOrigin,clientOrigin,issuer,resolveTru
     req.on('end',()=>{
       if(done)return;
       const body=Buffer.concat(chunks,total);stop();
-      let assertion;
-      try{assertion=issuer.sign({trustedClientIp:ip,method:'POST',path:req.url,body});}
-      catch{deny(res,403);return;}
+      if(!writing&&body.length){deny(res,400);return;}
+      const outbound={'accept-encoding':'identity'};
+      if(writing){
+        outbound.origin=browser.origin;
+        outbound['content-length']=String(body.length);
+        if(signed)outbound['content-type']=req.headers['content-type'];
+      }
+      if(session&&typeof req.headers.cookie==='string')outbound.cookie=req.headers.cookie;
+      if(signed){
+        try{outbound['x-kanto-proxy-identity']=issuer.sign({trustedClientIp:ip,method:'POST',path:route.path,body});}
+        catch{deny(res,403);return;}
+      }
       const transport=upstream.protocol==='https:'?httpsRequest:httpRequest;
       const target=transport({protocol:upstream.protocol,hostname:upstream.hostname,port:upstream.port||undefined,
-        method:'POST',path:req.url,headers:{'content-type':req.headers['content-type'],
-          origin:browser.origin,'content-length':String(body.length),'accept-encoding':'identity',
-          'x-kanto-proxy-identity':assertion},timeout:10000},response=>{
+        method:req.method,path:route.path,headers:outbound,timeout:10000},response=>{
         // Never relay arbitrary internal headers or redirects.
         if((response.statusCode??500)>=300&&(response.statusCode??500)<400){response.resume();deny(res,502);return;}
         const headers={'cache-control':'no-store','x-content-type-options':'nosniff',
@@ -77,6 +122,15 @@ export function createAuthGateway({upstreamOrigin,clientOrigin,issuer,resolveTru
         const nominated=connectionTokens(response.headers.connection);
         for(const name of responseAllow)
           if(response.headers[name]!==undefined&&!nominated.includes(name))headers[name]=response.headers[name];
+        // Only login/logout may set a browser session. Never cache API or pages.
+        if((route.path==='/api/v1/auth/login'||route.kind==='logout')&&
+           !nominated.includes('set-cookie')&&response.headers['set-cookie']!==undefined)
+          headers['set-cookie']=response.headers['set-cookie'];
+        if(route.kind==='asset'&&response.statusCode===200&&!nominated.includes('cache-control')){
+          const policy=response.headers['cache-control'];
+          if(typeof policy==='string'&&/^public, max-age=(?:86400|31536000)(?:, immutable)?$/.test(policy))
+            headers['cache-control']=policy;
+        }
         res.writeHead(response.statusCode??502,headers);
         response.on('error',()=>res.destroy());response.pipe(res);
       });
