@@ -1,3 +1,5 @@
+import {evaluateResendEvidence} from './resendEvidence.mjs';
+import {evaluateRestoreEvidence} from './restoreEvidence.mjs';
 /** ONLINE-01C-23C8: local, offline, read-only beta release evidence checker.
  * No network, database access, secrets, or changes to runtime feature flags.
  * This is a review aid: passing checks never enables public registration.
@@ -39,10 +41,40 @@ export function evaluateBetaReadiness(input,{now=new Date()}={}){
         record.observedRpoMinutes>=0&&Number.isFinite(record?.observedRtoMinutes)&&
         record.observedRtoMinutes>=0))
       blockers.push('restore real isolado, integridade e RPO/RTO medidos obrigatórios');
+    if(gate==='restore'){
+      const drill=record?.drill;
+      if(!drill){
+        blockers.push('chronological real Railway restore evidence required');
+      }else{
+        let report;
+        try{report=evaluateRestoreEvidence(drill,{now});}
+        catch{blockers.push('invalid restore drill document');}
+        if(report&&!report.passed)
+          blockers.push('restore drill: '+report.blockers.join(', '));
+        if(drill.backupId!==record.backupId||
+          drill.restoreId!==record.restoreId||
+          drill.appCommitSha!==head||
+          drill.observedRpoMinutes!==record.observedRpoMinutes||
+          drill.observedRtoMinutes!==record.observedRtoMinutes)
+          blockers.push('restore drill identifiers, RPO/RTO or SHA mismatch');
+      }
+    }
     if(gate==='resend'&&
       !(record?.domainVerified===true&&record?.verificationDelivered===true&&
         record?.resetDelivered===true&&record?.expirationTested===true))
       blockers.push('domínio, verificação, reset e expiração devem ser testados');
+    if(gate==='resend'){
+      if(!record?.drill)blockers.push('independently reviewed real Resend delivery evidence required');
+      else {
+        let report;
+        try{report=evaluateResendEvidence(record.drill,{now});}
+        catch{blockers.push('invalid Resend evidence document');}
+        if(report&&!report.passed)
+          blockers.push('Resend drill: '+report.blockers.join(', '));
+        if(record.drill.appCommitSha!==head)
+          blockers.push('Resend delivery evidence SHA mismatch');
+      }
+    }
     if(gate==='privacy'&&
       !(text(record?.privacyPolicyUrl)&&text(record?.termsUrl)&&
         record?.retentionApproved===true&&record?.deletionFlowReviewed===true))

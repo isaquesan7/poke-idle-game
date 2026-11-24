@@ -12,9 +12,59 @@ function valid(){
     railway:{...base(),apiCommitSha:sha,webCommitSha:sha},
     restore:{...base(),isolated:true,actuallyRestored:true,
       integrityVerified:true,backupId:'backup-123',restoreId:'restore-123',
-      observedRpoMinutes:1,observedRtoMinutes:4},
+      observedRpoMinutes:5,observedRtoMinutes:4,
+      drill:{
+        provider:'railway',method:'pitr',
+        sourceEnvironmentId:'11111111-1111-4111-8111-111111111111',
+        restoreEnvironmentId:'22222222-2222-4222-8222-222222222222',
+        sourceServiceId:'33333333-3333-4333-8333-333333333333',
+        restoreServiceId:'44444444-4444-4444-8444-444444444444',
+        backupId:'backup-123',restoreId:'restore-123',
+        restoredIntoNewService:true,productionSourceUnaffected:true,
+        apiNeverPointedAtRestore:true,pitrWalReplayVerified:true,
+        integrityAuditPassed:true,integrityAuditReference:'integrity-audit-123',
+        appCommitSha:sha,operator:'operator-1',reviewer:'reviewer-2',
+        recoveryPointUtc:'2026-11-23T23:50:00Z',
+        incidentUtc:'2026-11-23T23:55:00Z',
+        restoreStartedUtc:'2026-11-23T23:56:00Z',
+        restoredHealthyUtc:'2026-11-23T23:59:00Z',
+        integrityCheckedUtc:'2026-11-24T00:00:00Z',
+        reviewedUtc:'2026-11-24T00:00:00Z',
+        observedRpoMinutes:5,observedRtoMinutes:4
+      }},
     resend:{...base(),domainVerified:true,verificationDelivered:true,
-      resetDelivered:true,expirationTested:true},
+      resetDelivered:true,expirationTested:true,
+      drill:{
+        provider:'resend',environment:'isolated',
+        productionDeliveryDisabled:true,controlledTestRecipient:true,
+        senderDomainVerified:true,domainProofRef:'domain-proof-123',
+        appCommitSha:sha,operator:'operator-1',reviewer:'reviewer-2',
+        verification:{
+          providerMessageId:'provider-verify-01',
+          providerDeliveryEventId:'delivery-verify-01',
+          inboxObservationRef:'inbox-verify-01',
+          sentAtUtc:'2026-11-24T00:00:00Z',
+          deliveredAtUtc:'2026-11-24T00:01:00Z',
+          inboxObservedAtUtc:'2026-11-24T00:02:00Z',
+          linkUsedAtUtc:'2026-11-24T00:03:00Z',
+          providerDeliveryEventVerified:true,inboxReceiptVerified:true,
+          tokenConsumedOnceVerified:true
+        },
+        reset:{
+          providerMessageId:'provider-reset-01',
+          providerDeliveryEventId:'delivery-reset-01',
+          inboxObservationRef:'inbox-reset-01',
+          sentAtUtc:'2026-11-24T00:04:00Z',
+          deliveredAtUtc:'2026-11-24T00:05:00Z',
+          inboxObservedAtUtc:'2026-11-24T00:06:00Z',
+          linkUsedAtUtc:'2026-11-24T00:07:00Z',
+          providerDeliveryEventVerified:true,inboxReceiptVerified:true,
+          tokenConsumedOnceVerified:true
+        },
+        expiredTokenRejectedAtUtc:'2026-11-24T00:08:00Z',
+        expiredTokenRejectedVerified:true,reusedTokenRejectedVerified:true,
+        reviewedAtUtc:'2026-11-24T00:09:00Z'
+      }},
     privacy:{...base(),privacyPolicyUrl:'https://example.test/privacy',
       termsUrl:'https://example.test/terms',
       retentionApproved:true,deletionFlowReviewed:true},
@@ -63,4 +113,26 @@ test('malformed documents and timestamps are rejected',()=>{
   assert.throws(()=>evaluateBetaReadiness({}, {now:new Date('bad')}),TypeError);
   const input=valid();input.headSha='short';
   assert.equal(evaluateBetaReadiness(input,{now}).ready,false);
+});
+
+test('restore drill cannot be claimed complete by a mock CI dump',()=>{
+  const input=valid();
+  input.gates.restore.drill.method='volume-snapshot';
+  assert.equal(evaluateBetaReadiness(input,{now}).gates.restore.passed,false);
+});
+test('restore drill mismatch with deployment SHA blocks release',()=>{
+  const input=valid();
+  input.gates.restore.drill.appCommitSha='b'.repeat(40);
+  assert.equal(evaluateBetaReadiness(input,{now}).gates.restore.passed,false);
+});
+
+test('Resend gate requires mailbox proof, not provider acceptance alone',()=>{
+  const input=valid();
+  input.gates.resend.drill.verification.inboxReceiptVerified=false;
+  assert.equal(evaluateBetaReadiness(input,{now}).gates.resend.passed,false);
+});
+test('Resend gate rejects delivery from another app commit',()=>{
+  const input=valid();
+  input.gates.resend.drill.appCommitSha='b'.repeat(40);
+  assert.equal(evaluateBetaReadiness(input,{now}).gates.resend.passed,false);
 });
