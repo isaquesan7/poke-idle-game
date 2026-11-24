@@ -1090,5 +1090,11 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - UI de atributos e equipe usa writers existentes, revisão e actionId, releitura servidor, nomes Kanto, 1–3 UIDs, líder regional e trio Gym. Web collection/team apenas CI/test. Teste browser PG18 ampliado com fixture e persistência; CI pendente, branch depende #272 (guard textual corrigido, sem relaxar). docs/ONLINE_PORTAL_ACTIONS_23F2.md. Cadastro OFF, /play separado, nenhum SQL ou recurso novo.
 
 
+## ONLINE-01C-23F3 — contrato regional CI-only
+- R1 via HTTP reserva/start/turn/certify/settle/finish + GET current; backend canônico, revisão e sessão, chave sintética somente PG CI; não abre gameplay em produção. Bloqueia investimento durante reserva. Teste browser PG18 ampliado (contrato HTTP, não UI). #272/#273 dependências e CI pendentes. docs/ONLINE_REGION_HTTP_23F3.md. Próximo: UI regional e recuperação/captura, restante regiões via catálogo canônico; keyring histórico antes de release. /play local e Gym 3v3 preservados.
+
+
 ## ONLINE-01C-23F5 — extensão regional candidata
 - #273 integrada após cinco CI SUCCESS. Núcleo puro usa catálogo KANTO_REGIONS, unlock, sorteio HMAC, turnos por região, payout e captura; SQL027 candidata sem registro; teste core pendente. R1 ainda única rota. Próximo writers/PG18 e seletor após validação. docs/ONLINE_REGIONAL_EXTENSION_23F5.md.
+
+- #274 integrada main f7d4bde74f720a781fd9191de7450fa36e386192 após cinco CI SUCCESS; #276 reconciliada. Regressão/core, browser e D044 SUCCESS; PG18 falhou no startup do teste de throttle, sem stderr. CI final obrigatório.

@@ -1,5 +1,7 @@
 > **23F5 CANDIDATA:** núcleo puro e SQL027 candidata para dez regiões; R1 única rota operacional CI; SQL026/027 não registradas. #273 integrada, #274/#275 dependências em validação. Próximo conectar writers e PG18 isolado. Cadastro OFF, /play local, 1v1/Gym3v3. Veja docs/ONLINE_REGIONAL_EXTENSION_23F5.md.
 
+> **23F3 CANDIDATA:** contrato HTTP regional R1 CI-only, writers canônicos e GET current, chave sintética PG descartável; UI/keyring histórico e demais regiões pendentes. Depende #272/#273. Sem alteração /play, cadastro OFF. Veja docs/ONLINE_REGION_HTTP_23F3.md.
+
 > **23F2 CANDIDATA:** atributos e Coleção via writers CI-only, revision/actionId, 1v1 líder e trio Gym, releitura servidor. Depende #272, CI final pendente. Cadastro OFF, /play local. Ver docs/ONLINE_PORTAL_ACTIONS_23F2.md.
 
 > **23F1 PORTAL (24/11/2026):** implementação inicial de progresso online na home, seleção nv1, save somente servidor, reload/logout. CI pendente, #271 independente. Não alterar /play, cadastro production OFF, próximos writers e batalhas online via HTTP canônico; não repetir probes/PITR/sandbox. Veja docs/ONLINE_PORTAL_PROGRESS_23F1.md.

@@ -2116,5 +2116,13 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - #272 integrada main 982c8cf443d21783f379f8a29c6cfd3ab64808c3 após quatro CI SUCCESS. #273 cinco CI SUCCESS no HEAD anterior; reconciliada, CI final pendente.
 
 
+## ONLINE-01C-23F3 — contrato regional CI-only
+- R1 via HTTP reserva/start/turn/certify/settle/finish + GET current; backend canônico, revisão e sessão, chave sintética somente PG CI; não abre gameplay em produção. Bloqueia investimento durante reserva. Teste browser PG18 ampliado (contrato HTTP, não UI). #272/#273 dependências e CI pendentes. docs/ONLINE_REGION_HTTP_23F3.md. Próximo: UI regional e recuperação/captura, restante regiões via catálogo canônico; keyring histórico antes de release. /play local e Gym 3v3 preservados.
+
+- #273 integrada main a179924e4a8f6bfa45534d49979676761f38053d após cinco CI SUCCESS; #274 reconciliada e correção de fixture aguarda CI final.
+
+
 ## ONLINE-01C-23F5 — extensão regional candidata
 - #273 integrada após cinco CI SUCCESS. Núcleo puro usa catálogo KANTO_REGIONS, unlock, sorteio HMAC, turnos por região, payout e captura; SQL027 candidata sem registro; teste core pendente. R1 ainda única rota. Próximo writers/PG18 e seletor após validação. docs/ONLINE_REGIONAL_EXTENSION_23F5.md.
+
+- #274 integrada main f7d4bde74f720a781fd9191de7450fa36e386192 após cinco CI SUCCESS; #276 reconciliada. Regressão/core, browser e D044 SUCCESS; PG18 falhou no startup do teste de throttle, sem stderr. CI final obrigatório.
