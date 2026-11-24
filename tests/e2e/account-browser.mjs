@@ -299,6 +299,15 @@ try{
   const gymPath=origin+'/api/v1/gym/';
   const gymRead=async()=>{const response=await page.request.get(gymPath+'current');assert.equal(response.status(),200);return response.json();};
   const gymPost=async(command,data)=>{const response=await page.request.post(gymPath+command,{data,headers:{Origin:origin}});assert.equal(response.status(),200,command+' failed '+response.status());return response.json();};
+  // Strong disposable Gym fixture: keep Charmander at its earned level;
+  // two teammates can safely defeat Brock without changing the core.
+  const gymFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const gymRaw=JSON.parse(gymFixture.journal.raw);
+  for(const p of gymRaw.roster)if([2,3].includes(p.uid))p.level=100;
+  gymFixture.journal.raw=JSON.stringify(gymRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(gymFixture)]);
+  await page.locator('#online-refresh').click();
+  await page.locator('#gym-open').waitFor();
   const gymBefore=await gymRead();
   assert.equal(gymBefore.gym,null);assert.equal(gymBefore.canReserve,true);
   assert.equal(gymBefore.nextGym.leader,'Brock');assert.deepEqual(gymBefore.nextGym.teamUids,[2,1,3]);
@@ -310,7 +319,9 @@ try{
   const reservedGym=await gymRead();assert.equal(reservedGym.gym.phase,'reserved');
   assert.equal(reservedGym.gym.id,gymReservationId);
   assert.equal(reservedGym.gym.player,null);
-  await gymPost('start',{gymReservationId,expectedRevision:reservedGym.revision});
+  await page.locator('#online-refresh').click();
+  await page.getByRole('button',{name:'Retomar confronto',exact:true}).click();
+  await page.locator('#gym-phase[data-phase="await-player"]').waitFor();
   const openedGym=await gymRead();assert.equal(openedGym.gym.phase,'await-player');
   assert.equal(openedGym.gym.player.fighters.length,3);assert.equal(openedGym.gym.opponent.fighters.length,3);
   assert.deepEqual(openedGym.gym.player.fighters.map(f=>f.uid),[2,1,3]);
@@ -325,6 +336,31 @@ try{
   assert.deepEqual(await gymRead(),switchedGym);
   const gymLockedTeam=await page.request.post(origin+'/api/v1/collection/team',{data:{actionId:'browser-gym-lock-team',expectedRevision:switchedGym.revision,teamUids:[1,2,3]},headers:{Origin:origin}});
   assert.equal(gymLockedTeam.status(),409);
+  await page.locator('#gym-phase[data-action-number="1"]').waitFor();
+  assert.equal(await page.locator('#gym-parties [data-gym-slot]').count(),6);
+  assert.match(await page.locator('#gym-match').textContent(),/Brock vs Treinador Browser/);
+  assert.equal(await page.locator('#region-open').isDisabled(),true);
+  assert.equal(await page.locator('#online-team-save').isDisabled(),true);
+  let gymNow=await gymRead();
+  for(let i=0;gymNow.gym.phase==='await-player'&&i<140;i++){
+    const g=gymNow.gym;
+    const chosen=(g.player.activeIndex===1?g.actions.find(a=>a.kind==='switch'&&a.toIndex===2):null)
+      ??g.actions.find(a=>a.kind==='basic')??g.actions[0];
+    assert.ok(chosen);
+    const tag=chosen.kind==='switch'?'switch:'+chosen.toIndex:chosen.kind==='move'?'move:'+chosen.moveName:chosen.kind;
+    await responseFor(page,'/api/v1/gym/turn',()=>page.locator('[data-gym-action="'+tag+'"]').click());
+    await page.locator('#gym-phase[data-action-number="'+(g.actionNumber+1)+'"]').waitFor();
+    gymNow=await gymRead();
+  }
+  assert.equal(gymNow.gym.phase,'resolved');assert.equal(gymNow.gym.outcome,'player-win');
+  const beforeGymCoins=Number(await page.locator('#online-coins').textContent());
+  const gymPaid=await responseFor(page,'/api/v1/gym/settle',()=>page.locator('[data-gym-action="reward"]').click());
+  assert.equal(gymPaid.paid.badgeId,'boulder');assert.equal(gymPaid.paid.coins,1500);assert.equal(gymPaid.paid.trainerXp,120);
+  await page.getByRole('button',{name:'Desafiar Misty',exact:true}).waitFor();
+  assert.equal(Number(await page.locator('#online-coins').textContent()),beforeGymCoins+1500);
+  assert.equal(await page.locator('#online-badges').textContent(),'1');
+  assert.equal((await gymRead()).gym,null);
+  assert.match(await page.locator('#gym-note').textContent(),/Insígnia conquistada/);
 
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();
