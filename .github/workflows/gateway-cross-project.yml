@@ -1,0 +1,27 @@
+name: ONLINE-01C — cliente isolado cross-project
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Dockerfile.gateway-cross-project'
+      - 'scripts/run-gateway-cross-project.mjs'
+      - 'tests/gateway-cross-project.test.mjs'
+      - '.github/workflows/gateway-cross-project.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  client:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/gateway-cross-project.test.mjs
+      - run: |
+          set -eu
+          docker build -f Dockerfile.gateway-cross-project -t kanto-cross-project-ci .
+          docker run --rm --entrypoint sh kanto-cross-project-ci -c 'test "$(id -un)" = node && test "$(find /probe -type f | wc -l)" = 1'
+          if docker run --rm kanto-cross-project-ci; then exit 1; fi

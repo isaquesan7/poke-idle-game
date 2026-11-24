@@ -1014,3 +1014,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - #260 merged após cinco CI SUCCESS. Gateway allowlist landing/play/regions/assets, consultas e logout; retenção de token query no browser, cookies restritos, testes HTTP e PG18. Sem runtime produção, migração ou gameplay. CI pendente.
 
 - 23E21: imagem isolada de observação gateway, prova sintética sem exposição, CI dedicado e plano de ensaio entre projetos. Sem deploy/produção/migration; CI pendente.
+
+
+## ONLINE-01C-23E22 — cliente de isolamento cross-project (24/11/2026; branch)
+- #261 integrado após quatro CI SUCCESS. Cliente one-shot, controles positivos e diagnóstico restrito de DNS/HTTP entre projetos; CI dedicado. Sem serviço novo, deploy real ou autorização de produção.
