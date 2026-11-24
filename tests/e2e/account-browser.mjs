@@ -438,7 +438,14 @@ try{
   assert.equal(badMove.status(),409);
   const badUid=await page.request.post(origin+'/api/v1/moves/equip',{data:{actionId:'browser-move-other-0001',expectedRevision:moveBefore.revision,pokemonUid:999999,moveNames:['scratch']},headers:{Origin:origin}});
   assert.equal(badUid.status(),409);
+  const supportOnly=await page.request.post(origin+'/api/v1/moves/equip',{data:{actionId:'browser-move-support-0001',expectedRevision:moveBefore.revision,pokemonUid:1,moveNames:['growl']},headers:{Origin:origin}});
+  assert.equal(supportOnly.status(),409);
+  assert.equal((await moveRead()).revision,moveBefore.revision);
   await page.locator('[data-move-name="growl"]').click();
+  await page.locator('#moves-equipped .team-row').first().getByRole('button',{name:'Remover'}).click();
+  assert.equal(await page.locator('#moves-save').isDisabled(),true);
+  await page.locator('[data-move-name="scratch"]').click();
+  await page.locator('#moves-equipped .team-row').nth(1).getByRole('button',{name:'↑'}).click();
   await responseFor(page,'/api/v1/moves/equip',()=>page.locator('#moves-save').click());
   await page.getByText('Golpes salvos.',{exact:true}).waitFor();
   await page.reload({waitUntil:'domcontentloaded'});
