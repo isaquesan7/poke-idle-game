@@ -103,7 +103,7 @@ export async function claimAccountMail(pool){
       WHERE status IN ('pending','sending') AND available_at<=now()
         AND (lease_until IS NULL OR lease_until<now())
         AND attempt_count<$1
-      ORDER BY available_at,id FOR UPDATE SKIP LOCKED LIMIT 1
+      ORDER BY created_at,id FOR UPDATE SKIP LOCKED LIMIT 1
     )
     UPDATE game_account_mail_outbox AS m
       SET status='sending',attempt_count=m.attempt_count+1,
