@@ -12,6 +12,7 @@ const denies=[
   '/api/v1/auth/request-reset','/api/v1/auth/confirm-reset',
   '/api/v1/auth/login','/api/v1/auth/logout',
   '/api/v1/account/export',
+  '/api/v1/expedition/start','/api/v1/expedition/claim','/api/v1/expedition/stop',
   '/api/v1/adventure/start','/api/v1/trainer/invest',
   '/api/v1/collection/team','/api/v1/gym/reserve',
   '/api/v1/gym/start','/api/v1/gym/turn',
@@ -79,6 +80,7 @@ test('23D7: production flag never enables public accounts, email actions or game
       assert.equal((await call(path,'POST','https://attacker.example')).status,
         503,'bad Origin cannot bypass production lock: '+path);
     }
+    assert.equal((await call('/api/v1/expedition/current')).status,503);
     assert.equal((await call('/api/v1/me')).status,401,
       'unknown session must not expose account identity');
     assert.equal((await call('/api/v1/save')).status,401,

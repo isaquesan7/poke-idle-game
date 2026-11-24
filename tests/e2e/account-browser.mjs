@@ -55,11 +55,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -294,6 +294,31 @@ try{
   await page.waitForFunction(()=>document.activeElement?.id==='region-open');
   assert.equal(await page.locator('#region-select').inputValue(),'2');
   assert.equal((await readRegion()).encounter,null);
+
+  // Private expedition HTTP over the real authenticated browser proxy.
+  const expeditionPath=origin+'/api/v1/expedition/';
+  const expRead=async()=>{const response=await page.request.get(expeditionPath+'current');assert.equal(response.status(),200);return response.json();};
+  const expPost=(kind,data)=>page.request.post(expeditionPath+kind,{data,headers:{Origin:origin}});
+  const beforeExp=await expRead();assert.equal(beforeExp.expedition,null);assert.equal(beforeExp.leader.uid,2);
+  assert.equal((await expPost('start',{actionId:'browser-expedition-clock-tamper',expectedRevision:beforeExp.revision,regionId:2,nowMs:1})).status(),400);
+  const startExp=await expPost('start',{actionId:'browser-expedition-start',expectedRevision:beforeExp.revision,regionId:2});
+  assert.equal(startExp.status(),200);
+  const openedExp=await expRead();assert.equal(openedExp.expedition.regionId,2);assert.equal(openedExp.expedition.leaderUid,2);
+  assert.ok(openedExp.serverNowMs>=openedExp.expedition.startedAt);
+  const expFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const expRaw=JSON.parse(expFixture.journal.raw);
+  expRaw.expedition.startedAt-=9*3600000;expRaw.expedition.lastClaimAt=expRaw.expedition.startedAt;
+  expFixture.journal.raw=JSON.stringify(expRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(expFixture)]);
+  const readyExp=await expRead();assert.equal(readyExp.expedition.cycles,2880);
+  assert.equal(readyExp.expedition.preview.cycles,2880);
+  const claimArgs={actionId:'browser-expedition-claim',expectedRevision:readyExp.revision};
+  assert.equal((await expPost('claim',claimArgs)).status(),200);
+  assert.equal((await expPost('claim',claimArgs)).status(),409);
+  await page.reload({waitUntil:'domcontentloaded'});
+  const claimedExp=await expRead();assert.equal(claimedExp.expedition.startedAt,readyExp.expedition.startedAt);
+  assert.equal((await expPost('stop',{actionId:'browser-expedition-stop',expectedRevision:claimedExp.revision})).status(),200);
+  assert.equal((await expRead()).expedition,null);
 
   // Gym portal read contract via the real authenticated Web proxy.
   const gymPath=origin+'/api/v1/gym/';

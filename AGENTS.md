@@ -1,3 +1,7 @@
+> **23F8A INTEGRADA:** #280 quatro CI SUCCESS, main f50f7d1d175187fbcb2f3889017358ab910c4320. #281 cinco CI SUCCESS anterior; reconciliada, CI final obrigatório. #282 candidata. Cadastro OFF.
+
+> **23F8B CANDIDATA:** HTTP expedição CI-only com relógio PG/projeção/reducer, writers autenticados e teste browser; depende #280, UI próxima. Sem cadastro/SQL. docs/ONLINE_EXPEDITION_HTTP_23F8B.md.
+
 > **23F8A CANDIDATA:** expedição writer privado, reducer existente, relógio PostgreSQL/receipt/CAS, bloqueios mútuos, sem SQL/HTTP/cadastro. docs/ONLINE_EXPEDITION_WRITER_23F8A.md. CI obrigatório.
 
 > **23F6 INTEGRADA:** #277 cinco CI SUCCESS, main afc964edbf9108e42f70d34d172b76dd09570c04. #278 seis CI SUCCESS anterior; reconciliada, CI final obrigatório. Cadastro OFF.
@@ -325,3 +329,5 @@ O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Ra
 - CI geral 45498889537 falhou TS2345 exactOptionalPropertyTypes (regionId opcional); corrigido narrowing e envio de região definida no start. PG18 anterior SUCCESS; CI final obrigatório.
 
 - #278 CI cinco SUCCESS no HEAD bf7bee693dda4c05d1050d4eb5771e5044718058; reconciliação com #280 main f50f7d1d175187fbcb2f3889017358ab910c4320 preserva writer expedição. Railway web/API SUCCESS no SHA #280. CI final necessário.
+
+- #281 integrada e Railway web/API SUCCESS no SHA 763736fc7d6517059df44ea0d1b94c136573b4c5; reconciliação #278 preserva API expedição, testa expedição antes de reserva Gym. CI final obrigatório. Congelar novas integrações independentes até unir painéis.
