@@ -7,8 +7,7 @@ import {randomBytes} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import pg from 'pg';
-import {createAuthGateway} from '../../../scripts/auth-gateway-candidate.mjs';
-import {createProxyIssuer} from '../src/proxyKeyring.mjs';
+import {createReviewedAuthGateway} from '../../../scripts/gateway-ingress-adapter.mjs';
 
 const listen=s=>new Promise(resolve=>s.listen(0,'127.0.0.1',()=>resolve(s.address().port)));
 const close=s=>new Promise(resolve=>s.close(resolve));
@@ -31,10 +30,10 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
   const suffix=randomBytes(8).toString('hex'),schema='gateway_ci_'+suffix;
   const admin=new pg.Pool({connectionString:db.href});
   const signingHex=randomBytes(32).toString('hex'),subjectHex=randomBytes(32).toString('hex');
-  const issuer=createProxyIssuer({activeHex:signingHex,subjectHex,subjectPolicy:'ipv6-prefix64-v2'});
+  const ingressIPs=['8.8.8.8','2606:4700:1:2::1','2606:4700:1:2::ffff','2606:4700:1:3::1'];
   const origin='https://gateway-ci.up.railway.app';
   const email='gateway-'+suffix+'@example.test',password='Synthetic-old-12345',newPassword='Synthetic-new-67890';
-  const children=[],gateways=[];let created=false,lastProof;
+  const children=[],gateways=[],captured=[];let created=false,lastProof;
   try{
     assert.equal((await admin.query('SELECT current_database() AS name')).rows[0].name,'kanto_ci');
     await admin.query('CREATE SCHEMA '+schema);created=true;
@@ -55,17 +54,33 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
       env:{NODE_ENV:'test',PORT:String(webPort),ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/',
         ONLINE_GATEWAY_FORWARD_TEST_ONLY:'true'},stdio:'ignore'});
     children.push(web);await ready(web,webBase+'/api/v1/status');
-    for(const ip of ['192.0.2.10','2001:db8:1:2::1','2001:db8:1:2::ffff','2001:db8:1:3::1']){
-      const server=createAuthGateway({upstreamOrigin:webBase,clientOrigin:origin,loopbackTest:true,
-        issuer:{sign(input){lastProof=issuer.sign(input);return lastProof;}},
-        // Constant trusted identity per synthetic gateway; NOT a real Railway adapter.
-        resolveTrustedClientIp:()=>ip});
+    // Test harness simulates ingress overwrite on the trusted loopback peer.
+    // Capture proof only in the disposable upstream fixture by observing outbound
+    // requests at a local forwarding hop; no external network or real Railway trust.
+    const capture=createServer(async(req,res)=>{
+      const proof=req.headers['x-kanto-proxy-identity'];
+      if(typeof proof==='string'){lastProof=proof;captured.push(proof);}
+      const chunks=[];for await(const chunk of req)chunks.push(chunk);
+      const headers={...req.headers};delete headers.host;delete headers.connection;
+      const response=await fetch(webBase+req.url,{method:req.method,headers,
+        ...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)}),redirect:'manual'});
+      const out=Object.fromEntries(response.headers.entries());
+      delete out['transfer-encoding'];delete out['connection'];delete out['content-length'];
+      res.writeHead(response.status,out);res.end(Buffer.from(await response.arrayBuffer()));
+    });
+    gateways.push(capture);const capturePort=await listen(capture);
+    const captureBase='http://127.0.0.1:'+capturePort;
+    for(const ip of ingressIPs){
+      const server=createReviewedAuthGateway({upstreamOrigin:captureBase,clientOrigin:origin,loopbackTest:true,
+        issuerConfig:{activeHex:signingHex,subjectHex,subjectPolicy:'ipv6-prefix64-v2'},
+        ingressConfig:{trustedPeers:['127.0.0.1'],topologyReviewed:true}});
       gateways.push(server);await listen(server);
     }
-    const g=i=>'http://127.0.0.1:'+gateways[i].address().port;
+    const g=i=>'http://127.0.0.1:'+gateways[i+1].address().port;
     async function post(base,route,data,headers={}){
       const res=await fetch(base+'/api/v1/auth/'+route,{method:'POST',redirect:'manual',
-        headers:{Origin:origin,'Content-Type':'application/json',...headers},
+        headers:{Origin:origin,'Content-Type':'application/json',...headers,
+          ...Object.fromEntries(ingressIPs.map((ip,i)=>[g(i),ip]).filter(([url])=>url===base).map(([,ip])=>['X-Real-IP',ip]))},
         body:JSON.stringify(data),signal:AbortSignal.timeout(12000)});
       return {status:res.status,body:await res.json(),cookie:res.headers.get('set-cookie'),retry:res.headers.get('retry-after')};
     }
@@ -75,6 +90,8 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
       assert.equal((await post(base,'register',registration,{'X-Kanto-Proxy-Identity':'forged'})).status,403);
     }
     assert.equal((await admin.query('SELECT count(*)::int AS n FROM game_accounts WHERE email=$1',[email])).rows[0].n,0);
+    const missingIngress=await fetch(g(0)+'/api/v1/auth/register',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(registration)});
+    assert.equal(missingIngress.status,403);assert.equal(captured.length,0);
     const registered=await post(g(0),'register',registration,{'X-Kanto-Proxy-Identity':'forged','X-Real-IP':'198.51.100.1'});
     assert.equal(registered.status,201);
     const proof=lastProof,accountId=registered.body.id;

@@ -1,0 +1,14 @@
+# ONLINE-01C-23E26 — integração candidata do adapter de ingress
+
+## Delta e fronteira
+Reutiliza #255 (12/12 público), #259 (spoof privado), #263/#266 (DNS/TCP entre projetos) e #260/#261 (gateway, Web, API e PG18). Não repetir ensaios genéricos. O adapter `scripts/gateway-ingress-adapter.mjs` compõe o gateway existente, emissor canônico e política de identidade; exige revisão explícita de topologia e lista fechada de pares TCP exatos, sem CIDR, wildcard ou autoaprendizado. Lê somente um X-Real-IP válido, recusa chains, duplicatas, header nomeado em Connection, endereços privados/especiais usuais e IP igual ao peer permitido. Não confia em X-Railway-Edge/Forwarded. O filtro de endereço é conservador, não uma prova de roteabilidade global. Sem fallback a socket/headers alternativos. Se peer mudar, falha fechada até revisão.
+
+**Limite crítico:** a lista é hipótese operacional, não autenticação criptográfica do ingress. A observação histórica não estabeleceu IPs estáveis/exclusivos de pares Railway. Um atacante no próprio peer permitido pode forjar o cabeçalho. `topologyReviewed=true` é uma pré-condição de configuração, não comprovação automática. Antes de produção é obrigatório comprovar pares exclusivos e política de mudanças, ou adotar transporte com origem autenticada de forma independente; não permitir ranges privados amplos ou confiar na presença de metadados. Não inventar IP real, aprovação ou configurar segredos agora.
+
+## Testes
+Unitários de normalização, lista exata, inputs inválidos, X-Railway-Edge falso em peer desconhecido, headers duplicados, Connection e composição HTTP real com assinatura verificável, /64 e recusa antes de upstream. Jornada PG18 existente passa pelo adapter com peer loopback explícito em NODE_ENV=test; fixture simula a sobrescrita de X-Real-IP, não prova ingress Railway. Hop de captura local exclusivamente CI preserva prova para teste de replay; nunca registrar proof em operação real. Sem novo workflow genérico: regressão existente e PG18. #268 dependência; reconciliar após merge, CI final obrigatório.
+
+## Saída para publicação
+1. Validar #268 e este código; escolher fronteira operacional com prova independente, sem assumir que pares Railway são estáveis. Se indisponível, rever arquitetura sem ampliar confiança. Homologar somente delta do adapter final e bloqueio direto, não repetir #255/#266.
+2. Integrar configuração de launcher isolado e forwarding/receiver reais com fail-closed, chave dedicada, consumo nonce e SQL026 após aprovação separada; hoje forwarding e receiver HTTP continuam CI-only. Nenhuma implantação deste adapter agora.
+3. Revisar limites e rotação/restore, inventário, política de mudanças e fallback indisponível, concluir gates restore real integral, remetente Resend definitivo e LGPD. Cadastro OFF; SQL026 candidata; /play local sem migração, Regiões 1v1, Gym 3v3 inalterados.
