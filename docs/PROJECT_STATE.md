@@ -1968,3 +1968,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Probe standalone autenticado, curto e limitado, sem IP bruto no relatório; testes locais de formatos, duplicidade, autorização, validade e limite. Não integrado ao runtime, ensaio Railway ainda NÃO executado. docs/ONLINE_RAILWAY_INGRESS_OBSERVATION_23E12.md descreve ambiente vazio temporário e procedimento. Gate permanece falso, cadastro OFF; nenhum custo ou recurso novo contratado.
 
 - #253 integrado main cc6e9947c8b6671e32f7a73cb93efdd8542e2f73 após três CI SUCCESS; branch reconciliada, CI do HEAD combinado pendente.
+
+- 23E12 revisão: Dockerfile.ingress-probe exclusivo (runtime web D-044 não inclui scripts) e cliente de seis casos sem exposição de IP/token. API real sem domínio/TCP proxy; execução externa indisponível nesta sessão, não provisionado recurso faturável. CI do HEAD atualizado pendente.
