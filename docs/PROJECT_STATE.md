@@ -2002,3 +2002,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Revisão do candidato #257: emissor recebe apenas chave ativa/subject e oferece sign; receptor recebe apenas chaves assinatura ativa/anterior e oferece verify/consume. Configuração estrita e teste de cutover antecipado; HMAC simétrico não é isolamento criptográfico assimétrico. Sem segredo real ou runtime. #256 ainda em CI; reconciliar após merge. Gate de proxy falso, acesso privado, IPv6, restore e LGPD pendentes. Cadastro OFF, /play local sem migração, Regiões 1v1 e Gym 3v3 inalterados.
 
 - PR #256 integrado main 1b63c81673185b65b2da03b0e1cd760f2ca99f9f após CI PG18 45433832107, browser 45433832299 e geral 45433832247 SUCCESS; #257 reconciliado preservando scripts de teste anteriores, CI final pendente.
+
+
+## ONLINE-01C-23E17 — fronteira privada (24/11/2026; branch)
+- #257 integrado, três CI SUCCESS; Web/API Railway SUCCESS. #258 PG18 SUCCESS, demais CI em andamento. Inventário confirma API sem domínio/TCP proxy e Web sem TCP proxy; docs Railway dual-stack privado impedem presumir IPv4 público. Novo cliente privado sintético, Dockerfile e teste loopback de injeção direta. Nenhum ensaio Railway privado ou recurso faturável novo; gate falso. docs/ONLINE_PRIVATE_INGRESS_23E17.md. Cadastro OFF e gameplay intacto.

@@ -984,3 +984,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - 23E15: separar factories de emissor/receptor, rejeitar segredos desnecessários e emissão antecipada; esclarecer limite de HMAC simétrico. CI pendente, sem alterações em produção.
 
 - PR #256 integrado main 1b63c81673185b65b2da03b0e1cd760f2ca99f9f após CI PG18 45433832107, browser 45433832299 e geral 45433832247 SUCCESS; #257 reconciliado preservando scripts de teste anteriores, CI final pendente.
+
+
+## ONLINE-01C-23E17 — ensaio de fronteira privada (24/11/2026; branch)
+- Cliente descartável restrito ao target privado sintético e testes de injeção direta; documentação de alternativas e limites. Sem deploy, migration ou runtime, CI pendente.
