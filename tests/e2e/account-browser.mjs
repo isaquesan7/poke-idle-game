@@ -169,9 +169,9 @@ try{
   const fixture=persisted.rows[0].state;
   const raw=JSON.parse(fixture.journal.raw);
   raw.trainer.level=3;
-  raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25});
-  raw.roster.push({...structuredClone(raw.roster[0]),uid:3,pokemonId:7});
-  raw.roster.push({...structuredClone(raw.roster[0]),uid:4,pokemonId:1});
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25,moveName:'thunder-shock'});
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:3,pokemonId:7,moveName:'tackle'});
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:4,pokemonId:1,moveName:'tackle'});
   raw.nextUid=5;fixture.journal.raw=JSON.stringify(raw);
   await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(fixture)]);
   await page.locator('#online-refresh').click();
@@ -200,8 +200,9 @@ try{
   // follow after the HTTP contract. Use the account's persisted selected leader.
   const callRegion=async(command,data)=>{
     const response=await page.request.post(origin+'/api/v1/region/'+command,{data,headers:{Origin:origin}});
-    assert.equal(response.status(),200,command+' failed '+response.status());
-    return response.json();
+    const result=await response.json();
+    assert.equal(response.status(),200,command+' failed '+response.status()+' '+String(result.status??result.error??''));
+    return result;
   };
   const readRegion=async()=>{const response=await page.request.get(origin+'/api/v1/region/current');assert.equal(response.status(),200);return response.json();};
   const none=await readRegion();assert.equal(none.encounter,null);assert.equal(none.revision,2);
