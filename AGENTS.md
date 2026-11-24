@@ -1,3 +1,5 @@
+> **23F11E CANDIDATA:** #285 PG18/Playwright/gateway/D044 SUCCESS anterior, browser falhou expectativa de código de origem; teste corrigido 400 e caso elegível sem mutação. CI final obrigatório. Próxima paridade 23F12A treino manual por UID, depois ranks; cadastro OFF.
+
 > **23F11D CANDIDATA:** #284 Web/API SUCCESS; #285 corrige null explícito e inclui evolução manual na Coleção CI-only, confirmação e teste browser. CI final obrigatório, cadastro OFF. docs/ONLINE_EVOLUTION_WRITER_23F11B.md.
 
 > **23F11C CANDIDATA:** #284 integrada seis CI SUCCESS, #285 corrige falha real de golpes herdados via histórico privado validado, CI/reconciliação obrigatórios. Sem HTTP/UI de evolução, cadastro OFF. docs/ONLINE_EVOLUTION_WRITER_23F11B.md.
