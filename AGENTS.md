@@ -1,4 +1,8 @@
+> **23F4 INTEGRADA:** #275 merged f767dca38d10639b0826e7407bef32c90b2448ed, cinco CI SUCCESS. #276 em reconciliação; cadastro OFF, /play separado.
+
 > **23F5 CANDIDATA:** núcleo puro e SQL027 candidata para dez regiões; R1 única rota operacional CI; SQL026/027 não registradas. #273 integrada, #274/#275 dependências em validação. Próximo conectar writers e PG18 isolado. Cadastro OFF, /play local, 1v1/Gym3v3. Veja docs/ONLINE_REGIONAL_EXTENSION_23F5.md.
+
+> **23F4 CANDIDATA:** UI R1 via contrato CI-only; ações canônicas, HP/SP, diário, captura/skip e foco no botão regional. #272 merged, #273 CI anterior verde/reconciliada, #274 fixture golpe corrigida, CI pendente. Não alterar /play/cadastro/motor. Veja docs/ONLINE_REGION_PORTAL_23F4.md.
 
 > **23F3 CANDIDATA:** contrato HTTP regional R1 CI-only, writers canônicos e GET current, chave sintética PG descartável; UI/keyring histórico e demais regiões pendentes. Depende #272/#273. Sem alteração /play, cadastro OFF. Veja docs/ONLINE_REGION_HTTP_23F3.md.
 
