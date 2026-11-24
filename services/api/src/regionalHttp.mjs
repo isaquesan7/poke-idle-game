@@ -2,6 +2,7 @@
  * No combat rules here: calls the existing canonical writers. Never return
  * entropy keys, proofs, snapshots, internal engine state or receipt digests.
  */
+import {loadCombatAdapter} from './battlePreview.mjs';
 import {reserveEncounter} from './encounterReservation.mjs';
 import {materializeReservedEncounter} from './encounterMaterialization.mjs';
 import {prepareReservedBattle} from './battlePreparation.mjs';
@@ -37,15 +38,17 @@ function actor(p){return p?{speciesId:p.speciesId,hp:p.hp,maxHp:p.maxHp,
 export async function readRegionalEncounter(pool,accountId){
  const result=await pool.query(
   `SELECT s.revision,e.id,e.region_id,e.species_id,e.pokemon_level,
-     e.battle_turn_state,e.battle_turn_certificate_action_id,e.battle_turn_payout_action_id
+     e.battle_snapshot,e.battle_turn_state,e.battle_turn_certificate_action_id,e.battle_turn_payout_action_id
      FROM game_saves s LEFT JOIN game_encounter_reservations e
        ON e.account_id=s.account_id AND e.status='reserved'
      WHERE s.account_id=$1`,[accountId]);
  if(!result.rowCount)return {status:'missing-save'};
  const row=result.rows[0],state=row.battle_turn_state;
+ const phase=row.battle_turn_payout_action_id?'paid':row.battle_turn_certificate_action_id?'certified':state?.phase??'reserved';
+ const actions=phase==='await-player'?(await loadCombatAdapter()).legalFrozenWildTurnActions(row.battle_snapshot,state):[];
  return {status:'ok',revision:Number(row.revision),encounter:row.id?{
   id:row.id,regionId:Number(row.region_id),speciesId:row.species_id,level:row.pokemon_level,
-  phase:row.battle_turn_payout_action_id?'paid':row.battle_turn_certificate_action_id?'certified':state?.phase??'reserved',
+  phase,actions:actions??[],playerLevel:row.battle_snapshot?.activePokemon?.level??null,
   turn:state?.turn??0,outcome:state?.outcome??null,player:actor(state?.player),wild:actor(state?.wild),
   log:Array.isArray(state?.log)?state.log:[],frames:Array.isArray(state?.frames)?state.frames:[]
  }:null};
