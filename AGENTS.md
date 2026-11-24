@@ -1,3 +1,5 @@
+> **23F11D CANDIDATA:** #284 Web/API SUCCESS; #285 corrige null explícito e inclui evolução manual na Coleção CI-only, confirmação e teste browser. CI final obrigatório, cadastro OFF. docs/ONLINE_EVOLUTION_WRITER_23F11B.md.
+
 > **23F11C CANDIDATA:** #284 integrada seis CI SUCCESS, #285 corrige falha real de golpes herdados via histórico privado validado, CI/reconciliação obrigatórios. Sem HTTP/UI de evolução, cadastro OFF. docs/ONLINE_EVOLUTION_WRITER_23F11B.md.
 
 > **23F11B CANDIDATA PRIVADA:** evolução D-033 por UID e writer PG18, sem HTTP/SQL/cadastro; depende #284, CI final. Gate temporário de compatibilidade de golpes, resolver antes de expor. docs/ONLINE_EVOLUTION_WRITER_23F11B.md.
