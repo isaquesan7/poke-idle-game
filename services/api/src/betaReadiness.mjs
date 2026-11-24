@@ -1,3 +1,4 @@
+import {evaluateResendEvidence} from './resendEvidence.mjs';
 import {evaluateRestoreEvidence} from './restoreEvidence.mjs';
 /** ONLINE-01C-23C8: local, offline, read-only beta release evidence checker.
  * No network, database access, secrets, or changes to runtime feature flags.
@@ -62,6 +63,18 @@ export function evaluateBetaReadiness(input,{now=new Date()}={}){
       !(record?.domainVerified===true&&record?.verificationDelivered===true&&
         record?.resetDelivered===true&&record?.expirationTested===true))
       blockers.push('domínio, verificação, reset e expiração devem ser testados');
+    if(gate==='resend'){
+      if(!record?.drill)blockers.push('independently reviewed real Resend delivery evidence required');
+      else {
+        let report;
+        try{report=evaluateResendEvidence(record.drill,{now});}
+        catch{blockers.push('invalid Resend evidence document');}
+        if(report&&!report.passed)
+          blockers.push('Resend drill: '+report.blockers.join(', '));
+        if(record.drill.appCommitSha!==head)
+          blockers.push('Resend delivery evidence SHA mismatch');
+      }
+    }
     if(gate==='privacy'&&
       !(text(record?.privacyPolicyUrl)&&text(record?.termsUrl)&&
         record?.retentionApproved===true&&record?.deletionFlowReviewed===true))
