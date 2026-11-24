@@ -118,6 +118,6 @@ createServer((req, res) => {
   res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('Não encontrado');
 
-}).listen(port, '0.0.0.0', () => {
+}).listen(port, process.env.NODE_ENV==='test'&&process.env.ONLINE_GATEWAY_FORWARD_TEST_ONLY==='true'?'127.0.0.1':'0.0.0.0', () => {
   console.log(`Kanto Idle LAB ouvindo na porta ${port}`);
 });
