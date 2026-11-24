@@ -6,6 +6,8 @@ on:
       - 'Dockerfile.gateway-observation'
       - 'scripts/gateway-ingress-observation.mjs'
       - 'scripts/railway-ingress-probe.mjs'
+      - 'scripts/gateway-direct-address.mjs'
+      - 'tests/gateway-direct-address.test.mjs'
       - 'services/api/src/proxyIdentity.mjs'
       - 'tests/gateway-ingress-observation.test.mjs'
       - '.github/workflows/gateway-observation.yml'
@@ -22,12 +24,12 @@ jobs:
         with:
           node-version: '22'
       - name: Synthetic unit tests
-        run: node --test tests/gateway-ingress-observation.test.mjs
+        run: node --test tests/gateway-ingress-observation.test.mjs tests/gateway-direct-address.test.mjs
       - name: Build minimal image and verify fail-closed observation
         run: |
           set -eu
           docker build -f Dockerfile.gateway-observation -t kanto-gateway-observation-ci .
-          docker run --rm --entrypoint sh kanto-gateway-observation-ci -c 'test "$(id -un)" = node && test "$(find /probe -type f | wc -l)" = 3 && test ! -e /probe/server.mjs'
+          docker run --rm --entrypoint sh kanto-gateway-observation-ci -c 'test "$(id -un)" = node && test "$(find /probe -type f | wc -l)" = 4 && test ! -e /probe/server.mjs'
           if docker run --rm kanto-gateway-observation-ci; then exit 1; fi
           token=$(openssl rand -hex 32)
           echo "::add-mask::$token"

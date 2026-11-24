@@ -1,7 +1,7 @@
 # Temporary gateway observation only; no game, API runtime, DB or dependencies.
 FROM node:22-alpine
 WORKDIR /probe
-COPY --chown=node:node scripts/gateway-ingress-observation.mjs scripts/railway-ingress-probe.mjs ./scripts/
+COPY --chown=node:node scripts/gateway-ingress-observation.mjs scripts/railway-ingress-probe.mjs scripts/gateway-direct-address.mjs ./scripts/
 COPY --chown=node:node services/api/src/proxyIdentity.mjs ./services/api/src/
 USER node
 EXPOSE 3000
