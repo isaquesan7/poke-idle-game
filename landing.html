@@ -136,13 +136,13 @@ async function refreshPortal(){
  try{
   const me=await getOnline('/api/v1/me');
   if(epoch!==portalEpoch)return false;
-  if(me.status===401){clearPortal();render('login');return false;}
+  if(me.status===401){render('login');return false;}
   if(me.status!==200||typeof me.data?.trainerName!=='string')throw new Error('Conta indisponível.');
   panel.hidden=false;tabs.hidden=true;form.hidden=true;
   $('online-trainer').textContent=me.data.trainerName;
   const save=await getOnline('/api/v1/save');
   if(epoch!==portalEpoch)return false;
-  if(save.status===401){clearPortal();render('login');return false;}
+  if(save.status===401){render('login');return false;}
   if(save.status===404){selectedStarter=null;starterButtons.forEach(b=>b.setAttribute('aria-pressed','false'));newAdventure.hidden=false;}
   else if(save.status===200)showSave(save.data);
   else throw new Error('Progresso indisponível.');
@@ -158,9 +158,11 @@ starterButtons.forEach(b=>b.addEventListener('click',()=>{
 $('online-start').addEventListener('click',async()=>{
  if(onlineBusy||!available||newAdventure.hidden||!Object.hasOwn(starterNames,selectedStarter))return;
  setOnlineBusy(true);const starterId=selectedStarter;
+ let failed=false;
  try{await api('/api/v1/adventure/start',{starterId});}
- catch{ /* A concurrent creation or lost response is resolved by re-reading server. */ }
+ catch{failed=true; /* Resolve concurrent creation or a lost response via server read. */ }
  await refreshPortal();
+ if(failed&&!panel.hidden&&!newAdventure.hidden)$('online-error').textContent='Não foi possível iniciar a aventura. Selecione o inicial e tente novamente.';
 });
 $('online-refresh').addEventListener('click',()=>{if(!onlineBusy)refreshPortal();});
 $('online-logout').addEventListener('click',async()=>{
