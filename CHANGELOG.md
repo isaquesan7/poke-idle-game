@@ -976,3 +976,11 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23E13 — integração de cota assinada CI-only (24/11/2026; branch)
 - #254 merged após três CI SUCCESS. 23E13 valida assinatura e consumo nonce nas rotas auth reais exclusivamente harness CI, testes de dois processos, cotas por subject/email e lockdown produção. Sem migration, gameplay ou ativação pública; CI pendente.
+
+
+## ONLINE-01C-23E14 — candidato de rotação de chaves proxy (24/11/2026; branch)
+- Keyring offline, rollover limitado, revogação pós-restore, testes e procedimento operacional de rede/privacidade. Sem runtime, migration, segredos ou gameplay. CI pendente.
+
+- 23E15: separar factories de emissor/receptor, rejeitar segredos desnecessários e emissão antecipada; esclarecer limite de HMAC simétrico. CI pendente, sem alterações em produção.
+
+- PR #256 integrado main 1b63c81673185b65b2da03b0e1cd760f2ca99f9f após CI PG18 45433832107, browser 45433832299 e geral 45433832247 SUCCESS; #257 reconciliado preservando scripts de teste anteriores, CI final pendente.
