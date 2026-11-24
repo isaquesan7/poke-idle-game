@@ -1069,3 +1069,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23E28 — transporte operacional e checklist de saída (24/11/2026)
 - #270 quatro CI SUCCESS (PG18, browser, gateway, D044), regressão final em andamento no início. Branch dependente: smoke específico da imagem gateway real e Web reviewed via TLS em rede Docker isolada, receptor sintético canônico; não é prova de Railway ou novo E2E PG18. CI pendente; não repetir probes anteriores. Inventário Railway somente leitura confirma Postgres, clone restaurado e bucket PITR, sem patch; evidência integral ainda não aprovada. Checklist em docs/ONLINE_GATEWAY_RUNTIME_SMOKE_23E28.md. Cadastro OFF, SQL026 candidata, nenhum recurso novo, /play e gameplay intactos.
+
+- #270 integrada main 5934905fa5b4de0d162539ef5b0be5fae22bd859 após cinco CI SUCCESS. #271 reconciliada; quatro checks anteriores SUCCESS, regressão em andamento, CI final obrigatório. Não repetir probes; aproveitar clone restaurado existente.

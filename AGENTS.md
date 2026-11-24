@@ -1,3 +1,5 @@
+> **23E28 RECONCILIADA:** #270 merged, cinco CI SUCCESS; #271 smoke dedicado/PG18/browser/D044 SUCCESS no HEAD anterior, CI final obrigatório. Próximo fechar evidência de restore já existente; não recriar clone ou repetir probes.
+
 > **23E28 CANDIDATA:** smoke do transporte real gateway/Web em CI, receptor sintético, sem rede externa/contas. Depende de #270 e CI final. Checklist único de saída em docs/ONLINE_GATEWAY_RUNTIME_SMOKE_23E28.md; não repetir #255/#266 ou sandbox Resend. Cadastro OFF, SQL026 candidata, /play local.
 
 > **23E27 CANDIDATA (24/11/2026):** #269 integrada 3 CI SUCCESS. Launcher Dockerfile.auth-gateway e modos explícitos Web/receiver API preparados, cadastro production hard-OFF, SQL026 candidata; CI pendente. Não configurar modos reais/segredos até revisão e homologação integrada. Não repetir #255/#266. Veja docs/ONLINE_GATEWAY_RUNTIME_23E27.md e gates restore/Resend/LGPD.
