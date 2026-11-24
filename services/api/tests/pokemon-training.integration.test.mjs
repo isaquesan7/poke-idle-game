@@ -52,11 +52,18 @@ test('23F12A: atomic UID training, D056 budget, battle compatibility and activit
   assert.equal(core.canonicalFrozenCombatants(invalidSnap),null);
   const invalidBudget=structuredClone(snap);invalidBudget.activePokemon.manual.speed=1;
   assert.equal(core.canonicalFrozenCombatants(invalidBudget),null);
-  assert.equal((await applyExpeditionCommand(pool,{accountId:id,actionId:randomUUID(),kind:'start',regionId:1,expectedRevision:1})).status,'applied');
-  assert.equal((await train(2,{hp:1},2)).status,'busy');
-  assert.equal((await applyExpeditionCommand(pool,{accountId:id,actionId:randomUUID(),kind:'stop',expectedRevision:2})).status,'applied');
-  assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:3})).status,'reserved');
-  assert.equal((await train(2,{hp:1},4)).status,'busy');
+  assert.equal((await train(1,{hp:1},1,{reset:true})).status,'unavailable');
+  const resetId=randomUUID();
+  const resets=await Promise.all([train(1,{},1,{reset:true,actionId:resetId}),train(1,{},1,{reset:true,actionId:resetId})]);
+  assert.deepEqual(resets.map(r=>r.status).sort(),['duplicate','trained']);
+  const reset=await read();assert.equal(reset.revision,2);assert.deepEqual(reset.raw,fixture.raw);
+  assert.equal(core.onlinePokemonTrainingProjection(reset.save.journal.raw).pokemon[0].remaining,98);
+  assert.equal((await train(1,{},2,{reset:true})).status,'unavailable');
+  assert.equal((await applyExpeditionCommand(pool,{accountId:id,actionId:randomUUID(),kind:'start',regionId:1,expectedRevision:2})).status,'applied');
+  assert.equal((await train(2,{hp:1},3)).status,'busy');
+  assert.equal((await applyExpeditionCommand(pool,{accountId:id,actionId:randomUUID(),kind:'stop',expectedRevision:3})).status,'applied');
+  assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:4})).status,'reserved');
+  assert.equal((await train(2,{hp:1},5)).status,'busy');
   const receipts=await pool.query("SELECT count(*)::int AS n FROM game_action_receipts WHERE account_id=$1 AND kind='pokemon-training'",[id]);
   assert.equal(receipts.rows[0].n,1);
  }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
