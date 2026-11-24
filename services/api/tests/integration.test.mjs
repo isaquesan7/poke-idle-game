@@ -1,9 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {once} from 'node:events';
+async function stopChild(child){if(child&&child.exitCode===null&&child.signalCode===null){const exited=once(child,'exit');child.kill('SIGTERM');await exited;}}
 import pg from 'pg';
 
-const origin='http://127.0.0.1:43142';
+const origin='http://127.0.0.1:23142';
 const email='online01b-ci-'+process.pid+'@example.test';
 async function json(base,pathname,method='GET',body,headers={}){
   const result=await fetch(base+pathname,{method,redirect:'manual',
@@ -18,7 +20,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
   assert.ok(process.env.DATABASE_URL,'Somente no PostgreSQL descartável de CI');
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
-    env:{...process.env,PORT:'43142',APP_ORIGIN:origin,
+    env:{...process.env,PORT:'23142',APP_ORIGIN:origin,
       ONLINE_REGISTRATION_ENABLED:'true',NODE_ENV:'test'},
     stdio:['ignore','pipe','pipe']
   });
@@ -30,6 +32,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
     for(let i=0;i<80;i++){
       try{if((await json(origin,'/health')).status===200){ready=true;break;}}
       catch{}
+      if(child.exitCode!==null)break;
       await new Promise(done=>setTimeout(done,100));
     }
     assert.equal(ready,true,'API deve iniciar com schema aplicado: '+stderr);
@@ -269,16 +272,16 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       'SELECT email_verified_at FROM game_accounts WHERE id=$1',[register.data.id]);
     assert.ok(verified.rows[0].email_verified_at);
   }finally{
-    child.kill('SIGTERM');
+    await stopChild(child);
     await pool.end();
   }
 });
 
 test('rate limiting persists across requests and rejects repeated login attempts',async()=>{
-  const base='http://127.0.0.1:43144';
+  const base='http://127.0.0.1:23144';
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
-    env:{...process.env,PORT:'43144',NODE_ENV:'test',
+    env:{...process.env,PORT:'23144',NODE_ENV:'test',
       ONLINE_REGISTRATION_ENABLED:'true'},
     stdio:'ignore'
   });
@@ -307,14 +310,14 @@ test('rate limiting persists across requests and rejects repeated login attempts
       assert.ok(tracked.rowCount>0);
       assert.ok(tracked.rows[0].attempts>=8);
     }finally{await pool.end();}
-  }finally{child.kill('SIGTERM');}
+  }finally{await stopChild(child);}
 });
 
 test('production stays registration-disabled even with the feature flag misconfigured',async()=>{
-  const base='http://127.0.0.1:43143';
+  const base='http://127.0.0.1:23143';
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
-    env:{...process.env,PORT:'43143',NODE_ENV:'production',
+    env:{...process.env,PORT:'23143',NODE_ENV:'production',
       ONLINE_REGISTRATION_ENABLED:'true'},
     stdio:'ignore'
   });
@@ -357,15 +360,15 @@ test('production stays registration-disabled even with the feature flag misconfi
       actionId:'collection-prod-forbidden-0001',expectedRevision:0,
       teamUids:[1]
     })).status,503,'production must deny Collection writes while beta is gated');
-  }finally{child.kill('SIGTERM');}
+  }finally{await stopChild(child);}
 });
 
 test('ONLINE-01C-6 trainer investment is serialized, revision-bound and receipt-idempotent',async()=>{
   assert.ok(process.env.DATABASE_URL,'Only disposable CI PG');
-  const base='http://127.0.0.1:43146';
+  const base='http://127.0.0.1:23146';
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
-    env:{...process.env,PORT:'43146',NODE_ENV:'test',
+    env:{...process.env,PORT:'23146',NODE_ENV:'test',
       ONLINE_REGISTRATION_ENABLED:'true'},
     stdio:'ignore'
   });
@@ -442,7 +445,7 @@ test('ONLINE-01C-6 trainer investment is serialized, revision-bound and receipt-
     assert.equal(receipts.rowCount,3);
     assert.deepEqual(receipts.rows.map(row=>row.kind),
       ['adventure-initialization','trainer-invest','trainer-invest']);
-  }finally{child.kill('SIGTERM');await pool.end();}
+  }finally{await stopChild(child);await pool.end();}
 });
 
 test('ONLINE-01C-8: an encounter reservation is durable, idempotent, one at a time and reward-free',async()=>{
@@ -2884,10 +2887,10 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
        VALUES($1,$2,now()+interval '1 hour')`,
       [accountId,tokenDigest(token)]);
     const authCookie=sessionCookie(token,{secure:false}).split(';')[0];
-    const gymBase='http://127.0.0.1:43145';
+    const gymBase='http://127.0.0.1:23145';
     httpChild=spawn(process.execPath,['src/server.mjs'],{
       cwd:new URL('../',import.meta.url).pathname,
-      env:{...process.env,PORT:'43145',NODE_ENV:'test',
+      env:{...process.env,PORT:'23145',NODE_ENV:'test',
         APP_ORIGIN:origin,ONLINE_REGISTRATION_ENABLED:'true',
         GYM_HMAC_ACTIVE_KEY_ID:'v1',
         GYM_HMAC_KEYRING_JSON:JSON.stringify({
@@ -3200,7 +3203,7 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
     assert.equal(kept.rows[0].certificate_digest,certificate.certificate.digest);
 
   }finally{
-    if(httpChild)httpChild.kill('SIGTERM');
+    await stopChild(httpChild);
     if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
     await pool.end();
   }

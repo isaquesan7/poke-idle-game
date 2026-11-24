@@ -2149,3 +2149,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - #276 integrada, #277 reconciliada e CI final obrigatório. Nova branch dependente #277. GET current autenticado/verificado, opt-in exclusivo de PostgreSQL CI; projeção explícita dos seis Pokémon, HP/SP, turno/ordinal, ações legais, log e fase de certificação. Consulta única por conta e revisão, sem segredos, digest ou snapshots internos. Proxy Web CI-only para contrato Gym já auditado; teste browser HTTP de reserva, início, troca, releitura/reload e isolamento. Não há interface visual Gym ainda; próximo 23F7B renderizar e conectar fluxo de recompensa/retomada. Sem SQL novo, cadastro OFF, /play local e regiões 1v1. CI pendente.
 
 - #277 integrada main afc964edbf9108e42f70d34d172b76dd09570c04, cinco CI SUCCESS. #278 seis CI SUCCESS no HEAD 471c2051a4b39eb450fe4015465877dcfe13647c; reconciliada após squash #277, CI final obrigatório. Cadastro OFF, SQL027 candidata.
+
+- CI PG18 45498682736 falhou em EADDRINUSE 43142 (faixa efêmera Linux) e startup lockdown 43158 sem stderr; mover portas dos três testes para 23xxx, aguardar exit de subprocessos, sem alterar asserts ou produção. CI final obrigatório.
