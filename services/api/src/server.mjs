@@ -3,6 +3,7 @@
  * ONLINE_REGISTRATION_ENABLED=true. Nunca importa saves locais.
  */
 import {createServer} from 'node:http';
+import {consumeProxyIdentity} from './proxyNonceGuard.mjs';
 import {createHash} from 'node:crypto';
 import {enqueueAccountMail,mailKeyring} from './accountMailOutbox.mjs';
 import pg from 'pg';
@@ -36,6 +37,22 @@ const pool=new pg.Pool({connectionString,max:12,connectionTimeoutMillis:5000,
 // Misconfiguring one Railway env variable cannot open public accounts.
 const enabled=process.env.NODE_ENV==='test' &&
   process.env.ONLINE_REGISTRATION_ENABLED==='true';
+// Test-only signed quota mode; never enabled by a production environment variable.
+const signedQuotaTest=enabled&&process.env.ONLINE_SIGNED_QUOTA_TEST_ONLY==='true';
+const signedRoutes=new Set(['/api/v1/auth/register','/api/v1/auth/verify',
+  '/api/v1/auth/login','/api/v1/auth/request-reset','/api/v1/auth/confirm-reset']);
+let signedQuotaKey;
+if(signedQuotaTest){
+  const db=new URL(connectionString);
+  const raw=process.env.ONLINE_SIGNED_QUOTA_TEST_KEY??'';
+  if(db.protocol!=='postgresql:'||db.hostname!=='127.0.0.1'||db.port!=='55432'||
+    db.pathname!=='/kanto_ci'||db.username!=='kanto_ci'||
+    process.env.ACCOUNT_DRILL_LOOPBACK_ONLY!=='true'||!/^[a-f0-9]{64}$/.test(raw))
+    throw new Error('Signed quota harness requires disposable CI and loopback');
+  signedQuotaKey=Buffer.from(raw,'hex');
+}
+const signedQuotaRequests=new WeakMap();
+function quotaSubject(req){return signedQuotaRequests.get(req)?.subject??requesterIp(req);}
 // __Host- cookies require Secure in every environment, including CI loopback.
 // Chromium may otherwise discard a seemingly successful login session.
 const isSecure=true;
@@ -74,7 +91,7 @@ const json=(res,status,body,headers={})=>{
     'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...headers});
   res.end(JSON.stringify(body));
 };
-async function readJson(req){
+async function readJsonBytes(req){
   if(!req.headers['content-type']?.startsWith('application/json'))
     throw new Error('Esperado application/json');
   let size=0;const chunks=[];
@@ -83,7 +100,11 @@ async function readJson(req){
     if(size>16384)throw new Error('Dados excederam o tamanho máximo.');
     chunks.push(chunk);
   }
-  const input=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  return Buffer.concat(chunks);
+}
+async function readJson(req){
+  const bytes=signedQuotaRequests.get(req)?.body??await readJsonBytes(req);
+  const input=JSON.parse(bytes.toString('utf8'));
   if(!input||typeof input!=='object'||Array.isArray(input))
     throw new Error('Objeto JSON inválido.');
   return input;
@@ -131,13 +152,29 @@ const server=createServer(async(req,res)=>{
     }
     if(!enabled&&pathname.startsWith('/api/v1/auth/'))
       return json(res,503,{error:'Cadastro e login em preparação'});
+    if(signedQuotaTest&&req.method==='POST'&&signedRoutes.has(pathname)){
+      requireSameOrigin(req);
+      if(req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
+      const assertions=[];
+      for(let i=0;i<req.rawHeaders.length;i+=2)
+        if(req.rawHeaders[i].toLowerCase()==='x-kanto-proxy-identity')assertions.push(req.rawHeaders[i+1]);
+      if(assertions.length!==1)return json(res,403,{error:'Identidade de proxy inválida'});
+      const body=await readJsonBytes(req);
+      let verified;
+      try{
+        verified=await consumeProxyIdentity(pool,{assertion:assertions[0],signingKey:signedQuotaKey,
+          method:req.method,path:pathname,body});
+      }catch{return json(res,503,{error:'Verificação temporariamente indisponível'});}
+      if(!verified)return json(res,403,{error:'Identidade de proxy inválida'});
+      signedQuotaRequests.set(req,{subject:verified.subject,body});
+    }
     if(pathname==='/api/v1/auth/register'&&req.method==='POST'){
       requireSameOrigin(req);
       const {email,password,trainerName}=await readJson(req);
       const cleanEmail=normalizeEmail(email),cleanName=validateTrainerName(trainerName);
       validatePassword(password);
       if(!await enforceThrottle(req,res,{scope:'register-ip',
-        identifier:requesterIp(req),limit:10}))return;
+        identifier:quotaSubject(req),limit:10}))return;
       if(!await enforceThrottle(req,res,{scope:'register-email',
         identifier:cleanEmail,limit:4}))return;
       const hash=await hashPassword(password);
@@ -176,7 +213,7 @@ const server=createServer(async(req,res)=>{
     if(pathname==='/api/v1/auth/verify'&&req.method==='POST'){
       requireSameOrigin(req);
       if(!await enforceThrottle(req,res,{scope:'verify-ip',
-        identifier:requesterIp(req),limit:20}))return;
+        identifier:quotaSubject(req),limit:20}))return;
       const {token}=await readJson(req);
       const valid=await consumeVerification(pool,token);
       return valid?json(res,200,{verified:true}):
@@ -187,7 +224,7 @@ const server=createServer(async(req,res)=>{
       const {email}=await readJson(req);
       const cleanEmail=normalizeEmail(email);
       if(!await enforceThrottle(req,res,{scope:'reset-ip',
-        identifier:requesterIp(req),limit:10}))return;
+        identifier:quotaSubject(req),limit:10}))return;
       if(!await enforceThrottle(req,res,{scope:'reset-email',
         identifier:cleanEmail,limit:3}))return;
       const token=await issuePasswordReset(pool,cleanEmail,outboxKeyring?{
@@ -214,7 +251,7 @@ const server=createServer(async(req,res)=>{
     if(pathname==='/api/v1/auth/confirm-reset'&&req.method==='POST'){
       requireSameOrigin(req);
       if(!await enforceThrottle(req,res,{scope:'reset-confirm-ip',
-        identifier:requesterIp(req),limit:20}))return;
+        identifier:quotaSubject(req),limit:20}))return;
       const {token,password}=await readJson(req);
       validatePassword(password);
       const applied=await consumePasswordReset(pool,token,password);
@@ -228,7 +265,7 @@ const server=createServer(async(req,res)=>{
       if(typeof password!=='string'||password.length>128)
         return json(res,401,{error:'Credenciais inválidas'});
       if(!await enforceThrottle(req,res,{scope:'login-ip',
-        identifier:requesterIp(req),limit:30}))return;
+        identifier:quotaSubject(req),limit:30}))return;
       if(!await enforceThrottle(req,res,{scope:'login-email',
         identifier:cleanEmail,limit:6}))return;
       const users=await pool.query(
