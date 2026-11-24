@@ -462,7 +462,7 @@ try{
   const req={actionId:'browser-evolution-low-0001',expectedRevision:evoBefore.revision,pokemonUid:1,targetSpeciesId:5};
   assert.equal((await evoPost(req)).status(),409);
   assert.equal((await evoPost({...req,level:16})).status(),400);
-  assert.equal((await evoPost(req,{Origin:'https://attacker.example'})).status(),403);
+  assert.equal((await evoPost(req,{Origin:'https://attacker.example'})).status(),400,'cross-site Origin rejected by existing API contract');
   assert.equal((await evoRead()).revision,evoBefore.revision);
   const evoFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
   const evoRaw=JSON.parse(evoFixture.journal.raw);
@@ -472,7 +472,11 @@ try{
   await page.locator('#online-refresh').click();
   await page.locator('#evolution-pokemon').selectOption('1');
   const button=page.locator('[data-evolution-target="5"]');
+  await button.waitFor({state:'visible'});
   assert.equal(await button.isEnabled(),true);
+  const eligibleRevision=(await evoRead()).revision;
+  assert.equal((await evoPost({actionId:'browser-evolution-csrf-0002',expectedRevision:eligibleRevision,pokemonUid:1,targetSpeciesId:5},{Origin:'https://attacker.example'})).status(),400);
+  assert.equal((await evoRead()).revision,eligibleRevision,'eligible cross-site evolution must not mutate save');
   page.once('dialog',d=>d.dismiss());await button.click();
   assert.equal((await evoRead()).revision,evoBefore.revision);
   page.once('dialog',d=>d.accept());
