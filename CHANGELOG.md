@@ -1096,3 +1096,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23F4 — UI regional CI-only
 - #272 integrada main 982c8cf443d21783f379f8a29c6cfd3ab64808c3, 4 CI SUCCESS. #273 5 CI SUCCESS no HEAD anterior, reconciliada a998189240cac82131daa1cc36570e8dcd0ef0a1. #274 browser 409 start provável fixture Pikachu/Scratch ilegal, correção commit 253e231bd3bf4daf6b30a79ec4329dd888d7f19d. UI R1 com ações canônicas, HP/SP, log, retomada, recompensa/captura e foco no botão regional. Teste browser PG18 ampliado, CI pendente; depende #273/#274. Não reimplementar engine, /play local, cadastro OFF, demais regiões e Gym interface pendentes. docs/ONLINE_REGION_PORTAL_23F4.md.
+
+- #274 integrada main f7d4bde74f720a781fd9191de7450fa36e386192 após cinco CI SUCCESS; reconciliada #275. CI final obrigatório.
