@@ -1,0 +1,6 @@
+# Treinamento manual Pokémon online
+
+
+## ONLINE-01C-23F12A — treinamento manual Pokémon privado (candidata)
+- #285 integrada squash main 83645592878ebd5377294550caafcb9fea38a1a7, seis CI SUCCESS no HEAD 3c09f1b1db5f0609fbd6e9da0887fea47c67c195 (browser 45509879184, PG18 45509879319, geral 45509879207, Playwright 45509879215, gateway 45509879201, D044 45509879278). Deploy a verificar.
+- Reutiliza reducer D-056 por UID, lote de incrementos positivos nos seis atributos, orçamento 2*(nível-1), no máximo 198 total, um lock de save/recibo/revisão, validação e rollback integral, bloqueio reserva região/Gym, expedição, captura pendente. Sem reset nesta fase, HTTP/UI ou grants. Auditoria identificou teto 40 de treinador aplicado incorretamente a Pokémon em battlePreparation, frozen e Gym; corrigido somente para Pokémon de acordo com orçamento local, teto do treinador preservado. Teste PG18 inclui 60 ataque +38 HP nível 50, UID independente, duplicata, stale, excesso, origem dos stats, ambas preparações de batalha e teto treinador. CI obrigatório, sem SQL novo ou mudança de motor, cadastro OFF, /play intacto. Próxima etapa: validar writer e conectar projeção/HTTP/UI CI-only com lote de rascunho e redistribuição conforme D056; depois ranks. Nenhum release de beta antes dos gates anteriores.
