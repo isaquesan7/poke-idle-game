@@ -2108,3 +2108,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Primeira integração UI/server na home: sessão, seleção de inicial nv1, criação única no backend, leitura de progresso, reload, logout. Sem import de save local, sem rotas/schema novos ou abertura de produção. Teste browser PG18 existente ampliado; CI pendente. #271 independente em CI. docs/ONLINE_PORTAL_PROGRESS_23F1.md. Próximo: ações treinador/Coleção e gameplay online, mantendo /play separado, Regiões 1v1 e Gym 3v3 da Coleção.
 
 - #271 integrada main 72faab18665a0323a28e7910e7684f35c972810d após CI final 45484594348 e 45484594358 SUCCESS. #272 reconciliada; validação final pendente.
+
+
+## ONLINE-01C-23F2 — treinador e Coleção online
+- UI de atributos e equipe usa writers existentes, revisão e actionId, releitura servidor, nomes Kanto, 1–3 UIDs, líder regional e trio Gym. Web collection/team apenas CI/test. Teste browser PG18 ampliado com fixture e persistência; CI pendente, branch depende #272 (guard textual corrigido, sem relaxar). docs/ONLINE_PORTAL_ACTIONS_23F2.md. Cadastro OFF, /play separado, nenhum SQL ou recurso novo.
+
+- #272 integrada main 982c8cf443d21783f379f8a29c6cfd3ab64808c3 após quatro CI SUCCESS. #273 cinco CI SUCCESS no HEAD anterior; reconciliada, CI final pendente.
