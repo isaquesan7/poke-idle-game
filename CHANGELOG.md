@@ -1018,3 +1018,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23E22 — cliente de isolamento cross-project (24/11/2026; branch)
 - #261 integrado após quatro CI SUCCESS. Cliente one-shot, controles positivos e diagnóstico restrito de DNS/HTTP entre projetos; CI dedicado. Sem serviço novo, deploy real ou autorização de produção.
+
+
+## ONLINE-01C-23E23 — observação de IP privado direto (24/11/2026; branch)
+- Modo direct no cliente TEMP com literais privados inventariados, controles positivos de mesma família e falha fechada para resultados inconclusivos. Testes e roteiro operacional; CI e ensaio real pendentes. Sem alteração de runtime, cadastro ou banco de produção.
