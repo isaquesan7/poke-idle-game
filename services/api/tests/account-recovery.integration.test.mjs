@@ -52,8 +52,11 @@ test('ONLINE-01C-23C9: real HTTP account recovery expires, invalidates and revok
       'expired verification token cannot activate account');
     assert.equal((await call('/api/v1/auth/login','POST',{email,password})).status,403,
       'unverified account cannot log in');
-    assert.equal((await call('/api/v1/auth/request-reset','POST',{email})).status,200,
-      'reset requests do not expose unverified account status');
+    // Probe the internal issuer without spending the same account's HTTP
+    // reset-email throttle quota needed for three later HTTP reset requests.
+    const {issuePasswordReset}=await import('../src/passwordReset.mjs');
+    assert.equal(await issuePasswordReset(pool,email),null,
+      'unverified account must not receive a reset token');
     const unverifiedRows=await pool.query(
       'SELECT count(*)::int AS total FROM game_password_resets WHERE account_id=$1',[accountId]);
     assert.equal(unverifiedRows.rows[0].total,0,
