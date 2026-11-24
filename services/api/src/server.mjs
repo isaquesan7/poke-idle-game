@@ -464,6 +464,8 @@ const server=createServer(async(req,res)=>{
 });
 server.requestTimeout=10000;
 server.headersTimeout=12000;
-server.listen(port,'0.0.0.0',()=>{
-  console.log('ONLINE-01 API na porta '+port+'; registro '+(enabled?'habilitado':'desabilitado'));
+const bindHost=process.env.NODE_ENV==='test'&&
+  process.env.ACCOUNT_DRILL_LOOPBACK_ONLY==='true'?'127.0.0.1':'0.0.0.0';
+server.listen(port,bindHost,()=>{
+  console.log('ONLINE-01 API na porta '+server.address().port+'; registro '+(enabled?'habilitado':'desabilitado'));
 });
