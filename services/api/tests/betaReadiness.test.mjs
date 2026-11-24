@@ -67,10 +67,13 @@ function valid(){
       }},
     privacy:{...base(),privacyPolicyUrl:'https://example.test/privacy',
       termsUrl:'https://example.test/terms',
-      retentionApproved:true,deletionFlowReviewed:true},
+      retentionApproved:true,deletionFlowReviewed:true,
+      dataExportReviewed:true,accountDeletionVerified:true},
     security:{...base(),sessionReviewed:true,csrfReviewed:true,
       rateLimitReviewed:true,ownershipReviewed:true,
-      productionHarnessDisabled:true}
+      productionHarnessDisabled:true,
+      productionRouteLockdownVerified:true,
+      reverseProxyRateLimitReviewed:true}
   }};
 }
 test('missing evidence always blocks release; volume alone cannot pass restore',()=>{
@@ -135,4 +138,21 @@ test('Resend gate rejects delivery from another app commit',()=>{
   const input=valid();
   input.gates.resend.drill.appCommitSha='b'.repeat(40);
   assert.equal(evaluateBetaReadiness(input,{now}).gates.resend.passed,false);
+});
+
+test('23D7: public beta requires tested data export and actual account deletion',()=>{
+  const input=valid();
+  input.gates.privacy.accountDeletionVerified=false;
+  assert.equal(evaluateBetaReadiness(input,{now}).gates.privacy.passed,false);
+  input.gates.privacy.accountDeletionVerified=true;
+  input.gates.privacy.dataExportReviewed=false;
+  assert.equal(evaluateBetaReadiness(input,{now}).ready,false);
+});
+test('23D7: CI production lockdown does not substitute reverse proxy abuse review',()=>{
+  const input=valid();
+  input.gates.security.reverseProxyRateLimitReviewed=false;
+  assert.equal(evaluateBetaReadiness(input,{now}).gates.security.passed,false);
+  input.gates.security.reverseProxyRateLimitReviewed=true;
+  input.gates.security.productionRouteLockdownVerified=false;
+  assert.equal(evaluateBetaReadiness(input,{now}).gates.security.passed,false);
 });
