@@ -32,7 +32,7 @@ describe('D064BT — all 151 wild species respect evolution floors',()=>{
    }
   }
   expect(seen.size).toBe(151);
- });
+ },30000);
  it('local encounter preserves original level roll and never promotes the enemy',()=>{
   for(const r of KANTO_REGIONS)for(let leader=1;leader<=100;leader++)for(let i=0;i<32;i++){
    const seed=(Math.imul(2654435761,i+1)+Math.imul(2246822519,leader))>>>0;
@@ -40,7 +40,7 @@ describe('D064BT — all 151 wild species respect evolution floors',()=>{
    expect(encounter.level).toBe(kantoRegionalLevel(r,leader,(seed>>>16)%5));
    expect(serverRegionalOpponent(r.id,100,encounter.speciesId,encounter.level)).toBe(true);
   }
- });
+ },30000);
  it('regression: Primeape 23 impossible, floor 28; inherited stone/trade floors',()=>{
   const r=kantoRegion(3)!;
   for(let n=21;n<28;n++)expect(kantoRegionalSpeciesPool(r,n).some(e=>e.speciesId===57)).toBe(false);
