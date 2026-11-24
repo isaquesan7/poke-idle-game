@@ -2042,3 +2042,8 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 
 ## ONLINE-01C-23E22 — cliente cross-project (24/11/2026; branch)
 - #261 merged 1f5f012592cab0b0f8a6b0e6c3d1d1cb7bc0c6c1, CI 45440404157,45440404413,45440404174,45440404765 SUCCESS. Projeto TEMP confirmado vazio. Cliente dedicado com controle público antes/depois, controle privado local e tentativa DNS/HTTP cruzada; rejeita resultado inconclusivo. CI cliente pendente; sem provisionamento ou ensaio real ainda. docs/ONLINE_GATEWAY_CROSS_PROJECT_23E22.md. Cadastro OFF, SQL026 candidata, /play local, Regiões 1v1 e Gym 3v3.
+
+
+## ONLINE-01C-23E23 — teste de IP privado literal (24/11/2026; branch)
+- #262 merged main 342f3027416eba9c7a1655ba7d07695525f931ff, CI geral 45441582088 e cliente 45441583256 SUCCESS. Histórico do operador relata ensaio 23E22 concluído após correção de token, sem acesso privado cruzado via DNS/HTTP; ambos projetos TEMP confirmados vazios. Logs históricos não reconsultados.
+- 23E23 acrescenta modo direct no cliente isolado: IP RFC1918/ULA inventariado, controles positivos por família e HTTPS antes/depois, classificação estrita de falhas, nenhum IP/token no relatório. Testes sintéticos, CI pendente; ensaio real ainda NÃO executado. docs/ONLINE_GATEWAY_DIRECT_PRIVATE_IP_23E23.md. Nenhum recurso novo, nenhuma alteração de produção. Cadastro OFF, SQL026 candidata, /play local sem migração, Regiões 1v1, Gym 3v3; restore, remetente e LGPD pendentes.
