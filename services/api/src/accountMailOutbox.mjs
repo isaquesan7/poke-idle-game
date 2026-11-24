@@ -3,7 +3,7 @@
  * Store encryption key ONLY in a private versioned runtime keyring; retaining
  * old keys is mandatory until all old messages expire / are delivered.
  */
-import {randomBytes,createCipheriv,createDecipheriv} from 'node:crypto';
+import {randomBytes,createCipheriv,createDecipheriv,createHmac,timingSafeEqual} from 'node:crypto';
 import {deliverAccountEmail} from './mailer.mjs';
 const idPattern=/^[a-z][a-z0-9_-]{0,31}$/;
 const actionPattern=/^[a-zA-Z0-9_:/.-]{1,180}$/;
@@ -52,13 +52,26 @@ export function decryptMailPayload(buffer,key){
 export async function enqueueAccountMail(client,keyring,message){
   assertMessage(message);
   const {accountId,idempotencyKey,purpose,to,token,origin,expiresAt}=message;
-  const ciphertext=encryptMailPayload({to,token,origin},keyring.keys.get(keyring.activeId));
+  const key=keyring.keys.get(keyring.activeId);
+  if(!key)throw new Error('Active key unavailable');
+  const ciphertext=encryptMailPayload({to,token,origin},key);
+  const fingerprint=createHmac('sha256',key).update(JSON.stringify({accountId,idempotencyKey,purpose,to,token,origin,expiresAt:expiresAt.toISOString()})).digest();
   const result=await client.query(`
     INSERT INTO game_account_mail_outbox
-      (account_id,idempotency_key,purpose,encrypted_payload,key_id,expires_at)
-    VALUES($1,$2,$3,$4,$5,$6)
+      (account_id,idempotency_key,purpose,encrypted_payload,key_id,expires_at,payload_fingerprint)
+    VALUES($1,$2,$3,$4,$5,$6,$7)
     ON CONFLICT(idempotency_key) DO NOTHING RETURNING id
-  `,[accountId,idempotencyKey,purpose,ciphertext,keyring.activeId,expiresAt]);
+  `,[accountId,idempotencyKey,purpose,ciphertext,keyring.activeId,expiresAt,fingerprint]);
+  if(!result.rowCount){
+    const existing=await client.query(`SELECT account_id,purpose,key_id,payload_fingerprint
+      FROM game_account_mail_outbox WHERE idempotency_key=$1`,[idempotencyKey]);
+    const old=existing.rows[0];
+    const oldKey=old&&keyring.keys.get(old.key_id);
+    const originalFingerprint=oldKey?createHmac('sha256',oldKey).update(JSON.stringify({accountId,idempotencyKey,purpose,to,token,origin,expiresAt:expiresAt.toISOString()})).digest():null;
+    if(!old||old.account_id!==accountId||old.purpose!==purpose||
+      !originalFingerprint||!timingSafeEqual(old.payload_fingerprint,originalFingerprint))
+      throw new Error('Outbox idempotency conflict');
+  }
   // Never disclose ciphertext or token in receipts.
   return {queued:result.rowCount===1};
 }
