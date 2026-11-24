@@ -11,6 +11,10 @@ on:
       - 'services/api/src/proxyKeyring.mjs'
       - 'services/api/src/proxyNonceGuard.mjs'
       - 'tests/auth-gateway-runtime.test.mjs'
+      - 'tests/gateway-runtime-smoke-fixture.mjs'
+      - 'scripts/ci-gateway-runtime-smoke.sh'
+      - 'online-api-proxy.mjs'
+      - 'server.mjs'
       - 'scripts/gateway-ingress-observation.mjs'
       - 'scripts/railway-ingress-probe.mjs'
       - 'scripts/gateway-direct-address.mjs'
@@ -24,7 +28,7 @@ permissions:
 jobs:
   observation:
     runs-on: ubuntu-24.04
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -56,3 +60,5 @@ jobs:
           docker run --rm --entrypoint sh kanto-auth-gateway-ci -c 'test "$(id -un)" = node && test "$(find /gateway -type f | wc -l)" = 6 && test ! -e /gateway/server.mjs'
           if docker run --rm kanto-auth-gateway-ci; then exit 1; fi
           node --test tests/auth-gateway-runtime.test.mjs tests/gateway-ingress-adapter.test.mjs
+      - name: Exercise actual standalone image and reviewed Web transport
+        run: bash scripts/ci-gateway-runtime-smoke.sh

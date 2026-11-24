@@ -1,0 +1,12 @@
+# ONLINE-01C-23E28 — validação incremental e caminho de release
+
+O #270 depende da regressão final; CI PG18 45483181519, browser 45483181432, imagem gateway 45483181462 e D-044 45483181474 SUCCESS. Este recorte depende de merge/reconciliação do #270 e exige CI no HEAD final. Não repetir #255/#259/#263/#266 nem a jornada PG18 já aprovada.
+
+Delta específico: executar a imagem real Dockerfile.auth-gateway com launcher production/reviewed, TLS com CA efêmera e hostname verificado, Web real em modo reviewed com DNS interno e receptor sintético que usa verifier canônico. Rede Docker --internal, sem portas publicadas, dados de usuário, DB, chaves reais ou acesso Railway. Testar status fechado, acesso direto Web sem prova/forjada, gateway sem IP, assinatura gerada pelo gateway atravessando TLS e Web e verificada pelo receptor. Não afirmar que fixture prova topologia Railway, anti-replay distribuído ou conta real (estes dois últimos já cobertos em PG18). Teste de transporte é o único delta. O teste production-lockdown existente permanece obrigatório; nenhum modo público habilitado. Remover containers/rede/cert ao final.
+
+## Checklist de saída, sem novo ciclo de probes genéricos
+- Segurança: CI final, revisão real de topologia exclusiva e configuração operacional, homologação incremental do gateway real sem conta pública, autorização SQL026 e retenção de nonce. Não inventar revisão ou liberar auth/test harness.
+- Restore: leitura Railway confirmou Postgres, clone Postgres-restored-20261124-1107, volumes distintos e bucket PITR; sem patch pendente. Isso não substitui evidência de recuperação íntegra, RPO/RTO e procedimentos de revogação. Recuperar relatório histórico e executar somente a auditoria faltante no clone, jamais produção.
+- Resend: #250 já comprova jornada de e-mail sandbox. Falta domínio/remetente definitivo e evidência de entrega revisada; nome do jogo/domínio ainda não decidido pelo proprietário. Não repetir sandbox.
+- LGPD: reutilizar exportação/exclusão e auditorias implementadas; revisão de política, termos, retenção e operação por responsável, não aprovação automática.
+- Release: cadastro e saves públicos OFF. Não confundir motor autoritativo testado com /play online disponível; integrar UI de progresso servidor e rotas aprovadas em release separado. /play local sem migração, Regiões 1v1 e Ginásios 3v3 predefinidos. Não contratar serviços ou alterar produção nesta PR.

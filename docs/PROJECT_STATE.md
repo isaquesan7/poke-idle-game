@@ -2089,3 +2089,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 
 ## ONLINE-01C-23E27 — configuração operacional candidata (24/11/2026)
 - #269 integrada main 7bd169bdf40d4d604977ec361dc8259388450e9f após três CI SUCCESS. Launcher/imagem gateway independente e fail-closed, modo Web de forwarding privado explícito e receptor API canônico configurável preparados. Production registration continua hard-OFF; SQL026 candidata. Testes existentes PG18/lockdown e imagem ampliados, CI pendente; nenhum recurso/segredo/DB alterado. docs/ONLINE_GATEWAY_RUNTIME_23E27.md. Próximo: homologação incremental da integração final, revisão operacional e fechar restore/Resend/LGPD; não repetir #255/#266. /play local, regiões 1v1, Gym 3v3.
+
+
+## ONLINE-01C-23E28 — transporte operacional e checklist de saída (24/11/2026)
+- #270 quatro CI SUCCESS (PG18, browser, gateway, D044), regressão final em andamento no início. Branch dependente: smoke específico da imagem gateway real e Web reviewed via TLS em rede Docker isolada, receptor sintético canônico; não é prova de Railway ou novo E2E PG18. CI pendente; não repetir probes anteriores. Inventário Railway somente leitura confirma Postgres, clone restaurado e bucket PITR, sem patch; evidência integral ainda não aprovada. Checklist em docs/ONLINE_GATEWAY_RUNTIME_SMOKE_23E28.md. Cadastro OFF, SQL026 candidata, nenhum recurso novo, /play e gameplay intactos.
