@@ -33,6 +33,6 @@ export {applyCertifiedGymSettlement} from './serverGymSettlement.js';
 export {serverRegionalAccess,serverRegionalOpponent,serverRegionalCatalog,serverRegionalRoll,serverRegionalCaptureChoices}
   from './serverRegionalPolicy.js';
 
-export {applyOnlineExpedition} from './serverExpedition.js';
+export {applyOnlineExpedition,onlineExpeditionProjection} from './serverExpedition.js';
 
 export {onlineShopProjection,applyOnlineShopPurchase} from './serverShop.js';
