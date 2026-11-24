@@ -56,3 +56,16 @@ test('both signatures share atomic nonce guard; invalid assertions skip DB',asyn
   assert.deepEqual(calls[0].params[0],calls[1].params[0]);
   assert.match(calls[0].sql,/ON CONFLICT\(nonce_digest\) DO NOTHING/);
 });
+
+test('issuer pins prefix policy and rotation preserves it; request cannot override',()=>{
+  const v6={...req,trustedClientIp:'2001:db8:1:2::1'};
+  const oldPrefix=createProxyIssuer({activeHex:oldHex,subjectHex,subjectPolicy:'ipv6-prefix64-v2'});
+  const newPrefix=createProxyIssuer({activeHex:newHex,subjectHex,subjectPolicy:'ipv6-prefix64-v2',notBeforeMs:cutover});
+  const a=oldPrefix.sign(v6,cutover-1);
+  const b=newPrefix.sign({...v6,trustedClientIp:'2001:db8:1:2::ffff',subjectPolicy:'address-v1'},cutover);
+  const read=assertion=>receiver.verify({...v6,assertion},cutover).subject;
+  assert.equal(read(a),read(b));
+  assert.notEqual(read(a),read(old.sign({...v6,subjectPolicy:'ipv6-prefix64-v2'},cutover)));
+  assert.throws(()=>createProxyIssuer({activeHex:newHex,subjectHex,subjectPolicy:'auto'}));
+  assert.throws(()=>createProxyReceiver({activeHex:newHex,subjectPolicy:'ipv6-prefix64-v2'}));
+});
