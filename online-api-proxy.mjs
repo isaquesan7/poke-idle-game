@@ -29,8 +29,12 @@ const requestHeaders=new Set(['content-type','origin','cookie','accept']);
 const responseHeaders=new Set(['content-type','set-cookie','retry-after','allow',
   'x-frame-options','referrer-policy','x-robots-tag','content-disposition','vary']);
 // Collection writer is reachable through Web only in the existing test mode.
-if(process.env.NODE_ENV==='test')allowed.add('/api/v1/collection/team');
-const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save']);
+if(process.env.NODE_ENV==='test'){
+  allowed.add('/api/v1/collection/team');
+  for(const command of ['current','reserve','start','turn','certify','settle','finish'])
+    allowed.add('/api/v1/region/'+command);
+}
+const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save','/api/v1/region/current']);
 const maxBody=16384;
 // Default strips proofs; reviewed deployment can relay opaque assertions without keys.
 // The web proxy has NO signing key and cannot create client identities.

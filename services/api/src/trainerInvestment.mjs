@@ -55,6 +55,9 @@ export async function applyTrainerInvestment(pool,{accountId,actionId,expectedRe
        save?.journal?.revision!==revision){
       await client.query('ROLLBACK');return {status:'invalid'};
     }
+    const regionalBusy=await client.query(
+      "SELECT id FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved'",[accountId]);
+    if(regionalBusy.rowCount){await client.query('ROLLBACK');return {status:'busy'};}
     const gymBusy=await client.query(
       "SELECT id FROM game_gym_reservations WHERE account_id=$1 AND status='reserved'",
       [accountId]);
