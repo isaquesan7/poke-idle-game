@@ -30,5 +30,5 @@ export {gymChooseAiAction} from '../gyms/gymAiTurn.js';
 export {applyCertifiedGymSettlement} from './serverGymSettlement.js';
 
 // Canonical regional catalog/eligibility and unbiased HMAC-driven selection.
-export {serverRegionalAccess,serverRegionalOpponent,serverRegionalCatalog,serverRegionalRoll}
+export {serverRegionalAccess,serverRegionalOpponent,serverRegionalCatalog,serverRegionalRoll,serverRegionalCaptureChoices}
   from './serverRegionalPolicy.js';

@@ -2,6 +2,8 @@
  * Entropy is supplied by the existing private HMAC adapter; never Math.random,
  * a client seed, or a second manually maintained species/level table.
  */
+import {d064CaptureProjection} from '../capture/regionalCaptureProjection.js';
+import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
 import {kantoRegion,KANTO_REGIONS} from '../map/kantoRegions.js';
 const validLevel=(value:unknown):value is number=>
   typeof value==='number'&&Number.isSafeInteger(value)&&value>=1&&value<=100;
@@ -42,4 +44,15 @@ export function serverRegionalRoll(regionId:number,trainerLevel:unknown,leaderLe
     };
   }
   return null;
+}
+
+/** Advisory legal ball choices, not a capture or wallet writer. */
+export function serverRegionalCaptureChoices(regionId:number,speciesId:number,maxHp:number,pocket:unknown){
+  const bag=inspectKantoBallPocket(pocket);
+  if(bag.status!=='valid')return [];
+  return (['poke-ball','great-ball','ultra-ball'] as const).flatMap(ballId=>{
+    const quantity=bag.pocket.quantities[ballId]??0;
+    return quantity>0&&d064CaptureProjection(speciesId,regionId,ballId,maxHp,0)?
+      [{ballId,quantity}]:[];
+  });
 }
