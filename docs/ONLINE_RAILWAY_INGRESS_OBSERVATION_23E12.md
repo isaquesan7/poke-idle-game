@@ -23,3 +23,26 @@ Gate reverseProxyRateLimitReviewed permanece falso. PRs #253/#254 continuam depe
 Usar Dockerfile.ingress-probe na raiz do repositório, não o Dockerfile de produção (que exclui scripts). Deixar start command padrão da imagem, restart policy NEVER, uma réplica e nenhum pre-deploy. O container contém exclusivamente o script e Node. Para cada rede, configurar localmente INGRESS_PROBE_URL (HTTPS do serviço temporário terminado em /probe), INGRESS_PROBE_TOKEN e INGRESS_PROBE_EXPECTED_IP (IP confirmado por fonte independente). Executar node scripts/run-railway-ingress-probe.mjs. O cliente não ecoa segredos, IP ou corpo arbitrário e não segue redirecionamentos; registra seis casos e resultado conservador. Não enviar token ou IP no chat. Limpar as variáveis ao terminar.
 
 Consulta de configuração confirmou API real sem TCP proxies e sem tracing habilitado; nenhuma exposição foi criada. A execução automatizada externa nesta sessão não está disponível (rede do container sem resolução DNS e ferramentas Railway sem cliente HTTP arbitrário). Portanto não iniciar serviço faturável sem caminho de ensaio e encerramento operacional confirmado. O operador pode executar de duas redes após CI e preparação explícita. Não confundir resultados locais com comprovação do ingress real.
+
+## CI da imagem isolada
+Workflow ingress-probe.yml compila e verifica a imagem dedicada em loopback descartável, incluindo usuário não-root, conteúdo mínimo, recusa sem configuração, autorização e comparação sintética sem IP no resultado. Não envia tráfego à Railway e não é evidência do ingress. Aguardar aprovação antes do ensaio externo.
+
+## Operador Windows CMD
+Em checkout atualizado da branch aprovada, executar:
+
+    node --version
+    git fetch origin
+    git switch --detach origin/test/online01c23e12-ingress-observation
+    node --check scripts/run-railway-ingress-probe.mjs
+
+Usar um checkout limpo/temporário, não sobrescrever alterações locais. Após provisionamento aprovado do serviço temporário, preencher localmente:
+
+    set "INGRESS_PROBE_URL=https://DOMINIO-TEMPORARIO.up.railway.app/probe"
+    set "INGRESS_PROBE_TOKEN=TOKEN_LOCAL"
+    set "INGRESS_PROBE_EXPECTED_IP=IP_CONFIRMADO"
+    node scripts/run-railway-ingress-probe.mjs
+    set "INGRESS_PROBE_TOKEN="
+    set "INGRESS_PROBE_EXPECTED_IP="
+    set "INGRESS_PROBE_URL="
+
+Não executar placeholders nem compartilhar token/IP. Repetir com rede móvel e verificar referência independente de IP. Compartilhar apenas as linhas JSON sanitizadas do cliente. Se a referência mudar durante o teste, repetir dentro da janela. Encerrar serviço ao terminar.

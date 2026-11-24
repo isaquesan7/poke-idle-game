@@ -957,3 +957,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - #253 integrado main cc6e9947c8b6671e32f7a73cb93efdd8542e2f73 após três CI SUCCESS; branch reconciliada, CI do HEAD combinado pendente.
 
 - 23E12: imagem mínima dedicada e cliente HTTPS sanitizado; sem alteração da imagem do jogo ou produção.
+
+- 23E12: workflow específico de imagem diagnóstica e roteiro Windows CMD; sem evidência de ingress real.

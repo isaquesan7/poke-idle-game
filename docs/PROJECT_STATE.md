@@ -1970,3 +1970,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - #253 integrado main cc6e9947c8b6671e32f7a73cb93efdd8542e2f73 após três CI SUCCESS; branch reconciliada, CI do HEAD combinado pendente.
 
 - 23E12 revisão: Dockerfile.ingress-probe exclusivo (runtime web D-044 não inclui scripts) e cliente de seis casos sem exposição de IP/token. API real sem domínio/TCP proxy; execução externa indisponível nesta sessão, não provisionado recurso faturável. CI do HEAD atualizado pendente.
+
+- 23E12: CI dedicado de imagem isolada em loopback e roteiro CMD. Sem provisionamento Railway ou alteração de runtime; aguarda CI e execução externa autorizada.

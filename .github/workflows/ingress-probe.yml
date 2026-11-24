@@ -1,0 +1,45 @@
+name: ONLINE-01C — imagem isolada de diagnóstico ingress
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Dockerfile.ingress-probe'
+      - 'scripts/railway-ingress-probe.mjs'
+      - 'scripts/run-railway-ingress-probe.mjs'
+      - 'tests/railway-ingress-probe.test.mjs'
+      - '.github/workflows/ingress-probe.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit tests and client syntax
+        run: |
+          node --check scripts/run-railway-ingress-probe.mjs
+          node --test tests/railway-ingress-probe.test.mjs
+      - name: Build and exercise dedicated image on loopback only
+        run: |
+          set -eu
+          docker build -f Dockerfile.ingress-probe -t kanto-ingress-probe-ci .
+          docker run --rm --entrypoint sh kanto-ingress-probe-ci -c 'test "$(id -un)" = node && test -f /probe/railway-ingress-probe.mjs && test "$(ls -A /probe | wc -l)" = 1'
+          if docker run --rm kanto-ingress-probe-ci; then
+            echo "Missing isolation flags unexpectedly accepted"; exit 1
+          fi
+          token=$(openssl rand -hex 32)
+          echo "::add-mask::$token"
+          trap 'docker rm -f kanto-probe-ci >/dev/null 2>&1 || true' EXIT
+          docker run -d --name kanto-probe-ci -p 127.0.0.1:18080:3000 -e INGRESS_PROBE_ISOLATED=true -e INGRESS_PROBE_TOKEN="$token" kanto-ingress-probe-ci
+          for i in $(seq 1 20); do
+            if curl -s -o /dev/null http://127.0.0.1:18080/probe; then break; fi
+            sleep 1
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/probe)" = 404
+          curl -fsS -H "Authorization: Bearer $token" -H 'X-Real-IP: 192.0.2.1' -H 'X-Kanto-Probe-Expected: 192.0.2.1' http://127.0.0.1:18080/probe | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{const r=JSON.parse(s);if(r.matchesExpected!==true||r.realIpHeaderCount!==1||s.includes("192.0.2.1"))process.exit(1)})'
+          echo "ISOLATED_PROBE_IMAGE_OK (synthetic, not Railway evidence)"
