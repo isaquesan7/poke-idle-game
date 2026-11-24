@@ -1,0 +1,23 @@
+name: ONLINE-01C — cliente público de homologação gateway
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/run-gateway-public-observation.mjs'
+      - 'scripts/run-gateway-cross-project.mjs'
+      - 'tests/gateway-public-observation.test.mjs'
+      - '.github/workflows/gateway-public-observation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-client:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check scripts/run-gateway-public-observation.mjs
+      - run: node --test tests/gateway-public-observation.test.mjs
