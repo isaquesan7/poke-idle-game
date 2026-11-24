@@ -2042,3 +2042,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 
 ## ONLINE-01C-23E22 — cliente cross-project (24/11/2026; branch)
 - #261 merged 1f5f012592cab0b0f8a6b0e6c3d1d1cb7bc0c6c1, CI 45440404157,45440404413,45440404174,45440404765 SUCCESS. Projeto TEMP confirmado vazio. Cliente dedicado com controle público antes/depois, controle privado local e tentativa DNS/HTTP cruzada; rejeita resultado inconclusivo. CI cliente pendente; sem provisionamento ou ensaio real ainda. docs/ONLINE_GATEWAY_CROSS_PROJECT_23E22.md. Cadastro OFF, SQL026 candidata, /play local, Regiões 1v1 e Gym 3v3.
+
+
+## ONLINE-01C-23E23 — candidato de observação IP direto (24/11/2026; branch)
+- #263 ainda em CI; falha regressão mobile revisada em branch separada, sem alteração engine. Novo probe opt-in de inventário privado cifrado por papel, cliente TCP literal porta 3000 com controles e teste de estabilidade, sem IP bruto em log. Imagens/CI dedicados; execução Railway real não feita. docs/ONLINE_GATEWAY_DIRECT_ADDRESS_23E23.md. Reconciliar com #263 antes de merge. Cadastro OFF, SQL026 candidata, /play local, regiões 1v1, ginásios 3v3.

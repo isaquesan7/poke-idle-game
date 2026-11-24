@@ -1,0 +1,31 @@
+name: ONLINE-01C — cliente direto isolado
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Dockerfile.gateway-direct-address'
+      - 'scripts/run-gateway-direct-address.mjs'
+      - 'scripts/gateway-direct-address.mjs'
+      - 'scripts/run-gateway-cross-project.mjs'
+      - 'tests/gateway-direct-address.test.mjs'
+      - '.github/workflows/gateway-direct-address.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  client:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check scripts/run-gateway-direct-address.mjs
+          node --test tests/gateway-direct-address.test.mjs
+      - run: |
+          set -eu
+          docker build -f Dockerfile.gateway-direct-address -t kanto-direct-address-ci .
+          docker run --rm --entrypoint sh kanto-direct-address-ci -c 'test "$(id -un)" = node && test "$(find /probe -type f | wc -l)" = 3'
+          if docker run --rm kanto-direct-address-ci; then exit 1; fi

@@ -1018,3 +1018,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23E22 — cliente de isolamento cross-project (24/11/2026; branch)
 - #261 integrado após quatro CI SUCCESS. Cliente one-shot, controles positivos e diagnóstico restrito de DNS/HTTP entre projetos; CI dedicado. Sem serviço novo, deploy real ou autorização de produção.
+
+
+## ONLINE-01C-23E23 — candidato de teste de acesso privado por IP (24/11/2026; branch)
+- Inventário efêmero cifrado, teste TCP restrito com controles por família e estabilidade. CI pendente, sem provisionamento ou alteração produção.
