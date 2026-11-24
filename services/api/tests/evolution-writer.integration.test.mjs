@@ -1,0 +1,57 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import pg from 'pg';
+import {firstSave} from '../src/initialAdventure.mjs';
+import {evolvePokemon} from '../src/evolutionWriter.mjs';
+import {reserveEncounter} from '../src/encounterReservation.mjs';
+import {applyExpeditionCommand} from '../src/expeditionWriter.mjs';
+test('23F11B: canonical UID evolution is atomic and preserves the instance',async()=>{
+ const db=new URL(process.env.DATABASE_URL);
+ assert.equal(db.protocol,'postgresql:');assert.equal(db.hostname,'127.0.0.1');assert.equal(db.port,'55432');
+ assert.equal(db.pathname,'/kanto_ci');assert.equal(db.username,'kanto_ci');assert.equal(db.search,'');
+ const pool=new pg.Pool({connectionString:db.href});let id;
+ try{
+  id=(await pool.query("INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id",['evolution-'+randomUUID()+'@example.test','x'.repeat(48)])).rows[0].id;
+  const save=firstSave('Evolution CI',4,1740000000000);
+  await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[id,JSON.stringify(save)]);
+  const evolve=(pokemonUid,targetSpeciesId,expectedRevision,extra={})=>evolvePokemon(pool,{accountId:id,actionId:randomUUID(),pokemonUid,targetSpeciesId,expectedRevision,...extra});
+  const read=async()=>{const r=(await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[id])).rows[0];return {revision:Number(r.revision),save:r.state,raw:JSON.parse(r.state.journal.raw)};};
+  const fixture=async(fn)=>{const s=await read();fn(s.raw);s.save.journal.raw=JSON.stringify(s.raw);await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[id,JSON.stringify(s.save)]);return s.raw;};
+  assert.equal((await evolve(1,5,0)).status,'unavailable');
+  assert.equal((await evolve(99,5,0)).status,'missing-pokemon');
+  assert.equal((await evolve(1,5,0,{level:99})).status,'invalid');
+  assert.equal((await evolve(1,5,1)).status,'stale');
+  const before=await fixture(raw=>{
+   Object.assign(raw.roster[0],{level:16,xp:5,affinity:37,equippedMoveNames:['scratch','growl'],upgrades:{scratch:1},battleRecord:{wins:3,draws:1,losses:2}});
+   raw.roster[0].manual.attack=2;
+   raw.coins=222;
+  });
+  assert.equal((await evolve(1,6,0)).status,'unavailable');
+  const actionId=randomUUID();
+  const race=await Promise.all([evolve(1,5,0,{actionId}),evolve(1,5,0,{actionId})]);
+  assert.deepEqual(race.map(r=>r.status).sort(),['duplicate','evolved']);
+  const evolved=await read();assert.equal(evolved.revision,1);
+  assert.deepEqual(evolved.raw,{...before,roster:[{...before.roster[0],pokemonId:5}],seen:[4,5],caughtSpecies:[4,5]});
+  assert.equal((await evolve(1,6,1,{actionId})).status,'duplicate');
+  // Only disposable fixture supplies a legitimate stone. Never grant a kit.
+  const stoneBefore=await fixture(raw=>{
+   raw.roster.push({...raw.roster[0],uid:2,pokemonId:25,level:1,xp:0,manual:{hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0},moveName:'thunder-shock',equippedMoveNames:['thunder-shock'],upgrades:{},affinity:0,battleRecord:{wins:0,draws:0,losses:0}});
+   raw.nextUid=3;raw.seen.push(25);raw.caughtSpecies.push(25);
+  });
+  assert.equal((await evolve(2,26,1)).status,'unavailable');
+  assert.deepEqual((await read()).raw,stoneBefore);
+  const stocked=await fixture(raw=>{raw.evolutionStones={'thunder-stone':1};});
+  assert.equal((await evolve(2,26,1)).status,'evolved');
+  const afterStone=await read();assert.equal(afterStone.revision,2);
+  assert.deepEqual(afterStone.raw,{...stocked,roster:[stocked.roster[0],{...stocked.roster[1],pokemonId:26}],seen:[4,5,25,26],caughtSpecies:[4,5,25,26],evolutionStones:{'thunder-stone':0}});
+  await fixture(raw=>{raw.roster[0].level=36;});
+  assert.equal((await applyExpeditionCommand(pool,{accountId:id,actionId:randomUUID(),kind:'start',regionId:1,expectedRevision:2})).status,'applied');
+  assert.equal((await evolve(1,6,3)).status,'busy');
+  assert.equal((await applyExpeditionCommand(pool,{accountId:id,actionId:randomUUID(),kind:'stop',expectedRevision:3})).status,'applied');
+  assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:4})).status,'reserved');
+  assert.equal((await evolve(1,6,5)).status,'busy');
+  const receipts=await pool.query("SELECT count(*)::int AS n FROM game_action_receipts WHERE account_id=$1 AND kind='pokemon-evolution'",[id]);
+  assert.equal(receipts.rows[0].n,2);
+ }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
+});
