@@ -1,3 +1,5 @@
+> **RESTORE — continuidade 24/11/2026:** PITR real e auditoria estrutural já executados: logs Railway confirmam WAL, recovery point 11:07:09 UTC, ready 11:15:56 UTC; histórico operador 25 migrations, 16 tabelas, zero constraints inválidas/contas/saves/e-mails. NÃO repetir. Gate A parcial: clone no mesmo ambiente, revisão/cronologia/IDs/retencão formais pendentes. Sem mutação de produção. Ver fim PROJECT_STATE.
+
 > **23E28 RECONCILIADA:** #270 merged, cinco CI SUCCESS; #271 smoke dedicado/PG18/browser/D044 SUCCESS no HEAD anterior, CI final obrigatório. Próximo fechar evidência de restore já existente; não recriar clone ou repetir probes.
 
 > **23E28 CANDIDATA:** smoke do transporte real gateway/Web em CI, receptor sintético, sem rede externa/contas. Depende de #270 e CI final. Checklist único de saída em docs/ONLINE_GATEWAY_RUNTIME_SMOKE_23E28.md; não repetir #255/#266 ou sandbox Resend. Cadastro OFF, SQL026 candidata, /play local.
