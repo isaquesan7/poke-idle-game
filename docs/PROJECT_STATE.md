@@ -2113,6 +2113,10 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 ## ONLINE-01C-23F2 — treinador e Coleção online
 - UI de atributos e equipe usa writers existentes, revisão e actionId, releitura servidor, nomes Kanto, 1–3 UIDs, líder regional e trio Gym. Web collection/team apenas CI/test. Teste browser PG18 ampliado com fixture e persistência; CI pendente, branch depende #272 (guard textual corrigido, sem relaxar). docs/ONLINE_PORTAL_ACTIONS_23F2.md. Cadastro OFF, /play separado, nenhum SQL ou recurso novo.
 
+- #272 integrada main 982c8cf443d21783f379f8a29c6cfd3ab64808c3 após quatro CI SUCCESS. #273 cinco CI SUCCESS no HEAD anterior; reconciliada, CI final pendente.
+
 
 ## ONLINE-01C-23F3 — contrato regional CI-only
 - R1 via HTTP reserva/start/turn/certify/settle/finish + GET current; backend canônico, revisão e sessão, chave sintética somente PG CI; não abre gameplay em produção. Bloqueia investimento durante reserva. Teste browser PG18 ampliado (contrato HTTP, não UI). #272/#273 dependências e CI pendentes. docs/ONLINE_REGION_HTTP_23F3.md. Próximo: UI regional e recuperação/captura, restante regiões via catálogo canônico; keyring histórico antes de release. /play local e Gym 3v3 preservados.
+
+- #273 integrada main a179924e4a8f6bfa45534d49979676761f38053d após cinco CI SUCCESS; #274 reconciliada e correção de fixture aguarda CI final.
