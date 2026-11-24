@@ -8,7 +8,18 @@ import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import pg from 'pg';
 import {createAuthGateway} from '../../../scripts/auth-gateway-candidate.mjs';
+import {createIngressResolver} from '../../../scripts/gateway-ingress-adapter.mjs';
 import {createProxyIssuer} from '../src/proxyKeyring.mjs';
+
+const reviewedTopology={projectId:'11111111-1111-4111-8111-111111111111',
+  environmentId:'22222222-2222-4222-8222-222222222222',
+  serviceId:'33333333-3333-4333-8333-333333333333',
+  commitSha:'a'.repeat(40),publicDomain:'gateway-ci.up.railway.app',
+  serviceCount:1,replicaCount:1,tcpProxyCount:0,publicDomainCount:1,
+  privateCallersExcluded:true,changeControlReviewed:true,reviewReference:'CI synthetic topology'};
+const testRuntime={RAILWAY_PROJECT_ID:reviewedTopology.projectId,
+  RAILWAY_ENVIRONMENT_ID:reviewedTopology.environmentId,RAILWAY_SERVICE_ID:reviewedTopology.serviceId,
+  RAILWAY_GIT_COMMIT_SHA:reviewedTopology.commitSha,RAILWAY_PUBLIC_DOMAIN:reviewedTopology.publicDomain};
 
 const listen=s=>new Promise(resolve=>s.listen(0,'127.0.0.1',()=>resolve(s.address().port)));
 const close=s=>new Promise(resolve=>s.close(resolve));
@@ -32,9 +43,10 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
   const admin=new pg.Pool({connectionString:db.href});
   const signingHex=randomBytes(32).toString('hex'),subjectHex=randomBytes(32).toString('hex');
   const issuer=createProxyIssuer({activeHex:signingHex,subjectHex,subjectPolicy:'ipv6-prefix64-v2'});
+  const ingressIPs=['8.8.8.8','2606:4700:1:2::1','2606:4700:1:2::ffff','2606:4700:1:3::1'];
   const origin='https://gateway-ci.up.railway.app';
   const email='gateway-'+suffix+'@example.test',password='Synthetic-old-12345',newPassword='Synthetic-new-67890';
-  const children=[],gateways=[];let created=false,lastProof;
+  const children=[],gateways=[],captured=[];let created=false,lastProof;
   try{
     assert.equal((await admin.query('SELECT current_database() AS name')).rows[0].name,'kanto_ci');
     await admin.query('CREATE SCHEMA '+schema);created=true;
@@ -55,17 +67,20 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
       env:{NODE_ENV:'test',PORT:String(webPort),ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/',
         ONLINE_GATEWAY_FORWARD_TEST_ONLY:'true'},stdio:'ignore'});
     children.push(web);await ready(web,webBase+'/api/v1/status');
-    for(const ip of ['192.0.2.10','2001:db8:1:2::1','2001:db8:1:2::ffff','2001:db8:1:3::1']){
+    // The fixture supplies a synthetic, ingress-rewritten header over loopback.
+    // Actual adapter and issuer are used; capture proof in memory only for replay.
+    const resolver=createIngressResolver({review:reviewedTopology,testRuntime,loopbackTest:true});
+    for(const ip of ingressIPs){
       const server=createAuthGateway({upstreamOrigin:webBase,clientOrigin:origin,loopbackTest:true,
-        issuer:{sign(input){lastProof=issuer.sign(input);return lastProof;}},
-        // Constant trusted identity per synthetic gateway; NOT a real Railway adapter.
-        resolveTrustedClientIp:()=>ip});
+        issuer:{sign(input){lastProof=issuer.sign(input);captured.push(lastProof);return lastProof;}},
+        resolveTrustedClientIp:resolver});
       gateways.push(server);await listen(server);
     }
     const g=i=>'http://127.0.0.1:'+gateways[i].address().port;
     async function post(base,route,data,headers={}){
       const res=await fetch(base+'/api/v1/auth/'+route,{method:'POST',redirect:'manual',
-        headers:{Origin:origin,'Content-Type':'application/json',...headers},
+        headers:{Origin:origin,'Content-Type':'application/json',...headers,
+          ...(ingressIPs.some((_,i)=>g(i)===base)?{'X-Real-IP':ingressIPs.find((_,i)=>g(i)===base)}:{})},
         body:JSON.stringify(data),signal:AbortSignal.timeout(12000)});
       return {status:res.status,body:await res.json(),cookie:res.headers.get('set-cookie'),retry:res.headers.get('retry-after')};
     }
@@ -75,6 +90,8 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
       assert.equal((await post(base,'register',registration,{'X-Kanto-Proxy-Identity':'forged'})).status,403);
     }
     assert.equal((await admin.query('SELECT count(*)::int AS n FROM game_accounts WHERE email=$1',[email])).rows[0].n,0);
+    const missingIngress=await fetch(g(0)+'/api/v1/auth/register',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(registration)});
+    assert.equal(missingIngress.status,403);assert.equal(captured.length,0);
     const registered=await post(g(0),'register',registration,{'X-Kanto-Proxy-Identity':'forged','X-Real-IP':'198.51.100.1'});
     assert.equal(registered.status,201);
     const proof=lastProof,accountId=registered.body.id;
