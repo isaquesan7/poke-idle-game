@@ -23,3 +23,7 @@ Este teste é uma **evidência de software**, não é prova de entrega real de e
 ## Correção encontrada pelo navegador
 
 O primeiro ensaio detectou autenticação HTTP 200 seguida de sessão 401 no Chromium. A causa foi identificada: o cookie `__Host-kanto_session` estava sem `Secure` em `NODE_ENV=test`, apesar de o prefixo `__Host-` exigir esse atributo em **todos** os ambientes. A API agora define `Secure` sempre; teste PostgreSQL verifica a flag e o E2E deve provar que o navegador realmente preserva a sessão em loopback. Esta correção reforça a configuração de produção (onde `Secure` já era emitido). Não altera mecanismos de autenticação, tokens, banco ou dados existentes.
+
+## HTTPS real no ensaio Chromium
+
+A segunda execução detectou que HTTP loopback não exercitava adequadamente o requisito `Secure` do cookie `__Host-`. O workflow passa a criar um certificado de teste efêmero diretamente no runner e inicia um gateway HTTPS local que encaminha para o servidor web sem alterar o código de produção. O browser ignora **somente nesse teste** a autoridade autoassinada e comprova que o cookie foi aceito com `secure=true` e que a API identifica a sessão. Isso evita false-positive de testes HTTP que enviam cookies manualmente. O certificado nunca é publicado nem reutilizado.
