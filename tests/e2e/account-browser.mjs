@@ -55,10 +55,10 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true'
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true'
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -318,6 +318,28 @@ try{
   const claimedExp=await expRead();assert.equal(claimedExp.expedition.startedAt,readyExp.expedition.startedAt);
   assert.equal((await expPost('stop',{actionId:'browser-expedition-stop',expectedRevision:claimedExp.revision})).status(),200);
   assert.equal((await expRead()).expedition,null);
+
+  // Shop checkout through the real browser. Fund only in disposable PG fixture.
+  const shopFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const shopRaw=JSON.parse(shopFixture.journal.raw);shopRaw.coins=5000;
+  const ownedBefore=shopRaw.ballPocket.quantities['poke-ball']??0;
+  shopFixture.journal.raw=JSON.stringify(shopRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(shopFixture)]);
+  await page.locator('#online-refresh').click();
+  await page.getByText('Saldo: 5.000 moedas',{exact:true}).waitFor();
+  const shopRead=async()=>{const q=await page.request.get(origin+'/api/v1/shop/current');assert.equal(q.status(),200);return q.json();};
+  const shopBefore=await shopRead();assert.equal(shopBefore.items.length,3);
+  assert.equal((await page.request.post(origin+'/api/v1/shop/purchase',{data:{actionId:'shop-tamper-browser-01',ballId:'poke-ball',quantity:2,expectedRevision:shopBefore.revision,unitPrice:0},headers:{Origin:origin}})).status(),400);
+  await page.locator('#shop-qty-poke-ball').fill('2');
+  await page.getByText('Total: 1.200 moedas',{exact:true}).waitFor();
+  const shopRequest=page.waitForRequest(q=>q.url().endsWith('/api/v1/shop/purchase')&&q.method()==='POST');
+  await responseFor(page,'/api/v1/shop/purchase',()=>page.locator('[data-shop-buy="poke-ball"]').click());
+  const purchaseArgs=(await shopRequest).postDataJSON();
+  assert.equal((await page.request.post(origin+'/api/v1/shop/purchase',{data:purchaseArgs,headers:{Origin:origin}})).status(),409);
+  await page.getByText('Saldo: 3.800 moedas',{exact:true}).waitFor();
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.getByText('Saldo: 3.800 moedas',{exact:true}).waitFor();
+  const shopAfter=await shopRead();assert.equal(shopAfter.coins,3800);assert.equal(shopAfter.items.find(i=>i.id==='poke-ball').owned,ownedBefore+2);
 
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();

@@ -45,6 +45,8 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 #region-section{margin:20px 0;padding:14px;background:#0e1c2d;border:1px solid #36556e;border-radius:14px}
 .region-actors{display:grid;grid-template-columns:1fr 1fr;gap:8px}.region-actor{min-width:0;text-align:center;background:#182d40;padding:8px;border-radius:10px}.region-actor img{width:72px;height:72px;object-fit:contain;max-width:100%}.region-actor p{font-size:.78rem;margin:5px 0}.region-actor progress{width:100%;height:10px;accent-color:#53d89c}.region-actor progress.sp{accent-color:#5cc7f8}
 #region-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#region-actions button{padding:10px;color:white;background:#263c4b;border:1px solid #557086;border-radius:9px;cursor:pointer}#region-actions button:disabled{opacity:.5;cursor:not-allowed}#region-log{max-height:160px;overflow:auto;padding-left:20px;font-size:.8rem;line-height:1.5;color:#c7deec}#region-note{font-size:.86rem;color:#9fefff}
+#shop-section{margin:20px 0;padding:14px;background:#0e1c2d;border:1px solid #36556e;border-radius:14px}
+.shop-item{padding:10px 0;border-bottom:1px solid #36556e}.shop-item input{max-width:110px}.shop-item button{margin-top:8px}.shop-item p{margin:5px 0;font-size:.85rem}
 [hidden]{display:none!important}@media(max-width:760px){nav{margin-bottom:32px}.layout{grid-template-columns:1fr;gap:35px}.card{padding:23px}h1{font-size:2.75rem}}
 </style>
 </head>
@@ -88,6 +90,9 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <h4>Diário de batalha</h4><ol id="region-log"></ol></div>
 <p id="region-note" role="status" aria-live="polite"></p>
 </section>
+<section id="shop-section" hidden aria-labelledby="shop-heading">
+<h3 id="shop-heading">Loja de Pokébolas</h3><p class="helper" id="shop-balance"></p>
+<div id="shop-items"></div><p id="shop-note" role="status" aria-live="polite"></p></section>
 <h4>Atributos do treinador</h4><p id="online-points" class="helper"></p><div id="online-stats"></div>
 <h4>Equipe</h4><p class="helper">O primeiro Pokémon luta sozinho nas regiões. O trio escolhido aqui é usado nos ginásios.</p>
 <ol id="online-team"></ol><h4>Coleção</h4><ul id="online-roster"></ul>
@@ -113,7 +118,7 @@ const starterButtons=[...panel.querySelectorAll('[data-starter]')];
 const starterNames={1:'Bulbasaur',4:'Charmander',7:'Squirtle'};
 const speciesNames=["","Bulbasaur","Ivysaur","Venusaur","Charmander","Charmeleon","Charizard","Squirtle","Wartortle","Blastoise","Caterpie","Metapod","Butterfree","Weedle","Kakuna","Beedrill","Pidgey","Pidgeotto","Pidgeot","Rattata","Raticate","Spearow","Fearow","Ekans","Arbok","Pikachu","Raichu","Sandshrew","Sandslash","Nidoran♀","Nidorina","Nidoqueen","Nidoran♂","Nidorino","Nidoking","Clefairy","Clefable","Vulpix","Ninetales","Jigglypuff","Wigglytuff","Zubat","Golbat","Oddish","Gloom","Vileplume","Paras","Parasect","Venonat","Venomoth","Diglett","Dugtrio","Meowth","Persian","Psyduck","Golduck","Mankey","Primeape","Growlithe","Arcanine","Poliwag","Poliwhirl","Poliwrath","Abra","Kadabra","Alakazam","Machop","Machoke","Machamp","Bellsprout","Weepinbell","Victreebel","Tentacool","Tentacruel","Geodude","Graveler","Golem","Ponyta","Rapidash","Slowpoke","Slowbro","Magnemite","Magneton","Farfetch'd","Doduo","Dodrio","Seel","Dewgong","Grimer","Muk","Shellder","Cloyster","Gastly","Haunter","Gengar","Onix","Drowzee","Hypno","Krabby","Kingler","Voltorb","Electrode","Exeggcute","Exeggutor","Cubone","Marowak","Hitmonlee","Hitmonchan","Lickitung","Koffing","Weezing","Rhyhorn","Rhydon","Chansey","Tangela","Kangaskhan","Horsea","Seadra","Goldeen","Seaking","Staryu","Starmie","Mr. Mime","Scyther","Jynx","Electabuzz","Magmar","Pinsir","Tauros","Magikarp","Gyarados","Lapras","Ditto","Eevee","Vaporeon","Jolteon","Flareon","Porygon","Omanyte","Omastar","Kabuto","Kabutops","Aerodactyl","Snorlax","Articuno","Zapdos","Moltres","Dratini","Dragonair","Dragonite","Mewtwo","Mew"];
 const statLabels={hp:'HP',attack:'Ataque',defense:'Defesa',specialAttack:'Ataque especial',specialDefense:'Defesa especial',speed:'Velocidade'};
-let serverProgress=null,teamDraft=[],regionalState=null,selectedRegionId=1;
+let serverProgress=null,teamDraft=[],regionalState=null,shopState=null,selectedRegionId=1;
 const regionSection=$('region-section'),regionOpen=$('region-open'),regionBattle=$('region-battle');
 const regionActive=()=>Boolean(regionalState?.encounter);
 const regionSelect=$('region-select');
@@ -204,6 +209,40 @@ async function regionCommand(command,fields={}){
  }
 }
 regionOpen.addEventListener('click',()=>regionCommand('open'));
+function renderShop(){
+ const section=$('shop-section');section.hidden=!shopState||!serverProgress;
+ const list=$('shop-items');list.replaceChildren();
+ if(section.hidden)return;
+ $('shop-balance').textContent='Saldo: '+shopState.coins.toLocaleString('pt-BR')+' moedas';
+ for(const item of shopState.items){
+  const row=document.createElement('div');row.className='shop-item';row.dataset.shopItem=item.id;
+  const heading=document.createElement('strong');heading.textContent=item.name;
+  const info=document.createElement('p');info.textContent=item.unitPrice.toLocaleString('pt-BR')+' moedas/unidade · Estoque: '+item.owned;
+  const label=document.createElement('label');label.htmlFor='shop-qty-'+item.id;label.textContent='Quantidade de '+item.name;
+  const qty=document.createElement('input');qty.id=label.htmlFor;qty.type='number';qty.min='1';qty.max=String(Math.max(1,item.maxAffordable));qty.step='1';qty.value='1';
+  const total=document.createElement('p');total.dataset.shopTotal=item.id;
+  const button=document.createElement('button');button.type='button';button.className='primary';button.textContent='Comprar '+item.name;button.dataset.shopBuy=item.id;
+  const update=()=>{
+   const n=Number(qty.value),valid=Number.isSafeInteger(n)&&n>=1&&n<=item.maxAffordable;
+   total.textContent=!item.unlocked?'Disponível no nível '+item.trainerUnlockLevel:shopState.busy?'Compra indisponível durante atividade.':item.maxAffordable<1?'Saldo insuficiente ou bolso cheio.':valid?'Total: '+(n*item.unitPrice).toLocaleString('pt-BR')+' moedas':'Quantidade inválida.';
+   qty.disabled=onlineBusy||shopState.busy||!item.unlocked||item.maxAffordable<1;
+   button.disabled=qty.disabled||!valid;
+  };
+  qty.addEventListener('input',update);button.addEventListener('click',()=>shopPurchase(item.id,Number(qty.value)));
+  row.append(heading,info,label,qty,total,button);list.append(row);update();
+ }
+}
+async function shopPurchase(ballId,quantity){
+ if(onlineBusy||!available||!serverProgress||!shopState||shopState.busy||progress.hidden||shopState.revision!==serverProgress.revision)return;
+ const item=shopState.items.find(x=>x.id===ballId);
+ if(!item||!Number.isSafeInteger(quantity)||quantity<1||quantity>item.maxAffordable)return;
+ const expectedRevision=shopState.revision;
+ setOnlineBusy(true);$('shop-note').textContent='';
+ let result=null;
+ try{result=await api('/api/v1/shop/purchase',{actionId:crypto.randomUUID(),expectedRevision,ballId,quantity});}catch{}
+ const loaded=await refreshPortal();
+ if(loaded&&shopState)$('shop-note').textContent=result?.purchase?'Compra concluída: '+quantity+' '+item.name+' · '+result.purchase.cost.toLocaleString('pt-BR')+' moedas.':'Compra não confirmada. Confira o saldo atualizado antes de tentar novamente.';
+}
 const sameTeam=(a,b)=>a.length===b.length&&a.every((uid,i)=>uid===b[i]);
 function actionButton(label,handler,disabled=false){
  const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.addEventListener('click',handler);return b;
@@ -256,7 +295,7 @@ $('online-team-save').addEventListener('click',()=>{
   runProgressAction('/api/v1/collection/team',{teamUids:[...teamDraft]});
 });
 function clearPortal(){
- portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;selectedRegionId=1;renderRegion();$('region-note').textContent='';
+ portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;shopState=null;selectedRegionId=1;renderRegion();renderShop();$('region-note').textContent='';$('shop-note').textContent='';
  $('online-team').replaceChildren();$('online-stats').replaceChildren();$('online-points').textContent='';$('online-team-save').disabled=true;
  $('online-trainer').textContent='';$('online-roster').replaceChildren();
  for(const id of ['online-level','online-coins','online-badges','online-count','online-revision','online-error'])$(id).textContent='';
@@ -267,7 +306,7 @@ function setOnlineBusy(busy){
  $('online-start').disabled=busy||selectedStarter===null;
  $('online-refresh').disabled=busy;$('online-logout').disabled=busy;
  $('reset-link').disabled=busy;
- if(serverProgress){renderTeam();renderStats();}renderRegion();
+ if(serverProgress){renderTeam();renderStats();}renderRegion();renderShop();
 }
 async function getOnline(path){
  const r=await fetch(path,{credentials:'same-origin',cache:'no-store',redirect:'error'});
@@ -300,7 +339,7 @@ function showSave(data){
 async function refreshPortal(){
  if(!available||view!=='login')return false;
  const epoch=++portalEpoch;
- setOnlineBusy(true);$('online-error').textContent='';newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;renderRegion();
+ setOnlineBusy(true);$('online-error').textContent='';newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;shopState=null;renderRegion();renderShop();
  try{
   const me=await getOnline('/api/v1/me');
   if(epoch!==portalEpoch)return false;
@@ -319,12 +358,16 @@ async function refreshPortal(){
    if(region.status===401){render('login');return false;}
    if(region.status===200&&region.data?.status==='ok'&&region.data.revision===serverProgress.revision)regionalState=region.data;
    else if(region.status!==503&&region.status!==404)throw new Error('Estado regional indisponível.');
-   // A CI environment without a regional key can still use the earlier portal.
-   renderRegion();
+   const shop=await getOnline('/api/v1/shop/current');
+   if(epoch!==portalEpoch)return false;
+   if(shop.status===401){render('login');return false;}
+   if(shop.status===200&&shop.data?.status==='ok'&&shop.data.revision===serverProgress.revision)shopState=shop.data;
+   else if(shop.status!==503&&shop.status!==404)throw new Error('Loja indisponível.');
+   renderRegion();renderShop();
   }
   else throw new Error('Progresso indisponível.');
   return true;
- }catch{if(epoch===portalEpoch)$('online-error').textContent='Não foi possível carregar o progresso. Atualize e tente novamente.';return false;}
+ }catch{if(epoch===portalEpoch){progress.hidden=true;serverProgress=null;regionalState=null;shopState=null;$('online-error').textContent='Não foi possível carregar o progresso. Atualize e tente novamente.';}return false;}
  finally{if(epoch===portalEpoch||panel.hidden)setOnlineBusy(false);}
 }
 starterButtons.forEach(b=>b.addEventListener('click',()=>{

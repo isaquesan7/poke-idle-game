@@ -2161,3 +2161,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - #280 integrada na main f50f7d1d175187fbcb2f3889017358ab910c4320, quatro CI SUCCESS no HEAD eaf32a1b59b90a98d0804ee64f28533fc2aed2c6. #281 cinco CI SUCCESS no HEAD anterior d083005dfc0b115f3f974ebd9c429240379237f8; reconciliada após squash, CI final obrigatório. #282 painel candidato. Cadastro OFF.
 
 - #281 publicada Railway web/API SUCCESS no SHA 763736fc7d6517059df44ea0d1b94c136573b4c5; #283 reconciliada preservando API expedição. CI final obrigatório.
+
+
+## ONLINE-01C-23F9B — API e painel loja CI-only
+- Ampliado #283, sem criar PR paralelo adicional. GET shop/current e POST purchase autenticados, sessão verificada, CSRF e throttle, flag test/PG18 descartável. Vitrine de três itens, nível, saldo/estoque, quantidade e total; preço mostrado não é enviado no checkout, débito exclusivamente servidor, UI atualiza após resposta. E2E real proxy/compra/duplicata/preço forjado/reload. Produção fail closed. CI final obrigatório e integração ordenada após #278/#279/#282 para evitar conflitos. Nenhuma mudança preços/SQL/cadastro /play.

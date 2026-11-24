@@ -1,3 +1,5 @@
+> **23F9B CANDIDATA:** #283 ampliado com API/UI loja CI-only, preço servidor, E2E, produção bloqueada; integrar após painéis anteriores. Sem SQL/cadastro. docs/ONLINE_SHOP_HTTP_PORTAL_23F9B.md.
+
 > **23F8A INTEGRADA:** #280 quatro CI SUCCESS, main f50f7d1d175187fbcb2f3889017358ab910c4320. #281 cinco CI SUCCESS anterior; reconciliada, CI final obrigatório. #282 candidata. Cadastro OFF.
 
 > **23F8B CANDIDATA:** HTTP expedição CI-only com relógio PG/projeção/reducer, writers autenticados e teste browser; depende #280, UI próxima. Sem cadastro/SQL. docs/ONLINE_EXPEDITION_HTTP_23F8B.md.
