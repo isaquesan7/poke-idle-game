@@ -20,14 +20,13 @@ export function applyOnlineEvolution(raw:string,uid:number,targetSpeciesId:numbe
  if(!prepareRewardJournal(result.json))return {status:'invalid-save'} as const;
  const evolved=after.roster.find((p:{uid:number})=>p.uid===uid);
  if(!evolved||evolved.pokemonId!==targetSpeciesId)return {status:'invalid-save'} as const;
- // Temporary compatibility gate: online snapshots currently validate the
- // current species learnset, not historical learned moves. Never silently
- // replace an equipped move, debit a stone, or persist an unusable fighter.
- // Resolve inherited-move provenance before exposing the evolution route.
- const equipped=evolved.equippedMoveNames??[evolved.moveName];
- const region=frozenValidatedEquippedMoves(targetSpeciesId,evolved.level,equipped);
- const gym=canonicalOnlineGymEquippedMoves(targetSpeciesId,evolved.level,equipped);
- if(!region?.some(m=>m.category!=='status')||!gym?.some(m=>m.category!=='status'))
-  return {status:'loadout-incompatible'} as const;
- return {status:'ok',raw:result.json,fromSpeciesId:member.pokemonId,targetSpeciesId} as const;
+ const equipped=member.equippedMoveNames??[member.moveName];
+ const legal=frozenValidatedEquippedMoves(member.pokemonId,member.level,equipped,member.evolutionHistory);
+ if(!legal?.some(m=>m.category!=='status')||equipped[0]!==member.moveName)return {status:'loadout-incompatible'} as const;
+ const history=[...(member.evolutionHistory??[]),{from:member.pokemonId,to:targetSpeciesId,level:member.level,moves:[...equipped]}];
+ const region=frozenValidatedEquippedMoves(targetSpeciesId,evolved.level,equipped,history);
+ const gym=canonicalOnlineGymEquippedMoves(targetSpeciesId,evolved.level,equipped,history);
+ if(!region?.some(m=>m.category!=='status')||!gym?.some(m=>m.category!=='status'))return {status:'loadout-incompatible'} as const;
+ evolved.evolutionHistory=history;
+ return {status:'ok',raw:JSON.stringify(after),fromSpeciesId:member.pokemonId,targetSpeciesId} as const;
 }
