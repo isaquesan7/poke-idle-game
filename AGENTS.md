@@ -1,3 +1,5 @@
+> **23F1 PORTAL (24/11/2026):** implementação inicial de progresso online na home, seleção nv1, save somente servidor, reload/logout. CI pendente, #271 independente. Não alterar /play, cadastro production OFF, próximos writers e batalhas online via HTTP canônico; não repetir probes/PITR/sandbox. Veja docs/ONLINE_PORTAL_PROGRESS_23F1.md.
+
 > **RESTORE — continuidade 24/11/2026:** PITR real e auditoria estrutural já executados: logs Railway confirmam WAL, recovery point 11:07:09 UTC, ready 11:15:56 UTC; histórico operador 25 migrations, 16 tabelas, zero constraints inválidas/contas/saves/e-mails. NÃO repetir. Gate A parcial: clone no mesmo ambiente, revisão/cronologia/IDs/retencão formais pendentes. Sem mutação de produção. Ver fim PROJECT_STATE.
 
 > **23E28 RECONCILIADA:** #270 merged, cinco CI SUCCESS; #271 smoke dedicado/PG18/browser/D044 SUCCESS no HEAD anterior, CI final obrigatório. Próximo fechar evidência de restore já existente; não recriar clone ou repetir probes.

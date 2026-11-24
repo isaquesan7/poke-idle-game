@@ -94,6 +94,7 @@ try{
   assert.equal(await publicPage.locator('#submit').isDisabled(),true);
   assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/status')).status(),503);
   assert.equal((await publicPage.request.get(closedOrigin+'/play')).status(),200);
+  assert.equal(await publicPage.locator('#online-panel').isHidden(),true);
   await mobile.close();
 
   const context=await browser.newContext({viewport:{width:1365,height:768},
@@ -139,6 +140,29 @@ try{
     'HTTPS must retain a Secure __Host- session cookie');
   assert.equal((await page.request.get(origin+'/api/v1/me')).status(),200);
 
+  // First adventure is a server action, never an import of the /play save.
+  await page.locator('#online-new').waitFor();
+  assert.equal(await page.locator('#online-start').isDisabled(),true);
+  await page.evaluate(()=>localStorage.setItem('online-portal-ci-sentinel','must-not-change'));
+  await page.locator('[data-starter="4"]').click();
+  const started=await responseFor(page,'/api/v1/adventure/start',()=>page.locator('#online-start').click());
+  assert.deepEqual(started,{created:true,revision:0,starterId:4});
+  await page.locator('#online-progress').waitFor();
+  assert.equal(await page.locator('#online-level').textContent(),'1');
+  assert.equal(await page.locator('#online-coins').textContent(),'0');
+  assert.equal(await page.locator('#online-count').textContent(),'1');
+  assert.match(await page.locator('#online-roster').textContent(),/Charmander · Nível 1/);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#online-progress').waitFor();
+  assert.equal(await page.locator('#online-new').isHidden(),true);
+  assert.match(await page.locator('#online-roster').textContent(),/Charmander · Nível 1/);
+  assert.equal(await page.evaluate(()=>localStorage.getItem('online-portal-ci-sentinel')),'must-not-change');
+  const duplicate=await page.request.post(origin+'/api/v1/adventure/start',{data:{starterId:7},headers:{Origin:origin}});
+  assert.equal(duplicate.status(),409);
+  const persisted=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[registeredId]);
+  assert.equal(persisted.rowCount,1);assert.equal(Number(persisted.rows[0].revision),0);
+  assert.equal(JSON.parse(persisted.rows[0].state.journal.raw).roster[0].pokemonId,4);
+
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();
   assert.ok(page.url().endsWith('/reset-password'));
@@ -176,6 +200,12 @@ try{
   await page.locator('#password').fill(replacement);
   await responseFor(page,'/api/v1/auth/login',()=>page.locator('#submit').click());
   assert.equal((await page.request.get(origin+'/api/v1/me')).status(),200);
+  await page.locator('#online-progress').waitFor();
+  assert.match(await page.locator('#online-roster').textContent(),/Charmander · Nível 1/);
+  await responseFor(page,'/api/v1/auth/logout',()=>page.locator('#online-logout').click());
+  await page.locator('#auth-form').waitFor();
+  assert.equal(await page.locator('#online-panel').isHidden(),true);
+  assert.equal((await page.request.get(origin+'/api/v1/me')).status(),401);
   assert.deepEqual(browserErrors,[],'no uncaught browser errors');
   console.log('ONLINE-01C-23E4: browser auth, verification, reset, replay and closed mode PASS');
   await context.close();

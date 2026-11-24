@@ -36,6 +36,12 @@ input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #9fef
 #feedback{min-height:1.5em;margin-top:14px;font-size:.9rem;color:#b7eff5}
 footer{text-align:center;margin:70px 0 0;color:#96b7c9;font-size:.82rem}
 a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;border:1px solid #65dfea;border-radius:12px;text-decoration:none;font-weight:800;color:#ddfbff}
+#online-panel{margin-top:20px}.starter-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:16px}
+.starter{background:#0e1c2d;color:#e9f6ff;border:1px solid #557086;border-radius:12px;padding:10px 4px;cursor:pointer;font-weight:700}
+.starter img{display:block;width:72px;height:72px;object-fit:contain;margin:0 auto 4px;image-rendering:pixelated;max-width:100%}
+.starter[aria-pressed="true"]{border-color:#59ddeb;box-shadow:0 0 0 2px #59ddeb}.starter:disabled{opacity:.65;cursor:not-allowed}
+.progress-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}.progress-list div{background:#0e1c2d;border-radius:10px;padding:10px}.progress-list dt{font-size:.8rem;color:#b1cadb}.progress-list dd{font-weight:800;margin:4px 0 0}
+#online-roster{padding-left:20px;color:#c7deec;line-height:1.7}#online-logout{margin-top:12px}
 [hidden]{display:none!important}@media(max-width:760px){nav{margin-bottom:32px}.layout{grid-template-columns:1fr;gap:35px}.card{padding:23px}h1{font-size:2.75rem}}
 </style>
 </head>
@@ -60,6 +66,21 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <div id="confirm-wrap" hidden><label for="confirm-password">Confirmar senha</label><input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" minlength="12" maxlength="128"><p class="helper">Use de 12 a 128 caracteres e repita sua senha.</p></div>
 <button class="primary" id="submit" type="submit" disabled>Disponível em breve</button>
 </form>
+<section id="online-panel" hidden aria-label="Aventura online">
+<h3 id="online-trainer"></h3><p class="helper">Progresso do servidor · ambiente de testes</p>
+<div id="online-new" hidden><p>Escolha seu Pokémon inicial. Sua aventura começa no nível 1.</p>
+<div class="starter-list" role="group" aria-label="Pokémon inicial">
+<button class="starter" type="button" data-starter="1" aria-pressed="false"><img src="/assets/pokemon-gifs/poke_1.gif" alt="">Bulbasaur</button>
+<button class="starter" type="button" data-starter="4" aria-pressed="false"><img src="/assets/pokemon-gifs/poke_4.gif" alt="">Charmander</button>
+<button class="starter" type="button" data-starter="7" aria-pressed="false"><img src="/assets/pokemon-gifs/poke_7.gif" alt="">Squirtle</button></div>
+<button id="online-start" class="primary" type="button" disabled>Iniciar aventura</button></div>
+<div id="online-progress" hidden><dl class="progress-list"><div><dt>Nível do treinador</dt><dd id="online-level"></dd></div><div><dt>Moedas</dt><dd id="online-coins"></dd></div><div><dt>Insígnias</dt><dd id="online-badges"></dd></div><div><dt>Pokémon na coleção</dt><dd id="online-count"></dd></div></dl>
+<h4>Coleção</h4><ul id="online-roster"></ul><p class="helper" id="online-revision"></p></div>
+<p id="online-error" role="status"></p>
+<button id="online-refresh" type="button" class="small-link">Atualizar progresso</button>
+<button id="online-logout" type="button" class="primary">Sair da conta</button>
+<p class="helper">Batalhas online ainda não estão liberadas nesta interface. O /play continua separado.</p>
+</section>
 <div id="reset-link-wrap" class="sub"><button id="reset-link" type="button" class="small-link">Esqueceu a senha?</button></div>
 <p id="feedback" role="status" aria-live="polite"></p>
 </section></div><footer>Projeto de fãs não oficial · Em desenvolvimento · <a href="/play">Acessar laboratório /play</a></footer></main>
@@ -70,12 +91,91 @@ const $=id=>document.getElementById(id);
 const form=$('auth-form'), status=$('status'),feedback=$('feedback');
 const submit=$('submit'),tabs=$('tabs'),password=$('password');
 const confirmPassword=$('confirm-password');
-let available=false,view='login',token='';
+let available=false,view='login',token='',onlineBusy=false,selectedStarter=null,portalEpoch=0;
+const panel=$('online-panel'),newAdventure=$('online-new'),progress=$('online-progress');
+const starterButtons=[...panel.querySelectorAll('[data-starter]')];
+const starterNames={1:'Bulbasaur',4:'Charmander',7:'Squirtle'};
+function clearPortal(){
+ portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;
+ $('online-trainer').textContent='';$('online-roster').replaceChildren();
+ for(const id of ['online-level','online-coins','online-badges','online-count','online-revision','online-error'])$(id).textContent='';
+ selectedStarter=null;starterButtons.forEach(b=>b.setAttribute('aria-pressed','false'));
+}
+function setOnlineBusy(busy){
+ onlineBusy=busy;starterButtons.forEach(b=>b.disabled=busy);
+ $('online-start').disabled=busy||selectedStarter===null;
+ $('online-refresh').disabled=busy;$('online-logout').disabled=busy;
+ $('reset-link').disabled=busy;
+}
+async function getOnline(path){
+ const r=await fetch(path,{credentials:'same-origin',cache:'no-store',redirect:'error'});
+ let data=null;try{data=await r.json();}catch{}
+ return {status:r.status,data};
+}
+function showSave(data){
+ const revision=Number(data?.revision),save=data?.state;
+ if(!Number.isSafeInteger(revision)||revision<0||data?.schema_version!==2||
+    save?.schemaVersion!==2||save.revision!==revision||save.journal?.revision!==revision||
+    typeof save.journal.raw!=='string')throw new Error('Progresso indisponível.');
+ const state=JSON.parse(save.journal.raw);
+ if(state?.version!==1||!Number.isSafeInteger(state.trainer?.level)||state.trainer.level<1||
+    !Number.isSafeInteger(state.coins)||state.coins<0||!Array.isArray(state.badges)||!Array.isArray(state.roster)||
+    state.roster.some(p=>!Number.isSafeInteger(p?.pokemonId)||p.pokemonId<1||p.pokemonId>151||
+      !Number.isSafeInteger(p.level)||p.level<1))throw new Error('Progresso indisponível.');
+ $('online-level').textContent=String(state.trainer.level);$('online-coins').textContent=String(state.coins);
+ $('online-badges').textContent=String(state.badges.length);$('online-count').textContent=String(state.roster.length);
+ const items=state.roster.map(p=>{const li=document.createElement('li');
+  li.textContent=(starterNames[p.pokemonId]||'Pokémon #'+p.pokemonId)+' · Nível '+p.level;return li;});
+ $('online-roster').replaceChildren(...items);$('online-revision').textContent='Revisão do servidor: '+revision;
+ newAdventure.hidden=true;progress.hidden=false;
+}
+async function refreshPortal(){
+ if(!available||view!=='login')return false;
+ const epoch=++portalEpoch;
+ setOnlineBusy(true);$('online-error').textContent='';newAdventure.hidden=true;progress.hidden=true;
+ try{
+  const me=await getOnline('/api/v1/me');
+  if(epoch!==portalEpoch)return false;
+  if(me.status===401){render('login');return false;}
+  if(me.status!==200||typeof me.data?.trainerName!=='string')throw new Error('Conta indisponível.');
+  panel.hidden=false;tabs.hidden=true;form.hidden=true;
+  $('online-trainer').textContent=me.data.trainerName;
+  const save=await getOnline('/api/v1/save');
+  if(epoch!==portalEpoch)return false;
+  if(save.status===401){render('login');return false;}
+  if(save.status===404){selectedStarter=null;starterButtons.forEach(b=>b.setAttribute('aria-pressed','false'));newAdventure.hidden=false;}
+  else if(save.status===200)showSave(save.data);
+  else throw new Error('Progresso indisponível.');
+  return true;
+ }catch{if(epoch===portalEpoch)$('online-error').textContent='Não foi possível carregar o progresso. Atualize e tente novamente.';return false;}
+ finally{if(epoch===portalEpoch||panel.hidden)setOnlineBusy(false);}
+}
+starterButtons.forEach(b=>b.addEventListener('click',()=>{
+ if(onlineBusy||newAdventure.hidden)return;
+ selectedStarter=Number(b.dataset.starter);starterButtons.forEach(other=>other.setAttribute('aria-pressed',String(other===b)));
+ $('online-start').disabled=false;
+}));
+$('online-start').addEventListener('click',async()=>{
+ if(onlineBusy||!available||newAdventure.hidden||!Object.hasOwn(starterNames,selectedStarter))return;
+ setOnlineBusy(true);const starterId=selectedStarter;
+ let failed=false;
+ try{await api('/api/v1/adventure/start',{starterId});}
+ catch{failed=true; /* Resolve concurrent creation or a lost response via server read. */ }
+ await refreshPortal();
+ if(failed&&!panel.hidden&&!newAdventure.hidden)$('online-error').textContent='Não foi possível iniciar a aventura. Selecione o inicial e tente novamente.';
+});
+$('online-refresh').addEventListener('click',()=>{if(!onlineBusy)refreshPortal();});
+$('online-logout').addEventListener('click',async()=>{
+ if(onlineBusy)return;setOnlineBusy(true);
+ try{await api('/api/v1/auth/logout',{});clearPortal();render('login');message('Sessão encerrada.');}
+ catch{$('online-error').textContent='Não foi possível encerrar a sessão. Tente novamente.';}
+ finally{setOnlineBusy(false);}
+});
 function message(text,invalid=false){
  feedback.textContent=text;feedback.classList.toggle('error',invalid);
 }
 function render(next){
- view=next;message('');
+ clearPortal();view=next;message('');
  const register=next==='register',reset=next==='reset',verify=next==='verify';
  const confirm=register||(reset&&!!token);
  $('confirm-wrap').hidden=!confirm;
@@ -132,6 +232,7 @@ async function init(){
  if(!validLink)message('O link recebido é inválido.',true);
  else if(route==='/verify-email'&&!token)message('Link de confirmação ausente.',true);
  else if(route==='/reset-password'&&!token)message('Informe seu e-mail para solicitar um novo link.');
+ else if(route==='/'&&available)await refreshPortal();
 }
 tabs.addEventListener('click',event=>{
  const btn=event.target.closest('[data-view]');
@@ -146,6 +247,7 @@ $('reset-link').addEventListener('click',()=>{
 });
 form.addEventListener('submit',async event=>{
  event.preventDefault();if(!available)return;
+ if(submit.disabled)return;
  const email=$('email').value.trim(),pass=password.value;
  if((view==='register'||(view==='reset'&&token))&&pass!==confirmPassword.value)
    return message('As senhas informadas não coincidem.',true);
@@ -162,7 +264,7 @@ form.addEventListener('submit',async event=>{
  submit.disabled=true;message('Processando…');
  try{
   await api(path,payload);
-  if(view==='register')message('Conta criada. Verifique seu e-mail antes de entrar.');
+  if(view==='register'){password.value='';confirmPassword.value='';message('Conta criada. Verifique seu e-mail antes de entrar.');}
   else if(view==='verify'){
     token='';password.value='';confirmPassword.value='';
     message('E-mail confirmado. Volte à página inicial para entrar.');
@@ -173,7 +275,8 @@ form.addEventListener('submit',async event=>{
     message(changed?'Senha redefinida. Volte à página inicial para entrar.':
       'Se o e-mail estiver cadastrado, você receberá instruções.');
   }
-  else message('Autenticação concluída. A aventura online ainda está em preparação.');
+  else {password.value='';confirmPassword.value='';$('email').value='';
+    const loaded=await refreshPortal();message(loaded?'Autenticação concluída.':'Autenticação concluída. Atualize para consultar seu progresso.');}
  }catch(error){
    message(error instanceof Error?error.message:'Operação não concluída.',true);
  }
