@@ -30,7 +30,7 @@ export function evaluateResendEvidence(record,{now=new Date()}={}){
   const errors=[];
   if(record.provider!=='resend'||record.environment!=='isolated'||
     record.productionDeliveryDisabled!==true||
-    record.controlledTestRecipient===false||record.controlledTestRecipient!==true)
+    record.controlledTestRecipient!==true)
     errors.push('isolated_resend_test_required');
   if(!ref(record.domainProofRef)||record.senderDomainVerified!==true)
     errors.push('domain_proof_missing');
@@ -54,6 +54,9 @@ export function evaluateResendEvidence(record,{now=new Date()}={}){
     [record.verification?.linkUsedAtUtc,record.reset?.linkUsedAtUtc,
       record.expiredTokenRejectedAtUtc].some(v=>at(v)&&Date.parse(v)>Date.parse(record.reviewedAtUtc)))
     errors.push('review_before_test_completion');
+  if(at(record.expiredTokenRejectedAtUtc)&&at(record.reset?.sentAtUtc)&&
+    Date.parse(record.expiredTokenRejectedAtUtc)<Date.parse(record.reset.sentAtUtc))
+    errors.push('expiry_check_before_reset_request');
   return {
     passed:errors.length===0,blockers:errors,
     note:'Operator-supplied offline evidence only. Does not verify Resend API or mailbox, and never enables accounts.'
