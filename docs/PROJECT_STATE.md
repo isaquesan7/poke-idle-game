@@ -1961,3 +1961,16 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Módulo puro proxyIdentity.mjs + testes sintéticos: IP validado canonicalizado, subject HMAC, assertion assinada ligada a método/rota/corpo, prazo e nonce. Não importado no runtime; não usa cabeçalhos reais, não consome nonce ainda, não libera cadastro. Próximo: comprovar ingress, política de chaves e consumo nonce distribuído em teste antes de uso. Veja docs/ONLINE_PROXY_SIGNED_IDENTITY_23E10.md. CI pendente, gate de proxy falso, LGPD/restore/remetente pendentes. /play local sem migração, Regiões 1v1 e Gym 3v3 inalterados.
 
 - PR #252 merged main b8823943ad9b9f5f7755f768dba93bd8b811f62e após quatro CI SUCCESS; branch 23E10 reconciliada, CI do HEAD combinado pendente.
+
+
+## ONLINE-01C-23E12 — instrumento de observação do ingress (24/11/2026; branch)
+- Railway production verificado via leitura: web público, API sem domínio público, Postgres e clone restaurado no mesmo ambiente; nenhum fork. Sem mudança de infraestrutura. PRs #253/#254 ainda em CI/merge.
+- Probe standalone autenticado, curto e limitado, sem IP bruto no relatório; testes locais de formatos, duplicidade, autorização, validade e limite. Não integrado ao runtime, ensaio Railway ainda NÃO executado. docs/ONLINE_RAILWAY_INGRESS_OBSERVATION_23E12.md descreve ambiente vazio temporário e procedimento. Gate permanece falso, cadastro OFF; nenhum custo ou recurso novo contratado.
+
+- #253 integrado main cc6e9947c8b6671e32f7a73cb93efdd8542e2f73 após três CI SUCCESS; branch reconciliada, CI do HEAD combinado pendente.
+
+- 23E12 revisão: Dockerfile.ingress-probe exclusivo (runtime web D-044 não inclui scripts) e cliente de seis casos sem exposição de IP/token. API real sem domínio/TCP proxy; execução externa indisponível nesta sessão, não provisionado recurso faturável. CI do HEAD atualizado pendente.
+
+- 23E12: CI dedicado de imagem isolada em loopback e roteiro CMD. Sem provisionamento Railway ou alteração de runtime; aguarda CI e execução externa autorizada.
+
+- 23E12C: projeto temporário isolado provisionado com autorização, imagem CI SUCCESS, deploy Railway SUCCESS. Primeira tentativa 6x404 sem observação de identidade; cliente corrigido com Host explícito, confirmado em reprodução local Node 22. Novo ensaio pendente, token anterior a revogar; cadastro OFF. Remover serviço temporário após ensaio.
