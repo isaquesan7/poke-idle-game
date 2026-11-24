@@ -9,7 +9,7 @@ export async function trainPokemon(pool,params){
   !Number.isSafeInteger(params.expectedRevision)||params.expectedRevision<0||
   !Number.isSafeInteger(params.pokemonUid)||params.pokemonUid<1||
   !params.increments||typeof params.increments!=='object'||Array.isArray(params.increments))return {status:'invalid'};
- const {accountId,actionId,expectedRevision,pokemonUid,targetSpeciesId}=params;
+ const {accountId,actionId,expectedRevision,pokemonUid,increments}=params;
  const c=await pool.connect();
  try{
   await c.query('BEGIN');
