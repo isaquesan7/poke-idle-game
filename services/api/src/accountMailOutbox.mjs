@@ -134,6 +134,28 @@ export async function accountMailMetrics(pool){
     oldestBacklogSeconds:Math.max(0,delayed.rows[0].oldest_seconds)};
 }
 
+/**
+ * Conservative release signals. Read-only and aggregate-only:
+ * the operator decides how notifications are delivered.
+ */
+export function evaluateAccountMailAlerts(metrics,{
+  backlogLimit=25,oldestBacklogSecondsLimit=300,deadLimit=1
+}={}){
+  if(!metrics||!metrics.counts||
+    ![backlogLimit,oldestBacklogSecondsLimit,deadLimit].every(
+      value=>Number.isSafeInteger(value)&&value>=0))
+    throw new TypeError('Invalid mail alert thresholds');
+  const {backlog,oldestBacklogSeconds,counts}=metrics;
+  if(![backlog,oldestBacklogSeconds,counts.dead].every(
+    value=>Number.isFinite(value)&&value>=0))
+    throw new TypeError('Invalid mail metrics');
+  return {
+    backlog:backlog>=backlogLimit&&backlog>0,
+    stale:oldestBacklogSeconds>=oldestBacklogSecondsLimit&&backlog>0,
+    dead:counts.dead>=deadLimit&&counts.dead>0
+  };
+}
+
 /** Claim leases using SKIP LOCKED. Crash after provider acceptance can retry:
  * stable Resend idempotency_key is essential (at-least-once worker semantics).
  */
@@ -194,23 +216,25 @@ export async function processOneAccountMail(pool,{keyring,from,providerKey,send}
       to:data.to,purpose:row.purpose,token:data.token,origin:data.origin,
       key:providerKey,from,idempotencyKey:row.idempotency_key,send
     });
-    await pool.query(`
+    const ack=await pool.query(`
       UPDATE game_account_mail_outbox SET status='delivered',
       provider_receipt=$3,delivered_at=now(),lease_until=NULL,
       updated_at=now()
       WHERE id=$1 AND status='sending' AND attempt_count=$2
         AND lease_until>now()
     `,[id,row.attempt_count,delivered.id]);
-    return {status:'delivered',id};
+    // Another worker may have reclaimed the lease while the provider was
+    // processing the request. Never announce local success in that case.
+    return {status:ack.rowCount===1?'delivered':'lost-lease',id};
   }catch{
     const dead=row.attempt_count>=maxAttempts;
-    await pool.query(`
+    const failure=await pool.query(`
       UPDATE game_account_mail_outbox
       SET status=$3,lease_until=NULL,
         available_at=now()+($4::integer*interval '1 second'),updated_at=now()
       WHERE id=$1 AND status='sending' AND attempt_count=$2
         AND lease_until>now()
     `,[id,row.attempt_count,dead?'dead':'pending',Math.min(900,2**row.attempt_count*15)]);
-    return {status:dead?'dead':'retry',id};
+    return {status:failure.rowCount===1?(dead?'dead':'retry'):'lost-lease',id};
   }
 }
