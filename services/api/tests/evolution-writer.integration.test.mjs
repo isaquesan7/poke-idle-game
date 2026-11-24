@@ -52,7 +52,8 @@ test('23F11B: canonical UID evolution is atomic and preserves the instance',asyn
   assert.equal((await evolve(1,6,1,{actionId})).status,'duplicate');
   // Only disposable fixture supplies a legitimate stone. Never grant a kit.
   const stoneBefore=await fixture(raw=>{
-   raw.roster.push({...raw.roster[0],uid:2,pokemonId:25,evolutionHistory:undefined,level:1,xp:0,manual:{hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0},moveName:'thunder-shock',equippedMoveNames:['thunder-shock'],upgrades:{},affinity:0,battleRecord:{wins:0,draws:0,losses:0}});
+   raw.roster.push({...raw.roster[0],uid:2,pokemonId:25,level:1,xp:0,manual:{hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0},moveName:'thunder-shock',equippedMoveNames:['thunder-shock'],upgrades:{},affinity:0,battleRecord:{wins:0,draws:0,losses:0}});
+   delete raw.roster[1].evolutionHistory;
    raw.nextUid=3;raw.seen.push(25);raw.caughtSpecies.push(25);
   });
   assert.equal((await evolve(2,26,1)).status,'unavailable');
