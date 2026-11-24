@@ -41,4 +41,4 @@ export {onlineMoveProjection} from './serverMoveProjection.js';
 
 export {applyOnlineEvolution,onlineEvolutionProjection} from './serverEvolution.js';
 
-export {applyOnlinePokemonTraining} from './serverPokemonTraining.js';
+export {applyOnlinePokemonTraining,onlinePokemonTrainingProjection} from './serverPokemonTraining.js';
