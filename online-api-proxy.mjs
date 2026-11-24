@@ -23,7 +23,25 @@ const hopByHop=new Set(['connection','keep-alive','proxy-authenticate',
   'proxy-authorization','te','trailer','transfer-encoding','upgrade',
   'host','forwarded','x-forwarded-for','x-forwarded-host',
   'x-forwarded-proto','content-length']);
+// Only these headers belong to the account protocol. Never propagate
+// externally supplied proxy identity, tracing or arbitrary internal headers.
+const requestHeaders=new Set(['content-type','origin','cookie','accept']);
+const responseHeaders=new Set(['content-type','set-cookie','retry-after','allow',
+  'x-frame-options','referrer-policy','x-robots-tag','content-disposition','vary']);
+const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save']);
 const maxBody=16384;
+function connectionTokens(headers){
+  return new Set(String(headers.connection??'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean));
+}
+function pickHeaders(headers,allow){
+  const nominated=connectionTokens(headers);
+  const out={};
+  for(const [name,value] of Object.entries(headers)){
+    if(allow.has(name)&&!hopByHop.has(name)&&!nominated.has(name)&&value!==undefined)
+      out[name]=value;
+  }
+  return out;
+}
 function fail(res,status,message){
   if(res.headersSent){res.destroy();return;}
   res.writeHead(status,{'Content-Type':'application/json; charset=utf-8',
@@ -39,48 +57,70 @@ export function proxyOnlineApi(req,res,pathname){
     fail(res,503,'Contas online em preparação');return true;
   }
   const method=req.method;
-  if(method!=='GET'&&method!=='POST'){
-    res.setHeader('Allow','GET, POST');
+  const allowedMethod=readPaths.has(pathname)?'GET':'POST';
+  if(method!==allowedMethod){
+    res.setHeader('Allow',allowedMethod);
     fail(res,405,'Método não permitido');return true;
   }
-  if(method==='POST' && Number(req.headers['content-length']??0)>maxBody){
-    fail(res,413,'Requisição muito grande');return true;
+  const contentLength=Number(req.headers['content-length']??0);
+  if(contentLength>maxBody){
+    fail(res,413,'Requisição muito grande');req.resume();return true;
   }
-  const headers={};
-  for(const [name,value] of Object.entries(req.headers)){
-    if(!hopByHop.has(name)&&name!=='accept-encoding'&&
-       name!=='sec-fetch-site'&&value!==undefined)
-      headers[name]=value;
+  if(method==='GET'&&(contentLength!==0||req.headers['transfer-encoding'])){
+    fail(res,400,'Corpo não permitido');req.resume();return true;
   }
-  headers['accept-encoding']='identity';
-  const transport=upstream.protocol==='https:'?httpsRequest:httpRequest;
-  const target=transport({
-    hostname:upstream.hostname,port:upstream.port||undefined,
-    protocol:upstream.protocol,path:pathname,method,headers,
-    timeout:10000
-  },response=>{
-    const out={};
-    for(const [name,value] of Object.entries(response.headers)){
-      if(!hopByHop.has(name)&&value!==undefined)out[name]=value;
-    }
-    out['cache-control']='no-store';
-    out['x-content-type-options']='nosniff';
-    res.writeHead(response.statusCode??502,out);
-    response.pipe(res);
-  });
-  target.on('timeout',()=>target.destroy(new Error('Timeout da API')));
-  target.on('error',()=>{
-    if(!res.headersSent)fail(res,502,'Serviço de contas indisponível');
-    else res.destroy();
-  });
-  let bytes=0;
+  // Collect at most 16 KiB before opening any upstream connection. A partial
+  // oversized or aborted upload must never reach an account writer.
+  let bytes=0,finished=false;
+  const chunks=[];
+  const timer=setTimeout(()=>{
+    if(finished)return;
+    finished=true;chunks.length=0;res.setHeader('Connection','close');
+    fail(res,408,'Tempo de envio excedido');req.resume();
+  },10000);
+  timer.unref();
+  function abandon(){
+    if(finished)return;
+    finished=true;clearTimeout(timer);chunks.length=0;
+  }
+  req.on('aborted',abandon);
+  req.on('error',abandon);
+  res.on('close',abandon);
   req.on('data',chunk=>{
+    if(finished)return;
     bytes+=chunk.length;
-    if(bytes>maxBody){target.destroy();fail(res,413,'Requisição muito grande');}
-    else if(!target.destroyed)target.write(chunk);
+    if(bytes>maxBody){
+      abandon();res.setHeader('Connection','close');
+      fail(res,413,'Requisição muito grande');req.resume();return;
+    }
+    chunks.push(chunk);
   });
-  req.on('end',()=>{if(!target.destroyed)target.end();});
-  req.on('error',()=>target.destroy());
-  res.on('close',()=>{if(!res.writableEnded)target.destroy();});
+  req.on('end',()=>{
+    if(finished)return;
+    finished=true;clearTimeout(timer);
+    const headers=pickHeaders(req.headers,requestHeaders);
+    headers['accept-encoding']='identity';
+    if(method==='POST')headers['content-length']=String(bytes);
+    const transport=upstream.protocol==='https:'?httpsRequest:httpRequest;
+    const target=transport({
+      hostname:upstream.hostname,port:upstream.port||undefined,
+      protocol:upstream.protocol,path:pathname,method,headers,
+      timeout:10000
+    },response=>{
+      const out=pickHeaders(response.headers,responseHeaders);
+      out['cache-control']='no-store';
+      out['x-content-type-options']='nosniff';
+      res.writeHead(response.statusCode??502,out);
+      response.on('error',()=>res.destroy());
+      response.pipe(res);
+    });
+    target.on('timeout',()=>target.destroy(new Error('Timeout da API')));
+    target.on('error',()=>{
+      if(!res.headersSent)fail(res,502,'Serviço de contas indisponível');
+      else res.destroy();
+    });
+    res.on('close',()=>{if(!res.writableEnded)target.destroy();});
+    target.end(Buffer.concat(chunks,bytes));
+  });
   return true;
 }
