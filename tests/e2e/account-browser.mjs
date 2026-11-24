@@ -3,14 +3,17 @@
  */
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {createServer as createTlsServer} from 'node:https';
+import {request as httpRequest} from 'node:http';
+import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import {chromium} from 'playwright';
 
 const require=createRequire(new URL('../../services/api/package.json',import.meta.url));
 const pg=require('pg');
 const repoDir=new URL('../../',import.meta.url).pathname;
-const apiPort=43220,webPort=43221,closedPort=43222;
-const origin='http://127.0.0.1:'+webPort;
+const apiPort=43220,webPort=43221,closedPort=43222,tlsPort=43223;
+const origin='https://127.0.0.1:'+tlsPort;
 const closedOrigin='http://127.0.0.1:'+closedPort;
 if(process.env.NODE_ENV!=='test'||
   !/^postgres(?:ql)?:\/\/[^/]+@127\.0\.0\.1:55432\/kanto_ci$/.test(process.env.DATABASE_URL??''))
@@ -18,7 +21,7 @@ if(process.env.NODE_ENV!=='test'||
 
 const processes=[];
 const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
-let browser,registeredId=null;
+let browser,registeredId=null,tlsGateway=null;
 function launch(command,args,env){
   const child=spawn(command,args,{cwd:repoDir,
     env:{...process.env,...env},stdio:['ignore','pipe','pipe']});
@@ -58,7 +61,24 @@ try{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
   });
   await ready('http://127.0.0.1:'+apiPort+'/health','API: '+api.error);
-  await ready(origin+'/','web: '+web.error);
+  await ready('http://127.0.0.1:'+webPort+'/','web: '+web.error);
+  if(!process.env.BROWSER_TLS_CERT||!process.env.BROWSER_TLS_KEY)
+    throw new Error('CI-only HTTPS certificate files required');
+  tlsGateway=createTlsServer({
+    cert:readFileSync(process.env.BROWSER_TLS_CERT),
+    key:readFileSync(process.env.BROWSER_TLS_KEY)
+  },(request,response)=>{
+    const upstream=httpRequest({hostname:'127.0.0.1',port:webPort,
+      method:request.method,path:request.url,headers:request.headers},res=>{
+      response.writeHead(res.statusCode??502,res.headers);res.pipe(response);
+    });
+    upstream.on('error',()=>{
+      if(!response.headersSent){response.writeHead(502);response.end();}
+      else response.destroy();
+    });
+    request.pipe(upstream);
+  });
+  await new Promise(resolve=>tlsGateway.listen(tlsPort,'127.0.0.1',resolve));
   await ready(closedOrigin+'/','closed web: '+closed.error);
   browser=await chromium.launch({headless:true});
 
@@ -76,7 +96,8 @@ try{
   assert.equal((await publicPage.request.get(closedOrigin+'/play')).status(),200);
   await mobile.close();
 
-  const context=await browser.newContext({viewport:{width:1365,height:768}});
+  const context=await browser.newContext({viewport:{width:1365,height:768},
+    ignoreHTTPSErrors:true});
   const page=await context.newPage();
   page.on('pageerror',err=>browserErrors.push(err.message));
   await page.goto(origin+'/',{waitUntil:'domcontentloaded'});
@@ -113,6 +134,9 @@ try{
   await page.locator('#password').fill(password);
   await responseFor(page,'/api/v1/auth/login',()=>page.locator('#submit').click());
   await expectFeedback(page,'Autenticação concluída');
+  const cookies=await context.cookies(origin);
+  assert.ok(cookies.some(c=>c.name==='__Host-kanto_session'&&c.secure),
+    'HTTPS must retain a Secure __Host- session cookie');
   assert.equal((await page.request.get(origin+'/api/v1/me')).status(),200);
 
   // Recovery is requested using the actual browser form, never a real inbox.
@@ -157,6 +181,7 @@ try{
   await context.close();
 }finally{
   if(browser)await browser.close();
+  if(tlsGateway)await new Promise(resolve=>tlsGateway.close(resolve));
   for(const proc of processes)proc.kill('SIGTERM');
   if(registeredId)await pool.query('DELETE FROM game_accounts WHERE id=$1',
     [registeredId]);
