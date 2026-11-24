@@ -19,7 +19,7 @@ export function onlineMoveProjection(raw:string){
   });
   const equipped=p.equippedMoveNames??[p.moveName];
   return {uid:p.uid,speciesId:p.pokemonId,level:p.level,learned,equipped,
-   valid:Boolean(frozenValidatedEquippedMoves(p.pokemonId,p.level,equipped))};
+   valid:Boolean(frozenValidatedEquippedMoves(p.pokemonId,p.level,equipped)?.some(move=>move.category!=='status'))};
  });
  return {busy,pokemon};
 }
