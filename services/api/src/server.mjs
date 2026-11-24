@@ -16,6 +16,7 @@ import {issuePasswordReset,consumePasswordReset} from './passwordReset.mjs';
 import {deliverAccountEmail} from './mailer.mjs';
 import {createFirstAdventure} from './initialAdventure.mjs';
 import {applyTrainerInvestment} from './trainerInvestment.mjs';
+import {exportAccountData} from './accountPrivacy.mjs';
 import {setCollectionTeam} from './collectionTeam.mjs';
 import {reserveNextGym} from './gymReservation.mjs';
 import {startReservedGymTurnSession} from './gymTurnSession.mjs';
@@ -251,6 +252,34 @@ const server=createServer(async(req,res)=>{
         [digest]);
       return json(res,200,{authenticated:false},{
         'Set-Cookie':sessionCookie('',{secure:isSecure,maxAge:0})});
+    }
+    if(pathname==='/api/v1/account/export'&&req.method==='POST'){
+      // ONLINE-01C-23E2: CI-only, same-origin, reauthenticated owner export.
+      // No public account data route until LGPD/security review is complete.
+      if(!enabled)return json(res,503,{error:'Exportação em preparação'});
+      requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)
+        return json(res,403,{error:'Verifique seu e-mail'});
+      if(!await enforceThrottle(req,res,{scope:'privacy-export-account',
+        identifier:account.id,limit:3}))return;
+      const data=await readJson(req);
+      if(Object.keys(data).join(',')!=='password')
+        return json(res,400,{error:'Requisição inválida'});
+      if(typeof data.password!=='string'||data.password.length>128)
+        return json(res,401,{error:'Credenciais inválidas'});
+      const credentials=await pool.query(
+        'SELECT password_hash FROM game_accounts WHERE id=$1 AND disabled_at IS NULL',
+        [account.id]);
+      if(!credentials.rowCount||
+          !await verifyPassword(data.password,credentials.rows[0].password_hash))
+        return json(res,401,{error:'Credenciais inválidas'});
+      const exported=await exportAccountData(pool,{accountId:account.id});
+      if(!exported)return json(res,404,{error:'Conta indisponível'});
+      return json(res,200,exported,{'Content-Disposition':
+        'attachment; filename="poke-account-export.json"',
+        'X-Robots-Tag':'noindex, nofollow'});
     }
     if(pathname==='/api/v1/adventure/start'&&req.method==='POST'){
       // Test-only rollout. NEVER accept a whole save or player-specified
