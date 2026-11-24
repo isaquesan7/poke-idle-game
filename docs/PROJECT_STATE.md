@@ -1993,5 +1993,18 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - 23E13 opt-in isolado CI, valida assinatura e nonce antes das cotas em cinco rotas reais de auth, sem mudar email quota ou liberar produção. Teste dois processos PostgreSQL e limites distintos; fixture sem migration. Sem integração web/ingress real; CI pendente. docs/ONLINE_SIGNED_QUOTA_HTTP_23E13.md. Cadastro OFF, /play local, Regiões 1v1, Gym 3v3.
 
 
+## ONLINE-01C-23E14 — ciclo de vida de chaves (24/11/2026; branch)
+- #254 merged 6d1df46545e47ab7b139ddd867fb30926300a34d, três CI SUCCESS e Railway API/web SUCCESS. #256 integração HTTP CI-only ainda em validação.
+- Candidato offline de rollover com subject estável, overlap 32s, revogação sem chave anterior, testes e procedimento pós-restore. Não provisiona chaves, não muda runtime. Revisão de acesso privado web e separação de configuração emissor/verificador ainda pendentes; não confiar em X-Railway-Edge. docs/ONLINE_PROXY_KEY_LIFECYCLE_23E14.md. CI pendente; cadastro OFF, /play local, Regiões 1v1 e Gym 3v3.
+
+
+## ONLINE-01C-23E15 — separar emissor e receptor (24/11/2026; PR #257)
+- Revisão do candidato #257: emissor recebe apenas chave ativa/subject e oferece sign; receptor recebe apenas chaves assinatura ativa/anterior e oferece verify/consume. Configuração estrita e teste de cutover antecipado; HMAC simétrico não é isolamento criptográfico assimétrico. Sem segredo real ou runtime. #256 ainda em CI; reconciliar após merge. Gate de proxy falso, acesso privado, IPv6, restore e LGPD pendentes. Cadastro OFF, /play local sem migração, Regiões 1v1 e Gym 3v3 inalterados.
+
+- PR #256 integrado main 1b63c81673185b65b2da03b0e1cd760f2ca99f9f após CI PG18 45433832107, browser 45433832299 e geral 45433832247 SUCCESS; #257 reconciliado preservando scripts de teste anteriores, CI final pendente.
+
+
 ## ONLINE-01C-23E16 — retenção e SQL candidata (24/11/2026; branch)
 - #256 merged 1b63c81673185b65b2da03b0e1cd760f2ca99f9f, três CIs e Railway API/web SUCCESS. #257 em CI final. SQL 026 candidata não registrada no migrador; ensaios PG18 usam schema candidato; manutenção limitada até 5000 por invocação, testes unitários e de concorrência PG18. Sem cron, DDL real ou alteração gameplay. Produção permanece 25 migrations. Rede privada, IPv6, retenção/restore e LGPD pendentes, gate falso. docs/ONLINE_NONCE_RETENTION_23E16.md. Cadastro OFF, /play local, Regiões 1v1, Gym 3v3.
+
+- #257 merged main d6fa48d9f1936640b3402c4318893f05336a7b4c após três CI SUCCESS. #258 reconciliado preservando testes de keyring; CI do HEAD combinado pendente.
