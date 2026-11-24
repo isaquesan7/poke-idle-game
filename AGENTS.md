@@ -1,3 +1,5 @@
+> **23F8A INTEGRADA:** #280 quatro CI SUCCESS, main f50f7d1d175187fbcb2f3889017358ab910c4320. #281 cinco CI SUCCESS anterior; reconciliada, CI final obrigatório. #282 candidata. Cadastro OFF.
+
 > **23F8B CANDIDATA:** HTTP expedição CI-only com relógio PG/projeção/reducer, writers autenticados e teste browser; depende #280, UI próxima. Sem cadastro/SQL. docs/ONLINE_EXPEDITION_HTTP_23F8B.md.
 
 > **23F8A CANDIDATA:** expedição writer privado, reducer existente, relógio PostgreSQL/receipt/CAS, bloqueios mútuos, sem SQL/HTTP/cadastro. docs/ONLINE_EXPEDITION_WRITER_23F8A.md. CI obrigatório.
