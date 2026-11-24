@@ -38,3 +38,5 @@ export {applyOnlineExpedition,onlineExpeditionProjection} from './serverExpediti
 export {onlineShopProjection,applyOnlineShopPurchase} from './serverShop.js';
 
 export {onlineMoveProjection} from './serverMoveProjection.js';
+
+export {applyOnlineEvolution,onlineEvolutionProjection} from './serverEvolution.js';
