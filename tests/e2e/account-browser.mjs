@@ -55,11 +55,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -427,6 +427,30 @@ try{
   assert.equal(await page.locator('#online-badges').textContent(),'1');
   assert.equal((await gymRead()).gym,null);
   assert.match(await page.locator('#gym-note').textContent(),/Insígnia conquistada/);
+
+  // Canonical FRLG learned moves through the real Collection UI.
+  await page.locator('#moves-pokemon').selectOption('1');
+  const moveRead=async()=>{const q=await page.request.get(origin+'/api/v1/moves/current');assert.equal(q.status(),200);return q.json();};
+  const moveBefore=await moveRead();
+  const char=moveBefore.pokemon.find(p=>p.uid===1);
+  assert.ok(char.learned.some(m=>m.name==='scratch'));assert.ok(char.learned.some(m=>m.name==='growl'));
+  const badMove=await page.request.post(origin+'/api/v1/moves/equip',{data:{actionId:'browser-move-forged-0001',expectedRevision:moveBefore.revision,pokemonUid:1,moveNames:['hyper-beam']},headers:{Origin:origin}});
+  assert.equal(badMove.status(),409);
+  const badUid=await page.request.post(origin+'/api/v1/moves/equip',{data:{actionId:'browser-move-other-0001',expectedRevision:moveBefore.revision,pokemonUid:999999,moveNames:['scratch']},headers:{Origin:origin}});
+  assert.equal(badUid.status(),409);
+  const supportOnly=await page.request.post(origin+'/api/v1/moves/equip',{data:{actionId:'browser-move-support-0001',expectedRevision:moveBefore.revision,pokemonUid:1,moveNames:['growl']},headers:{Origin:origin}});
+  assert.equal(supportOnly.status(),409);
+  assert.equal((await moveRead()).revision,moveBefore.revision);
+  await page.locator('[data-move-name="growl"]').click();
+  await page.locator('#moves-equipped .team-row').first().getByRole('button',{name:'Remover'}).click();
+  assert.equal(await page.locator('#moves-save').isDisabled(),true);
+  await page.locator('[data-move-name="scratch"]').click();
+  await page.locator('#moves-equipped .team-row').nth(1).getByRole('button',{name:'↑'}).click();
+  await responseFor(page,'/api/v1/moves/equip',()=>page.locator('#moves-save').click());
+  await page.getByText('Golpes salvos.',{exact:true}).waitFor();
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#moves-pokemon').waitFor();
+  assert.deepEqual((await moveRead()).pokemon.find(p=>p.uid===1).equipped,['scratch','growl']);
 
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();

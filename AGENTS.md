@@ -1,3 +1,7 @@
+> **23F11A EM CORREÇÃO:** #284 seis CI SUCCESS no HEAD anterior; revisão D-035 exige um golpe ofensivo no loadout. Writer/UI/testes corrigidos, novo CI obrigatório. Cadastro OFF, /play local; próxima evolução por UID após merge/deploy.
+
+> **23F10 PUBLICADA:** #279 seis CI SUCCESS, main 5154160fd21a2e8cde51f095781fbd6a8def0ec8, Railway web/API SUCCESS, #278/#282/#283 encerradas absorvidas. **23F11A CANDIDATA:** golpes Coleção, writer SQL017 e FRLG, CI-only. Cadastro OFF. docs/ONLINE_MOVE_PORTAL_23F11A.md.
+
 > **23F10 CANDIDATA — INTEGRAÇÃO ÚNICA #279:** absorve #278/#282/#283, painel integrado e jornada CI. Não mesclar concorrentes separadamente. Cadastro OFF. docs/ONLINE_PORTAL_INTEGRATION_23F10.md.
 
 > **23F8A INTEGRADA:** #280 quatro CI SUCCESS, main f50f7d1d175187fbcb2f3889017358ab910c4320. #281 cinco CI SUCCESS anterior; reconciliada, CI final obrigatório. #282 candidata. Cadastro OFF.

@@ -36,3 +36,5 @@ export {serverRegionalAccess,serverRegionalOpponent,serverRegionalCatalog,server
 export {applyOnlineExpedition,onlineExpeditionProjection} from './serverExpedition.js';
 
 export {onlineShopProjection,applyOnlineShopPurchase} from './serverShop.js';
+
+export {onlineMoveProjection} from './serverMoveProjection.js';
