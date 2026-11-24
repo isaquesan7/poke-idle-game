@@ -7,7 +7,9 @@ import {randomBytes} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import pg from 'pg';
-import {createReviewedAuthGateway} from '../../../scripts/gateway-ingress-adapter.mjs';
+import {createAuthGateway} from '../../../scripts/auth-gateway-candidate.mjs';
+import {createIngressResolver} from '../../../scripts/gateway-ingress-adapter.mjs';
+import {createProxyIssuer} from '../src/proxyKeyring.mjs';
 
 const listen=s=>new Promise(resolve=>s.listen(0,'127.0.0.1',()=>resolve(s.address().port)));
 const close=s=>new Promise(resolve=>s.close(resolve));
@@ -30,6 +32,7 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
   const suffix=randomBytes(8).toString('hex'),schema='gateway_ci_'+suffix;
   const admin=new pg.Pool({connectionString:db.href});
   const signingHex=randomBytes(32).toString('hex'),subjectHex=randomBytes(32).toString('hex');
+  const issuer=createProxyIssuer({activeHex:signingHex,subjectHex,subjectPolicy:'ipv6-prefix64-v2'});
   const ingressIPs=['8.8.8.8','2606:4700:1:2::1','2606:4700:1:2::ffff','2606:4700:1:3::1'];
   const origin='https://gateway-ci.up.railway.app';
   const email='gateway-'+suffix+'@example.test',password='Synthetic-old-12345',newPassword='Synthetic-new-67890';
@@ -54,33 +57,20 @@ test('23E19: real gateway -> web -> API -> PG18, account lifecycle, replay and i
       env:{NODE_ENV:'test',PORT:String(webPort),ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/',
         ONLINE_GATEWAY_FORWARD_TEST_ONLY:'true'},stdio:'ignore'});
     children.push(web);await ready(web,webBase+'/api/v1/status');
-    // Test harness simulates ingress overwrite on the trusted loopback peer.
-    // Capture proof only in the disposable upstream fixture by observing outbound
-    // requests at a local forwarding hop; no external network or real Railway trust.
-    const capture=createServer(async(req,res)=>{
-      const proof=req.headers['x-kanto-proxy-identity'];
-      if(typeof proof==='string'){lastProof=proof;captured.push(proof);}
-      const chunks=[];for await(const chunk of req)chunks.push(chunk);
-      const headers={...req.headers};delete headers.host;delete headers.connection;
-      const response=await fetch(webBase+req.url,{method:req.method,headers,
-        ...(['GET','HEAD'].includes(req.method)?{}:{body:Buffer.concat(chunks)}),redirect:'manual'});
-      const out=Object.fromEntries(response.headers.entries());
-      delete out['transfer-encoding'];delete out['connection'];delete out['content-length'];
-      res.writeHead(response.status,out);res.end(Buffer.from(await response.arrayBuffer()));
-    });
-    gateways.push(capture);const capturePort=await listen(capture);
-    const captureBase='http://127.0.0.1:'+capturePort;
+    // The fixture supplies a synthetic, ingress-rewritten header over loopback.
+    // Actual adapter and issuer are used; capture proof in memory only for replay.
+    const resolver=createIngressResolver({trustedPeers:['127.0.0.1'],topologyReviewed:true,loopbackTest:true});
     for(const ip of ingressIPs){
-      const server=createReviewedAuthGateway({upstreamOrigin:captureBase,clientOrigin:origin,loopbackTest:true,
-        issuerConfig:{activeHex:signingHex,subjectHex,subjectPolicy:'ipv6-prefix64-v2'},
-        ingressConfig:{trustedPeers:['127.0.0.1'],topologyReviewed:true}});
+      const server=createAuthGateway({upstreamOrigin:webBase,clientOrigin:origin,loopbackTest:true,
+        issuer:{sign(input){lastProof=issuer.sign(input);captured.push(lastProof);return lastProof;}},
+        resolveTrustedClientIp:resolver});
       gateways.push(server);await listen(server);
     }
-    const g=i=>'http://127.0.0.1:'+gateways[i+1].address().port;
+    const g=i=>'http://127.0.0.1:'+gateways[i].address().port;
     async function post(base,route,data,headers={}){
       const res=await fetch(base+'/api/v1/auth/'+route,{method:'POST',redirect:'manual',
         headers:{Origin:origin,'Content-Type':'application/json',...headers,
-          ...Object.fromEntries(ingressIPs.map((ip,i)=>[g(i),ip]).filter(([url])=>url===base).map(([,ip])=>['X-Real-IP',ip]))},
+          ...(ingressIPs.some((_,i)=>g(i)===base)?{'X-Real-IP':ingressIPs.find((_,i)=>g(i)===base)}:{})},
         body:JSON.stringify(data),signal:AbortSignal.timeout(12000)});
       return {status:res.status,body:await res.json(),cookie:res.headers.get('set-cookie'),retry:res.headers.get('retry-after')};
     }
