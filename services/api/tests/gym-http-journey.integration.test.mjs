@@ -82,7 +82,7 @@ test('ONLINE-01C-23C6: Collection → Brock 3v3 → certified victory → single
     assert.ok(ready,'isolated test-only HTTP API must start');
     const before=await request('/api/v1/save','GET',undefined,owner.cookie);
     assert.equal(before.status,200);
-    assert.equal(before.data.revision,0);
+    assert.equal(Number(before.data.revision),0);
     assert.deepEqual(JSON.parse(before.data.state.journal.raw).team,[1]);
     const premature=await post('/api/v1/gym/reserve',{
       actionId:'journey-reserve-premature-0001',expectedRevision:0
@@ -187,7 +187,7 @@ test('ONLINE-01C-23C6: Collection → Brock 3v3 → certified victory → single
     assert.equal(raw.trainer.xp,120);
     assert.equal((await post('/api/v1/gym/settle',{
       ...payoutArgs,actionId:'journey-attempt-second-payout-0001',
-      expectedRevision:finalSave.data.revision
+      expectedRevision:Number(finalSave.data.revision)
     })).data.error,'already-paid');
     const sealed=await pool.query(
       `SELECT status,certificate_digest,payout_receipt,team_uids
