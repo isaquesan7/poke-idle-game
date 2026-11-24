@@ -5,7 +5,7 @@
  * writer and receipts. No public HTTP endpoint or client-provided combatants.
  */
 import {isDeepStrictEqual} from 'node:util';
-import {buildBattleSnapshot} from './battlePreparation.mjs';
+import {buildPersistedBattleSnapshot} from './battlePreparation.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -47,7 +47,7 @@ export async function startReservedWildTurnSession(pool,{
        save?.revision!==revision||save?.journal?.revision!==revision||
        typeof save?.journal?.raw!=='string')
       return await rollback(client,{status:'invalid-save'});
-    if(row.status!=='reserved'||row.region_id!==1||
+    if(row.status!=='reserved'||row.battle_snapshot?.regionId!==Number(row.region_id)||
        row.species_id===null||row.pokemon_level===null||
        !row.battle_snapshot||row.battle_preview!==null||
        row.battle_sealed_outcome!==null||row.battle_reward_quote!==null||
@@ -55,7 +55,7 @@ export async function startReservedWildTurnSession(pool,{
       return await rollback(client,{status:'unavailable'});
     // The prepared actor identities/manual stats must still match locked
     // saved account state. Do not silently start after a trainer/pet change.
-    const fromSave=buildBattleSnapshot(save,{
+    const fromSave=await buildPersistedBattleSnapshot(save,{
       regionId:Number(row.region_id),speciesId:Number(row.species_id),
       level:Number(row.pokemon_level)
     });

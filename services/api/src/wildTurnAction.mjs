@@ -5,7 +5,7 @@
  */
 import {isDeepStrictEqual} from 'node:util';
 import {createPrivateBattleRandom,createPrivateBattleKeyProof} from './battleEntropy.mjs';
-import {buildBattleSnapshot} from './battlePreparation.mjs';
+import {buildPersistedBattleSnapshot} from './battlePreparation.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACTION=/^[A-Za-z0-9_-]{12,100}$/;
@@ -66,7 +66,7 @@ export async function applyReservedWildTurn(pool,{
        typeof save?.journal?.raw!=='string')
       return await rollback(client,{status:'invalid-save'});
     const session=encounter.battle_turn_state;
-    if(encounter.status!=='reserved'||encounter.region_id!==1||
+    if(encounter.status!=='reserved'||encounter.battle_snapshot?.regionId!==Number(encounter.region_id)||
        !encounter.battle_snapshot||!session||
        session.phase!=='await-player'||
        !Number.isSafeInteger(session.turn)||session.turn<0||session.turn>=30||
@@ -75,7 +75,7 @@ export async function applyReservedWildTurn(pool,{
        encounter.battle_snapshot?.opponent?.speciesId!==Number(encounter.species_id)||
        encounter.battle_snapshot?.opponent?.level!==Number(encounter.pokemon_level))
       return await rollback(client,{status:'unavailable'});
-    const frozen=buildBattleSnapshot(save,{
+    const frozen=await buildPersistedBattleSnapshot(save,{
       regionId:Number(encounter.region_id),speciesId:Number(encounter.species_id),
       level:Number(encounter.pokemon_level)
     });

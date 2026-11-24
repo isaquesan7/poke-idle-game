@@ -8,7 +8,7 @@
  */
 import {isDeepStrictEqual} from 'node:util';
 import {auditResolvedWildTurnTranscript} from './wildTurnCertificate.mjs';
-import {buildBattleSnapshot} from './battlePreparation.mjs';
+import {buildPersistedBattleSnapshot} from './battlePreparation.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
 import {BATTLE_ENTROPY_VERSION,createPrivateBattleRandom,createPrivateBattleKeyProof} from './battleEntropy.mjs';
 
@@ -127,7 +127,7 @@ export async function payCertifiedWildTurns(pool,{
        save?.revision!==revision||save?.journal?.revision!==revision||
        typeof save?.journal?.raw!=='string')
       return await rollback(client,{status:'invalid-save'});
-    if(encounter.status!=='reserved'||Number(encounter.region_id)!==1||
+    if(encounter.status!=='reserved'||encounter.battle_snapshot?.regionId!==Number(encounter.region_id)||
        encounter.entropy_version!==BATTLE_ENTROPY_VERSION||
        encounter.final_action_id!==null||
        !encounter.battle_snapshot||!encounter.battle_turn_state||
@@ -155,7 +155,7 @@ export async function payCertifiedWildTurns(pool,{
          Number(encounter.battle_turn_certificate_revision)||
        Number(encounter.battle_turn_certificate_revision)>revision)
       return await rollback(client,{status:'invalid-certificate'});
-    const fresh=buildBattleSnapshot(save,{
+    const fresh=await buildPersistedBattleSnapshot(save,{
       regionId:Number(encounter.region_id),
       speciesId:Number(encounter.species_id),
       level:Number(encounter.pokemon_level)

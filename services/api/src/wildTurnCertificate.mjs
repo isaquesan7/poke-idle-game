@@ -4,7 +4,7 @@
  */
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
-import {buildBattleSnapshot} from './battlePreparation.mjs';
+import {buildPersistedBattleSnapshot} from './battlePreparation.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACTION=/^[A-Za-z0-9_-]{12,100}$/;
@@ -17,7 +17,8 @@ const isObject=value=>value!==null&&typeof value==='object'&&!Array.isArray(valu
  */
 export function auditResolvedWildTurnTranscript(snapshot,session,receipts){
   if(!isObject(snapshot)||!isObject(session)||!Array.isArray(receipts)||
-     session.version!==1||session.mode!=='turns'||session.regionId!==1||
+     session.version!==1||session.mode!=='turns'||session.regionId!==snapshot.regionId||
+     !Number.isInteger(session.regionId)||session.regionId<1||session.regionId>10||
      session.phase!=='resolved'||!['win','loss','draw'].includes(session.outcome)||
      !Number.isSafeInteger(session.turn)||session.turn<1||session.turn>30||
      session.maxTurns!==30||receipts.length!==session.turn||
@@ -136,7 +137,7 @@ export async function certifyResolvedWildTurn(pool,{
        typeof save?.journal?.raw!=='string')
       return await rollback(client,{status:'invalid-save'});
     const session=encounter.battle_turn_state;
-    if(encounter.status!=='reserved'||encounter.region_id!==1||
+    if(encounter.status!=='reserved'||encounter.battle_snapshot?.regionId!==Number(encounter.region_id)||
        !encounter.battle_snapshot||!session||
        session.phase!=='resolved'||
        encounter.battle_preview!==null||
@@ -146,7 +147,7 @@ export async function certifyResolvedWildTurn(pool,{
        encounter.battle_snapshot?.opponent?.speciesId!==Number(encounter.species_id)||
        encounter.battle_snapshot?.opponent?.level!==Number(encounter.pokemon_level))
       return await rollback(client,{status:'unavailable'});
-    const frozen=buildBattleSnapshot(save,{
+    const frozen=await buildPersistedBattleSnapshot(save,{
       regionId:Number(encounter.region_id),
       speciesId:Number(encounter.species_id),
       level:Number(encounter.pokemon_level)
