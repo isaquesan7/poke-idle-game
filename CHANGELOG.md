@@ -949,3 +949,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Módulo offline com HMAC de subject e assertion vinculada à requisição, canonicalização IP e testes de adulteração/expiração. Não integrado em HTTP, sem configuração de produção ou alteração de gameplay. Consumo nonce e prova ingress pendentes, CI pendente.
 
 - PR #252 merged main b8823943ad9b9f5f7755f768dba93bd8b811f62e após quatro CI SUCCESS; branch 23E10 reconciliada, CI do HEAD combinado pendente.
+
+
+## ONLINE-01C-23E11 — candidato de proteção de replay (24/11/2026; branch)
+- Consumo atômico do digest de nonce no PostgreSQL, prazo independente, limpeza limitada e teste concorrente em schema CI descartável. Não integrado à API nem ao migrador; CI pendente. Nenhuma mudança em produção ou gameplay.

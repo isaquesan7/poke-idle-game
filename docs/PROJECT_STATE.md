@@ -1961,3 +1961,8 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Módulo puro proxyIdentity.mjs + testes sintéticos: IP validado canonicalizado, subject HMAC, assertion assinada ligada a método/rota/corpo, prazo e nonce. Não importado no runtime; não usa cabeçalhos reais, não consome nonce ainda, não libera cadastro. Próximo: comprovar ingress, política de chaves e consumo nonce distribuído em teste antes de uso. Veja docs/ONLINE_PROXY_SIGNED_IDENTITY_23E10.md. CI pendente, gate de proxy falso, LGPD/restore/remetente pendentes. /play local sem migração, Regiões 1v1 e Gym 3v3 inalterados.
 
 - PR #252 merged main b8823943ad9b9f5f7755f768dba93bd8b811f62e após quatro CI SUCCESS; branch 23E10 reconciliada, CI do HEAD combinado pendente.
+
+
+## ONLINE-01C-23E11 — nonce distribuído (24/11/2026; branch, não publicado)
+- #252 integrado b8823943ad9b9f5f7755f768dba93bd8b811f62e, quatro CI SUCCESS e Railway web SUCCESS; API SKIPPED sem mudança. #253 reconciliado em 5b2a15712cc86817041641e5d80ef3a2e7b9c3d7, CI combinado pendente.
+- 23E11 depende de #253; proxyNonceGuard candidato usa INSERT único com clock PostgreSQL, digest de nonce e limpeza limitada. Teste multi-pool em fixture isolada, sem migration de produção, sem integração HTTP. CI e revisão pendentes. Próximo: comprovar ingress, política de relógio/chaves/restore e aprovação de migration, depois teste HTTP. Ver docs/ONLINE_PROXY_NONCE_GUARD_23E11.md. Cadastro OFF, /play local, Regiões 1v1 e Ginásios 3v3 inalterados.
