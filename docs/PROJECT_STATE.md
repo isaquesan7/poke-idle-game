@@ -2038,3 +2038,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 
 ## ONLINE-01C-23E21 — imagem de homologação gateway (24/11/2026; PR #261)
 - #261 PG18/browser SUCCESS no HEAD anterior; regressão geral pendente. Acrescenta imagem mínima de observação com chaves sintéticas efêmeras, token temporário e booleanos, sem upstream/DB/contas; CI dedicado e procedimento cross-project. Não é adapter de produção, não concede confiança. Nenhum recurso Railway novo. CI combinado pendente. docs/ONLINE_GATEWAY_OBSERVATION_23E21.md. Cadastro OFF, SQL026 candidata, /play local, Regiões 1v1 e Gym 3v3.
+
+
+## ONLINE-01C-23E22 — cliente cross-project (24/11/2026; branch)
+- #261 merged 1f5f012592cab0b0f8a6b0e6c3d1d1cb7bc0c6c1, CI 45440404157,45440404413,45440404174,45440404765 SUCCESS. Projeto TEMP confirmado vazio. Cliente dedicado com controle público antes/depois, controle privado local e tentativa DNS/HTTP cruzada; rejeita resultado inconclusivo. CI cliente pendente; sem provisionamento ou ensaio real ainda. docs/ONLINE_GATEWAY_CROSS_PROJECT_23E22.md. Cadastro OFF, SQL026 candidata, /play local, Regiões 1v1 e Gym 3v3.
