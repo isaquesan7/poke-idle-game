@@ -1,3 +1,4 @@
+import {evaluateRestoreEvidence} from './restoreEvidence.mjs';
 /** ONLINE-01C-23C8: local, offline, read-only beta release evidence checker.
  * No network, database access, secrets, or changes to runtime feature flags.
  * This is a review aid: passing checks never enables public registration.
@@ -39,6 +40,21 @@ export function evaluateBetaReadiness(input,{now=new Date()}={}){
         record.observedRpoMinutes>=0&&Number.isFinite(record?.observedRtoMinutes)&&
         record.observedRtoMinutes>=0))
       blockers.push('restore real isolado, integridade e RPO/RTO medidos obrigatórios');
+    if(gate==='restore'){
+      const drill=record?.drill;
+      if(!drill){
+        blockers.push('chronological real Railway restore evidence required');
+      }else{
+        const report=evaluateRestoreEvidence(drill,{now});
+        if(!report.passed)blockers.push('restore drill: '+report.blockers.join(', '));
+        if(drill.backupId!==record.backupId||
+          drill.restoreId!==record.restoreId||
+          drill.appCommitSha!==head||
+          drill.observedRpoMinutes!==record.observedRpoMinutes||
+          drill.observedRtoMinutes!==record.observedRtoMinutes)
+          blockers.push('restore drill identifiers, RPO/RTO or SHA mismatch');
+      }
+    }
     if(gate==='resend'&&
       !(record?.domainVerified===true&&record?.verificationDelivered===true&&
         record?.resetDelivered===true&&record?.expirationTested===true))
