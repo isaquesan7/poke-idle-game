@@ -1991,3 +1991,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 ## ONLINE-01C-23E14 — ciclo de vida de chaves (24/11/2026; branch)
 - #254 merged 6d1df46545e47ab7b139ddd867fb30926300a34d, três CI SUCCESS e Railway API/web SUCCESS. #256 integração HTTP CI-only ainda em validação.
 - Candidato offline de rollover com subject estável, overlap 32s, revogação sem chave anterior, testes e procedimento pós-restore. Não provisiona chaves, não muda runtime. Revisão de acesso privado web e separação de configuração emissor/verificador ainda pendentes; não confiar em X-Railway-Edge. docs/ONLINE_PROXY_KEY_LIFECYCLE_23E14.md. CI pendente; cadastro OFF, /play local, Regiões 1v1 e Gym 3v3.
+
+
+## ONLINE-01C-23E15 — separar emissor e receptor (24/11/2026; PR #257)
+- Revisão do candidato #257: emissor recebe apenas chave ativa/subject e oferece sign; receptor recebe apenas chaves assinatura ativa/anterior e oferece verify/consume. Configuração estrita e teste de cutover antecipado; HMAC simétrico não é isolamento criptográfico assimétrico. Sem segredo real ou runtime. #256 ainda em CI; reconciliar após merge. Gate de proxy falso, acesso privado, IPv6, restore e LGPD pendentes. Cadastro OFF, /play local sem migração, Regiões 1v1 e Gym 3v3 inalterados.

@@ -976,3 +976,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23E14 — candidato de rotação de chaves proxy (24/11/2026; branch)
 - Keyring offline, rollover limitado, revogação pós-restore, testes e procedimento operacional de rede/privacidade. Sem runtime, migration, segredos ou gameplay. CI pendente.
+
+- 23E15: separar factories de emissor/receptor, rejeitar segredos desnecessários e emissão antecipada; esclarecer limite de HMAC simétrico. CI pendente, sem alterações em produção.
