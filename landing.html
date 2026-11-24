@@ -134,6 +134,11 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <section id="shop-section" hidden aria-labelledby="shop-heading">
 <h3 id="shop-heading">Loja de Pokébolas</h3><p class="helper" id="shop-balance"></p>
 <div id="shop-items"></div><p id="shop-note" role="status" aria-live="polite"></p></section>
+<section id="moves-section" hidden aria-labelledby="moves-heading"><h3 id="moves-heading">Golpes da Coleção</h3>
+<label for="moves-pokemon">Pokémon</label><select id="moves-pokemon"></select>
+<p id="moves-info" class="helper">Escolha de 1 a 4 golpes aprendidos, na ordem desejada.</p>
+<div id="moves-equipped"></div><div id="moves-learned"></div>
+<button id="moves-save" type="button" class="primary" disabled>Salvar golpes</button><p id="moves-note" role="status"></p></section>
 <h4>Atributos do treinador</h4><p id="online-points" class="helper"></p><div id="online-stats"></div>
 <h4>Equipe</h4><p class="helper">O primeiro Pokémon luta sozinho nas regiões. O trio escolhido aqui é usado nos ginásios.</p>
 <ol id="online-team"></ol><h4>Coleção</h4><ul id="online-roster"></ul>
@@ -159,7 +164,7 @@ const starterButtons=[...panel.querySelectorAll('[data-starter]')];
 const starterNames={1:'Bulbasaur',4:'Charmander',7:'Squirtle'};
 const speciesNames=["","Bulbasaur","Ivysaur","Venusaur","Charmander","Charmeleon","Charizard","Squirtle","Wartortle","Blastoise","Caterpie","Metapod","Butterfree","Weedle","Kakuna","Beedrill","Pidgey","Pidgeotto","Pidgeot","Rattata","Raticate","Spearow","Fearow","Ekans","Arbok","Pikachu","Raichu","Sandshrew","Sandslash","Nidoran♀","Nidorina","Nidoqueen","Nidoran♂","Nidorino","Nidoking","Clefairy","Clefable","Vulpix","Ninetales","Jigglypuff","Wigglytuff","Zubat","Golbat","Oddish","Gloom","Vileplume","Paras","Parasect","Venonat","Venomoth","Diglett","Dugtrio","Meowth","Persian","Psyduck","Golduck","Mankey","Primeape","Growlithe","Arcanine","Poliwag","Poliwhirl","Poliwrath","Abra","Kadabra","Alakazam","Machop","Machoke","Machamp","Bellsprout","Weepinbell","Victreebel","Tentacool","Tentacruel","Geodude","Graveler","Golem","Ponyta","Rapidash","Slowpoke","Slowbro","Magnemite","Magneton","Farfetch'd","Doduo","Dodrio","Seel","Dewgong","Grimer","Muk","Shellder","Cloyster","Gastly","Haunter","Gengar","Onix","Drowzee","Hypno","Krabby","Kingler","Voltorb","Electrode","Exeggcute","Exeggutor","Cubone","Marowak","Hitmonlee","Hitmonchan","Lickitung","Koffing","Weezing","Rhyhorn","Rhydon","Chansey","Tangela","Kangaskhan","Horsea","Seadra","Goldeen","Seaking","Staryu","Starmie","Mr. Mime","Scyther","Jynx","Electabuzz","Magmar","Pinsir","Tauros","Magikarp","Gyarados","Lapras","Ditto","Eevee","Vaporeon","Jolteon","Flareon","Porygon","Omanyte","Omastar","Kabuto","Kabutops","Aerodactyl","Snorlax","Articuno","Zapdos","Moltres","Dratini","Dragonair","Dragonite","Mewtwo","Mew"];
 const statLabels={hp:'HP',attack:'Ataque',defense:'Defesa',specialAttack:'Ataque especial',specialDefense:'Defesa especial',speed:'Velocidade'};
-let serverProgress=null,teamDraft=[],regionalState=null,gymState=null,expeditionState=null,shopState=null,selectedRegionId=1;
+let serverProgress=null,teamDraft=[],regionalState=null,gymState=null,expeditionState=null,shopState=null,moveState=null,selectedRegionId=1;
 const regionSection=$('region-section'),regionOpen=$('region-open'),regionBattle=$('region-battle');
 const regionActive=()=>Boolean(regionalState?.encounter);
 const regionSelect=$('region-select');
@@ -424,12 +429,52 @@ async function shopPurchase(ballId,quantity){
  const item=shopState.items.find(x=>x.id===ballId);
  if(!item||!Number.isSafeInteger(quantity)||quantity<1||quantity>item.maxAffordable)return;
  const expectedRevision=shopState.revision;
- setOnlineBusy(true);$('shop-note').textContent='';
+ setOnlineBusy(true);$('shop-note').textContent='';$('moves-note').textContent='';
  let result=null;
  try{result=await api('/api/v1/shop/purchase',{actionId:crypto.randomUUID(),expectedRevision,ballId,quantity});}catch{}
  const loaded=await refreshPortal();
  if(loaded&&shopState)$('shop-note').textContent=result?.purchase?'Compra concluída: '+quantity+' '+item.name+' · '+result.purchase.cost.toLocaleString('pt-BR')+' moedas.':'Compra não confirmada. Confira o saldo atualizado antes de tentar novamente.';
 }
+let selectedMoveUid=null,moveDraft=[];
+function renderMoves(reset=false){
+ const section=$('moves-section');section.hidden=!moveState||!serverProgress;
+ if(section.hidden)return;
+ const list=moveState.pokemon;
+ const chosen=list.find(x=>x.uid===selectedMoveUid)??list[0];
+ if(!chosen)return;
+ if(reset||chosen.uid!==selectedMoveUid){selectedMoveUid=chosen.uid;moveDraft=chosen.equipped.filter(n=>chosen.learned.some(m=>m.name===n));}
+ const locked=onlineBusy||moveState.busy||adventureBusy();
+ const select=$('moves-pokemon');select.replaceChildren(...list.map(p=>{
+  const option=document.createElement('option');option.value=String(p.uid);option.textContent=speciesNames[p.speciesId]+' · Nv. '+p.level+' (#'+p.uid+')';return option;
+ }));
+ select.value=String(chosen.uid);select.disabled=locked;
+ const equipped=$('moves-equipped');equipped.replaceChildren();
+ moveDraft.forEach((name,index)=>{
+  const row=document.createElement('div');row.className='team-row';
+  const label=document.createElement('span');label.textContent=(index+1)+'. '+name;
+  row.append(label,actionButton('↑',()=>{[moveDraft[index-1],moveDraft[index]]=[moveDraft[index],moveDraft[index-1]];renderMoves();},locked||index===0),
+   actionButton('Remover',()=>{moveDraft=moveDraft.filter(n=>n!==name);renderMoves();},locked));
+  equipped.append(row);
+ });
+ const learned=$('moves-learned');learned.replaceChildren();
+ chosen.learned.forEach(m=>{
+  const row=document.createElement('div');row.className='team-row';
+  const label=document.createElement('span');label.textContent=m.name+' · '+m.type+' · '+m.category+(m.power?' · Poder '+m.power:'');
+  const btn=actionButton(moveDraft.includes(m.name)?'Equipado':'Equipar',()=>{moveDraft.push(m.name);renderMoves();},locked||moveDraft.includes(m.name)||moveDraft.length>=4);
+  btn.dataset.moveName=m.name;row.append(label,btn);learned.append(row);
+ });
+ $('moves-save').disabled=locked||moveDraft.length<1||moveDraft.length>4||sameTeam(moveDraft,chosen.equipped);
+}
+$('moves-pokemon').addEventListener('change',()=>{selectedMoveUid=Number($('moves-pokemon').value);renderMoves(true);});
+$('moves-save').addEventListener('click',async()=>{
+ if(onlineBusy||adventureBusy()||!moveState||moveState.busy||!serverProgress||moveState.revision!==serverProgress.revision)return;
+ const chosen=moveState.pokemon.find(p=>p.uid===selectedMoveUid);
+ if(!chosen||moveDraft.length<1||moveDraft.length>4||!moveDraft.every(n=>chosen.learned.some(m=>m.name===n)))return;
+ const args={actionId:crypto.randomUUID(),expectedRevision:moveState.revision,pokemonUid:selectedMoveUid,moveNames:[...moveDraft]};
+ setOnlineBusy(true);let ok=false;
+ try{await api('/api/v1/moves/equip',args);ok=true;}catch{}
+ const loaded=await refreshPortal();if(loaded&&moveState)$('moves-note').textContent=ok?'Golpes salvos.':'Ação não confirmada. Confira os golpes atualizados.';
+});
 const sameTeam=(a,b)=>a.length===b.length&&a.every((uid,i)=>uid===b[i]);
 function actionButton(label,handler,disabled=false){
  const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.addEventListener('click',handler);return b;
@@ -482,7 +527,7 @@ $('online-team-save').addEventListener('click',()=>{
   runProgressAction('/api/v1/collection/team',{teamUids:[...teamDraft]});
 });
 function clearPortal(){
- portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;gymState=null;expeditionState=null;shopState=null;selectedRegionId=1;selectedExpeditionRegion=1;renderRegion();renderGym();renderExpedition();renderShop();$('region-note').textContent='';$('gym-note').textContent='';$('expedition-note').textContent='';$('shop-note').textContent='';
+ portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;gymState=null;expeditionState=null;shopState=null;moveState=null;selectedRegionId=1;selectedExpeditionRegion=1;selectedMoveUid=null;moveDraft=[];renderRegion();renderGym();renderExpedition();renderShop();renderMoves();$('region-note').textContent='';$('gym-note').textContent='';$('expedition-note').textContent='';$('shop-note').textContent='';
  $('online-team').replaceChildren();$('online-stats').replaceChildren();$('online-points').textContent='';$('online-team-save').disabled=true;
  $('online-trainer').textContent='';$('online-roster').replaceChildren();
  for(const id of ['online-level','online-coins','online-badges','online-count','online-revision','online-error'])$(id).textContent='';
@@ -493,7 +538,7 @@ function setOnlineBusy(busy){
  $('online-start').disabled=busy||selectedStarter===null;
  $('online-refresh').disabled=busy;$('online-logout').disabled=busy;
  $('reset-link').disabled=busy;
- if(serverProgress){renderTeam();renderStats();}renderRegion();renderGym();renderExpedition();renderShop();
+ if(serverProgress){renderTeam();renderStats();}renderRegion();renderGym();renderExpedition();renderShop();renderMoves();
 }
 async function getOnline(path){
  const r=await fetch(path,{credentials:'same-origin',cache:'no-store',redirect:'error'});
@@ -526,7 +571,7 @@ function showSave(data){
 async function refreshPortal(){
  if(!available||view!=='login')return false;
  const epoch=++portalEpoch;
- setOnlineBusy(true);$('online-error').textContent='';newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;gymState=null;expeditionState=null;shopState=null;renderRegion();renderGym();renderExpedition();renderShop();
+ setOnlineBusy(true);$('online-error').textContent='';newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;gymState=null;expeditionState=null;shopState=null;moveState=null;renderRegion();renderGym();renderExpedition();renderShop();renderMoves();
  try{
   const me=await getOnline('/api/v1/me');
   if(epoch!==portalEpoch)return false;
@@ -560,11 +605,16 @@ async function refreshPortal(){
    if(shop.status===401){render('login');return false;}
    if(shop.status===200&&shop.data?.status==='ok'&&shop.data.revision===serverProgress.revision)shopState=shop.data;
    else if(shop.status!==503&&shop.status!==404)throw new Error('Loja indisponível.');
-   renderRegion();renderGym();renderExpedition();renderShop();
+   const moves=await getOnline('/api/v1/moves/current');
+   if(epoch!==portalEpoch)return false;
+   if(moves.status===401){render('login');return false;}
+   if(moves.status===200&&moves.data?.status==='ok'&&moves.data.revision===serverProgress.revision)moveState=moves.data;
+   else if(moves.status!==503&&moves.status!==404)throw new Error('Golpes indisponíveis.');
+   renderRegion();renderGym();renderExpedition();renderShop();renderMoves(true);
   }
   else throw new Error('Progresso indisponível.');
   return true;
- }catch{if(epoch===portalEpoch){progress.hidden=true;serverProgress=null;regionalState=null;gymState=null;expeditionState=null;shopState=null;$('online-error').textContent='Não foi possível carregar o progresso. Atualize e tente novamente.';}return false;}
+ }catch{if(epoch===portalEpoch){progress.hidden=true;serverProgress=null;regionalState=null;gymState=null;expeditionState=null;shopState=null;moveState=null;$('online-error').textContent='Não foi possível carregar o progresso. Atualize e tente novamente.';}return false;}
  finally{if(epoch===portalEpoch||panel.hidden)setOnlineBusy(false);}
 }
 starterButtons.forEach(b=>b.addEventListener('click',()=>{

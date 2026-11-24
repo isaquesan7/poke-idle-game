@@ -80,6 +80,7 @@ export async function equipPokemonMoves(pool,{
        raw.team.some(uid=>!Number.isSafeInteger(uid)||uid<1)||
        new Set(raw.roster.map(p=>p?.uid)).size!==raw.roster.length)
       return await rollback(client,{status:'invalid-save'});
+    if(raw.expedition!==null||raw.pendingBattle!=null||raw.gymSession!=null||raw.lastBattle?.captureStatus==='available')return await rollback(client,{status:'busy'});
     const index=raw.roster.findIndex(p=>p?.uid===pokemonUid);
     if(index<0)return await rollback(client,{status:'missing-pokemon'});
     const pokemon=raw.roster[index];
