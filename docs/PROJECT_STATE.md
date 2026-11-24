@@ -2151,3 +2151,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - #277 integrada main afc964edbf9108e42f70d34d172b76dd09570c04, cinco CI SUCCESS. #278 seis CI SUCCESS no HEAD 471c2051a4b39eb450fe4015465877dcfe13647c; reconciliada após squash #277, CI final obrigatório. Cadastro OFF, SQL027 candidata.
 
 - CI PG18 45498682736 falhou em EADDRINUSE 43142 (faixa efêmera Linux) e startup lockdown 43158 sem stderr; mover portas dos três testes para 23xxx, aguardar exit de subprocessos, sem alterar asserts ou produção. CI final obrigatório.
+
+- CI PG18 45499145951: portas novas resolveram startup, mas dois testes herdavam APP_ORIGIN antigo do workflow; fixar APP_ORIGIN=origin explicitamente nos subprocessos 23144/23146, sem mudar validação CSRF. CI final necessário.

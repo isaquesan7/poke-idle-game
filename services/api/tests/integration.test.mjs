@@ -281,7 +281,7 @@ test('rate limiting persists across requests and rejects repeated login attempts
   const base='http://127.0.0.1:23144';
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
-    env:{...process.env,PORT:'23144',NODE_ENV:'test',
+    env:{...process.env,PORT:'23144',NODE_ENV:'test',APP_ORIGIN:origin,
       ONLINE_REGISTRATION_ENABLED:'true'},
     stdio:'ignore'
   });
@@ -368,7 +368,7 @@ test('ONLINE-01C-6 trainer investment is serialized, revision-bound and receipt-
   const base='http://127.0.0.1:23146';
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
-    env:{...process.env,PORT:'23146',NODE_ENV:'test',
+    env:{...process.env,PORT:'23146',NODE_ENV:'test',APP_ORIGIN:origin,
       ONLINE_REGISTRATION_ENABLED:'true'},
     stdio:'ignore'
   });
