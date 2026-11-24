@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {spawn} from 'node:child_process';
+import {requesterIp,rateDigest} from '../services/api/src/authSecurity.mjs';
 
 const listen=server=>new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve(server.address().port)));
 const close=server=>new Promise(resolve=>server.close(resolve));
@@ -19,7 +20,9 @@ test('ONLINE-01C-4 private proxy is allowlisted, disabled by default and preserv
     res.writeHead(200,{'Content-Type':'application/json',
       'Set-Cookie':'__Host-kanto_session=test; Path=/; HttpOnly; Secure; SameSite=Lax'});
     res.end(JSON.stringify({path:req.url,method:req.method,origin:req.headers.origin,
-      cookie:req.headers.cookie,body:raw,forwarded:req.headers['x-forwarded-for']??null}));
+      cookie:req.headers.cookie,body:raw,forwarded:req.headers['x-forwarded-for']??null,
+      standardForwarded:req.headers.forwarded??null,
+      subject:requesterIp(req),quota:rateDigest('login-ip',requesterIp(req),'synthetic-test-secret-not-for-production-123').toString('hex')}));
   });
   const backendPort=await listen(backend);
   const reservation=createServer();
@@ -36,7 +39,8 @@ test('ONLINE-01C-4 private proxy is allowlisted, disabled by default and preserv
     const r=await fetch(base+'/api/v1/auth/login',{
       method:'POST',headers:{'Content-Type':'application/json',
         Origin:'https://example.test',Cookie:'__Host-kanto_session=token',
-        'X-Forwarded-For':'attacker'},body:'{"email":"abc"}'
+        'X-Forwarded-For':'198.51.100.7','Forwarded':'for=198.51.100.7',
+        'X-Real-IP':'198.51.100.8'},body:'{"email":"abc"}'
     });
     assert.equal(r.status,200);
     const body=await r.json();
@@ -45,6 +49,21 @@ test('ONLINE-01C-4 private proxy is allowlisted, disabled by default and preserv
     assert.equal(body.origin,'https://example.test');
     assert.equal(body.cookie,'__Host-kanto_session=token');
     assert.equal(body.forwarded,null);
+    assert.equal(body.standardForwarded,null);
+    assert.equal(body.subject,'127.0.0.1');
+    const second=await fetch(base+'/api/v1/auth/login',{
+      method:'POST',headers:{'Content-Type':'application/json',Origin:'https://example.test',
+        'X-Forwarded-For':'203.0.113.9','Forwarded':'for=203.0.113.9',
+        'X-Real-IP':'203.0.113.10'},body:'{"email":"other"}'
+    });
+    const secondBody=await second.json();
+    assert.equal(second.status,200);
+    assert.equal(secondBody.forwarded,null);
+    assert.equal(secondBody.standardForwarded,null);
+    // A trusted reverse proxy identity protocol is NOT implemented yet:
+    // distinct claimed IPs cannot evade a shared peer quota.
+    assert.equal(secondBody.subject,body.subject);
+    assert.equal(secondBody.quota,body.quota);
     assert.equal(body.body,'{"email":"abc"}');
     assert.match(r.headers.get('set-cookie'),/HttpOnly/);
     assert.equal((await fetch(base+'/api/v1/admin')).status,404);
