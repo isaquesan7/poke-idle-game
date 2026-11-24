@@ -2120,3 +2120,9 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - R1 via HTTP reserva/start/turn/certify/settle/finish + GET current; backend canônico, revisão e sessão, chave sintética somente PG CI; não abre gameplay em produção. Bloqueia investimento durante reserva. Teste browser PG18 ampliado (contrato HTTP, não UI). #272/#273 dependências e CI pendentes. docs/ONLINE_REGION_HTTP_23F3.md. Próximo: UI regional e recuperação/captura, restante regiões via catálogo canônico; keyring histórico antes de release. /play local e Gym 3v3 preservados.
 
 - #273 integrada main a179924e4a8f6bfa45534d49979676761f38053d após cinco CI SUCCESS; #274 reconciliada e correção de fixture aguarda CI final.
+
+
+## ONLINE-01C-23F4 — UI regional CI-only
+- #272 integrada main 982c8cf443d21783f379f8a29c6cfd3ab64808c3, 4 CI SUCCESS. #273 5 CI SUCCESS no HEAD anterior, reconciliada a998189240cac82131daa1cc36570e8dcd0ef0a1. #274 browser 409 start provável fixture Pikachu/Scratch ilegal, correção commit 253e231bd3bf4daf6b30a79ec4329dd888d7f19d. UI R1 com ações canônicas, HP/SP, log, retomada, recompensa/captura e foco no botão regional. Teste browser PG18 ampliado, CI pendente; depende #273/#274. Não reimplementar engine, /play local, cadastro OFF, demais regiões e Gym interface pendentes. docs/ONLINE_REGION_PORTAL_23F4.md.
+
+- #274 integrada main f7d4bde74f720a781fd9191de7450fa36e386192 após cinco CI SUCCESS; reconciliada #275. CI final obrigatório.

@@ -1,3 +1,5 @@
+> **23F4 CANDIDATA:** UI R1 via contrato CI-only; ações canônicas, HP/SP, diário, captura/skip e foco no botão regional. #272 merged, #273 CI anterior verde/reconciliada, #274 fixture golpe corrigida, CI pendente. Não alterar /play/cadastro/motor. Veja docs/ONLINE_REGION_PORTAL_23F4.md.
+
 > **23F3 CANDIDATA:** contrato HTTP regional R1 CI-only, writers canônicos e GET current, chave sintética PG descartável; UI/keyring histórico e demais regiões pendentes. Depende #272/#273. Sem alteração /play, cadastro OFF. Veja docs/ONLINE_REGION_HTTP_23F3.md.
 
 > **23F2 CANDIDATA:** atributos e Coleção via writers CI-only, revision/actionId, 1v1 líder e trio Gym, releitura servidor. Depende #272, CI final pendente. Cadastro OFF, /play local. Ver docs/ONLINE_PORTAL_ACTIONS_23F2.md.

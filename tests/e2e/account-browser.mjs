@@ -169,7 +169,7 @@ try{
   const fixture=persisted.rows[0].state;
   const raw=JSON.parse(fixture.journal.raw);
   raw.trainer.level=3;
-  raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25,moveName:'thunder-shock'});
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25,level:30,moveName:'thunder-shock'});
   raw.roster.push({...structuredClone(raw.roster[0]),uid:3,pokemonId:7,moveName:'tackle'});
   raw.roster.push({...structuredClone(raw.roster[0]),uid:4,pokemonId:1,moveName:'tackle'});
   raw.nextUid=5;fixture.journal.raw=JSON.stringify(raw);
@@ -228,6 +228,35 @@ try{
   assert.equal(paid.encounter.phase,'paid');
   const finish=await callRegion('finish',{encounterId,actionId:'browser-region-finish-01',expectedRevision:paid.revision,choice:'skip'});
   assert.equal(finish.encounter,null);assert.equal(finish.capture,'skipped');
+  assert.equal((await readRegion()).encounter,null);
+
+  // Actual UI journey: the previous HTTP encounter closed; a new battle
+  // uses the same server-owned leader and canonical permitted actions.
+  await page.locator('#online-refresh').click();
+  await page.locator('#region-open').click();
+  await page.locator('#region-phase[data-phase="await-player"]').waitFor();
+  assert.match(await page.locator('#region-actors').textContent(),/Pikachu/);
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#region-phase[data-phase="await-player"]').waitFor();
+  let uiTurn=0;
+  while(await page.locator('#region-phase').getAttribute('data-phase')==='await-player'&&uiTurn<30){
+    uiTurn++;
+    await responseFor(page,'/api/v1/region/turn',()=>page.locator('[data-region-action="basic"]').click());
+    await page.locator('#region-phase[data-turn="'+uiTurn+'"]').waitFor();
+  }
+  await page.locator('#region-phase[data-phase="resolved"]').waitFor();
+  await page.locator('[data-region-action="reward"]').click();
+  await page.locator('#region-phase[data-phase="paid"]').waitFor();
+  const beforeCapture=await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId]);
+  const beforeBalls=JSON.parse(beforeCapture.rows[0].state.journal.raw).ballPocket.quantities['poke-ball'];
+  const canCapture=await page.locator('[data-region-action="poke-ball"]').count();
+  assert.equal(canCapture,1,'strong CI fixture should win');
+  const capture=await responseFor(page,'/api/v1/region/finish',()=>page.locator('[data-region-action="poke-ball"]').click());
+  assert.ok(['captured','failed'].includes(capture.capture));
+  await page.locator('#region-open').waitFor();
+  await page.waitForFunction(()=>document.activeElement?.id==='region-open');
+  const afterCapture=await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId]);
+  assert.equal(JSON.parse(afterCapture.rows[0].state.journal.raw).ballPocket.quantities['poke-ball'],beforeBalls-1);
   assert.equal((await readRegion()).encounter,null);
 
   // Recovery is requested using the actual browser form, never a real inbox.
