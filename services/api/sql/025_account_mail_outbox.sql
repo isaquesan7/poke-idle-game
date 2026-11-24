@@ -6,6 +6,7 @@ CREATE TABLE game_account_mail_outbox(
   idempotency_key varchar(180) NOT NULL UNIQUE,
   purpose varchar(8) NOT NULL CHECK (purpose IN ('verify','reset')),
   encrypted_payload bytea NOT NULL,
+  payload_fingerprint bytea NOT NULL CHECK(octet_length(payload_fingerprint)=32),
   key_id varchar(32) NOT NULL CHECK (key_id ~ '^[a-z][a-z0-9_-]{0,31}$'),
   expires_at timestamptz NOT NULL,
   available_at timestamptz NOT NULL DEFAULT now(),
