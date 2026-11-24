@@ -11,6 +11,7 @@
 import {KANTO_GYMS,kantoNextGym} from '../gyms/kantoGyms.js';
 import {prepareGymOpponent} from '../gyms/gymTactics.js';
 import {createGymBattleState} from '../gyms/gymBattleState.js';
+import {inheritedOnlineMoves} from './serverInheritedMoves.js';
 import {gymPsychicLevelMoves} from '../gyms/gymPsychicMoves.js';
 import {LEGACY_ITEMS,LEGACY_TITLES,legacyTitleIsUnlocked}
   from '../legacy/catalog.js';
@@ -54,7 +55,7 @@ function manualStats(value:unknown,level:number):StatValues|null{
  * That permission is Gym-only, not a leak into Region 1v1 move lists.
  */
 export function canonicalOnlineGymEquippedMoves(
-  speciesId:number,level:number,moveNames:unknown
+  speciesId:number,level:number,moveNames:unknown,history?:unknown
 ):readonly KantoMove[]|null{
   if(!integer(speciesId,1,151)||!integer(level,1,100)||
      !Array.isArray(moveNames)||moveNames.length<1||moveNames.length>4||
@@ -66,8 +67,10 @@ export function canonicalOnlineGymEquippedMoves(
     ...kantoSupportMoves(speciesId,level),
     ...gymPsychicLevelMoves(speciesId,level)].map(entry=>entry.move);
   const hasAttack=all.some(move=>move.category!=='status');
-  const legal=new Map([...all,...(!hasAttack?[species.move]:[])]
-    .map(move=>[move.name,move] as const));
+  const inherited=inheritedOnlineMoves(speciesId,level,history);
+  if(!inherited)return null;
+  const legal=new Map([...inherited,...[...all,...(!hasAttack?[species.move]:[])]
+    .map(move=>[move.name,move] as const)]);
   const result=moveNames.map(name=>legal.get(name));
   return result.every((move):move is KantoMove=>!!move)?
     result as KantoMove[]:null;
@@ -179,7 +182,7 @@ export function canonicalOnlineGymPreparation(source:unknown):
     const names=p.equippedMoveNames===undefined?
       [p.moveName]:p.equippedMoveNames;
     if(!Array.isArray(names)||names[0]!==p.moveName)return null;
-    const moves=canonicalOnlineGymEquippedMoves(p.pokemonId,p.level,names);
+    const moves=canonicalOnlineGymEquippedMoves(p.pokemonId,p.level,names,p.evolutionHistory);
     if(!moves)return null;
     // Move-rank upgrades are NOT yet issued in the private online backend.
     // Never accept arbitrary client-like damage bonuses from legacy raw.
