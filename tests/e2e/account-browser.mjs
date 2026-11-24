@@ -55,11 +55,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -98,6 +98,7 @@ try{
   assert.equal(await publicPage.locator('#submit').isDisabled(),true);
   assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/status')).status(),503);
   assert.equal((await publicPage.request.get(closedOrigin+'/play')).status(),200);
+  assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/evolution/current')).status(),404);
   assert.equal(await publicPage.locator('#online-panel').isHidden(),true);
   await mobile.close();
 
@@ -452,6 +453,42 @@ try{
   await page.locator('#moves-pokemon').waitFor();
   assert.deepEqual((await moveRead()).pokemon.find(p=>p.uid===1).equipped,['scratch','growl']);
 
+  // Evolution via Collection, not an injected client save. Only fixture grants level.
+  const evoRead=async()=>{const q=await page.request.get(origin+'/api/v1/evolution/current');assert.equal(q.status(),200);return q.json();};
+  const evoPost=(data,headers={Origin:origin})=>page.request.post(origin+'/api/v1/evolution/evolve',{data,headers});
+  const evoBefore=await evoRead();
+  await page.locator('#evolution-pokemon').selectOption('1');
+  assert.equal(await page.locator('[data-evolution-target="5"]').isDisabled(),true);
+  const req={actionId:'browser-evolution-low-0001',expectedRevision:evoBefore.revision,pokemonUid:1,targetSpeciesId:5};
+  assert.equal((await evoPost(req)).status(),409);
+  assert.equal((await evoPost({...req,level:16})).status(),400);
+  assert.equal((await evoPost(req,{Origin:'https://attacker.example'})).status(),403);
+  assert.equal((await evoRead()).revision,evoBefore.revision);
+  const evoFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const evoRaw=JSON.parse(evoFixture.journal.raw);
+  evoRaw.roster.find(p=>p.uid===1).level=16;
+  evoFixture.journal.raw=JSON.stringify(evoRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(evoFixture)]);
+  await page.locator('#online-refresh').click();
+  await page.locator('#evolution-pokemon').selectOption('1');
+  const button=page.locator('[data-evolution-target="5"]');
+  assert.equal(await button.isEnabled(),true);
+  page.once('dialog',d=>d.dismiss());await button.click();
+  assert.equal((await evoRead()).revision,evoBefore.revision);
+  page.once('dialog',d=>d.accept());
+  await responseFor(page,'/api/v1/evolution/evolve',()=>button.click());
+  await page.getByText('Evolução concluída.',{exact:true}).waitFor();
+  const evoAfter=await evoRead();
+  assert.equal(evoAfter.revision,evoBefore.revision+1);
+  assert.equal(evoAfter.pokemon.find(p=>p.uid===1).speciesId,5);
+  assert.deepEqual((await moveRead()).pokemon.find(p=>p.uid===1).equipped,['scratch','growl']);
+  const storedEvo=JSON.parse((await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state.journal.raw);
+  assert.deepEqual(storedEvo.team,evoRaw.team);
+  assert.deepEqual(storedEvo.roster.find(p=>p.uid===1),{...evoRaw.roster.find(p=>p.uid===1),pokemonId:5,evolutionHistory:[{from:4,to:5,level:16,moves:['scratch','growl']}]});
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#evolution-pokemon').waitFor();
+  assert.equal((await evoRead()).pokemon.find(p=>p.uid===1).speciesId,5);
+
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();
   assert.ok(page.url().endsWith('/reset-password'));
@@ -490,7 +527,7 @@ try{
   await responseFor(page,'/api/v1/auth/login',()=>page.locator('#submit').click());
   assert.equal((await page.request.get(origin+'/api/v1/me')).status(),200);
   await page.locator('#online-progress').waitFor();
-  assert.match(await page.locator('#online-roster').textContent(),/Charmander · Nível 1/);
+  assert.match(await page.locator('#online-roster').textContent(),/Charmeleon · Nível 16/);
   await responseFor(page,'/api/v1/auth/logout',()=>page.locator('#online-logout').click());
   await page.locator('#auth-form').waitFor();
   assert.equal(await page.locator('#online-panel').isHidden(),true);
