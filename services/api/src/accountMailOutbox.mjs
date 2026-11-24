@@ -93,6 +93,47 @@ export async function accountMailTokenActive(pool,purpose,token,outboxId){
   return result.rowCount===1;
 }
 
+/**
+ * Maintenance is explicit, bounded and safe to run concurrently with claims.
+ * Only unleased rows can be finalized; a claimed in-flight message is untouched.
+ * Counters contain no recipient, token, provider secret or message payload.
+ */
+export async function reconcileAccountMail(pool){
+  const expired=await pool.query(`
+    UPDATE game_account_mail_outbox
+       SET status='expired',lease_until=NULL,updated_at=now()
+     WHERE status IN ('pending','sending') AND expires_at<=now()
+       AND (lease_until IS NULL OR lease_until<now())
+    RETURNING id`);
+  const dead=await pool.query(`
+    UPDATE game_account_mail_outbox
+       SET status='dead',lease_until=NULL,updated_at=now()
+     WHERE status IN ('pending','sending') AND attempt_count>=$1
+       AND (lease_until IS NULL OR lease_until<now())
+    RETURNING id`,[maxAttempts]);
+  return {expired:expired.rowCount,dead:dead.rowCount};
+}
+
+/** Read-only operator snapshot. No PII, URLs, token material or ids. */
+export async function accountMailMetrics(pool){
+  const totals=await pool.query(`
+    SELECT status,count(*)::int AS total
+      FROM game_account_mail_outbox GROUP BY status`);
+  const delayed=await pool.query(`
+    SELECT count(*)::int AS total,
+      COALESCE(max(extract(epoch FROM(now()-created_at))),0)::integer AS oldest_seconds
+    FROM game_account_mail_outbox
+    WHERE status IN ('pending','sending') AND expires_at>now()
+        AND available_at<=now()
+      AND expires_at>now()`);
+  const counts=Object.fromEntries(
+    ['pending','sending','delivered','expired','dead'].map(key=>[key,0]));
+  for(const row of totals.rows)if(Object.hasOwn(counts,row.status))
+    counts[row.status]=row.total;
+  return {counts,backlog:delayed.rows[0].total,
+    oldestBacklogSeconds:Math.max(0,delayed.rows[0].oldest_seconds)};
+}
+
 /** Claim leases using SKIP LOCKED. Crash after provider acceptance can retry:
  * stable Resend idempotency_key is essential (at-least-once worker semantics).
  */
@@ -120,7 +161,17 @@ export async function processOneAccountMail(pool,{keyring,from,providerKey,send}
   const id=row.id;
   // A worker must fail closed if historical key is absent: never delete ciphertext.
   const key=keyring.keys.get(row.key_id);
-  if(!key)return {status:'blocked-key',id};
+  if(!key){
+    // Keep historical ciphertext intact. Release the lease with a bounded
+    // delay so a missing key does not hot-loop or monopolize claim order.
+    await pool.query(`UPDATE game_account_mail_outbox
+      SET status='pending',lease_until=NULL,
+          available_at=now()+interval '5 minutes',updated_at=now()
+      WHERE id=$1 AND status='sending' AND attempt_count=$2
+        AND lease_until>now()
+        AND lease_until>now()`,[id,row.attempt_count]);
+    return {status:'blocked-key',id};
+  }
   if(new Date(row.expires_at).getTime()<=Date.now()){
     await pool.query(`
       UPDATE game_account_mail_outbox SET status='expired',lease_until=NULL,
@@ -136,7 +187,7 @@ export async function processOneAccountMail(pool,{keyring,from,providerKey,send}
     if(!tokenStillActive){
       await pool.query(`UPDATE game_account_mail_outbox SET status='expired',
         lease_until=NULL,updated_at=now() WHERE id=$1 AND status='sending'
-        AND attempt_count=$2`,[id,row.attempt_count]);
+        AND attempt_count=$2 AND lease_until>now()`,[id,row.attempt_count]);
       return {status:'revoked',id};
     }
     const delivered=await deliverAccountEmail({
