@@ -46,7 +46,7 @@ test('ONLINE-01C-23C9: real HTTP account recovery expires, invalidates and revok
     assert.equal(verifyStorage.rows[0].token_sha256.length,32);
     assert.ok(!verifyStorage.rows[0].token_sha256.toString('hex').includes(expiredVerify));
     await pool.query(
-      "UPDATE game_email_verifications SET expires_at=now()-interval '1 second' WHERE account_id=$1",
+      "UPDATE game_email_verifications SET created_at=now()-interval '48 hours', expires_at=now()-interval '1 second' WHERE account_id=$1",
       [accountId]);
     assert.equal((await call('/api/v1/auth/verify','POST',{token:expiredVerify})).status,400,
       'expired verification token cannot activate account');
@@ -87,7 +87,7 @@ test('ONLINE-01C-23C9: real HTTP account recovery expires, invalidates and revok
       {token:first.data.testResetToken,password:updated})).status,400,
       'newer request revokes previous password-reset token');
     await pool.query(
-      "UPDATE game_password_resets SET expires_at=now()-interval '1 second' WHERE account_id=$1 AND used_at IS NULL",
+      "UPDATE game_password_resets SET created_at=now()-interval '1 hour', expires_at=now()-interval '1 second' WHERE account_id=$1 AND used_at IS NULL",
       [accountId]);
     assert.equal((await call('/api/v1/auth/confirm-reset','POST',
       {token:second.data.testResetToken,password:updated})).status,400,
