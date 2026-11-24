@@ -2066,3 +2066,5 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 
 ## ONLINE-01C-23E24 — cliente de homologação pública (24/11/2026; branch)
 - #266 evidência real TCP IPv4/IPv6 e limpeza em CI. Novo cliente público com sete cenários, referência externa por família, Host explícito, prova sintética obrigatória e relatório sanitizado; CI dedicado, sem ensaio real/provisionamento. Roteiro CMD e proposta de revisão IPv6 /64 (não aprovada, protocolo v1 intacto) em docs/ONLINE_GATEWAY_PUBLIC_OBSERVATION_23E24.md. Próximo: reconciliar #266 após merge, CI final, executar duas redes com operador e revisar prefixos/adapter. Cadastro OFF, SQL026 candidata, /play local, Regiões 1v1, Gym 3v3; restore/Resend/LGPD pendentes.
+
+- Atualização 24/11/2026: #266 integrada à main (`65ea863dbc7488d8e309001ea8a5fdb50e80d598`) após CI 45476116598 SUCCESS. #267: CI geral 45476501622 e dedicado 45476501484 SUCCESS no HEAD anterior; reconciliação com main exige novo CI. Ensaio público real ainda pendente de duas redes independentes e referência externa; nenhum serviço TEMP provisionado nesta etapa. Cadastro permanece OFF.

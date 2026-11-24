@@ -1042,3 +1042,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23E24 — cliente de homologação pública gateway (24/11/2026; branch)
 - Sete casos sintéticos com referência independente por família, verificação de prova e relatório sanitizado. CI dedicado, roteiro operador e revisão de prefixos sem alteração de protocolo ou infraestrutura. Ensaio real pendente.
+
+- Atualização 24/11/2026: #266 integrada à main (`65ea863dbc7488d8e309001ea8a5fdb50e80d598`) após CI 45476116598 SUCCESS. #267: CI geral 45476501622 e dedicado 45476501484 SUCCESS no HEAD anterior; reconciliação com main exige novo CI. Ensaio público real ainda pendente de duas redes independentes e referência externa; nenhum serviço TEMP provisionado nesta etapa. Cadastro permanece OFF.
