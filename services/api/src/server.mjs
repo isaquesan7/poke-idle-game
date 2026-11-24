@@ -205,7 +205,7 @@ const server=createServer(async(req,res)=>{
       // No email-account enumeration. Tokens returned ONLY in test harness
       // when mail adapter is disabled, never in any production response.
       return json(res,200,{accepted:true,
-        ...(!mailConfigured&&process.env.NODE_ENV==='test'&&token?
+        ...(mailMode==='off'&&process.env.NODE_ENV==='test'&&token?
           {testResetToken:token}:{})});
     }
     if(pathname==='/api/v1/auth/confirm-reset'&&req.method==='POST'){
