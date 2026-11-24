@@ -6,8 +6,8 @@
  */
 import {KANTO_BATTLE_SPECIES,simulateKantoBattle} from '../combat/kantoBattle.js';
 import {serverRegionalOpponent} from './serverRegionalPolicy.js';
-import {kantoLevelMoves} from '../catalog/kantoLevelMoves.js';
-import {kantoSupportMoves} from '../catalog/kantoSupportMoves.js';
+import {inheritedOnlineMoves,regionalNativeMoves} from './serverInheritedMoves.js';
+import type {OnlineEvolutionStep} from './serverInheritedMoves.js';
 import {kantoWildMoveLoadout} from '../catalog/kantoWildMoves.js';
 import {pokemonFinalStats,pokemonOwnStats} from '../stats/pokemon.js';
 import {trainerTotals} from '../stats/trainer.js';
@@ -34,6 +34,7 @@ export interface ServerBattleSnapshotV2 extends
   readonly version:2;
   readonly activePokemon:ServerBattleSnapshotV1['activePokemon']&{
     readonly moveNames:readonly string[];
+    readonly evolutionHistory?:readonly OnlineEvolutionStep[];
   };
 }
 /** Only canonical FRLG learned/implemented moves (plus the historical
@@ -41,7 +42,7 @@ export interface ServerBattleSnapshotV2 extends
  * This is used by BOTH the equip writer and frozen battle constructor.
  */
 export function frozenValidatedEquippedMoves(
-  speciesId:number,level:number,names:unknown
+  speciesId:number,level:number,names:unknown,history?:unknown
 ):readonly KantoMove[]|null{
   if(!Number.isSafeInteger(speciesId)||speciesId<1||speciesId>151||
      !Number.isSafeInteger(level)||level<1||level>100||
@@ -51,13 +52,9 @@ export function frozenValidatedEquippedMoves(
      new Set(names).size!==names.length)return null;
   const species=KANTO_BATTLE_SPECIES[speciesId];
   if(!species)return null;
-  const unlocked=[...kantoLevelMoves(speciesId,level),
-    ...kantoSupportMoves(speciesId,level)].map(entry=>entry.move);
-  const unlockedAttacks=unlocked.filter(move=>move.category!=='status');
-  // The legacy fallback is legal only if NO implementable offensive move
-  // has been learned yet, regardless of whether supports exist.
-  const legal=new Map([...unlocked,...(unlockedAttacks.length===0?
-    [species.move]:[])].map(move=>[move.name,move] as const));
+  const inherited=inheritedOnlineMoves(speciesId,level,history);
+  if(!inherited)return null;
+  const legal=new Map([...inherited,...regionalNativeMoves(speciesId,level)]);
   const result=names.map(name=>legal.get(name));
   return result.every((move):move is KantoMove=>!!move)?
     Object.freeze(result as KantoMove[]):null;
@@ -103,11 +100,12 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   const rawNames=(player as {moveNames?:unknown}).moveNames;
   // Legacy v1 cannot smuggle a multi-move loadout without versioning it.
   // v2 MUST bind the first equipped slot to the legacy primary moveName.
-  if(s.version===1&&rawNames!==undefined)return null;
+  const history=(player as {evolutionHistory?:unknown}).evolutionHistory;
+  if(s.version===1&&(rawNames!==undefined||history!==undefined))return null;
   if(s.version===2&&(!Array.isArray(rawNames)||
      rawNames[0]!==player.moveName))return null;
   const equipped=frozenValidatedEquippedMoves(
-    player.speciesId,player.level,s.version===2?rawNames:[player.moveName]);
+    player.speciesId,player.level,s.version===2?rawNames:[player.moveName],history);
   if(!equipped)return null;
   const selected=equipped[0]!;
   const trainerStats=trainerTotals({
