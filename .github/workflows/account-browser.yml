@@ -1,0 +1,58 @@
+name: ONLINE-01C — conta no navegador com PostgreSQL descartável
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'landing.html'
+      - 'server.mjs'
+      - 'online-api-proxy.mjs'
+      - 'services/api/**'
+      - 'tests/e2e/account-browser.mjs'
+      - '.github/workflows/account-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  account-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: kanto_ci
+          POSTGRES_PASSWORD: ci_only_not_production
+          POSTGRES_DB: kanto_ci
+        ports:
+          - 55432:5432
+        options: >-
+          --health-cmd "pg_isready -U kanto_ci -d kanto_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://kanto_ci:ci_only_not_production@127.0.0.1:55432/kanto_ci
+      NODE_ENV: test
+      ONLINE_REGISTRATION_ENABLED: 'true'
+      AUTH_RATE_LIMIT_SECRET: ci-only-security-pepper-never-used-in-railway-2026
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar monorepo e dependências da API
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ci --prefix services/api --ignore-scripts --no-audit --no-fund
+          node scripts/build-api-game-core.mjs "$RUNNER_TEMP/frozenBattle.mjs"
+          echo "CORE_BUNDLE_PATH=$RUNNER_TEMP/frozenBattle.mjs" >> "$GITHUB_ENV"
+          npm run build:web
+          npm run db:migrate --prefix services/api
+      - name: Preparar Chromium compatível
+        run: |
+          npm install --global npm@11
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser real, proxy privado, sessão e recuperação
+        run: node tests/e2e/account-browser.mjs
