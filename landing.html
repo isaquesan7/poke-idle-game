@@ -136,7 +136,8 @@ function renderRegion(){
  const e=regionalState?.encounter;
  const regions=Array.isArray(regionalState?.regions)?regionalState.regions:[];
  if(e)selectedRegionId=e.regionId;
- if(!regions.some(r=>r.id===selectedRegionId&&r.unlocked)&&!e)selectedRegionId=regions.find(r=>r.unlocked)?.id??1;
+ // A temporary loading state must not reset the selected region.
+ if(regionalState&&!e&&!regions.some(r=>r.id===selectedRegionId&&r.unlocked))selectedRegionId=regions.find(r=>r.unlocked)?.id??1;
  const selected=regions.find(r=>r.id===selectedRegionId);
  regionSelect.replaceChildren(...regions.map(r=>{
   const option=document.createElement('option');option.value=String(r.id);
