@@ -96,7 +96,8 @@ export async function equipPokemonMoves(pool,{
     const legal=core.frozenValidatedEquippedMoves(
       pokemon.pokemonId,pokemon.level,moveNames);
     if(!legal||legal.length!==moveNames.length||
-       legal.some((move,i)=>move.name!==moveNames[i]))
+       legal.some((move,i)=>move.name!==moveNames[i])||
+       !legal.some(move=>move.category!=='status'))
       return await rollback(client,{status:'illegal-moves'});
     // Preserve UID, level, XP, stats, trainer, team, drops, economy etc.
     raw.roster[index]={...pokemon,moveName:moveNames[0],
