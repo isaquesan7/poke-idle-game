@@ -246,7 +246,8 @@ $('reset-link').addEventListener('click',()=>{
  token='';password.value='';confirmPassword.value='';render('reset');
 });
 form.addEventListener('submit',async event=>{
- event.preventDefault();if(!available||submit.disabled)return;
+ event.preventDefault();if(!available)return;
+ if(submit.disabled)return;
  const email=$('email').value.trim(),pass=password.value;
  if((view==='register'||(view==='reset'&&token))&&pass!==confirmPassword.value)
    return message('As senhas informadas não coincidem.',true);
