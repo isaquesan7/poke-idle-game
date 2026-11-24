@@ -943,3 +943,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Registra a jornada Resend sandbox da PR #250 integrada e amplia testes de spoofing e colisão da cota por peer em proxy HTTP local. Nenhuma alteração de runtime, cadastro ou save. CI/revisão pendentes; gate de proxy permanece bloqueado.
 
 - PR #251 integrado: allowlists de cabeçalhos/métodos e buffering limitado antes do upstream. PR #252 combina os testes de ambas as branches; aguarda CI do novo HEAD.
+
+
+## ONLINE-01C-23E12 — instrumento isolado de observação do ingress (24/11/2026; branch)
+- Probe standalone e testes de observação sanitizada, sem mudança de runtime ou infraestrutura. CI e ensaio real pendentes.

@@ -1954,3 +1954,8 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Próximo: projetar identidade autenticada de cliente no proxy com base em evidência real do Railway (sem confiar em forwarded arbitrário), testar distribuição/concorrência em ambiente isolado, e revisar ciclo de vida LGPD. Gate reverseProxyRateLimitReviewed continua falso. Cadastro OFF, /play local sem migração, Regiões 1v1 team[0], Ginásios 3v3 com trio definido na Coleção. Restore integral e remetente definitivo continuam pendentes.
 
 - PR #251 integrado em main `d4f888c3e3d2005a23091dcf3fb866c64b022d6c` após regressão geral, browser e imagem D-044 SUCCESS; endurece allowlist, métodos e tamanho/prazo de corpo do proxy. PR #252 reconciliado com a main, preservando ambos os conjuntos de testes; CI do HEAD combinado ainda pendente. Railway web em build na primeira verificação, API sem mudança.
+
+
+## ONLINE-01C-23E12 — instrumento de observação do ingress (24/11/2026; branch)
+- Railway production verificado via leitura: web público, API sem domínio público, Postgres e clone restaurado no mesmo ambiente; nenhum fork. Sem mudança de infraestrutura. PRs #253/#254 ainda em CI/merge.
+- Probe standalone autenticado, curto e limitado, sem IP bruto no relatório; testes locais de formatos, duplicidade, autorização, validade e limite. Não integrado ao runtime, ensaio Railway ainda NÃO executado. docs/ONLINE_RAILWAY_INGRESS_OBSERVATION_23E12.md descreve ambiente vazio temporário e procedimento. Gate permanece falso, cadastro OFF; nenhum custo ou recurso novo contratado.
