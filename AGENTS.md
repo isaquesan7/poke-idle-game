@@ -1,3 +1,9 @@
+> **RESTORE — continuidade 24/11/2026:** PITR real e auditoria estrutural já executados: logs Railway confirmam WAL, recovery point 11:07:09 UTC, ready 11:15:56 UTC; histórico operador 25 migrations, 16 tabelas, zero constraints inválidas/contas/saves/e-mails. NÃO repetir. Gate A parcial: clone no mesmo ambiente, revisão/cronologia/IDs/retencão formais pendentes. Sem mutação de produção. Ver fim PROJECT_STATE.
+
+> **23E28 RECONCILIADA:** #270 merged, cinco CI SUCCESS; #271 smoke dedicado/PG18/browser/D044 SUCCESS no HEAD anterior, CI final obrigatório. Próximo fechar evidência de restore já existente; não recriar clone ou repetir probes.
+
+> **23E28 CANDIDATA:** smoke do transporte real gateway/Web em CI, receptor sintético, sem rede externa/contas. Depende de #270 e CI final. Checklist único de saída em docs/ONLINE_GATEWAY_RUNTIME_SMOKE_23E28.md; não repetir #255/#266 ou sandbox Resend. Cadastro OFF, SQL026 candidata, /play local.
+
 > **23E27 CANDIDATA (24/11/2026):** #269 integrada 3 CI SUCCESS. Launcher Dockerfile.auth-gateway e modos explícitos Web/receiver API preparados, cadastro production hard-OFF, SQL026 candidata; CI pendente. Não configurar modos reais/segredos até revisão e homologação integrada. Não repetir #255/#266. Veja docs/ONLINE_GATEWAY_RUNTIME_23E27.md e gates restore/Resend/LGPD.
 
 > **23E26 REVISADA (24/11/2026):** #268 integrada, quatro CI SUCCESS. #269 substitui peers fixos por configuração de topologia Railway exclusiva vinculada a IDs/commit/domínio; sem comprovação automática, sem launcher/ativação. Provedor não publica CIDR estável. Não repetir #255/#266; CI final, configuração operacional fail-closed e gates pendentes. Cadastro OFF, SQL026 candidata. Leia docs/ONLINE_GATEWAY_INGRESS_ADAPTER_23E26.md.
