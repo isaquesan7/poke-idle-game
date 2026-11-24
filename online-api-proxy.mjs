@@ -30,11 +30,18 @@ const responseHeaders=new Set(['content-type','set-cookie','retry-after','allow'
   'x-frame-options','referrer-policy','x-robots-tag','content-disposition','vary']);
 const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save']);
 const maxBody=16384;
-// Explicit disposable loopback harness only; production keeps stripping proofs.
+// Default strips proofs; reviewed deployment can relay opaque assertions without keys.
 // The web proxy has NO signing key and cannot create client identities.
 const gatewayForwardTest=process.env.NODE_ENV==='test'&&process.env.ONLINE_GATEWAY_FORWARD_TEST_ONLY==='true';
 if(gatewayForwardTest&&(!upstream||upstream.protocol!=='http:'||upstream.hostname!=='127.0.0.1'||!upstream.port))
   throw new Error('Gateway forwarding harness requires loopback API');
+const forwardMode=process.env.ONLINE_GATEWAY_FORWARD_MODE;
+if(forwardMode!==undefined&&forwardMode!=='reviewed')throw new Error('Invalid gateway forwarding mode');
+const gatewayForwardReviewed=forwardMode==='reviewed';
+if(gatewayForwardReviewed&&(process.env.NODE_ENV!=='production'||gatewayForwardTest||
+    !upstream||upstream.protocol!=='http:'||!(/^[a-z0-9-]+\.railway\.internal$/).test(upstream.hostname)||!upstream.port||
+    ['GATEWAY_SIGNING_HEX','GATEWAY_SUBJECT_HEX','ONLINE_GATEWAY_RECEIVER_ACTIVE_HEX','ONLINE_SIGNED_QUOTA_TEST_KEY'].some(k=>process.env[k]!==undefined)))
+  throw new Error('Reviewed forwarding requires private API and no gateway keys');
 const signedPaths=new Set(['/api/v1/auth/register','/api/v1/auth/verify',
   '/api/v1/auth/login','/api/v1/auth/request-reset','/api/v1/auth/confirm-reset']);
 function gatewayProof(req){
@@ -78,7 +85,7 @@ export function proxyOnlineApi(req,res,pathname){
     res.setHeader('Allow',allowedMethod);
     fail(res,405,'Método não permitido');return true;
   }
-  const proofRequired=gatewayForwardTest&&signedPaths.has(pathname);
+  const proofRequired=(gatewayForwardTest||gatewayForwardReviewed)&&signedPaths.has(pathname);
   const proof=proofRequired?gatewayProof(req):null;
   if(proofRequired&&(!proof||req.url!==pathname)){
     fail(res,403,'Identidade de gateway inválida');req.resume();return true;

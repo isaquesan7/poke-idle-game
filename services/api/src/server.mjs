@@ -3,7 +3,7 @@
  * ONLINE_REGISTRATION_ENABLED=true. Nunca importa saves locais.
  */
 import {createServer} from 'node:http';
-import {consumeProxyIdentity} from './proxyNonceGuard.mjs';
+import {createProxyReceiver} from './proxyKeyring.mjs';
 import {createHash} from 'node:crypto';
 import {enqueueAccountMail,mailKeyring} from './accountMailOutbox.mjs';
 import pg from 'pg';
@@ -41,7 +41,7 @@ const enabled=process.env.NODE_ENV==='test' &&
 const signedQuotaTest=enabled&&process.env.ONLINE_SIGNED_QUOTA_TEST_ONLY==='true';
 const signedRoutes=new Set(['/api/v1/auth/register','/api/v1/auth/verify',
   '/api/v1/auth/login','/api/v1/auth/request-reset','/api/v1/auth/confirm-reset']);
-let signedQuotaKey;
+let signedQuotaReceiver;
 if(signedQuotaTest){
   const db=new URL(connectionString);
   const raw=process.env.ONLINE_SIGNED_QUOTA_TEST_KEY??'';
@@ -49,7 +49,21 @@ if(signedQuotaTest){
     db.pathname!=='/kanto_ci'||db.username!=='kanto_ci'||
     process.env.ACCOUNT_DRILL_LOOPBACK_ONLY!=='true'||!/^[a-f0-9]{64}$/.test(raw))
     throw new Error('Signed quota harness requires disposable CI and loopback');
-  signedQuotaKey=Buffer.from(raw,'hex');
+  signedQuotaReceiver=createProxyReceiver({activeHex:raw});
+}
+// Prepare the reviewed receiver configuration without changing the production
+// registration gate. No request or migration is enabled by this mode.
+const receiverMode=process.env.ONLINE_SIGNED_QUOTA_MODE;
+if(receiverMode!==undefined&&receiverMode!=='reviewed')throw new Error('Invalid quota receiver mode');
+if(receiverMode==='reviewed'){
+  if(process.env.NODE_ENV!=='production'||signedQuotaTest||
+    ['GATEWAY_SIGNING_HEX','GATEWAY_SUBJECT_HEX','ONLINE_SIGNED_QUOTA_TEST_KEY'].some(k=>process.env[k]!==undefined))
+    throw new Error('Reviewed receiver requires dedicated API configuration');
+  const previousHex=process.env.ONLINE_GATEWAY_RECEIVER_PREVIOUS_HEX;
+  const rawCutover=process.env.ONLINE_GATEWAY_RECEIVER_CUTOVER_MS;
+  if(rawCutover!==undefined&&!/^\d{1,16}$/.test(rawCutover))throw new Error('Invalid receiver cutover');
+  signedQuotaReceiver=createProxyReceiver({activeHex:process.env.ONLINE_GATEWAY_RECEIVER_ACTIVE_HEX,
+    ...(previousHex!==undefined?{previousHex}:{}),...(rawCutover!==undefined?{cutoverMs:Number(rawCutover)}:{})});
 }
 const signedQuotaRequests=new WeakMap();
 function quotaSubject(req){return signedQuotaRequests.get(req)?.subject??requesterIp(req);}
@@ -152,17 +166,18 @@ const server=createServer(async(req,res)=>{
     }
     if(!enabled&&pathname.startsWith('/api/v1/auth/'))
       return json(res,503,{error:'Cadastro e login em preparação'});
-    if(signedQuotaTest&&req.method==='POST'&&signedRoutes.has(pathname)){
+    if(signedQuotaReceiver&&req.method==='POST'&&signedRoutes.has(pathname)){
       requireSameOrigin(req);
       if(req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       const assertions=[];
       for(let i=0;i<req.rawHeaders.length;i+=2)
         if(req.rawHeaders[i].toLowerCase()==='x-kanto-proxy-identity')assertions.push(req.rawHeaders[i+1]);
-      if(assertions.length!==1)return json(res,403,{error:'Identidade de proxy inválida'});
+      if(assertions.length!==1||String(req.headers.connection??'').split(',').some(v=>v.trim().toLowerCase()==='x-kanto-proxy-identity'))
+        return json(res,403,{error:'Identidade de proxy inválida'});
       const body=await readJsonBytes(req);
       let verified;
       try{
-        verified=await consumeProxyIdentity(pool,{assertion:assertions[0],signingKey:signedQuotaKey,
+        verified=await signedQuotaReceiver.consume(pool,{assertion:assertions[0],
           method:req.method,path:pathname,body});
       }catch{return json(res,503,{error:'Verificação temporariamente indisponível'});}
       if(!verified)return json(res,403,{error:'Identidade de proxy inválida'});
