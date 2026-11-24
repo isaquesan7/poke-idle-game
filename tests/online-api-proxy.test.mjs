@@ -116,7 +116,7 @@ test('23E9: untrusted headers, wrong methods and incomplete/oversized bodies nev
     assert.equal(r.status,429);await r.text();
     assert.equal(r.headers.get('retry-after'),'900');
     assert.equal(r.headers.get('x-internal-secret'),null);
-    assert.equal(r.headers.get('x-frame-options'),null);
+    assert.equal(r.headers.get('x-frame-options'),'DENY');
     assert.equal(r.headers.get('referrer-policy'),'no-referrer');
     assert.equal(received.length,1);
     const h=received[0].headers;
