@@ -78,7 +78,7 @@ export async function finishPaidWildTurnEncounter(pool,{
        typeof save?.journal?.raw!=='string')
       return await rollback(client,{status:'invalid-save'});
     const session=encounter.battle_turn_state;
-    if(encounter.status!=='reserved'||Number(encounter.region_id)!==1||
+    if(encounter.status!=='reserved'||encounter.battle_snapshot?.regionId!==Number(encounter.region_id)||
        encounter.entropy_version!==BATTLE_ENTROPY_VERSION||
        !encounter.battle_snapshot||!session||session.phase!=='resolved'||
        !encounter.battle_turn_certificate_action_id||

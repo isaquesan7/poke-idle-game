@@ -1105,4 +1105,13 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 - #274 integrada main f7d4bde74f720a781fd9191de7450fa36e386192 após cinco CI SUCCESS; #276 reconciliada. Regressão/core, browser e D044 SUCCESS; PG18 falhou no startup do teste de throttle, sem stderr. CI final obrigatório.
 
+
+## ONLINE-01C-23F6 — persistência e seletor das dez regiões (CI)
+- #274 integrada, #275 browser/PG18/D044 SUCCESS (regressões pendentes na leitura), #276 CI incompleto (falhas startup auth). Branch dependente #275/#276: reserva com unlock, materialização canônica líder/HMAC, snapshots e writers vinculados, catálogo e bolas legais, UI seletor. SQL027 somente PG18 CI após suite; teste nove regiões e browser R2; CI pendente. Cadastro OFF, nenhuma alteração no Railway ou migração registrada; /play local. docs/ONLINE_REGIONAL_PERSISTENCE_23F6.md.
+
+- Revisão 24/11/2026: #275 integrada main f767dca38d10639b0826e7407bef32c90b2448ed após cinco CI SUCCESS. #276 reconciliada, CI final pendente. #277 PG18 falhou no teste 23A (turno blocked vs applied; causa específica não confirmada); fixture usa ações legais do core, conserva Thunder Wave inicial e vitória/certificação, inclui razão do bloqueio. Browser R2 falhou após skip (seletor voltou a 1); corrigido reset transitório durante refresh, preservada validação de unlock e região da reserva. Novos CIs obrigatórios, reconciliar #276 após merge; não liberar SQL027 nem cadastro, /play local intacto.
+
 - #275 integrada main f767dca38d10639b0826e7407bef32c90b2448ed, cinco CI SUCCESS. #276 reconciliada; novo CI obrigatório. Falha anterior PG18 em startup do teste signed-quota production (assert ready), causa não determinada; não liberar antes de validar.
+- #277 reconciliada com HEAD #276 122c8e0f11572562df1b221e1812bce623d049e3, que inclui main #275; PG18/D044 SUCCESS no #276, demais checks pendentes. Novo CI do #277 obrigatório; aguardar integração de #276.
+
+- #276 integrada main b9f9499635a7134a4e7578e71cfafc016cd5923e após quatro CI SUCCESS (45496299319,45496298918,45496298959,45496298941). #277 PG18 45496592991, browser 45496593098 e D044 45496592885 SUCCESS no HEAD anterior; regressões pendentes na leitura. Reconciliada após squash #276; CI final obrigatório, SQL027 não registrada, cadastro OFF.

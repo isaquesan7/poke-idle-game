@@ -7,6 +7,7 @@
  * tests/encounterMaterialization.test.mjs checks parity against the source.
  * Expansion to other regions must reuse policy from game-core, not copy pools.
  */
+import {loadCombatAdapter} from './battlePreview.mjs';
 import {createPrivateBattleRandom,BATTLE_ENTROPY_VERSION} from './battleEntropy.mjs';
 export const FIRST_REGION_SPECIES=Object.freeze([
   10,13,16,54,21,29,32,43,46,48,60,69,1,4,7
@@ -34,7 +35,7 @@ export async function materializeReservedEncounter(pool,{
       return {status:'replay',speciesId:Number(row.species_id),
         level:Number(row.pokemon_level),entropyVersion:row.entropy_version};
     }
-    if(row.status!=='reserved'||row.region_id!==1){
+    if(row.status!=='reserved'||!Number.isInteger(row.region_id)||row.region_id<1||row.region_id>10){
       await client.query('ROLLBACK');return {status:'unavailable'};
     }
     const saves=await client.query(
@@ -50,13 +51,16 @@ export async function materializeReservedEncounter(pool,{
        !Array.isArray(raw.roster)||!raw.roster.length){
       await client.query('ROLLBACK');return {status:'invalid-save'};
     }
-    // Match current core regional weighting for R1 (all species common,
-    // identical weight 1). Level formula is bounded by R1 level 2..10.
+    // Use the canonical catalog and the actual selected leader's level.
+    // Materialized historical encounters above retain their original species and level.
     const rng=createPrivateBattleRandom(entropyKey,{
       accountId,encounterId,phase:'wild-encounter'
     });
-    const speciesId=FIRST_REGION_SPECIES[rng.integer(FIRST_REGION_SPECIES.length)];
-    const pokemonLevel=Math.max(2,Math.min(10,level+rng.integer(5)-2));
+    const leader=raw.roster.find(p=>p?.uid===raw.team?.[0]);
+    const core=await loadCombatAdapter();
+    const rolled=core.serverRegionalRoll(row.region_id,level,leader?.level,n=>rng.integer(n));
+    if(!rolled){await client.query('ROLLBACK');return {status:'invalid-save'};}
+    const {speciesId,level:pokemonLevel}=rolled;
     await client.query(
       `UPDATE game_encounter_reservations
          SET species_id=$3,pokemon_level=$4,entropy_version=$5,materialized_at=now()

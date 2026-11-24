@@ -2,16 +2,17 @@
  * Server obtains account ID from a verified session and fixes region policy
  * before calling this. NO Pokémon/loot/stats, no RNG or battle outcome yet.
  */
+import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACTION=/^[A-Za-z0-9_-]{12,100}$/;
 async function rollback(client,result){
   await client.query('ROLLBACK');return result;
 }
-export async function reserveEncounter(pool,{accountId,actionId,expectedRevision,regionId}){
+export async function reserveEncounter(pool,{accountId,actionId,expectedRevision,regionId,allowExpandedRegions=false}){
   if(typeof accountId!=='string'||!UUID.test(accountId)||
      typeof actionId!=='string'||!ACTION.test(actionId)||
      !Number.isSafeInteger(expectedRevision)||expectedRevision<0||
-     regionId!==1)
+     (!Number.isInteger(regionId)||regionId<1||regionId>10||(!allowExpandedRegions&&regionId!==1)))
     return {status:'invalid'}; // Other regions require release of level gating rules.
   const client=await pool.connect();
   try{
@@ -44,6 +45,13 @@ export async function reserveEncounter(pool,{accountId,actionId,expectedRevision
        snap.revision!==revision||snap?.journal?.revision!==revision||
        typeof snap.journal.raw!=='string')
       return await rollback(client,{status:'invalid'});
+    if(regionId!==1){
+      let raw;
+      try{raw=JSON.parse(snap.journal.raw);}catch{return await rollback(client,{status:'invalid'});}
+      const core=await loadCombatAdapter();
+      if(!core.serverRegionalAccess(regionId,raw?.trainer?.level))
+        return await rollback(client,{status:'locked'});
+    }
     // Even with a distinct actionId, prohibit rerolls before finishing.
     const pending=await client.query(
       "SELECT id FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved'",

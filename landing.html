@@ -79,7 +79,9 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <button id="online-start" class="primary" type="button" disabled>Iniciar aventura</button></div>
 <div id="online-progress" hidden><dl class="progress-list"><div><dt>Nível do treinador</dt><dd id="online-level"></dd></div><div><dt>Moedas</dt><dd id="online-coins"></dd></div><div><dt>Insígnias</dt><dd id="online-badges"></dd></div><div><dt>Pokémon na coleção</dt><dd id="online-count"></dd></div></dl>
 <section id="region-section" hidden aria-labelledby="region-heading">
-<h3 id="region-heading">Bosque Inicial</h3><p class="helper">Região 1 · Níveis 2–10 · Somente o líder da equipe</p>
+<h3 id="region-heading">Regiões de Kanto</h3><label for="region-select">Escolha a região</label>
+<select id="region-select" style="width:100%;padding:10px;background:#182d40;color:white;border:1px solid #557086;border-radius:8px"></select>
+<p id="region-info" class="helper"></p>
 <button id="region-open" class="primary" type="button" disabled>Batalhar no Bosque Inicial</button>
 <div id="region-battle" hidden><p id="region-phase" tabindex="-1"></p><div id="region-actors" class="region-actors"></div>
 <div id="region-actions" role="group" aria-label="Ações da batalha"></div>
@@ -93,7 +95,7 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <p id="online-error" role="status"></p>
 <button id="online-refresh" type="button" class="small-link">Atualizar progresso</button>
 <button id="online-logout" type="button" class="primary">Sair da conta</button>
-<p class="helper">Apenas o Bosque Inicial está em homologação online. O /play continua separado.</p>
+<p class="helper">Regiões online em homologação. O /play continua separado.</p>
 </section>
 <div id="reset-link-wrap" class="sub"><button id="reset-link" type="button" class="small-link">Esqueceu a senha?</button></div>
 <p id="feedback" role="status" aria-live="polite"></p>
@@ -111,9 +113,11 @@ const starterButtons=[...panel.querySelectorAll('[data-starter]')];
 const starterNames={1:'Bulbasaur',4:'Charmander',7:'Squirtle'};
 const speciesNames=["","Bulbasaur","Ivysaur","Venusaur","Charmander","Charmeleon","Charizard","Squirtle","Wartortle","Blastoise","Caterpie","Metapod","Butterfree","Weedle","Kakuna","Beedrill","Pidgey","Pidgeotto","Pidgeot","Rattata","Raticate","Spearow","Fearow","Ekans","Arbok","Pikachu","Raichu","Sandshrew","Sandslash","Nidoran♀","Nidorina","Nidoqueen","Nidoran♂","Nidorino","Nidoking","Clefairy","Clefable","Vulpix","Ninetales","Jigglypuff","Wigglytuff","Zubat","Golbat","Oddish","Gloom","Vileplume","Paras","Parasect","Venonat","Venomoth","Diglett","Dugtrio","Meowth","Persian","Psyduck","Golduck","Mankey","Primeape","Growlithe","Arcanine","Poliwag","Poliwhirl","Poliwrath","Abra","Kadabra","Alakazam","Machop","Machoke","Machamp","Bellsprout","Weepinbell","Victreebel","Tentacool","Tentacruel","Geodude","Graveler","Golem","Ponyta","Rapidash","Slowpoke","Slowbro","Magnemite","Magneton","Farfetch'd","Doduo","Dodrio","Seel","Dewgong","Grimer","Muk","Shellder","Cloyster","Gastly","Haunter","Gengar","Onix","Drowzee","Hypno","Krabby","Kingler","Voltorb","Electrode","Exeggcute","Exeggutor","Cubone","Marowak","Hitmonlee","Hitmonchan","Lickitung","Koffing","Weezing","Rhyhorn","Rhydon","Chansey","Tangela","Kangaskhan","Horsea","Seadra","Goldeen","Seaking","Staryu","Starmie","Mr. Mime","Scyther","Jynx","Electabuzz","Magmar","Pinsir","Tauros","Magikarp","Gyarados","Lapras","Ditto","Eevee","Vaporeon","Jolteon","Flareon","Porygon","Omanyte","Omastar","Kabuto","Kabutops","Aerodactyl","Snorlax","Articuno","Zapdos","Moltres","Dratini","Dragonair","Dragonite","Mewtwo","Mew"];
 const statLabels={hp:'HP',attack:'Ataque',defense:'Defesa',specialAttack:'Ataque especial',specialDefense:'Defesa especial',speed:'Velocidade'};
-let serverProgress=null,teamDraft=[],regionalState=null;
+let serverProgress=null,teamDraft=[],regionalState=null,selectedRegionId=1;
 const regionSection=$('region-section'),regionOpen=$('region-open'),regionBattle=$('region-battle');
 const regionActive=()=>Boolean(regionalState?.encounter);
+const regionSelect=$('region-select');
+regionSelect.addEventListener('change',()=>{if(!onlineBusy&&!regionActive()){selectedRegionId=Number(regionSelect.value);renderRegion();}});
 function actorCard(actor,level,title){
  const box=document.createElement('div');box.className='region-actor';
  const heading=document.createElement('strong');heading.textContent=title;
@@ -129,9 +133,22 @@ function actorCard(actor,level,title){
 }
 function renderRegion(){
  regionSection.hidden=!regionalState||!serverProgress;
- regionOpen.disabled=onlineBusy||!regionalState||!serverProgress;
  const e=regionalState?.encounter;
- regionOpen.hidden=!!e&&e.phase!=='reserved';regionOpen.textContent=e?'Retomar batalha':'Batalhar no Bosque Inicial';
+ const regions=Array.isArray(regionalState?.regions)?regionalState.regions:[];
+ if(e)selectedRegionId=e.regionId;
+ // A temporary loading state must not reset the selected region.
+ if(regionalState&&!e&&!regions.some(r=>r.id===selectedRegionId&&r.unlocked))selectedRegionId=regions.find(r=>r.unlocked)?.id??1;
+ const selected=regions.find(r=>r.id===selectedRegionId);
+ regionSelect.replaceChildren(...regions.map(r=>{
+  const option=document.createElement('option');option.value=String(r.id);
+  option.textContent=r.name+(r.unlocked?'':' · Nível '+r.trainerUnlockLevel+' necessário');
+  option.disabled=!r.unlocked;return option;
+ }));
+ regionSelect.value=String(selectedRegionId);regionSelect.disabled=onlineBusy||!!e;
+ $('region-heading').textContent=selected?.name??'Regiões de Kanto';
+ $('region-info').textContent=selected?'Níveis '+selected.levelMin+'–'+selected.levelMax+' · Somente o líder da equipe':'';
+ regionOpen.disabled=onlineBusy||!regionalState||!serverProgress||!selected?.unlocked;
+ regionOpen.hidden=!!e&&e.phase!=='reserved';regionOpen.textContent=e?'Retomar batalha':'Batalhar '+(selectedRegionId===1?'no ':'em ')+(selected?.name??'região');
  regionBattle.hidden=!e||e.phase==='reserved';
  $('region-actions').replaceChildren();$('region-actors').replaceChildren();$('region-log').replaceChildren();
  if(!e||regionBattle.hidden)return;
@@ -151,9 +168,9 @@ function renderRegion(){
   }
  }else if(e.phase==='resolved'||e.phase==='certified')add('Receber recompensas','reward');
  else if(e.phase==='paid'){
-  if(e.outcome==='win')for(const [id,label] of [['poke-ball','Poké Ball'],['great-ball','Great Ball'],['ultra-ball','Ultra Ball']]){
-   const n=serverProgress.state.ballPocket?.quantities?.[id];
-   if(Number.isSafeInteger(n)&&n>0)add(label+' ('+n+')','finish',{choice:id},id);
+  if(e.outcome==='win')for(const {ballId:id,quantity:n} of e.captureChoices??[]){
+   const label={'poke-ball':'Poké Ball','great-ball':'Great Ball','ultra-ball':'Ultra Ball'}[id];
+   if(label&&Number.isSafeInteger(n)&&n>0)add(label+' ('+n+')','finish',{choice:id},id);
   }
   add('Finalizar sem captura','finish',{choice:'skip'},'skip');
  }
@@ -169,7 +186,7 @@ async function regionCommand(command,fields={}){
  try{
   let e=previous.encounter,revision=previous.revision;
   if(command==='open'){
-   if(!e){result=await post('reserve',{actionId:actionId(),expectedRevision:revision,regionId:1});e=result.encounter;revision=result.revision;}
+   if(!e){result=await post('reserve',{actionId:actionId(),expectedRevision:revision,regionId:selectedRegionId});e=result.encounter;revision=result.revision;}
    if(e?.phase==='reserved')result=await post('start',{encounterId:e.id,expectedRevision:revision});
   }else if(command==='reward'){
    if(e.phase==='resolved'){result=await post('certify',{encounterId:e.id,actionId:actionId(),expectedRevision:revision});e=result.encounter;revision=result.revision;}
@@ -239,7 +256,7 @@ $('online-team-save').addEventListener('click',()=>{
   runProgressAction('/api/v1/collection/team',{teamUids:[...teamDraft]});
 });
 function clearPortal(){
- portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;renderRegion();$('region-note').textContent='';
+ portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;selectedRegionId=1;renderRegion();$('region-note').textContent='';
  $('online-team').replaceChildren();$('online-stats').replaceChildren();$('online-points').textContent='';$('online-team-save').disabled=true;
  $('online-trainer').textContent='';$('online-roster').replaceChildren();
  for(const id of ['online-level','online-coins','online-badges','online-count','online-revision','online-error'])$(id).textContent='';

@@ -4,6 +4,7 @@
  * A later server game-core adapter must recompute stats/moves from trusted
  * catalogs and must not use client-supplied stats or moves.
  */
+import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATS=['hp','attack','defense','specialAttack','specialDefense','speed'];
 const manualStats=value=>{
@@ -18,13 +19,14 @@ const manualStats=value=>{
   return out;
 };
 /** Pure preparation from the DB save and the already materialized encounter. */
-export function buildBattleSnapshot(save,encounter){
+export function buildBattleSnapshot(save,encounter,regionalPolicy){
   if(!save||save.schemaVersion!==2||
      !save.journal||typeof save.journal.raw!=='string'||
-     !encounter||encounter.regionId!==1||
+     !encounter||!Number.isInteger(encounter.regionId)||encounter.regionId<1||encounter.regionId>10||
      !Number.isSafeInteger(encounter.speciesId)||
      !Number.isSafeInteger(encounter.level)||
-     encounter.level<2||encounter.level>10)
+     encounter.level<2||encounter.level>100||
+     (encounter.regionId===1?encounter.level>10:typeof regionalPolicy!=='function'))
     return null;
   let raw;
   try{raw=JSON.parse(save.journal.raw);}catch{return null;}
@@ -37,6 +39,8 @@ export function buildBattleSnapshot(save,encounter){
   if(!Number.isSafeInteger(trainerLevel)||trainerLevel<1||trainerLevel>100||
      !trainerManual||
      STATS.reduce((n,s)=>n+trainerManual[s],0)>(trainerLevel-1)*2)
+    return null;
+  if(encounter.regionId!==1&&!regionalPolicy(encounter.regionId,trainerLevel,encounter.speciesId,encounter.level))
     return null;
   const selected=raw.roster.find(p=>p?.uid===raw.team[0]);
   if(!selected||!Number.isSafeInteger(selected.uid)||selected.uid<1||
@@ -61,7 +65,7 @@ export function buildBattleSnapshot(save,encounter){
   // Canonical move legality, HP/SP, types, and stats remain the engine's
   // responsibility. Snapshot freezes identities/levels only.
   return {
-    version:equipped===undefined?1:2,regionId:1,opponent:{
+    version:equipped===undefined?1:2,regionId:encounter.regionId,opponent:{
       speciesId:encounter.speciesId,level:encounter.level
     },trainer:{level:trainerLevel,manual:trainerManual},
     activePokemon:{
@@ -73,6 +77,11 @@ export function buildBattleSnapshot(save,encounter){
   };
 }
 
+/** Only server code supplies the canonical regional validator. */
+export async function buildPersistedBattleSnapshot(save,encounter){
+  const policy=encounter.regionId===1?undefined:(await loadCombatAdapter()).serverRegionalOpponent;
+  return buildBattleSnapshot(save,encounter,policy);
+}
 /** All account/encounter identifiers originate from the server session/DB. */
 export async function prepareReservedBattle(pool,{accountId,encounterId}){
   if(typeof accountId!=='string'||!UUID.test(accountId)||
@@ -94,7 +103,7 @@ export async function prepareReservedBattle(pool,{accountId,encounterId}){
       await client.query('ROLLBACK');
       return {status:'replay',snapshot:encounter.battle_snapshot};
     }
-    if(encounter.status!=='reserved'||encounter.region_id!==1||
+    if(encounter.status!=='reserved'||
        encounter.species_id===null||encounter.pokemon_level===null){
       await client.query('ROLLBACK');return {status:'unavailable'};
     }
@@ -108,7 +117,7 @@ export async function prepareReservedBattle(pool,{accountId,encounterId}){
        save?.journal?.revision!==Number(row.revision)){
       await client.query('ROLLBACK');return {status:'invalid-save'};
     }
-    const snapshot=buildBattleSnapshot(save,{
+    const snapshot=await buildPersistedBattleSnapshot(save,{
       regionId:Number(encounter.region_id),
       speciesId:Number(encounter.species_id),
       level:Number(encounter.pokemon_level)
