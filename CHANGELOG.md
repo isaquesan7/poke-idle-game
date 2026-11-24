@@ -953,3 +953,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23E11 — candidato de proteção de replay (24/11/2026; branch)
 - Consumo atômico do digest de nonce no PostgreSQL, prazo independente, limpeza limitada e teste concorrente em schema CI descartável. Não integrado à API nem ao migrador; CI pendente. Nenhuma mudança em produção ou gameplay.
+
+- #253 integrado main cc6e9947c8b6671e32f7a73cb93efdd8542e2f73 após três CI SUCCESS; branch reconciliada, CI do HEAD combinado pendente.
