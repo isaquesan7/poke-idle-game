@@ -17,7 +17,7 @@ export const PREVIEW_REGIONS:readonly PreviewRegion[]=[
   {id:1,name:'Bosque Inicial',minLevel:2,maxLevel:10,unlockTrainerLevel:1,examples:[10,16,1,4,7]},
   {id:2,name:'Colinas de Kanto',minLevel:11,maxLevel:20,unlockTrainerLevel:6,examples:[23,35,37,58]},
   {id:3,name:'Caverna Rochosa',minLevel:21,maxLevel:30,unlockTrainerLevel:12,examples:[63,66,74,95]},
-  {id:4,name:'Lagos Serenos',minLevel:31,maxLevel:40,unlockTrainerLevel:20,examples:[60,79,116,129]},
+  {id:4,name:'Lagos Serenos',minLevel:31,maxLevel:40,unlockTrainerLevel:20,examples:[61,79,116,129]},
   {id:5,name:'Planícies Elétricas',minLevel:41,maxLevel:50,unlockTrainerLevel:30,examples:[25,81,100,111]},
   {id:6,name:'Bosque Nebuloso',minLevel:51,maxLevel:60,unlockTrainerLevel:42,examples:[92,94,2,5,8]},
   {id:7,name:'Costa Oceânica',minLevel:61,maxLevel:70,unlockTrainerLevel:55,examples:[134,135,136,3,6,9]},
