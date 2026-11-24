@@ -2143,3 +2143,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - #277 reconciliada com HEAD #276 122c8e0f11572562df1b221e1812bce623d049e3, que inclui main #275; PG18/D044 SUCCESS no #276, demais checks pendentes. Novo CI do #277 obrigatório; aguardar integração de #276.
 
 - #276 integrada main b9f9499635a7134a4e7578e71cfafc016cd5923e após quatro CI SUCCESS (45496299319,45496298918,45496298959,45496298941). #277 PG18 45496592991, browser 45496593098 e D044 45496592885 SUCCESS no HEAD anterior; regressões pendentes na leitura. Reconciliada após squash #276; CI final obrigatório, SQL027 não registrada, cadastro OFF.
+
+
+## ONLINE-01C-23F8A — writer privado de Expedições
+- Base main #277 publicada após cinco CI SUCCESS (deploy ainda a verificar). #278 e #279 seis CI SUCCESS nos HEADs anteriores; dependências em reconciliação. Branch independente para reduzir conflito de Gym UI. Reutiliza `applyRewardEvent` e `expeditionRewards` existentes, journal efêmero de uma ação (não altera ledger online). PostgreSQL controla relógio depois do lock de save, revisão e recibo durável; duplicata retorna duplicate sem pagar e exige releitura (não simula replay de payload). Start/claim/stop privados, nenhuma rota nova. Proteções mútuas reserva regional/expedição e investimento; Gym e Coleção já bloqueiam expedição no core/writer. Teste PG18 isolado com envelhecimento apenas fixture, 8h cap, concorrência, líder único, sem afinidade, sem novos SQL. CI pendente; próxima etapa HTTP/UI CI-only e concorrência cruzada. Cadastro OFF, /play e economia inalterados.
