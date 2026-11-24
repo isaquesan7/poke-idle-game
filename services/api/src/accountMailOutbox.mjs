@@ -124,7 +124,8 @@ export async function accountMailMetrics(pool){
       COALESCE(max(extract(epoch FROM(now()-created_at))),0)::integer AS oldest_seconds
     FROM game_account_mail_outbox
     WHERE status IN ('pending','sending') AND available_at<=now()
-      AND expires_at>now()`);
+      AND expires_at>now()
+      AND (lease_until IS NULL OR lease_until<now())`);
   const counts=Object.fromEntries(
     ['pending','sending','delivered','expired','dead'].map(key=>[key,0]));
   for(const row of totals.rows)if(Object.hasOwn(counts,row.status))
