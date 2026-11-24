@@ -1,0 +1,33 @@
+# ONLINE-01C-23E5 — Homologação real: inventário e envio controlado Resend
+
+## Inventário observado (24/11/2026)
+
+- Railway production: API, web e Postgres online, deploy 02614e87e8789f7dc04e83802deab0ca9e73ef93 da PR #246. Postgres usa imagem postgres-ssl:18 e volume persistente de 50 GB.
+- API tem DATABASE_URL, APP_ORIGIN, NODE_ENV e ONLINE_REGISTRATION_ENABLED. A consulta retornou somente nomes de variáveis. Não constavam RESEND_API_KEY, MAIL_FROM, ACCOUNT_MAIL_MODE, AUTH_RATE_LIMIT_SECRET ou keyring do outbox. Nenhuma credencial lida ou alterada.
+- Web ainda sem ONLINE_API_INTERNAL_URL; domínio Railway kanto-idle-web-production.up.railway.app, sem domínio personalizado. Nenhum fork encontrado. A integração disponível não permite consultar backups/PITR ou executar restore em ambiente independente; estado dos backups permanece **não verificado**, não necessariamente ausente.
+- CI da PR #246 validou registro/verificação/login/reset em navegador real com HTTPS, proxy e PG18 descartável. Não é prova de envio de e-mail real ou recuperação operacional.
+- Cadastro público e save remoto continuam OFF. Sem migração de save local; /play, Regiões 1v1 e Gym 3v3 preservados.
+
+## Teste de envio real (manual, ainda não executado)
+
+Novo comando `npm run drill:resend:one --prefix services/api` permite **uma tentativa de processamento de um único item da fila** usando o adaptador e o worker canônicos. Exige autorização explícita, banco local dedicado com apenas uma conta controlada e HTTPS loopback. O transporte recusa destinatários diferentes, múltiplos destinatários, campos inesperados, links externos ou tokens inválidos; rejeita redirecionamentos. Sem agendamento, sem execução no CI, sem Railway, sem credencial no Git e sem imprimir tokens, endereços ou mensagem. O estado `provider-accepted` é somente o aceite da API Resend, nunca confirmação de entrega.
+
+### Preparação pelo operador
+
+1. No Resend (https://resend.com/domains), verificar domínio próprio destinado ao jogo; configurar os registros DNS indicados e criar chave de **Sending access** restrita a esse domínio. Não reutilizar automaticamente credenciais de outro negócio. Escolher uma caixa postal real controlada pelo operador e desativar link tracking para o ensaio com loopback. A chave fica no ambiente privado do processo, nunca em mensagem ou repositório.
+2. Em máquina/VM isolada, sem acesso externo às portas de teste (os servidores Node ligam em 0.0.0.0, por isso **bloquear acesso LAN e não publicar portas**), fazer checkout do SHA aprovado, instalar com npm ci no monorepo e API, gerar bundle com `node scripts/build-api-game-core.mjs /caminho/privado/frozenBattle.mjs`, configurar CORE_BUNDLE_PATH e iniciar Postgres 18 local descartável com nome **kanto_mail_drill**, separado do CI e de produção. Aplicar `npm run db:migrate --prefix services/api` usando exclusivamente a URL local desse banco. Nunca encaminhar uma porta para o Postgres Railway.
+3. Variáveis do processo privado: NODE_ENV=test; ONLINE_REGISTRATION_ENABLED=true; ACCOUNT_MAIL_MODE=outbox; DATABASE_URL local para kanto_mail_drill; APP_ORIGIN=https://127.0.0.1:43223 (ou HTTPS localhost); AUTH_RATE_LIMIT_SECRET aleatório com >=32 caracteres; ACCOUNT_MAIL_ACTIVE_KEY_ID=drill e ACCOUNT_MAIL_KEYRING_JSON com chave AES de 32 bytes em Base64 gerada localmente; MAIL_DRILL_RECIPIENT caixa postal autorizada; RESEND_API_KEY chave real com escopo restrito; MAIL_FROM remetente verificado. Gerar chave/pepper por CSPRNG, nunca copiar exemplos de fixtures. Não usar variáveis do Railway nem CI.
+4. Iniciar API e web em portas locais diferentes, por exemplo API 43220, web 43221 com ONLINE_API_INTERNAL_URL=http://127.0.0.1:43220/. Usar proxy TLS local 43223 (certificado local confiável apenas nessa máquina) encaminhando para web, preservando o cabeçalho Origin e Set-Cookie, tal como o ensaio 23E4. Manter o ambiente protegido e privado.
+5. Pela landing HTTPS, cadastrar **somente** a caixa autorizada. Confirmar que a emissão não retorna token HTTP. Executar o comando acima com MAIL_DRILL_CONFIRM=SEND_ONE_REAL_MESSAGE no processo privado. Anotar o identificador providerMessageId e acknowledgedAtUtc (sem link ou e-mail). Nunca executar repetidamente sem verificar a fila.
+6. Conferir no painel Resend o evento de entrega e na caixa postal o recebimento de fato. No mesmo computador isolado, abrir o link, confirmar conta, testar rejeição de reuso e entrar. Solicitar reset pela página; executar o comando novamente para a mensagem de recuperação. Observar o evento e o recebimento real, abrir o link, redefinir senha, confirmar revogação da sessão anterior, recusa da senha antiga e reuso do token. Testar token expirado separadamente. Preservar apenas referências não secretas para revisão independente conforme ONLINE_RESEND_DELIVERY_EVIDENCE_23D6.md.
+7. Encerrar os processos e descartar a base de ensaio após revisar evidências. Não enviar mensagens a jogadores e não promover flags de teste ao ambiente de produção.
+
+## Backup e PITR: restrição operacional verificada
+
+Fontes oficiais consultadas em 24/11/2026:
+- https://docs.railway.com/volumes/backups — restore de volume é no mesmo projeto/ambiente; monta um novo volume no serviço e desmonta o original após aplicar patch. **Não usar no Postgres de produção para ensaio.**
+- https://docs.railway.com/volumes/point-in-time-recovery — PITR provisiona um novo serviço irmão e preserva a origem; habilitação pode mudar imagem/reiniciar serviço e o arquivo WAL não é retroativo. As credenciais do bucket do restore podem permitir escrita no arquivo original. Não compartilhar segredos nem apontar API/web para o clone.
+
+O gate 23D5 exige ambiente **e serviço** distintos. Não é suficiente que o PITR crie um irmão na produção. Primeiro confirmar no painel Railway > kanto-idle-lab > Postgres > Backups: existência, datas, política de retenção, PITR e intervalo recuperável. Sem aplicar nenhum patch ou trocar volume. Se necessário, consultar suporte Railway sobre restauração para outro ambiente com credenciais isoladas. Não reduzir o requisito de isolamento nem simular recibos. Se não houver método suportado, registrar bloqueio e planejar um ensaio em ambiente dedicado, com revisão da estratégia antes de usar dados de produção.
+
+O operador/revisor deve comprovar backup/restore genuínos, integridade, RPO/RTO e isolamento conforme 23D4/23D5. Um ensaio lógico descartável ou clone recente não equivale a um restore real de backup de produção. As evidências independentes, política LGPD e proteção anti-abuso continuam exigidas. Nenhuma autorização de abertura pública resulta deste documento.
