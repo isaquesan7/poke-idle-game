@@ -961,3 +961,14 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - 23E12: workflow específico de imagem diagnóstica e roteiro Windows CMD; sem evidência de ingress real.
 
 - 23E12C: corrigir Host explícito no cliente HTTP com headers em array, primeira tentativa externa inconclusiva (404). Sem alterações no runtime do jogo.
+
+
+## ONLINE-01C-23E11 — candidato de proteção de replay (24/11/2026; branch)
+- Consumo atômico do digest de nonce no PostgreSQL, prazo independente, limpeza limitada e teste concorrente em schema CI descartável. Não integrado à API nem ao migrador; CI pendente. Nenhuma mudança em produção ou gameplay.
+
+- #253 integrado main cc6e9947c8b6671e32f7a73cb93efdd8542e2f73 após três CI SUCCESS; branch reconciliada, CI do HEAD combinado pendente.
+
+
+## ONLINE-01C-23E12D — evidência externa de duas redes (24/11/2026)
+- PR #255 integrado em main aeb67aeba21d23cbfc738295f074e91d56ed6764 após CI geral 45428929674 e imagem isolada 45428933484 SUCCESS. Probe descartável em projeto separado, deploy 0c113de7-0b31-40d7-ba3f-16104891627a SUCCESS, SHA 0424fa69f537e16ed82009593575cd10602d21d6. Operador realizou dois ensaios de seis casos cada: baseline, forged-real-ip, forged-forwarded, duplicate-real-ip, invalid-real-ip, chain-real-ip. Todos status 200, realIpHeaderCount=1, realIpValid/expectedValid/matchesExpected=true, matchesSocketPeer=false, publicPathConsistent=true. Logs Railway confirmaram 12 GET /probe status 200, duas origens distintas, seis por origem, entre 15:47:36 e 16:00:56 UTC. Seis respostas 410 da janela expirada foram resolvidas com restart. Não armazenar IP ou token no relatório. Serviço temporário removido após ensaio e inventário confirmou zero serviços/volumes; produção não alterada. Evidência restrita ao caminho público e duas redes; revisão de caminho privado/IPv6, chave/restore e integração seguem pendentes, reverseProxyRateLimitReviewed=false. Cadastro OFF.
+- PR #254 PG18 e regressão geral SUCCESS; browser cancelado, não aprovado. Reconciliado com #255, aguarda CI completo do novo HEAD. Sem migração de banco ou runtime HTTP.

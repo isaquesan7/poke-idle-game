@@ -1974,3 +1974,15 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - 23E12: CI dedicado de imagem isolada em loopback e roteiro CMD. Sem provisionamento Railway ou alteração de runtime; aguarda CI e execução externa autorizada.
 
 - 23E12C: projeto temporário isolado provisionado com autorização, imagem CI SUCCESS, deploy Railway SUCCESS. Primeira tentativa 6x404 sem observação de identidade; cliente corrigido com Host explícito, confirmado em reprodução local Node 22. Novo ensaio pendente, token anterior a revogar; cadastro OFF. Remover serviço temporário após ensaio.
+
+
+## ONLINE-01C-23E11 — nonce distribuído (24/11/2026; branch, não publicado)
+- #252 integrado b8823943ad9b9f5f7755f768dba93bd8b811f62e, quatro CI SUCCESS e Railway web SUCCESS; API SKIPPED sem mudança. #253 reconciliado em 5b2a15712cc86817041641e5d80ef3a2e7b9c3d7, CI combinado pendente.
+- 23E11 depende de #253; proxyNonceGuard candidato usa INSERT único com clock PostgreSQL, digest de nonce e limpeza limitada. Teste multi-pool em fixture isolada, sem migration de produção, sem integração HTTP. CI e revisão pendentes. Próximo: comprovar ingress, política de relógio/chaves/restore e aprovação de migration, depois teste HTTP. Ver docs/ONLINE_PROXY_NONCE_GUARD_23E11.md. Cadastro OFF, /play local, Regiões 1v1 e Ginásios 3v3 inalterados.
+
+- #253 integrado main cc6e9947c8b6671e32f7a73cb93efdd8542e2f73 após três CI SUCCESS; branch reconciliada, CI do HEAD combinado pendente.
+
+
+## ONLINE-01C-23E12D — evidência externa de duas redes (24/11/2026)
+- PR #255 integrado em main aeb67aeba21d23cbfc738295f074e91d56ed6764 após CI geral 45428929674 e imagem isolada 45428933484 SUCCESS. Probe descartável em projeto separado, deploy 0c113de7-0b31-40d7-ba3f-16104891627a SUCCESS, SHA 0424fa69f537e16ed82009593575cd10602d21d6. Operador realizou dois ensaios de seis casos cada: baseline, forged-real-ip, forged-forwarded, duplicate-real-ip, invalid-real-ip, chain-real-ip. Todos status 200, realIpHeaderCount=1, realIpValid/expectedValid/matchesExpected=true, matchesSocketPeer=false, publicPathConsistent=true. Logs Railway confirmaram 12 GET /probe status 200, duas origens distintas, seis por origem, entre 15:47:36 e 16:00:56 UTC. Seis respostas 410 da janela expirada foram resolvidas com restart. Não armazenar IP ou token no relatório. Serviço temporário removido após ensaio e inventário confirmou zero serviços/volumes; produção não alterada. Evidência restrita ao caminho público e duas redes; revisão de caminho privado/IPv6, chave/restore e integração seguem pendentes, reverseProxyRateLimitReviewed=false. Cadastro OFF.
+- PR #254 PG18 e regressão geral SUCCESS; browser cancelado, não aprovado. Reconciliado com #255, aguarda CI completo do novo HEAD. Sem migração de banco ou runtime HTTP.
