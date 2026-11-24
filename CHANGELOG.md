@@ -1098,3 +1098,11 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - #272 integrada main 982c8cf443d21783f379f8a29c6cfd3ab64808c3, 4 CI SUCCESS. #273 5 CI SUCCESS no HEAD anterior, reconciliada a998189240cac82131daa1cc36570e8dcd0ef0a1. #274 browser 409 start provável fixture Pikachu/Scratch ilegal, correção commit 253e231bd3bf4daf6b30a79ec4329dd888d7f19d. UI R1 com ações canônicas, HP/SP, log, retomada, recompensa/captura e foco no botão regional. Teste browser PG18 ampliado, CI pendente; depende #273/#274. Não reimplementar engine, /play local, cadastro OFF, demais regiões e Gym interface pendentes. docs/ONLINE_REGION_PORTAL_23F4.md.
 
 - #274 integrada main f7d4bde74f720a781fd9191de7450fa36e386192 após cinco CI SUCCESS; reconciliada #275. CI final obrigatório.
+
+
+## ONLINE-01C-23F5 — extensão regional candidata
+- #273 integrada após cinco CI SUCCESS. Núcleo puro usa catálogo KANTO_REGIONS, unlock, sorteio HMAC, turnos por região, payout e captura; SQL027 candidata sem registro; teste core pendente. R1 ainda única rota. Próximo writers/PG18 e seletor após validação. docs/ONLINE_REGIONAL_EXTENSION_23F5.md.
+
+- #274 integrada main f7d4bde74f720a781fd9191de7450fa36e386192 após cinco CI SUCCESS; #276 reconciliada. Regressão/core, browser e D044 SUCCESS; PG18 falhou no startup do teste de throttle, sem stderr. CI final obrigatório.
+
+- #275 integrada main f767dca38d10639b0826e7407bef32c90b2448ed, cinco CI SUCCESS. #276 reconciliada; novo CI obrigatório. Falha anterior PG18 em startup do teste signed-quota production (assert ready), causa não determinada; não liberar antes de validar.

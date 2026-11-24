@@ -103,7 +103,7 @@ export function legalFrozenWildTurnActions(
   const state=current as Persisted;
   const initial=createFrozenWildTurnSession(snapshot);
   if(!initial||state.mode!=='turns'||state.version!==1||
-     state.regionId!==1||state.phase!=='await-player'||
+     state.regionId!==initial.regionId||state.phase!=='await-player'||
      !Number.isSafeInteger(state.turn)||state.turn<0||
      state.turn>=state.maxTurns||state.maxTurns!==30||
      !Array.isArray(state.log)||!Array.isArray(state.frames)||

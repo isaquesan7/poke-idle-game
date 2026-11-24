@@ -5,6 +5,7 @@
  * battle seeds exclusively from the persisted encounter's private entropy.
  */
 import {KANTO_BATTLE_SPECIES,simulateKantoBattle} from '../combat/kantoBattle.js';
+import {serverRegionalOpponent} from './serverRegionalPolicy.js';
 import {kantoLevelMoves} from '../catalog/kantoLevelMoves.js';
 import {kantoSupportMoves} from '../catalog/kantoSupportMoves.js';
 import {kantoWildMoveLoadout} from '../catalog/kantoWildMoves.js';
@@ -16,7 +17,7 @@ import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
 
 export interface ServerBattleSnapshotV1 {
   readonly version:1;
-  readonly regionId:1;
+  readonly regionId:number;
   readonly opponent:{readonly speciesId:number;readonly level:number};
   readonly trainer:{readonly level:number;readonly manual:Readonly<StatValues>};
   readonly activePokemon:{
@@ -82,14 +83,17 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return null;
   const s=snapshot as Partial<ServerBattleSnapshotV1|ServerBattleSnapshotV2>;
   const player=s.activePokemon,trainer=s.trainer,enemy=s.opponent;
-  if((s.version!==1&&s.version!==2)||s.regionId!==1||!player||!trainer||!enemy
+  if((s.version!==1&&s.version!==2)||typeof s.regionId!=='number'||!player||!trainer||!enemy
      ||!Number.isSafeInteger(trainer.level)||trainer.level<1||trainer.level>100
      ||!Number.isSafeInteger(player.uid)||player.uid<1
      ||!Number.isSafeInteger(player.level)||player.level<1||player.level>100
      ||!Number.isSafeInteger(player.speciesId)||player.speciesId<1||player.speciesId>151
      ||!Number.isSafeInteger(player.affinity)||player.affinity<0||player.affinity>100
      ||!Number.isSafeInteger(enemy.speciesId)||enemy.speciesId<1||enemy.speciesId>151
-     ||!Number.isSafeInteger(enemy.level)||enemy.level<2||enemy.level>10
+     ||!Number.isSafeInteger(enemy.level)||enemy.level<2||enemy.level>100
+     // Historical R1 fixtures may contain non-pool species; preserve the
+     // existing snapshot contract. New regions require catalog membership.
+     ||(s.regionId===1?enemy.level>10:!serverRegionalOpponent(s.regionId,trainer.level,enemy.speciesId,enemy.level))
      ||typeof player.moveName!=='string'
      ||!manualValid(trainer.manual,(trainer.level-1)*2)
      ||!manualValid(player.manual,(player.level-1)*2))return null;

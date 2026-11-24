@@ -28,3 +28,7 @@ export {gymChooseAiAction} from '../gyms/gymAiTurn.js';
 
 // ONLINE-01C-23B2H: immutable reward transition from local Gym catalog.
 export {applyCertifiedGymSettlement} from './serverGymSettlement.js';
+
+// Canonical regional catalog/eligibility and unbiased HMAC-driven selection.
+export {serverRegionalAccess,serverRegionalOpponent,serverRegionalCatalog,serverRegionalRoll}
+  from './serverRegionalPolicy.js';

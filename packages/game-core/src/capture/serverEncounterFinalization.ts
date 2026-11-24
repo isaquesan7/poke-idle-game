@@ -74,7 +74,7 @@ export function finalizeFrozenWildEncounter(
   // Capture only after a legitimate Kanto regional victory with a KO.
   if(result.outcome!=='win')return null;
   const capture=resolveKantoCaptureAttempt({
-    regionId:1,speciesId,ballId:choice,
+    regionId:(snapshot as {regionId:number}).regionId,speciesId,ballId:choice,
     pocket:bag.pocket,
     maxHp:pair.wild.stats.hp,currentHp:0,seed:captureSeed
   });
