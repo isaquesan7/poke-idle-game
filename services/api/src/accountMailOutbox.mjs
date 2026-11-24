@@ -3,7 +3,7 @@
  * Store encryption key ONLY in a private versioned runtime keyring; retaining
  * old keys is mandatory until all old messages expire / are delivered.
  */
-import {randomBytes,createCipheriv,createDecipheriv,createHmac,timingSafeEqual} from 'node:crypto';
+import {randomBytes,createCipheriv,createDecipheriv,createHmac,createHash,timingSafeEqual} from 'node:crypto';
 import {deliverAccountEmail} from './mailer.mjs';
 const idPattern=/^[a-z][a-z0-9_-]{0,31}$/;
 const actionPattern=/^[a-zA-Z0-9_:/.-]{1,180}$/;
@@ -75,6 +75,24 @@ export async function enqueueAccountMail(client,keyring,message){
   // Never disclose ciphertext or token in receipts.
   return {queued:result.rowCount===1};
 }
+/** No external send for a revoked, used, expired or foreign-account token. */
+export async function accountMailTokenActive(pool,purpose,token,outboxId){
+  if(!['verify','reset'].includes(purpose)||!tokenPattern.test(token??'')||
+    !uuidPattern.test(outboxId??''))return false;
+  const table=purpose==='verify'?'game_email_verifications':'game_password_resets';
+  const result=await pool.query(`SELECT 1
+    FROM game_account_mail_outbox o
+    JOIN ${table} t ON t.account_id=o.account_id
+    JOIN game_accounts a ON a.id=o.account_id
+    WHERE o.id=$1 AND o.purpose=$2
+      AND t.token_sha256=$3 AND t.used_at IS NULL
+      AND t.expires_at>now() AND a.disabled_at IS NULL
+      AND ($2='verify' OR a.email_verified_at IS NOT NULL)
+      AND ($2='reset' OR a.email_verified_at IS NULL)
+    LIMIT 1`,[outboxId,purpose,createHash('sha256').update(token).digest()]);
+  return result.rowCount===1;
+}
+
 /** Claim leases using SKIP LOCKED. Crash after provider acceptance can retry:
  * stable Resend idempotency_key is essential (at-least-once worker semantics).
  */
@@ -112,6 +130,15 @@ export async function processOneAccountMail(pool,{keyring,from,providerKey,send}
   }
   try{
     const data=decryptMailPayload(row.encrypted_payload,key);
+    // Reject revoked/consumed/expired tokens before calling the mail provider.
+    // This is a last-minute read, not a lock across an external network call.
+    const tokenStillActive=await accountMailTokenActive(pool,row.purpose,data.token,id);
+    if(!tokenStillActive){
+      await pool.query(`UPDATE game_account_mail_outbox SET status='expired',
+        lease_until=NULL,updated_at=now() WHERE id=$1 AND status='sending'
+        AND attempt_count=$2`,[id,row.attempt_count]);
+      return {status:'revoked',id};
+    }
     const delivered=await deliverAccountEmail({
       to:data.to,purpose:row.purpose,token:data.token,origin:data.origin,
       key:providerKey,from,idempotencyKey:row.idempotency_key,send
