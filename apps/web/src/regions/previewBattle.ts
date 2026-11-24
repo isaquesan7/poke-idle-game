@@ -4,7 +4,7 @@
  * e não é RNG autoritativo. Os exemplos são somente espécies ilustrativas
  * do catálogo da prévia e não equivalem ao pool completo de cada região.
  */
-import {KANTO_BATTLE_SPECIES,pokemonOwnStats,simulateKantoBattle,zeroStats}
+import {KANTO_BATTLE_SPECIES,kantoCaptureStartingLevel,kantoRegionalEncounter,pokemonOwnStats,simulateKantoBattle,zeroStats}
   from '@kanto/game-core';
 import type {BattleOutcome,Combatant} from '@kanto/game-core';
 import {PREVIEW_REGIONS} from './previewCatalog';
@@ -51,9 +51,11 @@ export function previewRegionDemo(input:RegionDemoRequest):RegionDemoResult|null
   const region=PREVIEW_REGIONS.find(item=>item.id===input.regionId);
   if(!region||!region.examples.length)return null;
   // Uma semente local altera a espécie ilustrativa e o RNG de combate.
-  const wildSpeciesId=region.examples[input.seed%region.examples.length]!;
   const wildLevel=Math.min(region.maxLevel,Math.max(region.minLevel,
     input.leaderLevel+((input.seed>>>16)%5)-2));
+  const examples=region.examples.filter(id=>kantoCaptureStartingLevel(id)<=wildLevel);
+  const wildSpeciesId=examples.length?examples[input.seed%examples.length]!:kantoRegionalEncounter(region.id,input.seed,input.leaderLevel)?.speciesId;
+  if(wildSpeciesId===undefined)return null;
   const player=combatant(input.leaderSpeciesId,input.leaderLevel);
   const wild=combatant(wildSpeciesId,wildLevel);
   if(!player||!wild)return null;
