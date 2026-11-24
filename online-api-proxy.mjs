@@ -34,7 +34,10 @@ if(process.env.NODE_ENV==='test'){
   for(const command of ['current','reserve','start','turn','certify','settle','finish'])
     allowed.add('/api/v1/region/'+command);
 }
-const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save','/api/v1/region/current']);
+if(process.env.NODE_ENV==='test'&&process.env.ONLINE_GYM_PORTAL_CI_ONLY==='true'){
+  for(const command of ['current','reserve','start','turn','certify','settle'])allowed.add('/api/v1/gym/'+command);
+}
+const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save','/api/v1/region/current','/api/v1/gym/current']);
 const maxBody=16384;
 // Default strips proofs; reviewed deployment can relay opaque assertions without keys.
 // The web proxy has NO signing key and cannot create client identities.

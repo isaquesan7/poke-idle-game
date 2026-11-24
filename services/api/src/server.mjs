@@ -21,6 +21,7 @@ import {applyTrainerInvestment} from './trainerInvestment.mjs';
 import {exportAccountData} from './accountPrivacy.mjs';
 import {setCollectionTeam} from './collectionTeam.mjs';
 import {reserveNextGym} from './gymReservation.mjs';
+import {gymPortalEnabled,readCurrentGym} from './gymPortalState.mjs';
 import {startReservedGymTurnSession} from './gymTurnSession.mjs';
 import {loadGymEntropyKeyringFromEnv} from './gymEntropyKeyring.mjs';
 import {
@@ -418,6 +419,16 @@ const server=createServer(async(req,res)=>{
       const status=ok?200:result.status==='invalid'?400:
         ['missing','missing-save'].includes(result.status)?404:409;
       return json(res,status,ok?result:{error:result.status});
+    }
+    if(pathname==='/api/v1/gym/current'){
+      if(!enabled||!gymPortalEnabled())return json(res,503,{error:'Ginásios online em preparação'});
+      if(req.method!=='GET'||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
+      try{loadGymEntropyKeyringFromEnv();}catch{return json(res,503,{error:'Ginásios online em preparação'});}
+      const current=await readCurrentGym(pool,account.id);
+      return json(res,current.status==='ok'?200:current.status==='missing-save'?404:409,current);
     }
     if((pathname==='/api/v1/gym/reserve'||
         pathname==='/api/v1/gym/start')&&req.method==='POST'){

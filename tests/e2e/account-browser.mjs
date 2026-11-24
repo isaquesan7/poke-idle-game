@@ -55,10 +55,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true'
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',
+    GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -293,6 +294,37 @@ try{
   await page.waitForFunction(()=>document.activeElement?.id==='region-open');
   assert.equal(await page.locator('#region-select').inputValue(),'2');
   assert.equal((await readRegion()).encounter,null);
+
+  // Gym portal read contract via the real authenticated Web proxy.
+  const gymPath=origin+'/api/v1/gym/';
+  const gymRead=async()=>{const response=await page.request.get(gymPath+'current');assert.equal(response.status(),200);return response.json();};
+  const gymPost=async(command,data)=>{const response=await page.request.post(gymPath+command,{data,headers:{Origin:origin}});assert.equal(response.status(),200,command+' failed '+response.status());return response.json();};
+  const gymBefore=await gymRead();
+  assert.equal(gymBefore.gym,null);assert.equal(gymBefore.canReserve,true);
+  assert.equal(gymBefore.nextGym.leader,'Brock');assert.deepEqual(gymBefore.nextGym.teamUids,[2,1,3]);
+  const anonymous=await browser.newContext({ignoreHTTPSErrors:true});
+  assert.equal((await anonymous.request.get(gymPath+'current')).status(),401);
+  await anonymous.close();
+  const gymReserved=await gymPost('reserve',{actionId:'browser-gym-reserve-01',expectedRevision:gymBefore.revision});
+  const gymReservationId=gymReserved.gymReservationId;
+  const reservedGym=await gymRead();assert.equal(reservedGym.gym.phase,'reserved');
+  assert.equal(reservedGym.gym.id,gymReservationId);
+  assert.equal(reservedGym.gym.player,null);
+  await gymPost('start',{gymReservationId,expectedRevision:reservedGym.revision});
+  const openedGym=await gymRead();assert.equal(openedGym.gym.phase,'await-player');
+  assert.equal(openedGym.gym.player.fighters.length,3);assert.equal(openedGym.gym.opponent.fighters.length,3);
+  assert.deepEqual(openedGym.gym.player.fighters.map(f=>f.uid),[2,1,3]);
+  assert.ok(openedGym.gym.actions.some(a=>a.kind==='switch'&&a.toIndex===1));
+  assert.equal(openedGym.gym.frozenPreparation,undefined);
+  assert.equal(openedGym.gym.entropyProof,undefined);
+  await gymPost('turn',{gymReservationId,actionId:'browser-gym-switch-01',expectedRevision:openedGym.revision,action:{kind:'switch',toIndex:1}});
+  const switchedGym=await gymRead();assert.equal(switchedGym.gym.player.activeIndex,1);
+  assert.equal(switchedGym.gym.actionNumber,1);assert.ok(switchedGym.gym.log.length>0);
+  assert.equal(switchedGym.gym.player.fighters[0].hp,openedGym.gym.player.fighters[0].hp);
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert.deepEqual(await gymRead(),switchedGym);
+  const gymLockedTeam=await page.request.post(origin+'/api/v1/collection/team',{data:{actionId:'browser-gym-lock-team',expectedRevision:switchedGym.revision,teamUids:[1,2,3]},headers:{Origin:origin}});
+  assert.equal(gymLockedTeam.status(),409);
 
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();

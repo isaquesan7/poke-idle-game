@@ -2143,3 +2143,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - #277 reconciliada com HEAD #276 122c8e0f11572562df1b221e1812bce623d049e3, que inclui main #275; PG18/D044 SUCCESS no #276, demais checks pendentes. Novo CI do #277 obrigatório; aguardar integração de #276.
 
 - #276 integrada main b9f9499635a7134a4e7578e71cfafc016cd5923e após quatro CI SUCCESS (45496299319,45496298918,45496298959,45496298941). #277 PG18 45496592991, browser 45496593098 e D044 45496592885 SUCCESS no HEAD anterior; regressões pendentes na leitura. Reconciliada após squash #276; CI final obrigatório, SQL027 não registrada, cadastro OFF.
+
+
+## ONLINE-01C-23F7A — leitura do Ginásio para portal (CI-only)
+- #276 integrada, #277 reconciliada e CI final obrigatório. Nova branch dependente #277. GET current autenticado/verificado, opt-in exclusivo de PostgreSQL CI; projeção explícita dos seis Pokémon, HP/SP, turno/ordinal, ações legais, log e fase de certificação. Consulta única por conta e revisão, sem segredos, digest ou snapshots internos. Proxy Web CI-only para contrato Gym já auditado; teste browser HTTP de reserva, início, troca, releitura/reload e isolamento. Não há interface visual Gym ainda; próximo 23F7B renderizar e conectar fluxo de recompensa/retomada. Sem SQL novo, cadastro OFF, /play local e regiões 1v1. CI pendente.
