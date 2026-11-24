@@ -2008,3 +2008,8 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - #256 merged 1b63c81673185b65b2da03b0e1cd760f2ca99f9f, três CIs e Railway API/web SUCCESS. #257 em CI final. SQL 026 candidata não registrada no migrador; ensaios PG18 usam schema candidato; manutenção limitada até 5000 por invocação, testes unitários e de concorrência PG18. Sem cron, DDL real ou alteração gameplay. Produção permanece 25 migrations. Rede privada, IPv6, retenção/restore e LGPD pendentes, gate falso. docs/ONLINE_NONCE_RETENTION_23E16.md. Cadastro OFF, /play local, Regiões 1v1, Gym 3v3.
 
 - #257 merged main d6fa48d9f1936640b3402c4318893f05336a7b4c após três CI SUCCESS. #258 reconciliado preservando testes de keyring; CI do HEAD combinado pendente.
+
+
+## ONLINE-01C-23E18 — gateway autenticado candidato (24/11/2026; branch)
+- #258 integrado main 85dea363c89d331e9f55255a0c9dfe8a957c3073, CI/Web/API SUCCESS. #259 observação privada real 4/4 confirma cabeçalhos falsificáveis; ambiente TEMP vazio após remoção, CI final pendente. Não assinar no web atual.
+- Gateway isolado candidato em scripts/auth-gateway-candidate.mjs, origem/upstream fixos, cinco rotas, proof gerada somente via resolver confiável injetado; transporte web CI-only sem segredo, receptor verifica. Teste três listeners com stub replay; PG18 completo e isolamento real pendentes. Nenhum launcher/adapter Railway, domínio, segredo ou recurso novo. docs/ONLINE_AUTH_GATEWAY_23E18.md. Cadastro OFF, SQL026 não registrada, /play local, Regiões 1v1 e Gym 3v3.

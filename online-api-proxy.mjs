@@ -30,6 +30,21 @@ const responseHeaders=new Set(['content-type','set-cookie','retry-after','allow'
   'x-frame-options','referrer-policy','x-robots-tag','content-disposition','vary']);
 const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save']);
 const maxBody=16384;
+// Explicit disposable loopback harness only; production keeps stripping proofs.
+// The web proxy has NO signing key and cannot create client identities.
+const gatewayForwardTest=process.env.NODE_ENV==='test'&&process.env.ONLINE_GATEWAY_FORWARD_TEST_ONLY==='true';
+if(gatewayForwardTest&&(!upstream||upstream.protocol!=='http:'||upstream.hostname!=='127.0.0.1'||!upstream.port))
+  throw new Error('Gateway forwarding harness requires loopback API');
+const signedPaths=new Set(['/api/v1/auth/register','/api/v1/auth/verify',
+  '/api/v1/auth/login','/api/v1/auth/request-reset','/api/v1/auth/confirm-reset']);
+function gatewayProof(req){
+  const values=[];
+  for(let i=0;i<req.rawHeaders.length;i+=2)
+    if(req.rawHeaders[i].toLowerCase()==='x-kanto-proxy-identity')values.push(req.rawHeaders[i+1]);
+  if(values.length!==1||typeof values[0]!=='string'||values[0].length>180||
+     connectionTokens(req.headers).has('x-kanto-proxy-identity'))return null;
+  return values[0];
+}
 function connectionTokens(headers){
   return new Set(String(headers.connection??'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean));
 }
@@ -62,6 +77,11 @@ export function proxyOnlineApi(req,res,pathname){
   if(method!==allowedMethod){
     res.setHeader('Allow',allowedMethod);
     fail(res,405,'Método não permitido');return true;
+  }
+  const proofRequired=gatewayForwardTest&&signedPaths.has(pathname);
+  const proof=proofRequired?gatewayProof(req):null;
+  if(proofRequired&&(!proof||req.url!==pathname)){
+    fail(res,403,'Identidade de gateway inválida');req.resume();return true;
   }
   const contentLength=Number(req.headers['content-length']??0);
   if(contentLength>maxBody){
@@ -100,6 +120,7 @@ export function proxyOnlineApi(req,res,pathname){
     if(finished)return;
     finished=true;clearTimeout(timer);
     const headers=pickHeaders(req.headers,requestHeaders);
+    if(proofRequired)headers['x-kanto-proxy-identity']=proof;
     headers['accept-encoding']='identity';
     if(method==='POST')headers['content-length']=String(bytes);
     const transport=upstream.protocol==='https:'?httpsRequest:httpRequest;

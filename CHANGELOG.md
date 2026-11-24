@@ -990,3 +990,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Preparar schema nonce com expiração finita, ensaios PG18 a partir do SQL candidato, limpeza por lotes limitada e testes. Não registrado no migrador, sem agendamento ou produção. CI pendente.
 
 - #257 merged main d6fa48d9f1936640b3402c4318893f05336a7b4c após três CI SUCCESS. #258 reconciliado preservando testes de keyring; CI do HEAD combinado pendente.
+
+
+## ONLINE-01C-23E18 — candidato de gateway separado (24/11/2026; branch)
+- Emissor isolado e transporte de proof web exclusivamente CI/loopback, teste local de três hops e falsificação direta. Sem deploy, adapter real, migração ou cadastro. CI pendente.
