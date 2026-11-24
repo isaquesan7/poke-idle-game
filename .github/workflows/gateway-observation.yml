@@ -4,6 +4,13 @@ on:
     branches: [main]
     paths:
       - 'Dockerfile.gateway-observation'
+      - 'Dockerfile.auth-gateway'
+      - 'scripts/run-auth-gateway.mjs'
+      - 'scripts/gateway-ingress-adapter.mjs'
+      - 'scripts/auth-gateway-candidate.mjs'
+      - 'services/api/src/proxyKeyring.mjs'
+      - 'services/api/src/proxyNonceGuard.mjs'
+      - 'tests/auth-gateway-runtime.test.mjs'
       - 'scripts/gateway-ingress-observation.mjs'
       - 'scripts/railway-ingress-probe.mjs'
       - 'scripts/gateway-direct-address.mjs'
@@ -42,3 +49,10 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/probe)" = 404
           curl -fsS -H "Authorization: Bearer $token" -H 'X-Real-IP: 192.0.2.1' -H 'X-Kanto-Probe-Expected: 192.0.2.1' http://127.0.0.1:18081/probe | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{const r=JSON.parse(s);if(!r.syntheticProofVerified||!r.matchesExpected||r.productionTrustGranted!==false||r.upstreamContacted!==false||s.includes("192.0.2.1")||r.assertion||r.subject)process.exit(1)})'
           echo "GATEWAY_OBSERVATION_IMAGE_OK (synthetic only)"
+      - name: Build standalone gateway and verify default lockdown
+        run: |
+          set -eu
+          docker build -f Dockerfile.auth-gateway -t kanto-auth-gateway-ci .
+          docker run --rm --entrypoint sh kanto-auth-gateway-ci -c 'test "$(id -un)" = node && test "$(find /gateway -type f | wc -l)" = 6 && test ! -e /gateway/server.mjs'
+          if docker run --rm kanto-auth-gateway-ci; then exit 1; fi
+          node --test tests/auth-gateway-runtime.test.mjs tests/gateway-ingress-adapter.test.mjs
