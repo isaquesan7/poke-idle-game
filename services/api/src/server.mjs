@@ -4,6 +4,7 @@
  */
 import {createServer} from 'node:http';
 import {createHash} from 'node:crypto';
+import {enqueueAccountMail,mailKeyring} from './accountMailOutbox.mjs';
 import pg from 'pg';
 import {
   normalizeEmail,validatePassword,validateTrainerName,
@@ -36,7 +37,14 @@ const enabled=process.env.NODE_ENV==='test' &&
   process.env.ONLINE_REGISTRATION_ENABLED==='true';
 const isSecure=process.env.NODE_ENV==='production';
 const mailMode=process.env.ACCOUNT_MAIL_MODE??'off';
-if(mailMode!=='off'&&mailMode!=='resend')throw new Error('ACCOUNT_MAIL_MODE inválido');
+if(!['off','resend','outbox'].includes(mailMode))
+  throw new Error('ACCOUNT_MAIL_MODE inválido');
+if(mailMode==='outbox'&&!enabled)
+  throw new Error('Outbox de contas só pode ser usado no harness de teste');
+const outboxKeyring=mailMode==='outbox'?mailKeyring({
+  activeId:process.env.ACCOUNT_MAIL_ACTIVE_KEY_ID,
+  keys:JSON.parse(process.env.ACCOUNT_MAIL_KEYRING_JSON??'{}')
+}):null;
 const mailConfigured=mailMode==='resend';
 if(mailConfigured&&(!process.env.RESEND_API_KEY||!process.env.MAIL_FROM))
   throw new Error('Configure RESEND_API_KEY e MAIL_FROM');
@@ -142,13 +150,23 @@ const server=createServer(async(req,res)=>{
           'INSERT INTO game_profiles(account_id,trainer_name) VALUES($1,$2)',
           [userId,cleanName]);
         verification=await issueVerification(client,userId);
+        if(outboxKeyring){
+          const verifiedRow=await client.query(`SELECT expires_at FROM game_email_verifications
+            WHERE account_id=$1 AND token_sha256=$2`,
+            [userId,createHash('sha256').update(verification).digest()]);
+          await enqueueAccountMail(client,outboxKeyring,{
+            accountId:userId,idempotencyKey:'verify/'+userId,
+            purpose:'verify',to:cleanEmail,token:verification,origin:appOrigin,
+            expiresAt:verifiedRow.rows[0].expires_at
+          });
+        }
         await client.query('COMMIT');
       }catch(e){await client.query('ROLLBACK');throw e;}
       finally{client.release();}
       // Mail transport is optional in tests. The production auth gate remains
       // hard-disabled until verified sender, recovery UI and backups exist.
-      const mailed=await deliver({to:cleanEmail,purpose:'verify',token:verification,
-        idempotencyKey:'verify/'+userId});
+      const mailed=outboxKeyring?true:await deliver({to:cleanEmail,
+        purpose:'verify',token:verification,idempotencyKey:'verify/'+userId});
       return json(res,201,{id:userId,trainerName:cleanName,
         ...(mailed?{}:{verificationToken:verification})});
     }
@@ -169,8 +187,14 @@ const server=createServer(async(req,res)=>{
         identifier:requesterIp(req),limit:10}))return;
       if(!await enforceThrottle(req,res,{scope:'reset-email',
         identifier:cleanEmail,limit:3}))return;
-      const token=await issuePasswordReset(pool,cleanEmail);
-      if(token)try{
+      const token=await issuePasswordReset(pool,cleanEmail,outboxKeyring?{
+        enqueue:async(client,{accountId,token,tokenId,expiresAt})=>
+          enqueueAccountMail(client,outboxKeyring,{
+            accountId,idempotencyKey:'reset/'+tokenId,
+            purpose:'reset',to:cleanEmail,token,origin:appOrigin,expiresAt
+          })
+      }:undefined);
+      if(token&&!outboxKeyring)try{
         await deliver({to:cleanEmail,purpose:'reset',token,
           idempotencyKey:'reset/'+createHash('sha256').update(token).digest('hex').slice(0,32)});
       }catch{
@@ -181,7 +205,7 @@ const server=createServer(async(req,res)=>{
       // No email-account enumeration. Tokens returned ONLY in test harness
       // when mail adapter is disabled, never in any production response.
       return json(res,200,{accepted:true,
-        ...(!mailConfigured&&process.env.NODE_ENV==='test'&&token?
+        ...(mailMode==='off'&&process.env.NODE_ENV==='test'&&token?
           {testResetToken:token}:{})});
     }
     if(pathname==='/api/v1/auth/confirm-reset'&&req.method==='POST'){
