@@ -1,0 +1,42 @@
+name: ONLINE-01C — imagem de observação gateway isolado
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Dockerfile.gateway-observation'
+      - 'scripts/gateway-ingress-observation.mjs'
+      - 'scripts/railway-ingress-probe.mjs'
+      - 'services/api/src/proxyIdentity.mjs'
+      - 'tests/gateway-ingress-observation.test.mjs'
+      - '.github/workflows/gateway-observation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  observation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Synthetic unit tests
+        run: node --test tests/gateway-ingress-observation.test.mjs
+      - name: Build minimal image and verify fail-closed observation
+        run: |
+          set -eu
+          docker build -f Dockerfile.gateway-observation -t kanto-gateway-observation-ci .
+          docker run --rm --entrypoint sh kanto-gateway-observation-ci -c 'test "$(id -un)" = node && test "$(find /probe -type f | wc -l)" = 3 && test ! -e /probe/server.mjs'
+          if docker run --rm kanto-gateway-observation-ci; then exit 1; fi
+          token=$(openssl rand -hex 32)
+          echo "::add-mask::$token"
+          trap 'docker rm -f kanto-gateway-observation-ci >/dev/null 2>&1 || true' EXIT
+          docker run -d --name kanto-gateway-observation-ci -p 127.0.0.1:18081:3000 -e GATEWAY_OBSERVATION_ISOLATED=true -e INGRESS_PROBE_TOKEN="$token" kanto-gateway-observation-ci
+          for i in $(seq 1 20); do
+            if curl -s -o /dev/null http://127.0.0.1:18081/probe; then break; fi
+            sleep 1
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18081/probe)" = 404
+          curl -fsS -H "Authorization: Bearer $token" -H 'X-Real-IP: 192.0.2.1' -H 'X-Kanto-Probe-Expected: 192.0.2.1' http://127.0.0.1:18081/probe | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{const r=JSON.parse(s);if(!r.syntheticProofVerified||!r.matchesExpected||r.productionTrustGranted!==false||r.upstreamContacted!==false||s.includes("192.0.2.1")||r.assertion||r.subject)process.exit(1)})'
+          echo "GATEWAY_OBSERVATION_IMAGE_OK (synthetic only)"

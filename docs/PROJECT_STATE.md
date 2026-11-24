@@ -2034,3 +2034,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 ## ONLINE-01C-23E20 — gateway same-origin (24/11/2026; branch)
 - #260 merged 744e58fe8395e8953a8ef737bc89a5548ea6bcf3, cinco CI SUCCESS (45438735903,45438734781,45438735186,45438734818,45438735087). Railway a verificar.
 - Gateway candidato allowlist páginas, assets, GET status/me/save e POST logout com Origin/cookie; query de link não enviada ao upstream; testes HTTP + jornada PG18 pelo gateway. Não expõe novos writers ou migra storage local. CI pendente, sem launcher/adapter real, segredo, domínio ou serviço novo. Cadastro OFF, SQL026 candidata, LGPD/restore/remetente pendentes. docs/ONLINE_AUTH_GATEWAY_23E18.md.
+
+
+## ONLINE-01C-23E21 — imagem de homologação gateway (24/11/2026; PR #261)
+- #261 PG18/browser SUCCESS no HEAD anterior; regressão geral pendente. Acrescenta imagem mínima de observação com chaves sintéticas efêmeras, token temporário e booleanos, sem upstream/DB/contas; CI dedicado e procedimento cross-project. Não é adapter de produção, não concede confiança. Nenhum recurso Railway novo. CI combinado pendente. docs/ONLINE_GATEWAY_OBSERVATION_23E21.md. Cadastro OFF, SQL026 candidata, /play local, Regiões 1v1 e Gym 3v3.
