@@ -19,3 +19,7 @@ A integração usa uma instância temporária PostgreSQL **18** criada pelo serv
 Workflow dedicado `.github/workflows/account-browser.yml` com Postgres18, npm lock reproduzível, bundle do game-core canônico, build de `/play`, migrações transacionais e Chromium Playwright. O teste verifica explicitamente `NODE_ENV=test` e `DATABASE_URL` localhost no banco `kanto_ci`; **falha fechado** em qualquer outro destino.
 
 Este teste é uma **evidência de software**, não é prova de entrega real de e-mails pelo Resend, de restauração controlada real de backup Railway, de pronta execução de requisitos LGPD ou de segurança de uma produção aberta. Cadastro e login públicos continuam indisponíveis. A futura home `/` já existe; `/play` e save local permanecem sem migração. Regiões 1v1 e Ginásios 3v3 não sofrem modificações.
+
+## Correção encontrada pelo navegador
+
+O primeiro ensaio detectou autenticação HTTP 200 seguida de sessão 401 no Chromium. A causa foi identificada: o cookie `__Host-kanto_session` estava sem `Secure` em `NODE_ENV=test`, apesar de o prefixo `__Host-` exigir esse atributo em **todos** os ambientes. A API agora define `Secure` sempre; teste PostgreSQL verifica a flag e o E2E deve provar que o navegador realmente preserva a sessão em loopback. Esta correção reforça a configuração de produção (onde `Secure` já era emitido). Não altera mecanismos de autenticação, tokens, banco ou dados existentes.
