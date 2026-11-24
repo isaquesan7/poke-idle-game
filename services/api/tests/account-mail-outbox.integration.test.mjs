@@ -106,7 +106,8 @@ test('ONLINE-01C-23D0: transactional queue, leases, idempotency, retry and isola
     const second=message(accountId,'reset/outbox-002',token(),expiry());
     await enqueueAccountMail(pool,ring,second);
     await pool.query(`
-      UPDATE game_account_mail_outbox SET expires_at=now()-interval '1 second'
+      UPDATE game_account_mail_outbox SET created_at=now()-interval '1 hour',
+        expires_at=now()-interval '1 second'
       WHERE idempotency_key=$1`,[second.idempotencyKey]);
     const expired=await processOneAccountMail(pool,{keyring:ring,
       from:'Poke Idle <contas@example.test>',providerKey:'re_fake_ci',
