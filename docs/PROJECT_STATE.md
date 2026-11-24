@@ -2153,3 +2153,11 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - CI PG18 45498682736 falhou em EADDRINUSE 43142 (faixa efêmera Linux) e startup lockdown 43158 sem stderr; mover portas dos três testes para 23xxx, aguardar exit de subprocessos, sem alterar asserts ou produção. CI final obrigatório.
 
 - CI PG18 45499145951: portas novas resolveram startup, mas dois testes herdavam APP_ORIGIN antigo do workflow; fixar APP_ORIGIN=origin explicitamente nos subprocessos 23144/23146, sem mudar validação CSRF. CI final necessário.
+
+
+## ONLINE-01C-23F8A — writer privado de Expedições
+- Base main #277 publicada após cinco CI SUCCESS (deploy ainda a verificar). #278 e #279 seis CI SUCCESS nos HEADs anteriores; dependências em reconciliação. Branch independente para reduzir conflito de Gym UI. Reutiliza `applyRewardEvent` e `expeditionRewards` existentes, journal efêmero de uma ação (não altera ledger online). PostgreSQL controla relógio depois do lock de save, revisão e recibo durável; duplicata retorna duplicate sem pagar e exige releitura (não simula replay de payload). Start/claim/stop privados, nenhuma rota nova. Proteções mútuas reserva regional/expedição e investimento; Gym e Coleção já bloqueiam expedição no core/writer. Teste PG18 isolado com envelhecimento apenas fixture, 8h cap, concorrência, líder único, sem afinidade, sem novos SQL. CI pendente; próxima etapa HTTP/UI CI-only e concorrência cruzada. Cadastro OFF, /play e economia inalterados.
+
+- CI geral 45498889537 falhou TS2345 exactOptionalPropertyTypes (regionId opcional); corrigido narrowing e envio de região definida no start. PG18 anterior SUCCESS; CI final obrigatório.
+
+- #278 CI cinco SUCCESS no HEAD bf7bee693dda4c05d1050d4eb5771e5044718058; reconciliação com #280 main f50f7d1d175187fbcb2f3889017358ab910c4320 preserva writer expedição. Railway web/API SUCCESS no SHA #280. CI final necessário.

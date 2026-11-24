@@ -64,6 +64,9 @@ export async function applyTrainerInvestment(pool,{accountId,actionId,expectedRe
     if(gymBusy.rowCount){
       await client.query('ROLLBACK');return {status:'busy'};
     }
+    let raw;
+    try{raw=JSON.parse(save.journal.raw);}catch{await client.query('ROLLBACK');return {status:'invalid'};}
+    if(raw?.expedition!=null){await client.query('ROLLBACK');return {status:'busy'};}
     const applied=investTrainerPoint(save,stat);
     if(applied.status!=='ok'){
       await client.query('ROLLBACK');return {status:applied.status};
