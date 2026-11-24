@@ -79,6 +79,9 @@ jobs:
           versions=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
             -d kanto_ci_restore -c 'SELECT count(*) FROM game_schema_migrations')
           test "$versions" = 25
+          # Run the read-only, fail-closed inventory against the RESTORED
+          # database, not the live CI source. No player data in output.
+          RESTORE_AUDIT_ISOLATED=true RESTORE_AUDIT_DATABASE_NAME=kanto_ci_restore DATABASE_URL="${DATABASE_URL%/kanto_ci}/kanto_ci_restore" npm run audit:restore --prefix services/api
           saves=$(pg psql -At -h 127.0.0.1 -p 55432 -U kanto_ci \
             -d kanto_ci_restore -c 'SELECT count(*) FROM game_saves')
           test "$saves" -ge 2
