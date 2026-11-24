@@ -4,6 +4,8 @@ import {randomUUID} from 'node:crypto';
 import pg from 'pg';
 import {firstSave} from '../src/initialAdventure.mjs';
 import {evolvePokemon} from '../src/evolutionWriter.mjs';
+import {loadCombatAdapter} from '../src/battlePreview.mjs';
+import {buildBattleSnapshot} from '../src/battlePreparation.mjs';
 import {reserveEncounter} from '../src/encounterReservation.mjs';
 import {applyExpeditionCommand} from '../src/expeditionWriter.mjs';
 test('23F11B: canonical UID evolution is atomic and preserves the instance',async()=>{
@@ -32,11 +34,25 @@ test('23F11B: canonical UID evolution is atomic and preserves the instance',asyn
   const race=await Promise.all([evolve(1,5,0,{actionId}),evolve(1,5,0,{actionId})]);
   assert.deepEqual(race.map(r=>r.status).sort(),['duplicate','evolved']);
   const evolved=await read();assert.equal(evolved.revision,1);
-  assert.deepEqual(evolved.raw,{...before,roster:[{...before.roster[0],pokemonId:5}],seen:[4,5],caughtSpecies:[4,5]});
+  const history=[{from:4,to:5,level:16,moves:['scratch','growl']}];
+  assert.deepEqual(evolved.raw,{...before,roster:[{...before.roster[0],pokemonId:5,evolutionHistory:history}],seen:[4,5],caughtSpecies:[4,5]});
+  const core=await loadCombatAdapter();
+  const snap=buildBattleSnapshot(evolved.save,{regionId:1,speciesId:16,level:3});
+  assert.equal(snap.version,2);assert.deepEqual(snap.activePokemon.evolutionHistory,history);
+  assert.deepEqual(core.canonicalFrozenCombatants(snap).player.moves.map(m=>m.name),['scratch','growl']);
+  assert.deepEqual(core.canonicalOnlineGymEquippedMoves(5,16,['scratch','growl'],history).map(m=>m.name),['scratch','growl']);
+  assert.ok(core.onlineMoveProjection(evolved.save.journal.raw).pokemon[0].valid);
+  assert.equal(core.canonicalFrozenCombatants({...snap,activePokemon:{...snap.activePokemon,evolutionHistory:[{...history[0],level:1}]}}),null);
+  assert.equal(core.frozenValidatedEquippedMoves(5,16,['hyper-beam'],history),null);
+  assert.equal(core.frozenValidatedEquippedMoves(5,16,['scratch'],[{...history[0],from:7}]),null);
+  assert.equal(core.frozenValidatedEquippedMoves(5,16,['scratch'],[{...history[0],moves:['hyper-beam']}]),null);
+  const second=core.applyOnlineEvolution(JSON.stringify({...evolved.raw,roster:[{...evolved.raw.roster[0],level:36}]}),1,6);
+  assert.equal(second.status,'ok');assert.equal(JSON.parse(second.raw).roster[0].evolutionHistory.length,2);
+  assert.ok(core.frozenValidatedEquippedMoves(6,36,['scratch','growl'],JSON.parse(second.raw).roster[0].evolutionHistory));
   assert.equal((await evolve(1,6,1,{actionId})).status,'duplicate');
   // Only disposable fixture supplies a legitimate stone. Never grant a kit.
   const stoneBefore=await fixture(raw=>{
-   raw.roster.push({...raw.roster[0],uid:2,pokemonId:25,level:1,xp:0,manual:{hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0},moveName:'thunder-shock',equippedMoveNames:['thunder-shock'],upgrades:{},affinity:0,battleRecord:{wins:0,draws:0,losses:0}});
+   raw.roster.push({...raw.roster[0],uid:2,pokemonId:25,evolutionHistory:undefined,level:1,xp:0,manual:{hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0},moveName:'thunder-shock',equippedMoveNames:['thunder-shock'],upgrades:{},affinity:0,battleRecord:{wins:0,draws:0,losses:0}});
    raw.nextUid=3;raw.seen.push(25);raw.caughtSpecies.push(25);
   });
   assert.equal((await evolve(2,26,1)).status,'unavailable');
@@ -44,7 +60,7 @@ test('23F11B: canonical UID evolution is atomic and preserves the instance',asyn
   const stocked=await fixture(raw=>{raw.evolutionStones={'thunder-stone':1};});
   assert.equal((await evolve(2,26,1)).status,'evolved');
   const afterStone=await read();assert.equal(afterStone.revision,2);
-  assert.deepEqual(afterStone.raw,{...stocked,roster:[stocked.roster[0],{...stocked.roster[1],pokemonId:26}],seen:[4,5,25,26],caughtSpecies:[4,5,25,26],evolutionStones:{'thunder-stone':0}});
+  assert.deepEqual(afterStone.raw,{...stocked,roster:[stocked.roster[0],{...stocked.roster[1],pokemonId:26,evolutionHistory:[{from:25,to:26,level:1,moves:['thunder-shock']}]}],seen:[4,5,25,26],caughtSpecies:[4,5,25,26],evolutionStones:{'thunder-stone':0}});
   await fixture(raw=>{raw.roster[0].level=36;});
   assert.equal((await applyExpeditionCommand(pool,{accountId:id,actionId:randomUUID(),kind:'start',regionId:1,expectedRevision:2})).status,'applied');
   assert.equal((await evolve(1,6,3)).status,'busy');
