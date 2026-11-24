@@ -3,6 +3,7 @@
  * No real account data, raw IP output, or arbitrary network destinations.
  */
 import {lookup} from 'node:dns/promises';
+import {isIP} from 'node:net';
 import {request as httpRequest} from 'node:http';
 import {request as httpsRequest} from 'node:https';
 import {pathToFileURL} from 'node:url';
@@ -81,14 +82,84 @@ export async function observeCrossProject({publicUrl,token,probe=requestProbe,re
     noCrossAccessObserved,productionTrustGranted:false,
     note:'Bounded observation only; not proof of universal network isolation'};
 }
+
+/** Only literal RFC1918 IPv4 or ULA IPv6 addresses from disposable services.
+ * No DNS fallback, port override, mapped IPv6, zones, or public addresses.
+ */
+export function privateLiteral(value){
+  if(typeof value!=='string'||value!==value.trim())throw new TypeError('Private literal required');
+  const family=isIP(value);
+  const octets=family===4?value.split('.').map(Number):[];
+  const privateV4=family===4&&(octets[0]===10||
+    (octets[0]===172&&octets[1]>=16&&octets[1]<=31)||
+    (octets[0]===192&&octets[1]===168));
+  const privateV6=family===6&&/^f[cd][0-9a-f]{2}:/i.test(value)&&!value.includes('%');
+  if(!privateV4&&!privateV6)throw new TypeError('Private literal required');
+  const url=new URL('http://'+(family===6?'['+value+']':value)+':3000/probe');
+  return {family,url};
+}
+async function controlLiterals(resolve){
+  let timer;
+  try{
+    const rows=await Promise.race([resolve(new URL(privateControl).hostname,{all:true}),new Promise((_,reject)=>{
+      timer=setTimeout(()=>reject(new Error('control lookup timeout')),3000);
+    })]);
+    return rows.map(row=>privateLiteral(row.address));
+  }finally{clearTimeout(timer);}
+}
+const routingBlocked=result=>!result.connected&&result.status===null&&
+  ['ENETUNREACH','EHOSTUNREACH'].includes(result.reason);
+const positiveControl=result=>result.connected&&result.status===200&&
+  result.validObservation&&result.forgedMatched;
+const summarize=result=>({connected:result.connected===true,status:result.status??null,
+  validObservation:result.validObservation===true,
+  forgedMatched:result.forgedMatched===true,
+  reason:['http-response','ENOTFOUND','EAI_AGAIN','ECONNREFUSED','ENETUNREACH',
+    'EHOSTUNREACH','ETIMEDOUT','timeout','oversized','response-error','request-error'].includes(result.reason)?
+    result.reason:'unknown'});
+export async function observeDirectCrossProject({publicUrl,token,targetAddresses,probe=requestProbe,resolve=lookup}){
+  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))throw new TypeError('Temporary token required');
+  if(!Array.isArray(targetAddresses)||targetAddresses.length<1||targetAddresses.length>4)
+    throw new TypeError('One to four inventoried target addresses required');
+  const targets=targetAddresses.map(privateLiteral);
+  if(new Set(targets.map(x=>x.url.href)).size!==targets.length)throw new TypeError('Duplicate target');
+  const origin=publicTarget(publicUrl),controls=await controlLiterals(resolve);
+  // Refuse overlapping literal targets or a missing same-family positive control.
+  if(targets.some(t=>controls.some(c=>c.url.href===t.url.href)||
+    !controls.some(c=>c.family===t.family)))throw new Error('Invalid control inventory');
+  const before=summarize(await probe(origin,token));
+  const observations=[];
+  for(const target of targets){
+    const control=controls.find(c=>c.family===target.family);
+    const controlBefore=summarize(await probe(control.url,token));
+    const cross=summarize(await probe(target.url,token));
+    const controlAfter=summarize(await probe(control.url,token));
+    observations.push({family:target.family,controlBefore,cross,controlAfter,
+      controlsPassed:positiveControl(controlBefore)&&positiveControl(controlAfter),
+      explicitRoutingBlock:routingBlocked(cross)});
+  }
+  const after=summarize(await probe(origin,token));
+  const controlsPassed=before.connected&&before.validObservation&&after.connected&&after.validObservation&&
+    observations.every(x=>x.controlsPassed);
+  return {before,after,observations,controlsPassed,
+    noDirectAccessObserved:controlsPassed&&observations.every(x=>x.explicitRoutingBlock),
+    productionTrustGranted:false,
+    note:'Only inventoried literals and explicit routing failures; timeout/refusal are inconclusive'};
+}
+
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   if(process.env.GATEWAY_CROSS_PROJECT_ISOLATED!=='true'||
     process.env.RAILWAY_ENVIRONMENT_NAME==='production'||
     ['DATABASE_URL','ONLINE_API_INTERNAL_URL','RESEND_API_KEY','AUTH_RATE_LIMIT_SECRET'].some(k=>process.env[k]))
     throw new Error('Requires empty disposable client project');
   try{
-    const report=await observeCrossProject({publicUrl:process.env.GATEWAY_OBSERVATION_PUBLIC_URL,token:process.env.INGRESS_PROBE_TOKEN});
+    const args={publicUrl:process.env.GATEWAY_OBSERVATION_PUBLIC_URL,token:process.env.INGRESS_PROBE_TOKEN};
+    const mode=process.env.GATEWAY_CROSS_PROJECT_MODE??'dns';
+    if(!['dns','direct'].includes(mode))throw new TypeError('Unknown observation mode');
+    const report=mode==='direct'?
+      await observeDirectCrossProject({...args,targetAddresses:(process.env.GATEWAY_PRIVATE_TARGET_ADDRESSES??'').split(',')}):
+      await observeCrossProject(args);
     console.log(JSON.stringify(report));
-    if(!report.noCrossAccessObserved)process.exitCode=1;
+    if(!(mode==='direct'?report.noDirectAccessObserved:report.noCrossAccessObserved))process.exitCode=1;
   }catch{console.error('Cross-project observation incomplete; no trust conclusion');process.exitCode=1;}
 }
