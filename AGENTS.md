@@ -1,3 +1,5 @@
+> **23F2 CANDIDATA:** atributos e Coleção via writers CI-only, revision/actionId, 1v1 líder e trio Gym, releitura servidor. Depende #272, CI final pendente. Cadastro OFF, /play local. Ver docs/ONLINE_PORTAL_ACTIONS_23F2.md.
+
 > **23F1 PORTAL (24/11/2026):** implementação inicial de progresso online na home, seleção nv1, save somente servidor, reload/logout. CI pendente, #271 independente. Não alterar /play, cadastro production OFF, próximos writers e batalhas online via HTTP canônico; não repetir probes/PITR/sandbox. Veja docs/ONLINE_PORTAL_PROGRESS_23F1.md.
 
 > **RESTORE — continuidade 24/11/2026:** PITR real e auditoria estrutural já executados: logs Railway confirmam WAL, recovery point 11:07:09 UTC, ready 11:15:56 UTC; histórico operador 25 migrations, 16 tabelas, zero constraints inválidas/contas/saves/e-mails. NÃO repetir. Gate A parcial: clone no mesmo ambiente, revisão/cronologia/IDs/retencão formais pendentes. Sem mutação de produção. Ver fim PROJECT_STATE.

@@ -41,7 +41,7 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 .starter img{display:block;width:72px;height:72px;object-fit:contain;margin:0 auto 4px;image-rendering:pixelated;max-width:100%}
 .starter[aria-pressed="true"]{border-color:#59ddeb;box-shadow:0 0 0 2px #59ddeb}.starter:disabled{opacity:.65;cursor:not-allowed}
 .progress-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}.progress-list div{background:#0e1c2d;border-radius:10px;padding:10px}.progress-list dt{font-size:.8rem;color:#b1cadb}.progress-list dd{font-weight:800;margin:4px 0 0}
-#online-roster{padding-left:20px;color:#c7deec;line-height:1.7}#online-logout{margin-top:12px}
+#online-roster{padding:0;list-style:none;color:#c7deec;line-height:1.7}.team-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #36556e}.team-row img{width:38px;height:38px;object-fit:contain}.team-row span{flex:1;min-width:0}.team-row button,.stat-row button{background:#263c4b;color:white;border:1px solid #557086;border-radius:8px;padding:6px;cursor:pointer}.team-row button:disabled,.stat-row button:disabled{opacity:.45;cursor:not-allowed}.stat-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0}#online-logout{margin-top:12px}
 [hidden]{display:none!important}@media(max-width:760px){nav{margin-bottom:32px}.layout{grid-template-columns:1fr;gap:35px}.card{padding:23px}h1{font-size:2.75rem}}
 </style>
 </head>
@@ -75,7 +75,10 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <button class="starter" type="button" data-starter="7" aria-pressed="false"><img src="/assets/pokemon-gifs/poke_7.gif" alt="">Squirtle</button></div>
 <button id="online-start" class="primary" type="button" disabled>Iniciar aventura</button></div>
 <div id="online-progress" hidden><dl class="progress-list"><div><dt>Nível do treinador</dt><dd id="online-level"></dd></div><div><dt>Moedas</dt><dd id="online-coins"></dd></div><div><dt>Insígnias</dt><dd id="online-badges"></dd></div><div><dt>Pokémon na coleção</dt><dd id="online-count"></dd></div></dl>
-<h4>Coleção</h4><ul id="online-roster"></ul><p class="helper" id="online-revision"></p></div>
+<h4>Atributos do treinador</h4><p id="online-points" class="helper"></p><div id="online-stats"></div>
+<h4>Equipe</h4><p class="helper">O primeiro Pokémon luta sozinho nas regiões. O trio escolhido aqui é usado nos ginásios.</p>
+<ol id="online-team"></ol><h4>Coleção</h4><ul id="online-roster"></ul>
+<button id="online-team-save" type="button" class="primary" disabled>Salvar equipe</button><p class="helper" id="online-revision"></p></div>
 <p id="online-error" role="status"></p>
 <button id="online-refresh" type="button" class="small-link">Atualizar progresso</button>
 <button id="online-logout" type="button" class="primary">Sair da conta</button>
@@ -95,8 +98,63 @@ let available=false,view='login',token='',onlineBusy=false,selectedStarter=null,
 const panel=$('online-panel'),newAdventure=$('online-new'),progress=$('online-progress');
 const starterButtons=[...panel.querySelectorAll('[data-starter]')];
 const starterNames={1:'Bulbasaur',4:'Charmander',7:'Squirtle'};
+const speciesNames=["","Bulbasaur","Ivysaur","Venusaur","Charmander","Charmeleon","Charizard","Squirtle","Wartortle","Blastoise","Caterpie","Metapod","Butterfree","Weedle","Kakuna","Beedrill","Pidgey","Pidgeotto","Pidgeot","Rattata","Raticate","Spearow","Fearow","Ekans","Arbok","Pikachu","Raichu","Sandshrew","Sandslash","Nidoran♀","Nidorina","Nidoqueen","Nidoran♂","Nidorino","Nidoking","Clefairy","Clefable","Vulpix","Ninetales","Jigglypuff","Wigglytuff","Zubat","Golbat","Oddish","Gloom","Vileplume","Paras","Parasect","Venonat","Venomoth","Diglett","Dugtrio","Meowth","Persian","Psyduck","Golduck","Mankey","Primeape","Growlithe","Arcanine","Poliwag","Poliwhirl","Poliwrath","Abra","Kadabra","Alakazam","Machop","Machoke","Machamp","Bellsprout","Weepinbell","Victreebel","Tentacool","Tentacruel","Geodude","Graveler","Golem","Ponyta","Rapidash","Slowpoke","Slowbro","Magnemite","Magneton","Farfetch'd","Doduo","Dodrio","Seel","Dewgong","Grimer","Muk","Shellder","Cloyster","Gastly","Haunter","Gengar","Onix","Drowzee","Hypno","Krabby","Kingler","Voltorb","Electrode","Exeggcute","Exeggutor","Cubone","Marowak","Hitmonlee","Hitmonchan","Lickitung","Koffing","Weezing","Rhyhorn","Rhydon","Chansey","Tangela","Kangaskhan","Horsea","Seadra","Goldeen","Seaking","Staryu","Starmie","Mr. Mime","Scyther","Jynx","Electabuzz","Magmar","Pinsir","Tauros","Magikarp","Gyarados","Lapras","Ditto","Eevee","Vaporeon","Jolteon","Flareon","Porygon","Omanyte","Omastar","Kabuto","Kabutops","Aerodactyl","Snorlax","Articuno","Zapdos","Moltres","Dratini","Dragonair","Dragonite","Mewtwo","Mew"];
+const statLabels={hp:'HP',attack:'Ataque',defense:'Defesa',specialAttack:'Ataque especial',specialDefense:'Defesa especial',speed:'Velocidade'};
+let serverProgress=null,teamDraft=[];
+const sameTeam=(a,b)=>a.length===b.length&&a.every((uid,i)=>uid===b[i]);
+function actionButton(label,handler,disabled=false){
+ const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.addEventListener('click',handler);return b;
+}
+function renderTeam(){
+ if(!serverProgress)return;
+ const {state}=serverProgress,owned=new Map(state.roster.map(p=>[p.uid,p]));
+ $('online-team').replaceChildren(...teamDraft.map((uid,i)=>{
+  const li=document.createElement('li');li.className='team-row';
+  const label=document.createElement('span');label.textContent=(i===0?'Líder · ':'')+speciesNames[owned.get(uid).pokemonId];
+  li.append(label,actionButton('↑',()=>{if(i>0){[teamDraft[i-1],teamDraft[i]]=[teamDraft[i],teamDraft[i-1]];renderTeam();}},onlineBusy||i===0),
+    actionButton('↓',()=>{if(i<teamDraft.length-1){[teamDraft[i+1],teamDraft[i]]=[teamDraft[i],teamDraft[i+1]];renderTeam();}},onlineBusy||i===teamDraft.length-1),
+    actionButton('Remover',()=>{if(teamDraft.length>1){teamDraft=teamDraft.filter(x=>x!==uid);renderTeam();}},onlineBusy||teamDraft.length===1));
+  return li;
+ }));
+ $('online-roster').replaceChildren(...state.roster.map(p=>{
+  const li=document.createElement('li');li.className='team-row';
+  const img=document.createElement('img');img.src='/assets/pokemon-gifs/poke_'+p.pokemonId+'.gif';img.alt='';
+  const label=document.createElement('span');label.textContent=speciesNames[p.pokemonId]+' · Nível '+p.level;
+  const selected=teamDraft.includes(p.uid);
+  const add=actionButton(selected?'Na equipe':'Adicionar',()=>{if(!teamDraft.includes(p.uid)&&teamDraft.length<3){teamDraft.push(p.uid);renderTeam();}},onlineBusy||selected||teamDraft.length>=3);
+  add.dataset.uid=String(p.uid);li.append(img,label,add);return li;
+ }));
+ $('online-team-save').disabled=onlineBusy||sameTeam(teamDraft,state.team);
+}
+function renderStats(){
+ if(!serverProgress)return;
+ const {state}=serverProgress;
+ const points=(state.trainer.level-1)*2-Object.keys(statLabels).reduce((n,k)=>n+state.trainer.manual[k],0);
+ $('online-points').textContent='Pontos disponíveis: '+points;
+ $('online-stats').replaceChildren(...Object.entries(statLabels).map(([stat,label])=>{
+  const row=document.createElement('div');row.className='stat-row';
+  const text=document.createElement('span');text.textContent=label+': '+state.trainer.manual[stat];
+  const add=actionButton('+1',()=>runProgressAction('/api/v1/trainer/invest',{stat}),onlineBusy||points<=0||state.trainer.manual[stat]>=40);
+  add.dataset.stat=stat;add.setAttribute('aria-label','Investir em '+label);row.append(text,add);return row;
+ }));
+}
+async function runProgressAction(path,fields){
+ if(onlineBusy||!available||!serverProgress||progress.hidden)return;
+ const expectedRevision=serverProgress.revision;
+ const actionId=crypto.randomUUID();
+ setOnlineBusy(true);
+ let failed=false;
+ try{await api(path,{actionId,expectedRevision,...fields});}catch{failed=true;}
+ const loaded=await refreshPortal();
+ if(loaded&&failed)$('online-error').textContent='A ação não foi confirmada. O progresso foi atualizado pelo servidor; confira antes de tentar novamente.';
+}
+$('online-team-save').addEventListener('click',()=>{
+ if(serverProgress&&!sameTeam(teamDraft,serverProgress.state.team))
+  runProgressAction('/api/v1/collection/team',{teamUids:[...teamDraft]});
+});
 function clearPortal(){
- portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;
+ portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];
+ $('online-team').replaceChildren();$('online-stats').replaceChildren();$('online-points').textContent='';$('online-team-save').disabled=true;
  $('online-trainer').textContent='';$('online-roster').replaceChildren();
  for(const id of ['online-level','online-coins','online-badges','online-count','online-revision','online-error'])$(id).textContent='';
  selectedStarter=null;starterButtons.forEach(b=>b.setAttribute('aria-pressed','false'));
@@ -106,6 +164,7 @@ function setOnlineBusy(busy){
  $('online-start').disabled=busy||selectedStarter===null;
  $('online-refresh').disabled=busy;$('online-logout').disabled=busy;
  $('reset-link').disabled=busy;
+ if(serverProgress){renderTeam();renderStats();}
 }
 async function getOnline(path){
  const r=await fetch(path,{credentials:'same-origin',cache:'no-store',redirect:'error'});
@@ -124,15 +183,21 @@ function showSave(data){
       !Number.isSafeInteger(p.level)||p.level<1))throw new Error('Progresso indisponível.');
  $('online-level').textContent=String(state.trainer.level);$('online-coins').textContent=String(state.coins);
  $('online-badges').textContent=String(state.badges.length);$('online-count').textContent=String(state.roster.length);
- const items=state.roster.map(p=>{const li=document.createElement('li');
-  li.textContent=(starterNames[p.pokemonId]||'Pokémon #'+p.pokemonId)+' · Nível '+p.level;return li;});
- $('online-roster').replaceChildren(...items);$('online-revision').textContent='Revisão do servidor: '+revision;
+ const uids=state.roster.map(p=>p.uid);
+ if(!uids.every(uid=>Number.isSafeInteger(uid)&&uid>0)||new Set(uids).size!==uids.length||
+   !Array.isArray(state.team)||state.team.length<1||state.team.length>3||new Set(state.team).size!==state.team.length||
+   !state.team.every(uid=>uids.includes(uid))||state.trainer.level>100||
+   !Object.keys(statLabels).every(k=>Number.isSafeInteger(state.trainer.manual?.[k])&&state.trainer.manual[k]>=0&&state.trainer.manual[k]<=40)||
+   Object.keys(statLabels).reduce((n,k)=>n+state.trainer.manual[k],0)>(state.trainer.level-1)*2)
+   throw new Error('Progresso indisponível.');
+ serverProgress={revision,state};teamDraft=[...state.team];renderTeam();renderStats();
+ $('online-revision').textContent='Revisão do servidor: '+revision;
  newAdventure.hidden=true;progress.hidden=false;
 }
 async function refreshPortal(){
  if(!available||view!=='login')return false;
  const epoch=++portalEpoch;
- setOnlineBusy(true);$('online-error').textContent='';newAdventure.hidden=true;progress.hidden=true;
+ setOnlineBusy(true);$('online-error').textContent='';newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];
  try{
   const me=await getOnline('/api/v1/me');
   if(epoch!==portalEpoch)return false;

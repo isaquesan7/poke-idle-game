@@ -163,6 +163,38 @@ try{
   assert.equal(persisted.rowCount,1);assert.equal(Number(persisted.rows[0].revision),0);
   assert.equal(JSON.parse(persisted.rows[0].state.journal.raw).roster[0].pokemonId,4);
 
+  // Seed a disposable account-only fixture for actions that normally require
+  // earning XP and captures. No UI/API path accepts this raw state.
+  const fixture=persisted.rows[0].state;
+  const raw=JSON.parse(fixture.journal.raw);
+  raw.trainer.level=3;
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:2,pokemonId:25});
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:3,pokemonId:7});
+  raw.roster.push({...structuredClone(raw.roster[0]),uid:4,pokemonId:1});
+  raw.nextUid=5;fixture.journal.raw=JSON.stringify(raw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(fixture)]);
+  await page.locator('#online-refresh').click();
+  await page.getByText('Pontos disponíveis: 4',{exact:true}).waitFor();
+  await responseFor(page,'/api/v1/trainer/invest',()=>page.locator('[data-stat="attack"]').click());
+  await page.getByText('Pontos disponíveis: 3',{exact:true}).waitFor();
+  await page.locator('[data-uid="2"]').click();
+  await page.locator('[data-uid="3"]').click();
+  assert.equal(await page.locator('[data-uid="4"]').isDisabled(),true);
+  await page.locator('#online-team li').nth(1).getByRole('button',{name:'↑',exact:true}).click();
+  await responseFor(page,'/api/v1/collection/team',()=>page.locator('#online-team-save').click());
+  await page.getByText('Revisão do servidor: 2',{exact:true}).waitFor();
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#online-progress').waitFor();
+  assert.match(await page.locator('#online-team li').first().textContent(),/Líder · Pikachu/);
+  assert.equal(await page.locator('#online-team li').count(),3);
+  const actionSave=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[registeredId]);
+  const afterActions=JSON.parse(actionSave.rows[0].state.journal.raw);
+  assert.equal(Number(actionSave.rows[0].revision),2);
+  assert.deepEqual(afterActions.team,[2,1,3]);assert.equal(afterActions.trainer.manual.attack,1);
+  assert.equal(afterActions.coins,0);assert.equal(afterActions.roster.length,4);
+  const stale=await page.request.post(origin+'/api/v1/collection/team',{data:{actionId:'stale-browser-test-01',expectedRevision:0,teamUids:[1]},headers:{Origin:origin}});
+  assert.equal(stale.status(),409);
+
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();
   assert.ok(page.url().endsWith('/reset-password'));
