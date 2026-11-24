@@ -522,14 +522,31 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Pausar'}).waitFor();
   await page.keyboard.press('Space');
   await page.getByRole('button',{name:'Continuar'}).waitFor();
+  const manualStart=await lines.count();
+  assert.ok(manualStart<visual.log.length,'deve haver registro para o passo manual');
   await page.getByRole('button',{name:'Avançar uma linha'}).click();
-  assert.equal(await lines.count(),pausedLines+1,'passo manual deve avançar 1 evento');
+  await page.waitForFunction(n=>document.querySelectorAll('[data-testid="battle-log"] li').length===n,manualStart+1);
+  assert.equal(await lines.count(),manualStart+1,'passo manual deve avançar 1 evento');
   assert.equal(await page.evaluate(()=>window.__battleSpriteIdentity===
     document.querySelector('[data-testid="battle-visual-player"] img')),true,
   'a identidade do GIF não pode mudar quando avança o diário');
+  // Encontros curtos podem terminar no clique anterior (inclusive com três
+  // registros). A seta só atua em replay pausado ainda não concluído.
+  // Reassistir não executa o motor ou paga novamente as recompensas.
+  if(await lines.count()===visual.log.length){
+    await page.getByRole('button',{name:'Reassistir à batalha'}).click();
+    await page.getByRole('button',{name:'Pausar'}).click();
+    await page.getByRole('button',{name:'Continuar'}).waitFor();
+    await page.evaluate(()=>{
+      window.__battleSpriteIdentity=document.querySelector('[data-testid="battle-visual-player"] img');
+    });
+  }
+  const keyboardStart=await lines.count();
+  assert.ok(keyboardStart<visual.log.length,'deve haver registro para a seta');
   await panel.focus();
   await page.keyboard.press('ArrowRight');
-  assert.equal(await lines.count(),pausedLines+2,'seta avança 1 evento em pausa');
+  await page.waitForFunction(n=>document.querySelectorAll('[data-testid="battle-log"] li').length===n,keyboardStart+1);
+  assert.equal(await lines.count(),keyboardStart+1,'seta avança 1 evento em pausa');
   assert.equal(await page.evaluate(()=>window.__battleSpriteIdentity===
     document.querySelector('[data-testid="battle-visual-player"] img')),true,
   'o GIF deve permanecer montado mesmo após outra ação');
