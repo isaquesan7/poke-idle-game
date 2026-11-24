@@ -976,3 +976,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23E13 — integração de cota assinada CI-only (24/11/2026; branch)
 - #254 merged após três CI SUCCESS. 23E13 valida assinatura e consumo nonce nas rotas auth reais exclusivamente harness CI, testes de dois processos, cotas por subject/email e lockdown produção. Sem migration, gameplay ou ativação pública; CI pendente.
+
+
+## ONLINE-01C-23E16 — SQL 026 candidata e manutenção (24/11/2026; branch)
+- Preparar schema nonce com expiração finita, ensaios PG18 a partir do SQL candidato, limpeza por lotes limitada e testes. Não registrado no migrador, sem agendamento ou produção. CI pendente.
