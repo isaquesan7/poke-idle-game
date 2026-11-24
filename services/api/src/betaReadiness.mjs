@@ -77,13 +77,16 @@ export function evaluateBetaReadiness(input,{now=new Date()}={}){
     }
     if(gate==='privacy'&&
       !(text(record?.privacyPolicyUrl)&&text(record?.termsUrl)&&
-        record?.retentionApproved===true&&record?.deletionFlowReviewed===true))
-      blockers.push('LGPD: políticas, retenção e exclusão precisam revisão');
+        record?.retentionApproved===true&&record?.deletionFlowReviewed===true&&
+        record?.dataExportReviewed===true&&record?.accountDeletionVerified===true))
+      blockers.push('LGPD: políticas, retenção, exportação e exclusão efetiva precisam revisão');
     if(gate==='security'&&
       !(record?.sessionReviewed===true&&record?.csrfReviewed===true&&
         record?.rateLimitReviewed===true&&record?.ownershipReviewed===true&&
-        record?.productionHarnessDisabled===true))
-      blockers.push('sessão, CSRF, rate limit, ownership e harness OFF precisam revisão');
+        record?.productionHarnessDisabled===true&&
+        record?.productionRouteLockdownVerified===true&&
+        record?.reverseProxyRateLimitReviewed===true))
+      blockers.push('sessão, CSRF, limites por IP atrás de proxy, ownership e produção bloqueada precisam revisão');
     results[gate]={passed:blockers.length===0,blockers};
     if(blockers.length)problems.push(gate+': '+blockers.join('; '));
   }
