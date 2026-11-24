@@ -984,3 +984,9 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - 23E15: separar factories de emissor/receptor, rejeitar segredos desnecessários e emissão antecipada; esclarecer limite de HMAC simétrico. CI pendente, sem alterações em produção.
 
 - PR #256 integrado main 1b63c81673185b65b2da03b0e1cd760f2ca99f9f após CI PG18 45433832107, browser 45433832299 e geral 45433832247 SUCCESS; #257 reconciliado preservando scripts de teste anteriores, CI final pendente.
+
+
+## ONLINE-01C-23E16 — SQL 026 candidata e manutenção (24/11/2026; branch)
+- Preparar schema nonce com expiração finita, ensaios PG18 a partir do SQL candidato, limpeza por lotes limitada e testes. Não registrado no migrador, sem agendamento ou produção. CI pendente.
+
+- #257 merged main d6fa48d9f1936640b3402c4318893f05336a7b4c após três CI SUCCESS. #258 reconciliado preservando testes de keyring; CI do HEAD combinado pendente.
