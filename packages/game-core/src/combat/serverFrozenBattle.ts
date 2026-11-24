@@ -61,7 +61,7 @@ export function frozenValidatedEquippedMoves(
 }
 
 
-function manualValid(values:unknown,maxBudget:number):values is StatValues{
+function manualValid(values:unknown,maxBudget:number,maxPerStat=40):values is StatValues{
   if(!values||typeof values!=='object'||Array.isArray(values))return false;
   const obj=values as Record<string,unknown>;
   if(Object.keys(obj).length!==STATS.length
@@ -69,7 +69,7 @@ function manualValid(values:unknown,maxBudget:number):values is StatValues{
   let sum=0;
   for(const stat of STATS){
     const n=obj[stat];
-    if(typeof n!=='number'||!Number.isSafeInteger(n)||n<0||n>40)return false;
+    if(typeof n!=='number'||!Number.isSafeInteger(n)||n<0||n>maxPerStat)return false;
     sum+=n;
   }
   return sum<=maxBudget;
@@ -93,7 +93,7 @@ export function canonicalFrozenCombatants(snapshot:unknown):
      ||(s.regionId===1?enemy.level>10:!serverRegionalOpponent(s.regionId,trainer.level,enemy.speciesId,enemy.level))
      ||typeof player.moveName!=='string'
      ||!manualValid(trainer.manual,(trainer.level-1)*2)
-     ||!manualValid(player.manual,(player.level-1)*2))return null;
+     ||!manualValid(player.manual,(player.level-1)*2,(player.level-1)*2))return null;
   const own=KANTO_BATTLE_SPECIES[player.speciesId];
   const other=KANTO_BATTLE_SPECIES[enemy.speciesId];
   if(!own||!other)return null;
