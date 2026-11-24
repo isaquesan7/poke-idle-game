@@ -16,7 +16,8 @@ export function evaluateDeletionAfterRestoreDrill(record,{now=new Date()}={}){
     throw new TypeError('Invalid restore/deletion drill');
   const blockers=[];
   if(record.environment!=='isolated'||record.productionUnchanged!==true||
-    !id(record.backupReference)||!id(record.restoreReference))
+    !id(record.backupReference)||!id(record.restoreReference)||
+    record.backupReference===record.restoreReference)
     blockers.push('isolated_restore_proof_required');
   if(!time(record.backupRecoveryPointUtc)||!time(record.restoredAtUtc)||
     !time(record.reconciledAtUtc)||!time(record.reviewedAtUtc)){
