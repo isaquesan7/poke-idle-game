@@ -1065,3 +1065,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23E27 — configuração operacional candidata (24/11/2026)
 - #269 integrada main 7bd169bdf40d4d604977ec361dc8259388450e9f após três CI SUCCESS. Launcher/imagem gateway independente e fail-closed, modo Web de forwarding privado explícito e receptor API canônico configurável preparados. Production registration continua hard-OFF; SQL026 candidata. Testes existentes PG18/lockdown e imagem ampliados, CI pendente; nenhum recurso/segredo/DB alterado. docs/ONLINE_GATEWAY_RUNTIME_23E27.md. Próximo: homologação incremental da integração final, revisão operacional e fechar restore/Resend/LGPD; não repetir #255/#266. /play local, regiões 1v1, Gym 3v3.
+
+
+## ONLINE-01C-23F1 — portal de progresso online (24/11/2026)
+- Primeira integração UI/server na home: sessão, seleção de inicial nv1, criação única no backend, leitura de progresso, reload, logout. Sem import de save local, sem rotas/schema novos ou abertura de produção. Teste browser PG18 existente ampliado; CI pendente. #271 independente em CI. docs/ONLINE_PORTAL_PROGRESS_23F1.md. Próximo: ações treinador/Coleção e gameplay online, mantendo /play separado, Regiões 1v1 e Gym 3v3 da Coleção.

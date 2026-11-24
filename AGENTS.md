@@ -1,3 +1,5 @@
+> **23F1 PORTAL (24/11/2026):** implementação inicial de progresso online na home, seleção nv1, save somente servidor, reload/logout. CI pendente, #271 independente. Não alterar /play, cadastro production OFF, próximos writers e batalhas online via HTTP canônico; não repetir probes/PITR/sandbox. Veja docs/ONLINE_PORTAL_PROGRESS_23F1.md.
+
 > **23E27 CANDIDATA (24/11/2026):** #269 integrada 3 CI SUCCESS. Launcher Dockerfile.auth-gateway e modos explícitos Web/receiver API preparados, cadastro production hard-OFF, SQL026 candidata; CI pendente. Não configurar modos reais/segredos até revisão e homologação integrada. Não repetir #255/#266. Veja docs/ONLINE_GATEWAY_RUNTIME_23E27.md e gates restore/Resend/LGPD.
 
 > **23E26 REVISADA (24/11/2026):** #268 integrada, quatro CI SUCCESS. #269 substitui peers fixos por configuração de topologia Railway exclusiva vinculada a IDs/commit/domínio; sem comprovação automática, sem launcher/ativação. Provedor não publica CIDR estável. Não repetir #255/#266; CI final, configuração operacional fail-closed e gates pendentes. Cadastro OFF, SQL026 candidata. Leia docs/ONLINE_GATEWAY_INGRESS_ADAPTER_23E26.md.
