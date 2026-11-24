@@ -1,3 +1,5 @@
+> **23F8C CANDIDATA:** painel expedição, timer monotônico/preview servidor, seleção e ações, E2E. Depende #281, reconciliar Gym #279. Sem SQL/cadastro. docs/ONLINE_EXPEDITION_PORTAL_23F8C.md.
+
 > **23F8B CANDIDATA:** HTTP expedição CI-only com relógio PG/projeção/reducer, writers autenticados e teste browser; depende #280, UI próxima. Sem cadastro/SQL. docs/ONLINE_EXPEDITION_HTTP_23F8B.md.
 
 > **23F8A CANDIDATA:** expedição writer privado, reducer existente, relógio PostgreSQL/receipt/CAS, bloqueios mútuos, sem SQL/HTTP/cadastro. docs/ONLINE_EXPEDITION_WRITER_23F8A.md. CI obrigatório.

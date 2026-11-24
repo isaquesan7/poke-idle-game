@@ -300,8 +300,12 @@ try{
   const expPost=(kind,data)=>page.request.post(expeditionPath+kind,{data,headers:{Origin:origin}});
   const beforeExp=await expRead();assert.equal(beforeExp.expedition,null);assert.equal(beforeExp.leader.uid,2);
   assert.equal((await expPost('start',{actionId:'browser-expedition-clock-tamper',expectedRevision:beforeExp.revision,regionId:2,nowMs:1})).status(),400);
-  const startExp=await expPost('start',{actionId:'browser-expedition-start',expectedRevision:beforeExp.revision,regionId:2});
-  assert.equal(startExp.status(),200);
+  await page.locator('#expedition-select').selectOption('2');
+  await responseFor(page,'/api/v1/expedition/start',()=>page.locator('#expedition-start').click());
+  await page.locator('#expedition-active').waitFor();
+  assert.equal(await page.locator('#expedition-select').isDisabled(),true);
+  assert.equal(await page.locator('#region-open').isDisabled(),true);
+  assert.equal(await page.locator('#online-team-save').isDisabled(),true);
   const openedExp=await expRead();assert.equal(openedExp.expedition.regionId,2);assert.equal(openedExp.expedition.leaderUid,2);
   assert.ok(openedExp.serverNowMs>=openedExp.expedition.startedAt);
   const expFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
@@ -311,12 +315,23 @@ try{
   await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(expFixture)]);
   const readyExp=await expRead();assert.equal(readyExp.expedition.cycles,2880);
   assert.equal(readyExp.expedition.preview.cycles,2880);
-  const claimArgs={actionId:'browser-expedition-claim',expectedRevision:readyExp.revision};
-  assert.equal((await expPost('claim',claimArgs)).status(),200);
+  await page.locator('#expedition-sync').click();
+  await page.getByText('2880 / 2880 ciclos',{exact:true}).waitFor();
+  assert.match(await page.locator('#expedition-timer').textContent(),/^09:/);
+  assert.match(await page.locator('#expedition-cap').textContent(),/Limite de 8h/);
+  const claimRequest=page.waitForRequest(r=>r.url().endsWith('/api/v1/expedition/claim')&&r.method()==='POST');
+  await responseFor(page,'/api/v1/expedition/claim',()=>page.locator('#expedition-claim').click());
+  const claimArgs=(await claimRequest).postDataJSON();
   assert.equal((await expPost('claim',claimArgs)).status(),409);
+  await page.getByText('Recompensas resgatadas.',{exact:true}).waitFor();
+  assert.match(await page.locator('#expedition-timer').textContent(),/^09:/);
   await page.reload({waitUntil:'domcontentloaded'});
   const claimedExp=await expRead();assert.equal(claimedExp.expedition.startedAt,readyExp.expedition.startedAt);
-  assert.equal((await expPost('stop',{actionId:'browser-expedition-stop',expectedRevision:claimedExp.revision})).status(),200);
+  await page.locator('#expedition-active').waitFor();
+  assert.match(await page.locator('#expedition-timer').textContent(),/^09:/);
+  await responseFor(page,'/api/v1/expedition/stop',()=>page.locator('#expedition-stop').click());
+  await page.locator('#expedition-start').waitFor();
+  assert.equal(await page.locator('#expedition-active').isHidden(),true);
   assert.equal((await expRead()).expedition,null);
 
   // Recovery is requested using the actual browser form, never a real inbox.
