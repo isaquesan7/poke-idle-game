@@ -1006,3 +1006,5 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - Emissor isolado e transporte de proof web exclusivamente CI/loopback, teste local de três hops e falsificação direta. Sem deploy, adapter real, migração ou cadastro. CI pendente.
 
 - PR #259 integrado main ce77aaea3e6f5894641eb2e8c9fef10534adcdf4 após regressão 45437020612 SUCCESS. #260 reconciliado; CI final pendente.
+
+- 23E19: jornada HTTP completa de auth via gateway/Web/API e PG18 descartável; cota separada, rejeição direta/replay, recuperação, cookie, revogação. Bind Web loopback somente harness; sem migration real ou cadastro. CI pendente.

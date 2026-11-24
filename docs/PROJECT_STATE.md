@@ -2025,3 +2025,7 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Gateway isolado candidato em scripts/auth-gateway-candidate.mjs, origem/upstream fixos, cinco rotas, proof gerada somente via resolver confiável injetado; transporte web CI-only sem segredo, receptor verifica. Teste três listeners com stub replay; PG18 completo e isolamento real pendentes. Nenhum launcher/adapter Railway, domínio, segredo ou recurso novo. docs/ONLINE_AUTH_GATEWAY_23E18.md. Cadastro OFF, SQL026 não registrada, /play local, Regiões 1v1 e Gym 3v3.
 
 - PR #259 integrado main ce77aaea3e6f5894641eb2e8c9fef10534adcdf4 após regressão 45437020612 SUCCESS. #260 reconciliado; CI final pendente.
+
+
+## ONLINE-01C-23E19 — integração gateway PG18 (24/11/2026; PR #260)
+- #260 imagem de produção no HEAD anterior SUCCESS; outros CIs ainda em execução. Ampliação do mesmo PR com jornada real gateway/Web/API/PG18, duas identidades sintéticas, cinco rotas auth, recuperação e sessões, cotas e replay. Web sem segredo e bind loopback CI-only. SQL026 candidata apenas em schema descartável, sem Resend real, sem alteração produção ou novo recurso. CI HEAD combinado pendente. GET /me ainda via Web; próximo same-origin completo e homologação real. Cadastro OFF, /play local, Regiões 1v1 e Gym 3v3.
