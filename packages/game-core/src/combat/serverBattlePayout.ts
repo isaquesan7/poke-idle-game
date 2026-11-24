@@ -100,7 +100,7 @@ export function applyFrozenBattleRewardQuote(raw:string,snapshot:unknown,preview
   if(!Number.isSafeInteger(affinityNext)||affinityNext<0||affinityNext>100)
     return null;
   const regionIndex=(input.regionId as number)-1;
-  if(regionIndex!==0)return null; // only Bosque Inicial online presently
+  if(!Number.isInteger(regionIndex)||regionIndex<0||regionIndex>=10)return null;
   const regionWins=state.regionWins as number[];
   const oldWins=regionWins[regionIndex]??0;
   regionWins[regionIndex]=Math.min(KANTO_REGION_WINS_CAP,

@@ -1088,3 +1088,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ## ONLINE-01C-23F2 — treinador e Coleção online
 - UI de atributos e equipe usa writers existentes, revisão e actionId, releitura servidor, nomes Kanto, 1–3 UIDs, líder regional e trio Gym. Web collection/team apenas CI/test. Teste browser PG18 ampliado com fixture e persistência; CI pendente, branch depende #272 (guard textual corrigido, sem relaxar). docs/ONLINE_PORTAL_ACTIONS_23F2.md. Cadastro OFF, /play separado, nenhum SQL ou recurso novo.
+
+
+## ONLINE-01C-23F5 — extensão regional candidata
+- #273 integrada após cinco CI SUCCESS. Núcleo puro usa catálogo KANTO_REGIONS, unlock, sorteio HMAC, turnos por região, payout e captura; SQL027 candidata sem registro; teste core pendente. R1 ainda única rota. Próximo writers/PG18 e seletor após validação. docs/ONLINE_REGIONAL_EXTENSION_23F5.md.
