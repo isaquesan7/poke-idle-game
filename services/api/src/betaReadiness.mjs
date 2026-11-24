@@ -45,8 +45,11 @@ export function evaluateBetaReadiness(input,{now=new Date()}={}){
       if(!drill){
         blockers.push('chronological real Railway restore evidence required');
       }else{
-        const report=evaluateRestoreEvidence(drill,{now});
-        if(!report.passed)blockers.push('restore drill: '+report.blockers.join(', '));
+        let report;
+        try{report=evaluateRestoreEvidence(drill,{now});}
+        catch{blockers.push('invalid restore drill document');}
+        if(report&&!report.passed)
+          blockers.push('restore drill: '+report.blockers.join(', '));
         if(drill.backupId!==record.backupId||
           drill.restoreId!==record.restoreId||
           drill.appCommitSha!==head||
