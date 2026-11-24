@@ -120,7 +120,8 @@ try{
     await expectStageFocused(page);
     assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
     await page.getByRole('heading',{name:'Pokémon encontrados nesta área'}).waitFor();
-    assert.equal(await page.locator('[class*="encounterGrid"] [class*="encounterCard"]').count(),18);
+    // D064BT: Venomoth e Golduck agora pertencem aos Lagos Serenos.
+    assert.equal(await page.locator('[class*="encounterGrid"] [class*="encounterCard"]').count(),20);
     await page.waitForFunction(k=>JSON.parse(localStorage.getItem(k))?.revision===1,key);
     const staged=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     const pending=JSON.parse(staged.journal.raw);
