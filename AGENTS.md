@@ -1,3 +1,8 @@
+> **23F6 RECONCILIADA:** #275 integrada; #276 HEAD 122c8e0f incorporado, PG18 e D044 SUCCESS; demais checks pendentes. #277 CI completo antes de merge. Cadastro OFF, SQL027 candidata.
+
+> **23F4 INTEGRADA:** #275 merged f767dca38d10639b0826e7407bef32c90b2448ed, cinco CI SUCCESS. #276 em reconciliação; cadastro OFF, /play separado.
+> **23F4 CANDIDATA:** UI R1 via contrato CI-only; ações canônicas, HP/SP, diário, captura/skip e foco no botão regional. #272 merged, #273 CI anterior verde/reconciliada, #274 fixture golpe corrigida, CI pendente. Não alterar /play/cadastro/motor. Veja docs/ONLINE_REGION_PORTAL_23F4.md.
+
 > **23F6 EM CORREÇÃO:** #275 integrada cinco CI SUCCESS; #276 CI final após reconciliação; #277 corrige reset do seletor R2 após refresh e fixture de turnos legais. Novo CI e reconciliação necessários, cadastro OFF, SQL027 candidata, /play local.
 
 > **23F6 CANDIDATA:** persistência e seletor das dez regiões CI-only, SQL027 manual no PG descartável; #274 merged, depende #275/#276 e CI final. Nenhuma alteração produção, /play local, 1v1/Gym3v3. Veja docs/ONLINE_REGIONAL_PERSISTENCE_23F6.md. Não repetir probes/PITR.
