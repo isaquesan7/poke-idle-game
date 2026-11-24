@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {randomBytes} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import pg from 'pg';
+import {cleanExpiredProxyNonces} from '../src/proxyNonceMaintenance.mjs';
 import {signProxyIdentity} from '../src/proxyIdentity.mjs';
 import {consumeProxyIdentity,pruneProxyIdentityNonces} from '../src/proxyNonceGuard.mjs';
 
@@ -24,7 +25,7 @@ test('23E11: atomic cross-pool nonce consumption, freshness and bounded cleanup'
     await admin.query('CREATE SCHEMA '+schema);created=true;
     const config={connectionString:process.env.DATABASE_URL,options:'-c search_path='+schema};
     a=new pg.Pool(config);b=new pg.Pool(config);
-    await a.query(await readFile(new URL('./fixtures/proxy-nonce-test-schema.sql',import.meta.url),'utf8'));
+    await a.query(await readFile(new URL('../sql/026_proxy_identity_nonces.sql',import.meta.url),'utf8'));
     const signingKey=Buffer.alloc(32,1),subjectKey=Buffer.alloc(32,2);
     const method='POST',path='/api/v1/auth/login',body=Buffer.from('{}');
     const signed=(ip,nowMs=Date.now())=>{
@@ -54,6 +55,17 @@ test('23E11: atomic cross-pool nonce consumption, freshness and bounded cleanup'
     assert.equal(await pruneProxyIdentityNonces(a),0);
     const after=await a.query('SELECT count(*)::int AS n FROM game_proxy_identity_nonces');
     assert.equal(after.rows[0].n,4);
+    // Bounded cleanup across real pools, with fresh/recent rows protected.
+    await a.query(`INSERT INTO game_proxy_identity_nonces(nonce_digest,expires_at)
+      SELECT decode(lpad(to_hex(i),64,'0'),'hex'),statement_timestamp()-interval '10 minutes'
+      FROM generate_series(1,11) i`);
+    const sweep=await cleanExpiredProxyNonces(a,{batchSize:3,maxBatches:2});
+    assert.deepEqual(sweep,{removed:6,batches:2,mayHaveBacklog:true});
+    const rest=await Promise.all([cleanExpiredProxyNonces(a,{batchSize:2}),cleanExpiredProxyNonces(b,{batchSize:2})]);
+    assert.equal(rest.reduce((sum,r)=>sum+r.removed,0),5);
+    assert.equal((await a.query('SELECT count(*)::int AS n FROM game_proxy_identity_nonces')).rows[0].n,4);
+    await assert.rejects(()=>a.query(`INSERT INTO game_proxy_identity_nonces VALUES
+      ($1,'infinity'::timestamptz)`,[randomBytes(32)]),e=>e.code==='23514');
     await assert.rejects(()=>pruneProxyIdentityNonces(a,{limit:501}));
     await assert.rejects(()=>consumeProxyIdentity({query:async()=>{throw Error('DB unavailable');}},signed('192.0.2.1')),/DB unavailable/);
   }finally{

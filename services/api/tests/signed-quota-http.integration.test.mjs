@@ -29,7 +29,7 @@ test('23E13: real auth routes, signed subjects and atomic replay across two API 
     assert.equal((await pool.query('SELECT current_database() AS name')).rows[0].name,'kanto_ci');
     await pool.query('CREATE SCHEMA '+schema);created=true;
     const fixture=new pg.Pool({connectionString:db.href,options:'-c search_path='+schema});
-    try{await fixture.query(await readFile(new URL('./fixtures/proxy-nonce-test-schema.sql',import.meta.url),'utf8'));}
+    try{await fixture.query(await readFile(new URL('../sql/026_proxy_identity_nonces.sql',import.meta.url),'utf8'));}
     finally{await fixture.end();}
     db.searchParams.set('options','-c search_path='+schema+',public');
     for(const port of [43172,43173]){

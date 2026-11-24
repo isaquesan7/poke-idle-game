@@ -986,5 +986,17 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - PR #256 integrado main 1b63c81673185b65b2da03b0e1cd760f2ca99f9f após CI PG18 45433832107, browser 45433832299 e geral 45433832247 SUCCESS; #257 reconciliado preservando scripts de teste anteriores, CI final pendente.
 
 
+## ONLINE-01C-23E16 — SQL 026 candidata e manutenção (24/11/2026; branch)
+- Preparar schema nonce com expiração finita, ensaios PG18 a partir do SQL candidato, limpeza por lotes limitada e testes. Não registrado no migrador, sem agendamento ou produção. CI pendente.
+
+- #257 merged main d6fa48d9f1936640b3402c4318893f05336a7b4c após três CI SUCCESS. #258 reconciliado preservando testes de keyring; CI do HEAD combinado pendente.
+
+
 ## ONLINE-01C-23E17 — ensaio de fronteira privada (24/11/2026; branch)
 - Cliente descartável restrito ao target privado sintético e testes de injeção direta; documentação de alternativas e limites. Sem deploy, migration ou runtime, CI pendente.
+
+
+## ONLINE-01C-23E17B — observação privada real (24/11/2026)
+- #258 merged main 85dea363c89d331e9f55255a0c9dfe8a957c3073, PG18 45435737947, regressão 45435737963 e browser 45435738002 SUCCESS; Web/API Railway SUCCESS. SQL 026 candidata ainda não registrada.
+- Ensaio autorizado no projeto Kanto ingress probe TEMP vazio, dois serviços sem DB, volumes, domínio público ou segredo real; receptor deploy 03195191-4338-431e-8e6a-17a30a87d2c2 e cliente 09712ef0-d0e3-481f-b73f-e36beda141b3 SUCCESS no SHA f78e5616c770cf77898566ea91f6b90466c93164. Log estruturado do cliente às 16:24:37 UTC confirmou 4/4 respostas 200, allObserved=true, forgedHeaderReachedTarget=true. Baseline: 0 X-Real-IP; forged-real-ip: 1, válido, matchesExpected=true; forged-edge: 1, válido, matchesExpected=true, edgeHeaderPresent=true; duplicate: 2, inválido, matchesExpected=false. Nenhum IP real ou token no relatório. Serviços removidos após coleta; produção intocada.
+- Resultado: X-Real-IP e X-Railway-Edge são falsificáveis por acesso privado direto ao listener sintético. NÃO habilitar assinatura no web com esses cabeçalhos como prova de origem. 12/12 externos continuam válidos apenas para caminho público. A próxima etapa deve escolher uma fronteira autenticada demonstrável (por exemplo gateway externo autenticado com credencial de origem, sem confiar em header inserível pelo cliente), ou modelo de cotas alternativo revisado. Não presumir que mudar IPv4/IPv6 basta. Gate reverseProxyRateLimitReviewed=false, cadastro OFF, sem migration 026 real. CI final #259 pendente; reconciliado com #258. Revisão independente/restore/remetente/LGPD pendentes.
