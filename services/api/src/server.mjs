@@ -18,11 +18,14 @@ import {deliverAccountEmail} from './mailer.mjs';
 import {regionalPaths,loadRegionalTestKey,regionalExpansionEnabled,readRegionalEncounter,runRegionalCommand} from './regionalHttp.mjs';
 import {expeditionHttpEnabled,readExpedition} from './expeditionHttp.mjs';
 import {applyExpeditionCommand} from './expeditionWriter.mjs';
+import {shopHttpEnabled,readShop} from './shopHttp.mjs';
+import {purchaseShopBall} from './shopWriter.mjs';
 import {createFirstAdventure} from './initialAdventure.mjs';
 import {applyTrainerInvestment} from './trainerInvestment.mjs';
 import {exportAccountData} from './accountPrivacy.mjs';
 import {setCollectionTeam} from './collectionTeam.mjs';
 import {reserveNextGym} from './gymReservation.mjs';
+import {gymPortalEnabled,readCurrentGym} from './gymPortalState.mjs';
 import {startReservedGymTurnSession} from './gymTurnSession.mjs';
 import {loadGymEntropyKeyringFromEnv} from './gymEntropyKeyring.mjs';
 import {
@@ -374,6 +377,24 @@ const server=createServer(async(req,res)=>{
         result.status==='missing'?404:result.status==='invalid'?400:409;
       return json(res,status,result.status==='ok'?result:{error:result.status});
     }
+    if(['/api/v1/shop/current','/api/v1/shop/purchase'].includes(pathname)){
+      if(!enabled||!shopHttpEnabled())return json(res,503,{error:'Loja online em preparação'});
+      const read=pathname.endsWith('/current');
+      if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
+      if(!read)requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
+      if(read){
+        const result=await readShop(pool,account.id);
+        return json(res,result.status==='ok'?200:result.status==='missing-save'?404:409,result);
+      }
+      if(!await enforceThrottle(req,res,{scope:'shop-account',identifier:account.id,limit:60}))return;
+      const data=await readJson(req);
+      if(Object.keys(data).sort().join(',')!=='actionId,ballId,expectedRevision,quantity')return json(res,400,{error:'Ação inválida'});
+      const result=await purchaseShopBall(pool,{accountId:account.id,...data});
+      return json(res,result.status==='purchased'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
+    }
     if(['/api/v1/expedition/current','/api/v1/expedition/start','/api/v1/expedition/claim','/api/v1/expedition/stop'].includes(pathname)){
       if(!enabled||!expeditionHttpEnabled())return json(res,503,{error:'Expedições online em preparação'});
       const kind=pathname.split('/').at(-1),read=kind==='current';
@@ -438,6 +459,16 @@ const server=createServer(async(req,res)=>{
       const status=ok?200:result.status==='invalid'?400:
         ['missing','missing-save'].includes(result.status)?404:409;
       return json(res,status,ok?result:{error:result.status});
+    }
+    if(pathname==='/api/v1/gym/current'){
+      if(!enabled||!gymPortalEnabled())return json(res,503,{error:'Ginásios online em preparação'});
+      if(req.method!=='GET'||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
+      try{loadGymEntropyKeyringFromEnv();}catch{return json(res,503,{error:'Ginásios online em preparação'});}
+      const current=await readCurrentGym(pool,account.id);
+      return json(res,current.status==='ok'?200:current.status==='missing-save'?404:409,current);
     }
     if((pathname==='/api/v1/gym/reserve'||
         pathname==='/api/v1/gym/start')&&req.method==='POST'){

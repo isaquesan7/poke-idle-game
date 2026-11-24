@@ -55,10 +55,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true'
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',
+    GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -300,8 +301,14 @@ try{
   const expPost=(kind,data)=>page.request.post(expeditionPath+kind,{data,headers:{Origin:origin}});
   const beforeExp=await expRead();assert.equal(beforeExp.expedition,null);assert.equal(beforeExp.leader.uid,2);
   assert.equal((await expPost('start',{actionId:'browser-expedition-clock-tamper',expectedRevision:beforeExp.revision,regionId:2,nowMs:1})).status(),400);
-  const startExp=await expPost('start',{actionId:'browser-expedition-start',expectedRevision:beforeExp.revision,regionId:2});
-  assert.equal(startExp.status(),200);
+  await page.locator('#expedition-select').selectOption('2');
+  await responseFor(page,'/api/v1/expedition/start',()=>page.locator('#expedition-start').click());
+  await page.locator('#expedition-active').waitFor();
+  assert.equal(await page.locator('#expedition-select').isDisabled(),true);
+  assert.equal(await page.locator('#region-open').isDisabled(),true);
+  assert.equal(await page.locator('#gym-open').isDisabled(),true);
+  assert.equal(await page.locator('[data-shop-buy="poke-ball"]').isDisabled(),true);
+  assert.equal(await page.locator('#online-team-save').isDisabled(),true);
   const openedExp=await expRead();assert.equal(openedExp.expedition.regionId,2);assert.equal(openedExp.expedition.leaderUid,2);
   assert.ok(openedExp.serverNowMs>=openedExp.expedition.startedAt);
   const expFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
@@ -311,13 +318,115 @@ try{
   await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(expFixture)]);
   const readyExp=await expRead();assert.equal(readyExp.expedition.cycles,2880);
   assert.equal(readyExp.expedition.preview.cycles,2880);
-  const claimArgs={actionId:'browser-expedition-claim',expectedRevision:readyExp.revision};
-  assert.equal((await expPost('claim',claimArgs)).status(),200);
+  await page.locator('#expedition-sync').click();
+  await page.getByText('2880 / 2880 ciclos',{exact:true}).waitFor();
+  assert.match(await page.locator('#expedition-timer').textContent(),/^09:/);
+  assert.match(await page.locator('#expedition-cap').textContent(),/Limite de 8h/);
+  const claimRequest=page.waitForRequest(r=>r.url().endsWith('/api/v1/expedition/claim')&&r.method()==='POST');
+  await responseFor(page,'/api/v1/expedition/claim',()=>page.locator('#expedition-claim').click());
+  const claimArgs=(await claimRequest).postDataJSON();
   assert.equal((await expPost('claim',claimArgs)).status(),409);
+  await page.getByText('Recompensas resgatadas.',{exact:true}).waitFor();
+  assert.match(await page.locator('#expedition-timer').textContent(),/^09:/);
   await page.reload({waitUntil:'domcontentloaded'});
   const claimedExp=await expRead();assert.equal(claimedExp.expedition.startedAt,readyExp.expedition.startedAt);
-  assert.equal((await expPost('stop',{actionId:'browser-expedition-stop',expectedRevision:claimedExp.revision})).status(),200);
+  await page.locator('#expedition-active').waitFor();
+  assert.match(await page.locator('#expedition-timer').textContent(),/^09:/);
+  await responseFor(page,'/api/v1/expedition/stop',()=>page.locator('#expedition-stop').click());
+  await page.locator('#expedition-start').waitFor();
+  assert.equal(await page.locator('#expedition-active').isHidden(),true);
   assert.equal((await expRead()).expedition,null);
+
+  // Shop checkout through the real browser. Fund only in disposable PG fixture.
+  const shopFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const shopRaw=JSON.parse(shopFixture.journal.raw);shopRaw.coins=5000;
+  const ownedBefore=shopRaw.ballPocket.quantities['poke-ball']??0;
+  shopFixture.journal.raw=JSON.stringify(shopRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(shopFixture)]);
+  await page.locator('#online-refresh').click();
+  await page.getByText('Saldo: 5.000 moedas',{exact:true}).waitFor();
+  const shopRead=async()=>{const q=await page.request.get(origin+'/api/v1/shop/current');assert.equal(q.status(),200);return q.json();};
+  const shopBefore=await shopRead();assert.equal(shopBefore.items.length,3);
+  assert.equal((await page.request.post(origin+'/api/v1/shop/purchase',{data:{actionId:'shop-tamper-browser-01',ballId:'poke-ball',quantity:2,expectedRevision:shopBefore.revision,unitPrice:0},headers:{Origin:origin}})).status(),400);
+  await page.locator('#shop-qty-poke-ball').fill('2');
+  await page.getByText('Total: 1.200 moedas',{exact:true}).waitFor();
+  const shopRequest=page.waitForRequest(q=>q.url().endsWith('/api/v1/shop/purchase')&&q.method()==='POST');
+  await responseFor(page,'/api/v1/shop/purchase',()=>page.locator('[data-shop-buy="poke-ball"]').click());
+  const purchaseArgs=(await shopRequest).postDataJSON();
+  assert.equal((await page.request.post(origin+'/api/v1/shop/purchase',{data:purchaseArgs,headers:{Origin:origin}})).status(),409);
+  await page.getByText('Saldo: 3.800 moedas',{exact:true}).waitFor();
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.getByText('Saldo: 3.800 moedas',{exact:true}).waitFor();
+  const shopAfter=await shopRead();assert.equal(shopAfter.coins,3800);assert.equal(shopAfter.items.find(i=>i.id==='poke-ball').owned,ownedBefore+2);
+
+  // Gym portal read contract via the real authenticated Web proxy.
+  const gymPath=origin+'/api/v1/gym/';
+  const gymRead=async()=>{const response=await page.request.get(gymPath+'current');assert.equal(response.status(),200);return response.json();};
+  const gymPost=async(command,data)=>{const response=await page.request.post(gymPath+command,{data,headers:{Origin:origin}});assert.equal(response.status(),200,command+' failed '+response.status());return response.json();};
+  // Strong disposable Gym fixture: keep Charmander at its earned level;
+  // two teammates can safely defeat Brock without changing the core.
+  const gymFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const gymRaw=JSON.parse(gymFixture.journal.raw);
+  for(const p of gymRaw.roster)if([2,3].includes(p.uid))p.level=100;
+  gymFixture.journal.raw=JSON.stringify(gymRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(gymFixture)]);
+  await page.locator('#online-refresh').click();
+  await page.locator('#gym-open').waitFor();
+  const gymBefore=await gymRead();
+  assert.equal(gymBefore.gym,null);assert.equal(gymBefore.canReserve,true);
+  assert.equal(gymBefore.nextGym.leader,'Brock');assert.deepEqual(gymBefore.nextGym.teamUids,[2,1,3]);
+  const anonymous=await browser.newContext({ignoreHTTPSErrors:true});
+  assert.equal((await anonymous.request.get(gymPath+'current')).status(),401);
+  await anonymous.close();
+  const gymReserved=await gymPost('reserve',{actionId:'browser-gym-reserve-01',expectedRevision:gymBefore.revision});
+  const gymReservationId=gymReserved.gymReservationId;
+  const reservedGym=await gymRead();assert.equal(reservedGym.gym.phase,'reserved');
+  assert.equal(reservedGym.gym.id,gymReservationId);
+  assert.equal(reservedGym.gym.player,null);
+  await page.locator('#online-refresh').click();
+  await page.getByRole('button',{name:'Retomar confronto',exact:true}).click();
+  await page.locator('#gym-phase[data-phase="await-player"]').waitFor();
+  const openedGym=await gymRead();assert.equal(openedGym.gym.phase,'await-player');
+  assert.equal(openedGym.gym.player.fighters.length,3);assert.equal(openedGym.gym.opponent.fighters.length,3);
+  assert.deepEqual(openedGym.gym.player.fighters.map(f=>f.uid),[2,1,3]);
+  assert.ok(openedGym.gym.actions.some(a=>a.kind==='switch'&&a.toIndex===1));
+  assert.equal(openedGym.gym.frozenPreparation,undefined);
+  assert.equal(openedGym.gym.entropyProof,undefined);
+  await gymPost('turn',{gymReservationId,actionId:'browser-gym-switch-01',expectedRevision:openedGym.revision,action:{kind:'switch',toIndex:1}});
+  const switchedGym=await gymRead();assert.equal(switchedGym.gym.player.activeIndex,1);
+  assert.equal(switchedGym.gym.actionNumber,1);assert.ok(switchedGym.gym.log.length>0);
+  assert.equal(switchedGym.gym.player.fighters[0].hp,openedGym.gym.player.fighters[0].hp);
+  await page.reload({waitUntil:'domcontentloaded'});
+  assert.deepEqual(await gymRead(),switchedGym);
+  const gymLockedTeam=await page.request.post(origin+'/api/v1/collection/team',{data:{actionId:'browser-gym-lock-team',expectedRevision:switchedGym.revision,teamUids:[1,2,3]},headers:{Origin:origin}});
+  assert.equal(gymLockedTeam.status(),409);
+  await page.locator('#gym-phase[data-action-number="1"]').waitFor();
+  assert.equal(await page.locator('#gym-parties [data-gym-slot]').count(),6);
+  assert.match(await page.locator('#gym-match').textContent(),/Brock vs Treinador Browser/);
+  assert.equal(await page.locator('#region-open').isDisabled(),true);
+  assert.equal(await page.locator('#online-team-save').isDisabled(),true);
+  assert.equal(await page.locator('#expedition-start').isDisabled(),true);
+  assert.equal(await page.locator('[data-shop-buy="poke-ball"]').isDisabled(),true);
+  let gymNow=await gymRead();
+  for(let i=0;gymNow.gym.phase==='await-player'&&i<140;i++){
+    const g=gymNow.gym;
+    const chosen=(g.player.activeIndex===1?g.actions.find(a=>a.kind==='switch'&&a.toIndex===2):null)
+      ??g.actions.find(a=>a.kind==='basic')??g.actions[0];
+    assert.ok(chosen);
+    const tag=chosen.kind==='switch'?'switch:'+chosen.toIndex:chosen.kind==='move'?'move:'+chosen.moveName:chosen.kind;
+    await responseFor(page,'/api/v1/gym/turn',()=>page.locator('[data-gym-action="'+tag+'"]').click());
+    await page.locator('#gym-phase[data-action-number="'+(g.actionNumber+1)+'"]').waitFor();
+    gymNow=await gymRead();
+  }
+  assert.equal(gymNow.gym.phase,'resolved');assert.equal(gymNow.gym.outcome,'player-win');
+  const beforeGymCoins=Number(await page.locator('#online-coins').textContent());
+  const gymPaid=await responseFor(page,'/api/v1/gym/settle',()=>page.locator('[data-gym-action="reward"]').click());
+  assert.equal(gymPaid.paid.badgeId,'boulder');assert.equal(gymPaid.paid.coins,1500);assert.equal(gymPaid.paid.trainerXp,120);
+  await page.getByRole('button',{name:'Desafiar Misty',exact:true}).waitFor();
+  assert.equal(Number(await page.locator('#online-coins').textContent()),beforeGymCoins+1500);
+  assert.equal(await page.locator('#online-badges').textContent(),'1');
+  assert.equal((await gymRead()).gym,null);
+  assert.match(await page.locator('#gym-note').textContent(),/Insígnia conquistada/);
 
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();

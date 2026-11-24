@@ -45,6 +45,27 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 #region-section{margin:20px 0;padding:14px;background:#0e1c2d;border:1px solid #36556e;border-radius:14px}
 .region-actors{display:grid;grid-template-columns:1fr 1fr;gap:8px}.region-actor{min-width:0;text-align:center;background:#182d40;padding:8px;border-radius:10px}.region-actor img{width:72px;height:72px;object-fit:contain;max-width:100%}.region-actor p{font-size:.78rem;margin:5px 0}.region-actor progress{width:100%;height:10px;accent-color:#53d89c}.region-actor progress.sp{accent-color:#5cc7f8}
 #region-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}#region-actions button{padding:10px;color:white;background:#263c4b;border:1px solid #557086;border-radius:9px;cursor:pointer}#region-actions button:disabled{opacity:.5;cursor:not-allowed}#region-log{max-height:160px;overflow:auto;padding-left:20px;font-size:.8rem;line-height:1.5;color:#c7deec}#region-note{font-size:.86rem;color:#9fefff}
+/* Painel de Ginásio: mesmos tokens visuais do portal regional. */
+#gym-section{margin:20px 0;padding:14px;background:#0e1c2d;border:1px solid #36556e;border-radius:14px}
+.gym-party{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.gym-party .region-actor{padding:5px;overflow-wrap:anywhere;font-size:.75rem}
+.gym-party .region-actor img{width:54px;height:54px}
+.gym-party .gym-active{outline:1px solid #59ddeb}
+.gym-party .gym-ko img{filter:grayscale(1);opacity:.45}
+#gym-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+#gym-actions button{padding:10px;color:white;background:#263c4b;border:1px solid #557086;border-radius:9px;cursor:pointer}
+#gym-actions button:disabled{opacity:.5;cursor:not-allowed}
+#gym-log{max-height:180px;overflow:auto;padding-left:20px;font-size:.8rem;line-height:1.5;color:#c7deec}
+#gym-note{font-size:.86rem;color:#9fefff}
+#expedition-section{margin:20px 0;padding:14px;background:#0e1c2d;border:1px solid #36556e;border-radius:14px}
+#expedition-select{width:100%;padding:10px;background:#182d40;color:white;border:1px solid #557086;border-radius:8px}
+#expedition-timer{font-size:1.8rem;font-variant-numeric:tabular-nums;color:#9fefff}
+#expedition-progress{width:100%;accent-color:#53d89c}
+#expedition-stop{background:#263c4b;color:white;border:1px solid #557086}
+#expedition-stop:disabled{opacity:.5}
+#expedition-note{font-size:.86rem;color:#9fefff}
+#shop-section{margin:20px 0;padding:14px;background:#0e1c2d;border:1px solid #36556e;border-radius:14px}
+.shop-item{padding:10px 0;border-bottom:1px solid #36556e}.shop-item input{max-width:110px}.shop-item button{margin-top:8px}.shop-item p{margin:5px 0;font-size:.85rem}
 [hidden]{display:none!important}@media(max-width:760px){nav{margin-bottom:32px}.layout{grid-template-columns:1fr;gap:35px}.card{padding:23px}h1{font-size:2.75rem}}
 </style>
 </head>
@@ -88,6 +109,31 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <h4>Diário de batalha</h4><ol id="region-log"></ol></div>
 <p id="region-note" role="status" aria-live="polite"></p>
 </section>
+<section id="gym-section" hidden aria-labelledby="gym-heading">
+<h3 id="gym-heading">Ginásios de Kanto</h3><p class="helper" id="gym-info"></p>
+<button id="gym-open" class="primary" type="button" disabled>Desafiar Ginásio</button>
+<div id="gym-battle" hidden><h4 id="gym-match"></h4><p id="gym-phase" tabindex="-1"></p>
+<div id="gym-parties"></div><div id="gym-actions" role="group" aria-label="Ações do Ginásio"></div>
+<h4>Diário de batalha</h4><ol id="gym-log"></ol></div>
+<p id="gym-note" role="status" aria-live="polite"></p></section>
+<section id="expedition-section" hidden aria-labelledby="expedition-heading">
+<h3 id="expedition-heading" tabindex="-1">Expedições</h3>
+<p id="expedition-leader" class="helper"></p>
+<label for="expedition-select">Região da expedição</label><select id="expedition-select" aria-describedby="expedition-info"></select>
+<p id="expedition-info" class="helper"></p>
+<button id="expedition-start" type="button" class="primary" disabled>Iniciar expedição</button>
+<div id="expedition-active" hidden>
+<p class="helper">Tempo total de expedição</p><strong id="expedition-timer" aria-live="off">00:00:00</strong>
+<p id="expedition-cycles" aria-live="off"></p><progress id="expedition-progress" aria-label="Ciclos acumulados" max="2880" value="0"></progress>
+<p id="expedition-cap" class="helper"></p>
+<h4>Prévia do último sincronismo</h4><p id="expedition-preview" class="helper"></p>
+<button id="expedition-sync" type="button" class="small-link">Atualizar prévia</button>
+<button id="expedition-claim" type="button" class="primary" disabled>Resgatar recompensas</button>
+<button id="expedition-stop" type="button" class="primary">Encerrar expedição</button>
+</div><p id="expedition-note" role="status" aria-live="polite"></p></section>
+<section id="shop-section" hidden aria-labelledby="shop-heading">
+<h3 id="shop-heading">Loja de Pokébolas</h3><p class="helper" id="shop-balance"></p>
+<div id="shop-items"></div><p id="shop-note" role="status" aria-live="polite"></p></section>
 <h4>Atributos do treinador</h4><p id="online-points" class="helper"></p><div id="online-stats"></div>
 <h4>Equipe</h4><p class="helper">O primeiro Pokémon luta sozinho nas regiões. O trio escolhido aqui é usado nos ginásios.</p>
 <ol id="online-team"></ol><h4>Coleção</h4><ul id="online-roster"></ul>
@@ -113,7 +159,7 @@ const starterButtons=[...panel.querySelectorAll('[data-starter]')];
 const starterNames={1:'Bulbasaur',4:'Charmander',7:'Squirtle'};
 const speciesNames=["","Bulbasaur","Ivysaur","Venusaur","Charmander","Charmeleon","Charizard","Squirtle","Wartortle","Blastoise","Caterpie","Metapod","Butterfree","Weedle","Kakuna","Beedrill","Pidgey","Pidgeotto","Pidgeot","Rattata","Raticate","Spearow","Fearow","Ekans","Arbok","Pikachu","Raichu","Sandshrew","Sandslash","Nidoran♀","Nidorina","Nidoqueen","Nidoran♂","Nidorino","Nidoking","Clefairy","Clefable","Vulpix","Ninetales","Jigglypuff","Wigglytuff","Zubat","Golbat","Oddish","Gloom","Vileplume","Paras","Parasect","Venonat","Venomoth","Diglett","Dugtrio","Meowth","Persian","Psyduck","Golduck","Mankey","Primeape","Growlithe","Arcanine","Poliwag","Poliwhirl","Poliwrath","Abra","Kadabra","Alakazam","Machop","Machoke","Machamp","Bellsprout","Weepinbell","Victreebel","Tentacool","Tentacruel","Geodude","Graveler","Golem","Ponyta","Rapidash","Slowpoke","Slowbro","Magnemite","Magneton","Farfetch'd","Doduo","Dodrio","Seel","Dewgong","Grimer","Muk","Shellder","Cloyster","Gastly","Haunter","Gengar","Onix","Drowzee","Hypno","Krabby","Kingler","Voltorb","Electrode","Exeggcute","Exeggutor","Cubone","Marowak","Hitmonlee","Hitmonchan","Lickitung","Koffing","Weezing","Rhyhorn","Rhydon","Chansey","Tangela","Kangaskhan","Horsea","Seadra","Goldeen","Seaking","Staryu","Starmie","Mr. Mime","Scyther","Jynx","Electabuzz","Magmar","Pinsir","Tauros","Magikarp","Gyarados","Lapras","Ditto","Eevee","Vaporeon","Jolteon","Flareon","Porygon","Omanyte","Omastar","Kabuto","Kabutops","Aerodactyl","Snorlax","Articuno","Zapdos","Moltres","Dratini","Dragonair","Dragonite","Mewtwo","Mew"];
 const statLabels={hp:'HP',attack:'Ataque',defense:'Defesa',specialAttack:'Ataque especial',specialDefense:'Defesa especial',speed:'Velocidade'};
-let serverProgress=null,teamDraft=[],regionalState=null,selectedRegionId=1;
+let serverProgress=null,teamDraft=[],regionalState=null,gymState=null,expeditionState=null,shopState=null,selectedRegionId=1;
 const regionSection=$('region-section'),regionOpen=$('region-open'),regionBattle=$('region-battle');
 const regionActive=()=>Boolean(regionalState?.encounter);
 const regionSelect=$('region-select');
@@ -147,7 +193,7 @@ function renderRegion(){
  regionSelect.value=String(selectedRegionId);regionSelect.disabled=onlineBusy||!!e;
  $('region-heading').textContent=selected?.name??'Regiões de Kanto';
  $('region-info').textContent=selected?'Níveis '+selected.levelMin+'–'+selected.levelMax+' · Somente o líder da equipe':'';
- regionOpen.disabled=onlineBusy||!regionalState||!serverProgress||!selected?.unlocked;
+ regionOpen.disabled=onlineBusy||expeditionActive()||gymActive()||!regionalState||!serverProgress||!selected?.unlocked;
  regionOpen.hidden=!!e&&e.phase!=='reserved';regionOpen.textContent=e?'Retomar batalha':'Batalhar '+(selectedRegionId===1?'no ':'em ')+(selected?.name??'região');
  regionBattle.hidden=!e||e.phase==='reserved';
  $('region-actions').replaceChildren();$('region-actors').replaceChildren();$('region-log').replaceChildren();
@@ -176,7 +222,7 @@ function renderRegion(){
  }
 }
 async function regionCommand(command,fields={}){
- if(onlineBusy||!available||!serverProgress||!regionalState||progress.hidden)return;
+ if(onlineBusy||expeditionActive()||gymActive()||!available||!serverProgress||!regionalState||progress.hidden)return;
  const previous=regionalState;
  if(previous.revision!==serverProgress.revision)return;
  setOnlineBusy(true);$('region-note').textContent='';
@@ -204,6 +250,186 @@ async function regionCommand(command,fields={}){
  }
 }
 regionOpen.addEventListener('click',()=>regionCommand('open'));
+const gymSection=$('gym-section'),gymOpen=$('gym-open'),gymBattle=$('gym-battle');
+const gymActive=()=>Boolean(gymState?.gym);
+const adventureBusy=()=>regionActive()||gymActive()||expeditionActive();
+function gymParty(party,title){
+ const group=document.createElement('section'),heading=document.createElement('h4');
+ heading.textContent=title;group.append(heading);
+ const grid=document.createElement('div');grid.className='gym-party';
+ for(const [index,fighter] of party.fighters.entries()){
+  const active=index===party.activeIndex;
+  const card=actorCard(fighter,fighter.level,fighter.hp===0?'Nocauteado':active?'Ativo':'Reserva');
+  card.classList.toggle('gym-ko',fighter.hp===0);
+  card.classList.toggle('gym-active',active);card.dataset.gymSlot=String(index);
+  grid.append(card);
+ }
+ group.append(grid);return group;
+}
+function renderGym(){
+ gymSection.hidden=!gymState||!serverProgress;
+ const g=gymState?.gym,next=gymState?.nextGym;
+ $('gym-heading').textContent='Ginásios de Kanto';
+ $('gym-info').textContent=g?'Equipe congelada durante o confronto.':next?'Próximo líder: '+next.leader:
+  serverProgress?.state.badges.length===8?'Oito insígnias conquistadas.':'Defina três Pokémon na Coleção para desafiar o próximo líder.';
+ gymOpen.hidden=!!g&&g.phase!=='reserved';
+ gymOpen.disabled=onlineBusy||expeditionActive()||!gymState||!serverProgress||regionActive()||(!g&&!gymState.canReserve);
+ gymOpen.textContent=g?'Retomar confronto':next?'Desafiar '+next.leader:'Desafiar Ginásio';
+ gymBattle.hidden=!g||g.phase==='reserved';
+ $('gym-parties').replaceChildren();$('gym-actions').replaceChildren();$('gym-log').replaceChildren();
+ if(!g||gymBattle.hidden)return;
+ const trainer=$('online-trainer').textContent;
+ $('gym-match').textContent=g.leader+' vs '+trainer;
+ const phase=$('gym-phase');
+ phase.dataset.phase=g.phase;phase.dataset.actionNumber=String(g.actionNumber);
+ phase.textContent=g.phase==='await-player'?(g.player.needsReplacement?'Escolha um substituto · ':g.opponent.needsReplacement?'Aguardando substituição do líder · ':'')+'Turno '+(g.turn+1):
+  'Resultado: '+({'player-win':'Vitória','leader-win':'Derrota',draw:'Empate'}[g.outcome]??'Encerrado');
+ if(g.player&&g.opponent)$('gym-parties').append(gymParty(g.opponent,g.leader),gymParty(g.player,trainer));
+ $('gym-log').replaceChildren(...g.log.map(line=>{
+  const li=document.createElement('li');
+  li.textContent=line.replace(/\bplayer\b/g,()=>trainer).replace(/\bleader\b/g,()=>g.leader);
+  return li;
+ }));
+ const add=(label,command,action,tag)=>{
+  const b=actionButton(label,()=>gymCommand(command,action),onlineBusy);
+  b.dataset.gymAction=tag;$('gym-actions').append(b);
+ };
+ if(g.phase==='await-player')for(const a of g.actions){
+  const label=a.kind==='switch'?'Trocar para '+speciesNames[g.player.fighters[a.toIndex].speciesId]:
+   a.kind==='basic'?(g.opponent.needsReplacement?'Aguardar substituição':'Ataque básico'):
+   a.kind==='focus'?'Concentrar':a.moveName;
+  add(label,'turn',a,a.kind==='switch'?'switch:'+a.toIndex:a.kind==='move'?'move:'+a.moveName:a.kind);
+ }
+ else if(['resolved','certified'].includes(g.phase))add(g.outcome==='player-win'?'Receber recompensas':'Encerrar confronto','reward',null,'reward');
+}
+async function gymCommand(command,action){
+ if(onlineBusy||expeditionActive()||!available||!serverProgress||!gymState||progress.hidden||regionActive()||gymState.revision!==serverProgress.revision)return;
+ const previous=gymState;let g=previous.gym,revision=previous.revision,paid=null,failed=false;
+ const post=(kind,data)=>api('/api/v1/gym/'+kind,data);
+ const actionId=()=>crypto.randomUUID();
+ setOnlineBusy(true);$('gym-note').textContent='';
+ try{
+  if(command==='open'){
+   if(!g){
+    if(!previous.canReserve)throw Error('Ginásio indisponível');
+    const reserved=await post('reserve',{actionId:actionId(),expectedRevision:revision});
+    g={id:reserved.gymReservationId,phase:'reserved'};revision=reserved.revision;
+   }
+   if(g.phase==='reserved')await post('start',{gymReservationId:g.id,expectedRevision:revision});
+  }else if(command==='turn'&&g?.phase==='await-player'){
+   await post('turn',{gymReservationId:g.id,actionId:actionId(),expectedRevision:revision,action});
+  }else if(command==='reward'&&g){
+   if(g.phase==='resolved'){
+    const certified=await post('certify',{gymReservationId:g.id,actionId:actionId(),expectedRevision:revision});
+    revision=certified.revision;g={...g,phase:'certified'};
+   }
+   if(g.phase==='certified')paid=(await post('settle',{gymReservationId:g.id,actionId:actionId(),expectedRevision:revision})).paid;
+  }
+ }catch{failed=true;}
+ const loaded=await refreshPortal();
+ if(!loaded||!gymState)return;
+ if(failed)$('gym-note').textContent='A ação não foi confirmada. Confira o estado atualizado antes de continuar.';
+ else if(paid)$('gym-note').textContent=paid.badgeId?'Vitória! Insígnia conquistada · '+paid.coins+' moedas · '+paid.trainerXp+' XP de treinador.':'Confronto encerrado sem recompensas.';
+ if(gymState.gym&&gymState.gym.phase!=='reserved'){$('gym-phase').focus();$('gym-phase').scrollIntoView({block:'nearest'});}
+ else if(!gymOpen.disabled){gymOpen.focus();gymOpen.scrollIntoView({block:'nearest'});}
+}
+gymOpen.addEventListener('click',()=>gymCommand('open'));
+const expeditionSection=$('expedition-section');
+const expeditionSelect=$('expedition-select');
+const expeditionActive=()=>Boolean(expeditionState?.expedition)||Boolean(serverProgress?.state.expedition);
+let expeditionAnchor=0,selectedExpeditionRegion=1;
+const elapsedText=ms=>{
+ const s=Math.max(0,Math.floor(ms/1000));
+ return [Math.floor(s/3600),Math.floor(s/60)%60,s%60].map(n=>String(n).padStart(2,'0')).join(':');
+};
+function expeditionTick(){
+ const e=expeditionState?.expedition;
+ if(!e||expeditionSection.hidden||progress.hidden)return;
+ // Monotonic elapsed time is display only. No device time is sent to the API.
+ const displayNow=expeditionState.serverNowMs+Math.max(0,performance.now()-expeditionAnchor);
+ const cycles=Math.min(expeditionState.maxCycles,Math.max(0,Math.floor((displayNow-e.lastClaimAt)/expeditionState.cycleMs)));
+ $('expedition-timer').textContent=elapsedText(displayNow-e.startedAt);
+ $('expedition-cycles').textContent=cycles+' / '+expeditionState.maxCycles+' ciclos';
+ $('expedition-progress').max=expeditionState.maxCycles;$('expedition-progress').value=cycles;
+ $('expedition-cap').textContent=cycles>=expeditionState.maxCycles?'Limite de 8h atingido. Resgate para continuar acumulando.':'Um ciclo a cada 10 segundos.';
+ $('expedition-claim').disabled=onlineBusy||cycles<1;
+}
+function renderExpedition(){
+ expeditionSection.hidden=!expeditionState||!serverProgress;
+ if(!expeditionState||!serverProgress)return;
+ const e=expeditionState.expedition,regions=expeditionState.regions;
+ if(e)selectedExpeditionRegion=e.regionId;
+ else if(!regions.some(r=>r.id===selectedExpeditionRegion&&r.unlocked))selectedExpeditionRegion=regions.find(r=>r.unlocked)?.id??1;
+ const selected=regions.find(r=>r.id===selectedExpeditionRegion);
+ expeditionSelect.replaceChildren(...regions.map(r=>{
+  const option=document.createElement('option');option.value=String(r.id);
+  option.textContent=r.name+(r.unlocked?'':' · Treinador Nv '+r.trainerUnlockLevel+' / Pokémon Nv '+r.levelMin);
+  option.disabled=!r.unlocked;return option;
+ }));
+ expeditionSelect.value=String(selectedExpeditionRegion);expeditionSelect.disabled=onlineBusy||!!e||expeditionState.busy;
+ const leader=expeditionState.leader;
+ $('expedition-leader').textContent='Expedicionário: '+speciesNames[leader.speciesId]+' · Nível '+leader.level+' (líder da equipe)';
+ $('expedition-info').textContent=selected?'Faixa da região: '+selected.levelMin+'–'+selected.levelMax+' · Sem ganho de afinidade.':'';
+ $('expedition-start').hidden=!!e;$('expedition-start').disabled=onlineBusy||expeditionState.busy||gymActive()||regionActive()||!selected?.unlocked;
+ $('expedition-active').hidden=!e;
+ if(!e)return;
+ const p=e.preview;
+ const drops=p?Object.entries(p.ballDrops??{}).filter(([,n])=>n>0).map(([id,n])=>({'poke-ball':'Poké Ball','great-ball':'Great Ball','ultra-ball':'Ultra Ball'}[id]??id)+': '+n):[];
+ $('expedition-preview').textContent=p?p.coins+' moedas · '+p.trainerXP+' XP treinador · '+p.pokemonXP+' XP Pokémon'+(drops.length?' · '+drops.join(' · '):''):'Nenhum ciclo completo no último sincronismo.';
+ $('expedition-stop').disabled=onlineBusy;$('expedition-sync').disabled=onlineBusy;
+ expeditionTick();
+}
+expeditionSelect.addEventListener('change',()=>{if(!onlineBusy&&!expeditionActive()){selectedExpeditionRegion=Number(expeditionSelect.value);renderExpedition();}});
+async function expeditionCommand(kind){
+ if(onlineBusy||!available||!serverProgress||!expeditionState||progress.hidden||expeditionState.revision!==serverProgress.revision||expeditionState.busy||gymActive()||regionActive())return;
+ const fields=kind==='start'?{regionId:selectedExpeditionRegion}:{};
+ const expectedRevision=expeditionState.revision;
+ setOnlineBusy(true);$('expedition-note').textContent='';
+ let failed=false;
+ try{await api('/api/v1/expedition/'+kind,{actionId:crypto.randomUUID(),expectedRevision,...fields});}catch{failed=true;}
+ const loaded=await refreshPortal();
+ if(!loaded||!expeditionState)return;
+ $('expedition-note').textContent=failed?'A ação não foi confirmada. Confira o estado atualizado antes de continuar.':
+  kind==='start'?'Expedição iniciada.':kind==='claim'?'Recompensas resgatadas.':'Expedição encerrada.';
+ if(kind!=='claim')$('expedition-heading').focus();
+}
+for(const kind of ['start','claim','stop'])$('expedition-'+kind).addEventListener('click',()=>expeditionCommand(kind));
+$('expedition-sync').addEventListener('click',()=>{if(!onlineBusy)refreshPortal();});
+setInterval(expeditionTick,1000);
+function renderShop(){
+ const section=$('shop-section');section.hidden=!shopState||!serverProgress;
+ const list=$('shop-items');list.replaceChildren();
+ if(section.hidden)return;
+ $('shop-balance').textContent='Saldo: '+shopState.coins.toLocaleString('pt-BR')+' moedas';
+ for(const item of shopState.items){
+  const row=document.createElement('div');row.className='shop-item';row.dataset.shopItem=item.id;
+  const heading=document.createElement('strong');heading.textContent=item.name;
+  const info=document.createElement('p');info.textContent=item.unitPrice.toLocaleString('pt-BR')+' moedas/unidade · Estoque: '+item.owned;
+  const label=document.createElement('label');label.htmlFor='shop-qty-'+item.id;label.textContent='Quantidade de '+item.name;
+  const qty=document.createElement('input');qty.id=label.htmlFor;qty.type='number';qty.min='1';qty.max=String(Math.max(1,item.maxAffordable));qty.step='1';qty.value='1';
+  const total=document.createElement('p');total.dataset.shopTotal=item.id;
+  const button=document.createElement('button');button.type='button';button.className='primary';button.textContent='Comprar '+item.name;button.dataset.shopBuy=item.id;
+  const update=()=>{
+   const n=Number(qty.value),valid=Number.isSafeInteger(n)&&n>=1&&n<=item.maxAffordable;
+   total.textContent=!item.unlocked?'Disponível no nível '+item.trainerUnlockLevel:shopState.busy?'Compra indisponível durante atividade.':item.maxAffordable<1?'Saldo insuficiente ou bolso cheio.':valid?'Total: '+(n*item.unitPrice).toLocaleString('pt-BR')+' moedas':'Quantidade inválida.';
+   qty.disabled=onlineBusy||shopState.busy||!item.unlocked||item.maxAffordable<1;
+   button.disabled=qty.disabled||!valid;
+  };
+  qty.addEventListener('input',update);button.addEventListener('click',()=>shopPurchase(item.id,Number(qty.value)));
+  row.append(heading,info,label,qty,total,button);list.append(row);update();
+ }
+}
+async function shopPurchase(ballId,quantity){
+ if(onlineBusy||!available||!serverProgress||!shopState||shopState.busy||adventureBusy()||progress.hidden||shopState.revision!==serverProgress.revision)return;
+ const item=shopState.items.find(x=>x.id===ballId);
+ if(!item||!Number.isSafeInteger(quantity)||quantity<1||quantity>item.maxAffordable)return;
+ const expectedRevision=shopState.revision;
+ setOnlineBusy(true);$('shop-note').textContent='';
+ let result=null;
+ try{result=await api('/api/v1/shop/purchase',{actionId:crypto.randomUUID(),expectedRevision,ballId,quantity});}catch{}
+ const loaded=await refreshPortal();
+ if(loaded&&shopState)$('shop-note').textContent=result?.purchase?'Compra concluída: '+quantity+' '+item.name+' · '+result.purchase.cost.toLocaleString('pt-BR')+' moedas.':'Compra não confirmada. Confira o saldo atualizado antes de tentar novamente.';
+}
 const sameTeam=(a,b)=>a.length===b.length&&a.every((uid,i)=>uid===b[i]);
 function actionButton(label,handler,disabled=false){
  const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.addEventListener('click',handler);return b;
@@ -214,9 +440,9 @@ function renderTeam(){
  $('online-team').replaceChildren(...teamDraft.map((uid,i)=>{
   const li=document.createElement('li');li.className='team-row';
   const label=document.createElement('span');label.textContent=(i===0?'Líder · ':'')+speciesNames[owned.get(uid).pokemonId];
-  li.append(label,actionButton('↑',()=>{if(i>0){[teamDraft[i-1],teamDraft[i]]=[teamDraft[i],teamDraft[i-1]];renderTeam();}},onlineBusy||regionActive()||i===0),
-    actionButton('↓',()=>{if(i<teamDraft.length-1){[teamDraft[i+1],teamDraft[i]]=[teamDraft[i],teamDraft[i+1]];renderTeam();}},onlineBusy||regionActive()||i===teamDraft.length-1),
-    actionButton('Remover',()=>{if(teamDraft.length>1){teamDraft=teamDraft.filter(x=>x!==uid);renderTeam();}},onlineBusy||regionActive()||teamDraft.length===1));
+  li.append(label,actionButton('↑',()=>{if(i>0){[teamDraft[i-1],teamDraft[i]]=[teamDraft[i],teamDraft[i-1]];renderTeam();}},onlineBusy||adventureBusy()||i===0),
+    actionButton('↓',()=>{if(i<teamDraft.length-1){[teamDraft[i+1],teamDraft[i]]=[teamDraft[i],teamDraft[i+1]];renderTeam();}},onlineBusy||adventureBusy()||i===teamDraft.length-1),
+    actionButton('Remover',()=>{if(teamDraft.length>1){teamDraft=teamDraft.filter(x=>x!==uid);renderTeam();}},onlineBusy||adventureBusy()||teamDraft.length===1));
   return li;
  }));
  $('online-roster').replaceChildren(...state.roster.map(p=>{
@@ -224,10 +450,10 @@ function renderTeam(){
   const img=document.createElement('img');img.src='/assets/pokemon-gifs/poke_'+p.pokemonId+'.gif';img.alt='';
   const label=document.createElement('span');label.textContent=speciesNames[p.pokemonId]+' · Nível '+p.level;
   const selected=teamDraft.includes(p.uid);
-  const add=actionButton(selected?'Na equipe':'Adicionar',()=>{if(!teamDraft.includes(p.uid)&&teamDraft.length<3){teamDraft.push(p.uid);renderTeam();}},onlineBusy||regionActive()||selected||teamDraft.length>=3);
+  const add=actionButton(selected?'Na equipe':'Adicionar',()=>{if(!teamDraft.includes(p.uid)&&teamDraft.length<3){teamDraft.push(p.uid);renderTeam();}},onlineBusy||adventureBusy()||selected||teamDraft.length>=3);
   add.dataset.uid=String(p.uid);li.append(img,label,add);return li;
  }));
- $('online-team-save').disabled=onlineBusy||regionActive()||sameTeam(teamDraft,state.team);
+ $('online-team-save').disabled=onlineBusy||adventureBusy()||sameTeam(teamDraft,state.team);
 }
 function renderStats(){
  if(!serverProgress)return;
@@ -237,12 +463,12 @@ function renderStats(){
  $('online-stats').replaceChildren(...Object.entries(statLabels).map(([stat,label])=>{
   const row=document.createElement('div');row.className='stat-row';
   const text=document.createElement('span');text.textContent=label+': '+state.trainer.manual[stat];
-  const add=actionButton('+1',()=>runProgressAction('/api/v1/trainer/invest',{stat}),onlineBusy||regionActive()||points<=0||state.trainer.manual[stat]>=40);
+  const add=actionButton('+1',()=>runProgressAction('/api/v1/trainer/invest',{stat}),onlineBusy||adventureBusy()||points<=0||state.trainer.manual[stat]>=40);
   add.dataset.stat=stat;add.setAttribute('aria-label','Investir em '+label);row.append(text,add);return row;
  }));
 }
 async function runProgressAction(path,fields){
- if(onlineBusy||regionActive()||!available||!serverProgress||progress.hidden)return;
+ if(onlineBusy||adventureBusy()||!available||!serverProgress||progress.hidden)return;
  const expectedRevision=serverProgress.revision;
  const actionId=crypto.randomUUID();
  setOnlineBusy(true);
@@ -256,7 +482,7 @@ $('online-team-save').addEventListener('click',()=>{
   runProgressAction('/api/v1/collection/team',{teamUids:[...teamDraft]});
 });
 function clearPortal(){
- portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;selectedRegionId=1;renderRegion();$('region-note').textContent='';
+ portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;gymState=null;expeditionState=null;shopState=null;selectedRegionId=1;selectedExpeditionRegion=1;renderRegion();renderGym();renderExpedition();renderShop();$('region-note').textContent='';$('gym-note').textContent='';$('expedition-note').textContent='';$('shop-note').textContent='';
  $('online-team').replaceChildren();$('online-stats').replaceChildren();$('online-points').textContent='';$('online-team-save').disabled=true;
  $('online-trainer').textContent='';$('online-roster').replaceChildren();
  for(const id of ['online-level','online-coins','online-badges','online-count','online-revision','online-error'])$(id).textContent='';
@@ -267,7 +493,7 @@ function setOnlineBusy(busy){
  $('online-start').disabled=busy||selectedStarter===null;
  $('online-refresh').disabled=busy;$('online-logout').disabled=busy;
  $('reset-link').disabled=busy;
- if(serverProgress){renderTeam();renderStats();}renderRegion();
+ if(serverProgress){renderTeam();renderStats();}renderRegion();renderGym();renderExpedition();renderShop();
 }
 async function getOnline(path){
  const r=await fetch(path,{credentials:'same-origin',cache:'no-store',redirect:'error'});
@@ -300,7 +526,7 @@ function showSave(data){
 async function refreshPortal(){
  if(!available||view!=='login')return false;
  const epoch=++portalEpoch;
- setOnlineBusy(true);$('online-error').textContent='';newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;renderRegion();
+ setOnlineBusy(true);$('online-error').textContent='';newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;gymState=null;expeditionState=null;shopState=null;renderRegion();renderGym();renderExpedition();renderShop();
  try{
   const me=await getOnline('/api/v1/me');
   if(epoch!==portalEpoch)return false;
@@ -319,12 +545,26 @@ async function refreshPortal(){
    if(region.status===401){render('login');return false;}
    if(region.status===200&&region.data?.status==='ok'&&region.data.revision===serverProgress.revision)regionalState=region.data;
    else if(region.status!==503&&region.status!==404)throw new Error('Estado regional indisponível.');
-   // A CI environment without a regional key can still use the earlier portal.
-   renderRegion();
+   const gym=await getOnline('/api/v1/gym/current');
+   if(epoch!==portalEpoch)return false;
+   if(gym.status===401){render('login');return false;}
+   if(gym.status===200&&gym.data?.status==='ok'&&gym.data.revision===serverProgress.revision)gymState=gym.data;
+   else if(gym.status!==503&&gym.status!==404)throw new Error('Estado de Ginásio indisponível.');
+   const exp=await getOnline('/api/v1/expedition/current');
+   if(epoch!==portalEpoch)return false;
+   if(exp.status===401){render('login');return false;}
+   if(exp.status===200&&exp.data?.status==='ok'&&exp.data.revision===serverProgress.revision){expeditionState=exp.data;expeditionAnchor=performance.now();}
+   else if(exp.status!==503&&exp.status!==404)throw new Error('Estado de expedição indisponível.');
+   const shop=await getOnline('/api/v1/shop/current');
+   if(epoch!==portalEpoch)return false;
+   if(shop.status===401){render('login');return false;}
+   if(shop.status===200&&shop.data?.status==='ok'&&shop.data.revision===serverProgress.revision)shopState=shop.data;
+   else if(shop.status!==503&&shop.status!==404)throw new Error('Loja indisponível.');
+   renderRegion();renderGym();renderExpedition();renderShop();
   }
   else throw new Error('Progresso indisponível.');
   return true;
- }catch{if(epoch===portalEpoch)$('online-error').textContent='Não foi possível carregar o progresso. Atualize e tente novamente.';return false;}
+ }catch{if(epoch===portalEpoch){progress.hidden=true;serverProgress=null;regionalState=null;gymState=null;expeditionState=null;shopState=null;$('online-error').textContent='Não foi possível carregar o progresso. Atualize e tente novamente.';}return false;}
  finally{if(epoch===portalEpoch||panel.hidden)setOnlineBusy(false);}
 }
 starterButtons.forEach(b=>b.addEventListener('click',()=>{

@@ -2145,13 +2145,31 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - #276 integrada main b9f9499635a7134a4e7578e71cfafc016cd5923e após quatro CI SUCCESS (45496299319,45496298918,45496298959,45496298941). #277 PG18 45496592991, browser 45496593098 e D044 45496592885 SUCCESS no HEAD anterior; regressões pendentes na leitura. Reconciliada após squash #276; CI final obrigatório, SQL027 não registrada, cadastro OFF.
 
 
+## ONLINE-01C-23F7A — leitura do Ginásio para portal (CI-only)
+- #276 integrada, #277 reconciliada e CI final obrigatório. Nova branch dependente #277. GET current autenticado/verificado, opt-in exclusivo de PostgreSQL CI; projeção explícita dos seis Pokémon, HP/SP, turno/ordinal, ações legais, log e fase de certificação. Consulta única por conta e revisão, sem segredos, digest ou snapshots internos. Proxy Web CI-only para contrato Gym já auditado; teste browser HTTP de reserva, início, troca, releitura/reload e isolamento. Não há interface visual Gym ainda; próximo 23F7B renderizar e conectar fluxo de recompensa/retomada. Sem SQL novo, cadastro OFF, /play local e regiões 1v1. CI pendente.
+
+- #277 integrada main afc964edbf9108e42f70d34d172b76dd09570c04, cinco CI SUCCESS. #278 seis CI SUCCESS no HEAD 471c2051a4b39eb450fe4015465877dcfe13647c; reconciliada após squash #277, CI final obrigatório. Cadastro OFF, SQL027 candidata.
+
+- CI PG18 45498682736 falhou em EADDRINUSE 43142 (faixa efêmera Linux) e startup lockdown 43158 sem stderr; mover portas dos três testes para 23xxx, aguardar exit de subprocessos, sem alterar asserts ou produção. CI final obrigatório.
+
+- CI PG18 45499145951: portas novas resolveram startup, mas dois testes herdavam APP_ORIGIN antigo do workflow; fixar APP_ORIGIN=origin explicitamente nos subprocessos 23144/23146, sem mudar validação CSRF. CI final necessário.
+
+
 ## ONLINE-01C-23F8A — writer privado de Expedições
 - Base main #277 publicada após cinco CI SUCCESS (deploy ainda a verificar). #278 e #279 seis CI SUCCESS nos HEADs anteriores; dependências em reconciliação. Branch independente para reduzir conflito de Gym UI. Reutiliza `applyRewardEvent` e `expeditionRewards` existentes, journal efêmero de uma ação (não altera ledger online). PostgreSQL controla relógio depois do lock de save, revisão e recibo durável; duplicata retorna duplicate sem pagar e exige releitura (não simula replay de payload). Start/claim/stop privados, nenhuma rota nova. Proteções mútuas reserva regional/expedição e investimento; Gym e Coleção já bloqueiam expedição no core/writer. Teste PG18 isolado com envelhecimento apenas fixture, 8h cap, concorrência, líder único, sem afinidade, sem novos SQL. CI pendente; próxima etapa HTTP/UI CI-only e concorrência cruzada. Cadastro OFF, /play e economia inalterados.
 
 - CI geral 45498889537 falhou TS2345 exactOptionalPropertyTypes (regionId opcional); corrigido narrowing e envio de região definida no start. PG18 anterior SUCCESS; CI final obrigatório.
+
+- #278 CI cinco SUCCESS no HEAD bf7bee693dda4c05d1050d4eb5771e5044718058; reconciliação com #280 main f50f7d1d175187fbcb2f3889017358ab910c4320 preserva writer expedição. Railway web/API SUCCESS no SHA #280. CI final necessário.
 
 
 ## ONLINE-01C-23F8B — contrato HTTP de Expedição CI-only
 - Depende #280. GET current autenticado/verificado, revisão e relógio PG, líder fixo, região e elegibilidade derivada do catálogo, preview pelo reducer real sem gravar. POST start/claim/stop com shape estrito, CSRF, throttle e relógio exclusivamente DB. Proxy somente opt-in test; produção 503 API/404 Web. E2E browser HTTP usa fixture envelhecida apenas no PG18 e verifica cap, tempo adulterado, duplicate e stop. Sem interface visual nesta etapa (evitar conflito landing #279); próximo 23F8C cronômetro e UI após reconciliação. Cadastro OFF; sem SQL novo; CI pendente.
 
 - #280 integrada na main f50f7d1d175187fbcb2f3889017358ab910c4320, quatro CI SUCCESS no HEAD eaf32a1b59b90a98d0804ee64f28533fc2aed2c6. #281 cinco CI SUCCESS no HEAD anterior d083005dfc0b115f3f974ebd9c429240379237f8; reconciliada após squash, CI final obrigatório. #282 painel candidato. Cadastro OFF.
+
+- #281 integrada e Railway web/API SUCCESS no SHA 763736fc7d6517059df44ea0d1b94c136573b4c5; reconciliação #278 preserva API expedição, testa expedição antes de reserva Gym. CI final obrigatório. Congelar novas integrações independentes até unir painéis.
+
+
+## ONLINE-01C-23F10 — integração conjunta dos painéis (candidata)
+- PR #279 consolida #278 (estado Gym, CI anterior verde exceto geral pendente), #279 (UI Gym, seis CI SUCCESS anteriores), #282 (UI expedição, seis CI SUCCESS anteriores) e #283 (loja, PG18 SUCCESS anterior, CI final pendente). Main base 763736fc7d6517059df44ea0d1b94c136573b4c5 publicada web/API. Todos os writers e gates CI-only preservados; uma jornada browser regional → expedição → compra → Gym → recuperação de conta, com bloqueios cruzados, revisão comum e recarga. Não mesclar branches concorrentes separadamente; #279 será a integração única depois de CI completo no HEAD exato. Fechar PRs absorvidos apenas após merge confirmado. Cadastro OFF, sem SQL novo ou alteração econômica; /play intacto. Próximo: CI final e Railway, só então evoluções/golpes.

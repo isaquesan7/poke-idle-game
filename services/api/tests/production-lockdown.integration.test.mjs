@@ -1,17 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import pg from 'pg';
 
 // Harden the production boundary in a disposable PG18 CI instance.
 // Do not connect this file to Railway or provide real account credentials.
-const origin='http://127.0.0.1:43158';
+const origin='http://127.0.0.1:23158';
 const denies=[
   '/api/v1/auth/register','/api/v1/auth/verify',
   '/api/v1/auth/request-reset','/api/v1/auth/confirm-reset',
   '/api/v1/auth/login','/api/v1/auth/logout',
   '/api/v1/account/export',
   '/api/v1/expedition/start','/api/v1/expedition/claim','/api/v1/expedition/stop',
+  '/api/v1/shop/purchase',
   '/api/v1/adventure/start','/api/v1/trainer/invest',
   '/api/v1/collection/team','/api/v1/gym/reserve',
   '/api/v1/gym/start','/api/v1/gym/turn',
@@ -51,8 +53,8 @@ test('23D7: production flag never enables public accounts, email actions or game
     (SELECT count(*)::int FROM game_auth_sessions) AS sessions`);
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
-    env:{...process.env,PORT:'43158',NODE_ENV:'production',
-      ONLINE_REGISTRATION_ENABLED:'true',ACCOUNT_MAIL_MODE:'off',
+    env:{...process.env,PORT:'23158',NODE_ENV:'production',
+      ONLINE_REGISTRATION_ENABLED:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ACCOUNT_MAIL_MODE:'off',
       ONLINE_SIGNED_QUOTA_MODE:'reviewed',ONLINE_GATEWAY_RECEIVER_ACTIVE_HEX:'11'.repeat(32)},
     stdio:'ignore'
   });
@@ -80,6 +82,8 @@ test('23D7: production flag never enables public accounts, email actions or game
         503,'bad Origin cannot bypass production lock: '+path);
     }
     assert.equal((await call('/api/v1/expedition/current')).status,503);
+    assert.equal((await call('/api/v1/shop/current')).status,503);
+    assert.equal((await call('/api/v1/gym/current')).status,503);
     assert.equal((await call('/api/v1/me')).status,401,
       'unknown session must not expose account identity');
     assert.equal((await call('/api/v1/save')).status,401,
@@ -92,7 +96,7 @@ test('23D7: production flag never enables public accounts, email actions or game
     assert.deepEqual(after.rows[0],before.rows[0],
       'production-denied requests must create no accounts, sessions, saves or email');
   }finally{
-    child.kill('SIGTERM');
+    if(child.exitCode===null&&child.signalCode===null){const exited=once(child,'exit');child.kill('SIGTERM');await exited;}
     await pool.end();
   }
 });
