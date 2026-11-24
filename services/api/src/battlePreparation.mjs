@@ -54,7 +54,8 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
   const pokemonManual=manualStats(selected.manual);
   if(!pokemonManual||STATS.reduce((n,s)=>n+pokemonManual[s],0)>
       (selected.level-1)*2)return null;
-  const equipped=selected.equippedMoveNames;
+  const history=selected.evolutionHistory;
+  const equipped=selected.equippedMoveNames??(history!==undefined?[selected.moveName]:undefined);
   if(equipped!==undefined&&
     (!Array.isArray(equipped)||equipped.length<1||equipped.length>4||
      equipped[0]!==selected.moveName||
@@ -72,7 +73,8 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
       uid:selected.uid,speciesId:selected.pokemonId,
       level:selected.level,affinity:selected.affinity,
       manual:pokemonManual,moveName:selected.moveName,
-      ...(equipped===undefined?{}:{moveNames:[...equipped]})
+      ...(equipped===undefined?{}:{moveNames:[...equipped]}),
+      ...(history===undefined?{}:{evolutionHistory:history})
     }
   };
 }
