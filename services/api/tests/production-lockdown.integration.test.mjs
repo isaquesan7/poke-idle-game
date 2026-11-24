@@ -10,6 +10,7 @@ const denies=[
   '/api/v1/auth/register','/api/v1/auth/verify',
   '/api/v1/auth/request-reset','/api/v1/auth/confirm-reset',
   '/api/v1/auth/login','/api/v1/auth/logout',
+  '/api/v1/account/export',
   '/api/v1/adventure/start','/api/v1/trainer/invest',
   '/api/v1/collection/team','/api/v1/gym/reserve',
   '/api/v1/gym/start','/api/v1/gym/turn',
