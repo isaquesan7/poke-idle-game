@@ -1956,6 +1956,15 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - PR #251 integrado em main `d4f888c3e3d2005a23091dcf3fb866c64b022d6c` após regressão geral, browser e imagem D-044 SUCCESS; endurece allowlist, métodos e tamanho/prazo de corpo do proxy. PR #252 reconciliado com a main, preservando ambos os conjuntos de testes; CI do HEAD combinado ainda pendente. Railway web em build na primeira verificação, API sem mudança.
 
 
+## ONLINE-01C-23E10 — protocolo candidato de identidade assinada (24/11/2026; branch, não publicado)
+- PR #251 merged main d4f888c3e3d2005a23091dcf3fb866c64b022d6c; web Railway SUCCESS, API sem alteração. PR #252 reconciliado e CI final em andamento na abertura desta branch. 23E10 depende de integração anterior.
+- Módulo puro proxyIdentity.mjs + testes sintéticos: IP validado canonicalizado, subject HMAC, assertion assinada ligada a método/rota/corpo, prazo e nonce. Não importado no runtime; não usa cabeçalhos reais, não consome nonce ainda, não libera cadastro. Próximo: comprovar ingress, política de chaves e consumo nonce distribuído em teste antes de uso. Veja docs/ONLINE_PROXY_SIGNED_IDENTITY_23E10.md. CI pendente, gate de proxy falso, LGPD/restore/remetente pendentes. /play local sem migração, Regiões 1v1 e Gym 3v3 inalterados.
+
+- PR #252 merged main b8823943ad9b9f5f7755f768dba93bd8b811f62e após quatro CI SUCCESS; branch 23E10 reconciliada, CI do HEAD combinado pendente.
+
+
 ## ONLINE-01C-23E12 — instrumento de observação do ingress (24/11/2026; branch)
 - Railway production verificado via leitura: web público, API sem domínio público, Postgres e clone restaurado no mesmo ambiente; nenhum fork. Sem mudança de infraestrutura. PRs #253/#254 ainda em CI/merge.
 - Probe standalone autenticado, curto e limitado, sem IP bruto no relatório; testes locais de formatos, duplicidade, autorização, validade e limite. Não integrado ao runtime, ensaio Railway ainda NÃO executado. docs/ONLINE_RAILWAY_INGRESS_OBSERVATION_23E12.md descreve ambiente vazio temporário e procedimento. Gate permanece falso, cadastro OFF; nenhum custo ou recurso novo contratado.
+
+- #253 integrado main cc6e9947c8b6671e32f7a73cb93efdd8542e2f73 após três CI SUCCESS; branch reconciliada, CI do HEAD combinado pendente.

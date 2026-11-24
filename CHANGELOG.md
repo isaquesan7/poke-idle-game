@@ -945,5 +945,13 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 - PR #251 integrado: allowlists de cabeçalhos/métodos e buffering limitado antes do upstream. PR #252 combina os testes de ambas as branches; aguarda CI do novo HEAD.
 
 
+## ONLINE-01C-23E10 — candidato de identidade assinada do proxy (24/11/2026; branch)
+- Módulo offline com HMAC de subject e assertion vinculada à requisição, canonicalização IP e testes de adulteração/expiração. Não integrado em HTTP, sem configuração de produção ou alteração de gameplay. Consumo nonce e prova ingress pendentes, CI pendente.
+
+- PR #252 merged main b8823943ad9b9f5f7755f768dba93bd8b811f62e após quatro CI SUCCESS; branch 23E10 reconciliada, CI do HEAD combinado pendente.
+
+
 ## ONLINE-01C-23E12 — instrumento isolado de observação do ingress (24/11/2026; branch)
 - Probe standalone e testes de observação sanitizada, sem mudança de runtime ou infraestrutura. CI e ensaio real pendentes.
+
+- #253 integrado main cc6e9947c8b6671e32f7a73cb93efdd8542e2f73 após três CI SUCCESS; branch reconciliada, CI do HEAD combinado pendente.
