@@ -32,3 +32,7 @@ export {applyCertifiedGymSettlement} from './serverGymSettlement.js';
 // Canonical regional catalog/eligibility and unbiased HMAC-driven selection.
 export {serverRegionalAccess,serverRegionalOpponent,serverRegionalCatalog,serverRegionalRoll,serverRegionalCaptureChoices}
   from './serverRegionalPolicy.js';
+
+export {applyOnlineExpedition,onlineExpeditionProjection} from './serverExpedition.js';
+
+export {onlineShopProjection,applyOnlineShopPurchase} from './serverShop.js';

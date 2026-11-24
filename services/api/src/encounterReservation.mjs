@@ -45,9 +45,10 @@ export async function reserveEncounter(pool,{accountId,actionId,expectedRevision
        snap.revision!==revision||snap?.journal?.revision!==revision||
        typeof snap.journal.raw!=='string')
       return await rollback(client,{status:'invalid'});
+    let raw;
+    try{raw=JSON.parse(snap.journal.raw);}catch{return await rollback(client,{status:'invalid'});}
+    if(raw?.expedition!=null)return await rollback(client,{status:'busy'});
     if(regionId!==1){
-      let raw;
-      try{raw=JSON.parse(snap.journal.raw);}catch{return await rollback(client,{status:'invalid'});}
       const core=await loadCombatAdapter();
       if(!core.serverRegionalAccess(regionId,raw?.trainer?.level))
         return await rollback(client,{status:'locked'});

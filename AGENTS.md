@@ -1,4 +1,12 @@
-> **23F7B CANDIDATA:** UI Gym CI-only, 3v3, KO, troca, diário, payout e retomada; depende #277/#278, CI final obrigatório. Sem cadastro, SQL ou /play. docs/ONLINE_GYM_PORTAL_UI_23F7B.md.
+> **23F10 CANDIDATA — INTEGRAÇÃO ÚNICA #279:** absorve #278/#282/#283, painel integrado e jornada CI. Não mesclar concorrentes separadamente. Cadastro OFF. docs/ONLINE_PORTAL_INTEGRATION_23F10.md.
+
+> **23F8A INTEGRADA:** #280 quatro CI SUCCESS, main f50f7d1d175187fbcb2f3889017358ab910c4320. #281 cinco CI SUCCESS anterior; reconciliada, CI final obrigatório. #282 candidata. Cadastro OFF.
+
+> **23F8B CANDIDATA:** HTTP expedição CI-only com relógio PG/projeção/reducer, writers autenticados e teste browser; depende #280, UI próxima. Sem cadastro/SQL. docs/ONLINE_EXPEDITION_HTTP_23F8B.md.
+
+> **23F8A CANDIDATA:** expedição writer privado, reducer existente, relógio PostgreSQL/receipt/CAS, bloqueios mútuos, sem SQL/HTTP/cadastro. docs/ONLINE_EXPEDITION_WRITER_23F8A.md. CI obrigatório.
+
+> **23F6 INTEGRADA:** #277 cinco CI SUCCESS, main afc964edbf9108e42f70d34d172b76dd09570c04. #278 seis CI SUCCESS anterior; reconciliada, CI final obrigatório. Cadastro OFF.
 
 > **23F7A CANDIDATA:** projeção Gym current autenticada, proxy CI-only e teste de retomada. Depende #277; sem UI Gym ainda, SQL novo ou cadastro. Próximo 23F7B interface. Ver docs/ONLINE_GYM_PORTAL_STATE_23F7A.md.
 
@@ -315,3 +323,17 @@ O novo chat deve ler os arquivos acima, verificar a situação real no GitHub/Ra
 > **D064BR EM BRANCH (22/11/2026):** `feat/d064br-economy-audit-and-expedition-cap` desde main publicada D064BQ `aadd3a503ac67d6c44ef6c26a74e8f7dfb8b150d`. Criticamente, `claimExpedition` antes BLOQUEAVA todo resgate (moedas/XP/cursor) caso bola excedesse cap100k; corrigido para creditar bolas **até caber** e ainda pagar moedas/XP sem perder ciclos, mantendo rejeição de saves corrompidos e registrando `lastClaim.ballDrops` líquido. Preview de expedição mostra bolas líquidas e aviso de mochila cheia. Testes writer real da coleta R10 com Poké/Ultra cap+Great 1 vaga, duplicação, cap de todos os tipos, e captura de Mewtwo Ultra com débito único. Testes de economia hipotética com 1k vitórias por R1/4/7/9/10 + 8h de exp + compra real por `quoteKantoBallShopPurchase` + captura real e conservação de moedas/itens. Loja exibe tabela de odds extraída da função autoritativa: R1–3 Poké30%; R4–6 Poké25%/Great14%; R7–8 Poké18%/Great14%/Ultra5%; R9–10 Poké18%/Great14%/Ultra7%; percentuais e preços beta 600/2400/16000 **NÃO ALTERADOS**, assim como expedição Ultra somente R9/10 24h. Documento `docs/D064BR_ECONOMY_CAP_AUDIT.md`. **CI/PR/merge/Railway desta branch PENDENTES**. Próxima D064BS auditoria de dados/servidor. Alfa usa save local, não backend antifraude; `isaquesan7/pokedex` PROIBIDO tocar.
 
 > **D064BR — RELEASE CONFIRMADO (22/11/2026):** PR #149 merged squash em main funcional `7054c3790800ee4e71c2ee597ca9a576e5f9c90c` (HEAD funcional `ef0a020b8a8dbbcbc76ec22cb9360fffdcc90c1e`). CI geral `45037200926`, Playwright desktop/mobile `45037200948`, Docker `45037200949` **SUCCESS**. Railway deploy `5f3bc6d4-a8ea-470e-b4bc-89a98ae3c6be` SUCCESS no SHA exato, `/health` interno OK, online 1 réplica/0 crashes, GET público não checado. **Corrigido:** mochila cheia no resgate de expedição NÃO bloqueia mais moedas/XP/ciclos; bolas saturam no teto100k por tipo, `lastClaim.ballDrops` só mostra créditos reais, preview UI desconta capacidade e avisa limite; save corrompido segue rejeitado. Testes writer cap/recibo/captura lendária e auditoria de 1.000 vitórias sintéticas R1/4/7/9/10 com compra/captura/suprimento passam; a amostra não é telemetria. Loja exibe chances reais por região; **NÃO alterar odds** R1–3 Poké30, R4–6 Poké25/Great14, R7–8 Poké18/Great14/Ultra5, R9–10 Poké18/Great14/Ultra7, preços beta 600/2400/16000, expedição Ultra só R9/10 24h. Documento `docs/D064BR_ECONOMY_CAP_AUDIT.md`. Próxima D064BS: instrumentação agregada/consentida, riscos Web Locks e backend autoritativo. `isaquesan7/pokedex` intocado.
+
+- CI PG18 45498682736 falhou em EADDRINUSE 43142 (faixa efêmera Linux) e startup lockdown 43158 sem stderr; mover portas dos três testes para 23xxx, aguardar exit de subprocessos, sem alterar asserts ou produção. CI final obrigatório.
+
+- CI PG18 45499145951: portas novas resolveram startup, mas dois testes herdavam APP_ORIGIN antigo do workflow; fixar APP_ORIGIN=origin explicitamente nos subprocessos 23144/23146, sem mudar validação CSRF. CI final necessário.
+
+- CI geral 45498889537 falhou TS2345 exactOptionalPropertyTypes (regionId opcional); corrigido narrowing e envio de região definida no start. PG18 anterior SUCCESS; CI final obrigatório.
+
+- #278 CI cinco SUCCESS no HEAD bf7bee693dda4c05d1050d4eb5771e5044718058; reconciliação com #280 main f50f7d1d175187fbcb2f3889017358ab910c4320 preserva writer expedição. Railway web/API SUCCESS no SHA #280. CI final necessário.
+
+- #281 integrada e Railway web/API SUCCESS no SHA 763736fc7d6517059df44ea0d1b94c136573b4c5; reconciliação #278 preserva API expedição, testa expedição antes de reserva Gym. CI final obrigatório. Congelar novas integrações independentes até unir painéis.
+
+
+## ONLINE-01C-23F10 — integração conjunta dos painéis (candidata)
+- PR #279 consolida #278 (estado Gym, CI anterior verde exceto geral pendente), #279 (UI Gym, seis CI SUCCESS anteriores), #282 (UI expedição, seis CI SUCCESS anteriores) e #283 (loja, PG18 SUCCESS anterior, CI final pendente). Main base 763736fc7d6517059df44ea0d1b94c136573b4c5 publicada web/API. Todos os writers e gates CI-only preservados; uma jornada browser regional → expedição → compra → Gym → recuperação de conta, com bloqueios cruzados, revisão comum e recarga. Não mesclar branches concorrentes separadamente; #279 será a integração única depois de CI completo no HEAD exato. Fechar PRs absorvidos apenas após merge confirmado. Cadastro OFF, sem SQL novo ou alteração econômica; /play intacto. Próximo: CI final e Railway, só então evoluções/golpes.

@@ -55,11 +55,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -295,6 +295,70 @@ try{
   assert.equal(await page.locator('#region-select').inputValue(),'2');
   assert.equal((await readRegion()).encounter,null);
 
+  // Private expedition HTTP over the real authenticated browser proxy.
+  const expeditionPath=origin+'/api/v1/expedition/';
+  const expRead=async()=>{const response=await page.request.get(expeditionPath+'current');assert.equal(response.status(),200);return response.json();};
+  const expPost=(kind,data)=>page.request.post(expeditionPath+kind,{data,headers:{Origin:origin}});
+  const beforeExp=await expRead();assert.equal(beforeExp.expedition,null);assert.equal(beforeExp.leader.uid,2);
+  assert.equal((await expPost('start',{actionId:'browser-expedition-clock-tamper',expectedRevision:beforeExp.revision,regionId:2,nowMs:1})).status(),400);
+  await page.locator('#expedition-select').selectOption('2');
+  await responseFor(page,'/api/v1/expedition/start',()=>page.locator('#expedition-start').click());
+  await page.locator('#expedition-active').waitFor();
+  assert.equal(await page.locator('#expedition-select').isDisabled(),true);
+  assert.equal(await page.locator('#region-open').isDisabled(),true);
+  assert.equal(await page.locator('#gym-open').isDisabled(),true);
+  assert.equal(await page.locator('[data-shop-buy="poke-ball"]').isDisabled(),true);
+  assert.equal(await page.locator('#online-team-save').isDisabled(),true);
+  const openedExp=await expRead();assert.equal(openedExp.expedition.regionId,2);assert.equal(openedExp.expedition.leaderUid,2);
+  assert.ok(openedExp.serverNowMs>=openedExp.expedition.startedAt);
+  const expFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const expRaw=JSON.parse(expFixture.journal.raw);
+  expRaw.expedition.startedAt-=9*3600000;expRaw.expedition.lastClaimAt=expRaw.expedition.startedAt;
+  expFixture.journal.raw=JSON.stringify(expRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(expFixture)]);
+  const readyExp=await expRead();assert.equal(readyExp.expedition.cycles,2880);
+  assert.equal(readyExp.expedition.preview.cycles,2880);
+  await page.locator('#expedition-sync').click();
+  await page.getByText('2880 / 2880 ciclos',{exact:true}).waitFor();
+  assert.match(await page.locator('#expedition-timer').textContent(),/^09:/);
+  assert.match(await page.locator('#expedition-cap').textContent(),/Limite de 8h/);
+  const claimRequest=page.waitForRequest(r=>r.url().endsWith('/api/v1/expedition/claim')&&r.method()==='POST');
+  await responseFor(page,'/api/v1/expedition/claim',()=>page.locator('#expedition-claim').click());
+  const claimArgs=(await claimRequest).postDataJSON();
+  assert.equal((await expPost('claim',claimArgs)).status(),409);
+  await page.getByText('Recompensas resgatadas.',{exact:true}).waitFor();
+  assert.match(await page.locator('#expedition-timer').textContent(),/^09:/);
+  await page.reload({waitUntil:'domcontentloaded'});
+  const claimedExp=await expRead();assert.equal(claimedExp.expedition.startedAt,readyExp.expedition.startedAt);
+  await page.locator('#expedition-active').waitFor();
+  assert.match(await page.locator('#expedition-timer').textContent(),/^09:/);
+  await responseFor(page,'/api/v1/expedition/stop',()=>page.locator('#expedition-stop').click());
+  await page.locator('#expedition-start').waitFor();
+  assert.equal(await page.locator('#expedition-active').isHidden(),true);
+  assert.equal((await expRead()).expedition,null);
+
+  // Shop checkout through the real browser. Fund only in disposable PG fixture.
+  const shopFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const shopRaw=JSON.parse(shopFixture.journal.raw);shopRaw.coins=5000;
+  const ownedBefore=shopRaw.ballPocket.quantities['poke-ball']??0;
+  shopFixture.journal.raw=JSON.stringify(shopRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(shopFixture)]);
+  await page.locator('#online-refresh').click();
+  await page.getByText('Saldo: 5.000 moedas',{exact:true}).waitFor();
+  const shopRead=async()=>{const q=await page.request.get(origin+'/api/v1/shop/current');assert.equal(q.status(),200);return q.json();};
+  const shopBefore=await shopRead();assert.equal(shopBefore.items.length,3);
+  assert.equal((await page.request.post(origin+'/api/v1/shop/purchase',{data:{actionId:'shop-tamper-browser-01',ballId:'poke-ball',quantity:2,expectedRevision:shopBefore.revision,unitPrice:0},headers:{Origin:origin}})).status(),400);
+  await page.locator('#shop-qty-poke-ball').fill('2');
+  await page.getByText('Total: 1.200 moedas',{exact:true}).waitFor();
+  const shopRequest=page.waitForRequest(q=>q.url().endsWith('/api/v1/shop/purchase')&&q.method()==='POST');
+  await responseFor(page,'/api/v1/shop/purchase',()=>page.locator('[data-shop-buy="poke-ball"]').click());
+  const purchaseArgs=(await shopRequest).postDataJSON();
+  assert.equal((await page.request.post(origin+'/api/v1/shop/purchase',{data:purchaseArgs,headers:{Origin:origin}})).status(),409);
+  await page.getByText('Saldo: 3.800 moedas',{exact:true}).waitFor();
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.getByText('Saldo: 3.800 moedas',{exact:true}).waitFor();
+  const shopAfter=await shopRead();assert.equal(shopAfter.coins,3800);assert.equal(shopAfter.items.find(i=>i.id==='poke-ball').owned,ownedBefore+2);
+
   // Gym portal read contract via the real authenticated Web proxy.
   const gymPath=origin+'/api/v1/gym/';
   const gymRead=async()=>{const response=await page.request.get(gymPath+'current');assert.equal(response.status(),200);return response.json();};
@@ -341,6 +405,8 @@ try{
   assert.match(await page.locator('#gym-match').textContent(),/Brock vs Treinador Browser/);
   assert.equal(await page.locator('#region-open').isDisabled(),true);
   assert.equal(await page.locator('#online-team-save').isDisabled(),true);
+  assert.equal(await page.locator('#expedition-start').isDisabled(),true);
+  assert.equal(await page.locator('[data-shop-buy="poke-ball"]').isDisabled(),true);
   let gymNow=await gymRead();
   for(let i=0;gymNow.gym.phase==='await-player'&&i<140;i++){
     const g=gymNow.gym;
