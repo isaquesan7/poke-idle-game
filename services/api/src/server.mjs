@@ -15,7 +15,7 @@ import {
 import {throttle,requesterIp,issueVerification,consumeVerification} from './authSecurity.mjs';
 import {issuePasswordReset,consumePasswordReset} from './passwordReset.mjs';
 import {deliverAccountEmail} from './mailer.mjs';
-import {regionalPaths,loadRegionalTestKey,readRegionalEncounter,runRegionalCommand} from './regionalHttp.mjs';
+import {regionalPaths,loadRegionalTestKey,regionalExpansionEnabled,readRegionalEncounter,runRegionalCommand} from './regionalHttp.mjs';
 import {createFirstAdventure} from './initialAdventure.mjs';
 import {applyTrainerInvestment} from './trainerInvestment.mjs';
 import {exportAccountData} from './accountPrivacy.mjs';
@@ -381,14 +381,14 @@ const server=createServer(async(req,res)=>{
       const account=await accountForSession(req);
       if(!account)return json(res,401,{error:'Não autenticado'});
       if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
-      let key;
-      try{key=loadRegionalTestKey();}catch{return json(res,503,{error:'Regiões online em preparação'});}
+      let key,expanded;
+      try{key=loadRegionalTestKey();expanded=regionalExpansionEnabled();}catch{return json(res,503,{error:'Regiões online em preparação'});}
       if(read){
-        const current=await readRegionalEncounter(pool,account.id);
+        const current=await readRegionalEncounter(pool,account.id,expanded);
         return json(res,current.status==='ok'?200:404,current);
       }
       if(!await enforceThrottle(req,res,{scope:'region-action-account',identifier:account.id,limit:300}))return;
-      const result=await runRegionalCommand(pool,account.id,pathname.split('/').at(-1),await readJson(req),key);
+      const result=await runRegionalCommand(pool,account.id,pathname.split('/').at(-1),await readJson(req),key,expanded);
       const ok=['reserved','started','applied','certified','paid','finished','replay'].includes(result.status);
       return json(res,ok?200:result.status==='invalid'?400:
         ['missing','missing-save'].includes(result.status)?404:409,result);

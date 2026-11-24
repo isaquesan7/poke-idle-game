@@ -90,6 +90,11 @@ jobs:
           test "$receipts" -ge 2
           echo "ONLINE01C3_RESTORE_DRILL_OK: isolated PG18 backup/restore"
           rm -f "$RUNNER_TEMP/kanto-ci.dump"
+      - name: Regional expansion candidate on disposable PG18 (unregistered SQL027)
+        env:
+          ONLINE_REGIONAL_EXPANSION_CI_ONLY: 'true'
+          WILD_CI_ENTROPY_HEX: '4242424242424242424242424242424242424242424242424242424242424242'
+        run: node --test services/api/tests/regional-extension.integration.test.mjs
       - name: Build separate API image and verify isolation
         run: |
           docker build -f services/api/Dockerfile -t kanto-online-api .
