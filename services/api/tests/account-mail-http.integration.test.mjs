@@ -62,8 +62,12 @@ test('23D1: HTTP issuance and queued delivery share commit; stale resets never s
     assert.equal((await request('/api/v1/auth/verify',{token:verificationToken})).status,200);
     assert.equal((await request('/api/v1/auth/verify',{token:verificationToken})).status,400);
     assert.equal((await request('/api/v1/auth/login',{email,password})).status,200);
-    assert.equal((await request('/api/v1/auth/request-reset',{email})).status,200);
-    assert.equal((await request('/api/v1/auth/request-reset',{email})).status,200);
+    const resetA=await request('/api/v1/auth/request-reset',{email});
+    const resetB=await request('/api/v1/auth/request-reset',{email});
+    assert.equal(resetA.status,200);
+    assert.equal(resetB.status,200);
+    assert.equal(Object.hasOwn(resetA.data,'testResetToken'),false);
+    assert.equal(Object.hasOwn(resetB.data,'testResetToken'),false);
     queued=await messages(pool,accountId);
     assert.equal(queued.length,3);
     const resets=queued.filter(row=>row.purpose==='reset');
