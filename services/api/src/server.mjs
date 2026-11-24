@@ -36,7 +36,9 @@ const pool=new pg.Pool({connectionString,max:12,connectionTimeoutMillis:5000,
 // Misconfiguring one Railway env variable cannot open public accounts.
 const enabled=process.env.NODE_ENV==='test' &&
   process.env.ONLINE_REGISTRATION_ENABLED==='true';
-const isSecure=process.env.NODE_ENV==='production';
+// __Host- cookies require Secure in every environment, including CI loopback.
+// Chromium may otherwise discard a seemingly successful login session.
+const isSecure=true;
 const mailMode=process.env.ACCOUNT_MAIL_MODE??'off';
 if(!['off','resend','outbox'].includes(mailMode))
   throw new Error('ACCOUNT_MAIL_MODE inválido');
