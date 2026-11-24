@@ -123,8 +123,7 @@ export async function accountMailMetrics(pool){
     SELECT count(*)::int AS total,
       COALESCE(max(extract(epoch FROM(now()-created_at))),0)::integer AS oldest_seconds
     FROM game_account_mail_outbox
-    WHERE status IN ('pending','sending') AND expires_at>now()
-        AND available_at<=now()
+    WHERE status IN ('pending','sending') AND available_at<=now()
       AND expires_at>now()`);
   const counts=Object.fromEntries(
     ['pending','sending','delivered','expired','dead'].map(key=>[key,0]));
@@ -141,7 +140,8 @@ export async function claimAccountMail(pool){
   const result=await pool.query(`
     WITH candidate AS (
       SELECT id FROM game_account_mail_outbox
-      WHERE status IN ('pending','sending') AND available_at<=now()
+      WHERE status IN ('pending','sending') AND expires_at>now()
+        AND available_at<=now()
         AND (lease_until IS NULL OR lease_until<now())
         AND attempt_count<$1
       ORDER BY created_at,id FOR UPDATE SKIP LOCKED LIMIT 1
@@ -168,7 +168,6 @@ export async function processOneAccountMail(pool,{keyring,from,providerKey,send}
       SET status='pending',lease_until=NULL,
           available_at=now()+interval '5 minutes',updated_at=now()
       WHERE id=$1 AND status='sending' AND attempt_count=$2
-        AND lease_until>now()
         AND lease_until>now()`,[id,row.attempt_count]);
     return {status:'blocked-key',id};
   }
@@ -176,7 +175,7 @@ export async function processOneAccountMail(pool,{keyring,from,providerKey,send}
     await pool.query(`
       UPDATE game_account_mail_outbox SET status='expired',lease_until=NULL,
       updated_at=now() WHERE id=$1 AND status='sending' AND
-      attempt_count=$2`,[id,row.attempt_count]);
+      attempt_count=$2 AND lease_until>now()`,[id,row.attempt_count]);
     return {status:'expired',id};
   }
   try{
@@ -199,6 +198,7 @@ export async function processOneAccountMail(pool,{keyring,from,providerKey,send}
       provider_receipt=$3,delivered_at=now(),lease_until=NULL,
       updated_at=now()
       WHERE id=$1 AND status='sending' AND attempt_count=$2
+        AND lease_until>now()
     `,[id,row.attempt_count,delivered.id]);
     return {status:'delivered',id};
   }catch{
@@ -208,6 +208,7 @@ export async function processOneAccountMail(pool,{keyring,from,providerKey,send}
       SET status=$3,lease_until=NULL,
         available_at=now()+($4::integer*interval '1 second'),updated_at=now()
       WHERE id=$1 AND status='sending' AND attempt_count=$2
+        AND lease_until>now()
     `,[id,row.attempt_count,dead?'dead':'pending',Math.min(900,2**row.attempt_count*15)]);
     return {status:dead?'dead':'retry',id};
   }
