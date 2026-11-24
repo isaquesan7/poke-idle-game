@@ -3,7 +3,7 @@ import {randomBytes,createHash} from 'node:crypto';
 import {hashPassword,validatePassword} from './auth.mjs';
 
 const digest=token=>createHash('sha256').update(token).digest();
-export async function issuePasswordReset(pool,email){
+export async function issuePasswordReset(pool,email,{enqueue}={}){
   const client=await pool.connect();
   try{
     await client.query('BEGIN');
@@ -17,10 +17,12 @@ export async function issuePasswordReset(pool,email){
       'UPDATE game_password_resets SET used_at=now() WHERE account_id=$1 AND used_at IS NULL',
       [accountId]);
     const token=randomBytes(32).toString('base64url');
-    await client.query(`INSERT INTO game_password_resets
+    const inserted=await client.query(`INSERT INTO game_password_resets
       (account_id,token_sha256,expires_at)
-      VALUES($1,$2,now()+interval '30 minutes')`,
+      VALUES($1,$2,now()+interval '30 minutes') RETURNING id,expires_at`,
       [accountId,digest(token)]);
+    if(enqueue)await enqueue(client,{accountId,token,tokenId:inserted.rows[0].id,
+      expiresAt:inserted.rows[0].expires_at});
     await client.query('COMMIT');
     return token;
   }catch(e){await client.query('ROLLBACK');throw e;}
