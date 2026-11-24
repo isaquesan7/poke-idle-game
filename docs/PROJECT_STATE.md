@@ -1948,6 +1948,16 @@ AGENTS.md, docs/* e CHANGELOG.md ← governança/documentação
 - Teste exclusivo de ambiente de integração não cria endpoint, não habilita produção, não migra save local nem faz deploy de banco real. `npm run test:integration` passa a incluir o novo teste separadamente com concorrência de arquivos desativada. PR/CI/merge/Railway pendentes; não proclamar validação antes de CI no commit final. Beta segue bloqueado até backup/PITR restore Railway REAL comprovado, Resend, LGPD/segurança.
 
 
+## ONLINE-01C-23E8 — Resend sandbox observado / 23E9 — fronteira de identidade do proxy (24/11/2026)
+- PR #250 integrado em main `4cb68135f7ebb99a05623c42d1f79f35ac775c1c`, regressão #45401746713 SUCCESS no HEAD da PR. Documento `docs/ONLINE_RESEND_LIVE_OBSERVED_23E8.md` registra jornada local com links reais consumidos, reuso recusado, revogação de sessão e entrega observada no painel. Não equivale ao gate formal de domínio/remetente, eventos e revisão independente. Railway do merge documental ainda deve ser confirmado; API/web anteriores estavam SUCCESS em e501e4e5.
+- **23E9 em branch `test/online01c23e9-proxy-identity-boundary`, não publicado:** testes existentes ampliados para provar que cabeçalhos de IP fornecidos por clientes não modificam a identidade do throttle, e que dois clientes por um mesmo peer do proxy compartilham digest de cota. Nenhuma mudança de runtime, configuração, flags, segredos ou banco. Veja `docs/ONLINE_PROXY_IDENTITY_REVIEW_23E9.md`. CI e revisão ainda pendentes.
+- Próximo: projetar identidade autenticada de cliente no proxy com base em evidência real do Railway (sem confiar em forwarded arbitrário), testar distribuição/concorrência em ambiente isolado, e revisar ciclo de vida LGPD. Gate reverseProxyRateLimitReviewed continua falso. Cadastro OFF, /play local sem migração, Regiões 1v1 team[0], Ginásios 3v3 com trio definido na Coleção. Restore integral e remetente definitivo continuam pendentes.
+
+- PR #251 integrado em main `d4f888c3e3d2005a23091dcf3fb866c64b022d6c` após regressão geral, browser e imagem D-044 SUCCESS; endurece allowlist, métodos e tamanho/prazo de corpo do proxy. PR #252 reconciliado com a main, preservando ambos os conjuntos de testes; CI do HEAD combinado ainda pendente. Railway web em build na primeira verificação, API sem mudança.
+
+
 ## ONLINE-01C-23E10 — protocolo candidato de identidade assinada (24/11/2026; branch, não publicado)
 - PR #251 merged main d4f888c3e3d2005a23091dcf3fb866c64b022d6c; web Railway SUCCESS, API sem alteração. PR #252 reconciliado e CI final em andamento na abertura desta branch. 23E10 depende de integração anterior.
 - Módulo puro proxyIdentity.mjs + testes sintéticos: IP validado canonicalizado, subject HMAC, assertion assinada ligada a método/rota/corpo, prazo e nonce. Não importado no runtime; não usa cabeçalhos reais, não consome nonce ainda, não libera cadastro. Próximo: comprovar ingress, política de chaves e consumo nonce distribuído em teste antes de uso. Veja docs/ONLINE_PROXY_SIGNED_IDENTITY_23E10.md. CI pendente, gate de proxy falso, LGPD/restore/remetente pendentes. /play local sem migração, Regiões 1v1 e Gym 3v3 inalterados.
+
+- PR #252 merged main b8823943ad9b9f5f7755f768dba93bd8b811f62e após quatro CI SUCCESS; branch 23E10 reconciliada, CI do HEAD combinado pendente.
