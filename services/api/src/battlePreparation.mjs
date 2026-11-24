@@ -7,12 +7,12 @@
 import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATS=['hp','attack','defense','specialAttack','specialDefense','speed'];
-const manualStats=value=>{
+const manualStats=(value,maxPerStat=40)=>{
   if(!value||typeof value!=='object'||Array.isArray(value)||
     Object.keys(value).some(k=>!STATS.includes(k)))return null;
   const out={};
   for(const stat of STATS){
-    if(!Number.isSafeInteger(value[stat])||value[stat]<0||value[stat]>40)
+    if(!Number.isSafeInteger(value[stat])||value[stat]<0||value[stat]>maxPerStat)
       return null;
     out[stat]=value[stat];
   }
@@ -51,7 +51,7 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
      selected.affinity<0||selected.affinity>100||
      !/^[a-z][a-z-]{1,63}$/.test(selected.moveName??''))
     return null;
-  const pokemonManual=manualStats(selected.manual);
+  const pokemonManual=manualStats(selected.manual,(selected.level-1)*2);
   if(!pokemonManual||STATS.reduce((n,s)=>n+pokemonManual[s],0)>
       (selected.level-1)*2)return null;
   const history=selected.evolutionHistory;

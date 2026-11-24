@@ -38,14 +38,14 @@ const MOVE=/^[a-z][a-z-]{1,63}$/;
 const SLOTS=['hat','jacket','gloves','pants','shoes',
   'necklace','ring1','ring2','earrings'] as const;
 
-function manualStats(value:unknown,level:number):StatValues|null{
+function manualStats(value:unknown,level:number,maxPerStat=40):StatValues|null{
   if(!isRecord(value)||Object.keys(value).length!==STATS.length||
      Object.keys(value).some(key=>!(STATS as readonly string[]).includes(key)))
     return null;
   const points=zeroStats();
   for(const stat of STATS){
     const n=value[stat];
-    if(!integer(n,0,40))return null;
+    if(!integer(n,0,maxPerStat))return null;
     points[stat]=n;
   }
   return STATS.reduce((n,stat)=>n+points[stat],0)<=
@@ -177,7 +177,7 @@ export function canonicalOnlineGymPreparation(source:unknown):
        !integer(p.level,1,100)||!integer(p.affinity,0,100)||
        typeof p.moveName!=='string'||!MOVE.test(p.moveName))
       return null;
-    const pokemonManual=manualStats(p.manual,p.level);
+    const pokemonManual=manualStats(p.manual,p.level,(p.level-1)*2);
     if(!pokemonManual)return null;
     const names=p.equippedMoveNames===undefined?
       [p.moveName]:p.equippedMoveNames;

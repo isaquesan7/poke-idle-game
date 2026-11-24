@@ -20,6 +20,8 @@ import {expeditionHttpEnabled,readExpedition} from './expeditionHttp.mjs';
 import {applyExpeditionCommand} from './expeditionWriter.mjs';
 import {shopHttpEnabled,readShop} from './shopHttp.mjs';
 import {purchaseShopBall} from './shopWriter.mjs';
+import {pokemonTrainingHttpEnabled,readPokemonTraining} from './pokemonTrainingHttp.mjs';
+import {trainPokemon} from './pokemonTrainingWriter.mjs';
 import {evolutionHttpEnabled,readEvolution} from './evolutionHttp.mjs';
 import {evolvePokemon} from './evolutionWriter.mjs';
 import {movesHttpEnabled,readMoves} from './movesHttp.mjs';
@@ -380,6 +382,24 @@ const server=createServer(async(req,res)=>{
       const status=result.status==='ok'?200:
         result.status==='missing'?404:result.status==='invalid'?400:409;
       return json(res,status,result.status==='ok'?result:{error:result.status});
+    }
+    if(['/api/v1/pokemon-training/current','/api/v1/pokemon-training/train'].includes(pathname)){
+      if(!enabled||!pokemonTrainingHttpEnabled())return json(res,503,{error:'Treinamento Pokémon online em preparação'});
+      const read=pathname.endsWith('/current');
+      if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
+      if(!read)requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
+      if(read){
+        const result=await readPokemonTraining(pool,account.id);
+        return json(res,result.status==='ok'?200:result.status==='missing-save'?404:409,result);
+      }
+      if(!await enforceThrottle(req,res,{scope:'pokemon-training-account',identifier:account.id,limit:60}))return;
+      const data=await readJson(req);
+      if(Object.keys(data).sort().join(',')!=='actionId,expectedRevision,increments,pokemonUid,reset')return json(res,400,{error:'Ação inválida'});
+      const result=await trainPokemon(pool,{accountId:account.id,...data});
+      return json(res,result.status==='trained'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(['/api/v1/evolution/current','/api/v1/evolution/evolve'].includes(pathname)){
       if(!enabled||!evolutionHttpEnabled())return json(res,503,{error:'Evoluções online em preparação'});

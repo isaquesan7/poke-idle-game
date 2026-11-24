@@ -55,11 +55,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -99,6 +99,7 @@ try{
   assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/status')).status(),503);
   assert.equal((await publicPage.request.get(closedOrigin+'/play')).status(),200);
   assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/evolution/current')).status(),404);
+  assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/pokemon-training/current')).status(),404);
   assert.equal(await publicPage.locator('#online-panel').isHidden(),true);
   await mobile.close();
 
@@ -492,6 +493,36 @@ try{
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#evolution-pokemon').waitFor();
   assert.equal((await evoRead()).pokemon.find(p=>p.uid===1).speciesId,5);
+
+  // Train the evolved UID through the actual browser; draft never mutates PG.
+  const trainingRead=async()=>{const q=await page.request.get(origin+'/api/v1/pokemon-training/current');assert.equal(q.status(),200);return q.json();};
+  await page.locator('#training-pokemon').selectOption('1');
+  const trainBefore=await trainingRead(),trainedBefore=trainBefore.pokemon.find(p=>p.uid===1);
+  assert.equal(trainedBefore.budget,30);assert.ok(trainedBefore.remaining>=2);
+  await page.locator('[data-training-plus="attack"]').click();
+  await page.locator('[data-training-plus="hp"]').click();
+  assert.equal((await trainingRead()).revision,trainBefore.revision);
+  await page.locator('#training-cancel').click();
+  assert.equal(await page.locator('#training-save').isDisabled(),true);
+  await page.locator('[data-training-plus="attack"]').click();
+  await page.locator('[data-training-plus="hp"]').click();
+  await responseFor(page,'/api/v1/pokemon-training/train',()=>page.locator('#training-save').click());
+  await page.getByText('Distribuição confirmada.',{exact:true}).waitFor();
+  const trained=await trainingRead(),trainedMember=trained.pokemon.find(p=>p.uid===1);
+  assert.equal(trained.revision,trainBefore.revision+1);
+  assert.deepEqual(trainedMember.manual,{...trainedBefore.manual,attack:trainedBefore.manual.attack+1,hp:trainedBefore.manual.hp+1});
+  assert.deepEqual(trained.pokemon.filter(p=>p.uid!==1),trainBefore.pokemon.filter(p=>p.uid!==1));
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#training-pokemon').selectOption('1');
+  assert.equal((await trainingRead()).pokemon.find(p=>p.uid===1).remaining,trainedMember.remaining);
+  page.once('dialog',d=>d.dismiss());await page.locator('#training-reset').click();
+  assert.equal((await trainingRead()).revision,trained.revision);
+  page.once('dialog',d=>d.accept());
+  await responseFor(page,'/api/v1/pokemon-training/train',()=>page.locator('#training-reset').click());
+  await page.getByText('Pontos redistribuídos.',{exact:true}).waitFor();
+  const redistributed=await trainingRead();assert.equal(redistributed.revision,trained.revision+1);
+  assert.equal(redistributed.pokemon.find(p=>p.uid===1).remaining,30);
+  assert.equal(redistributed.pokemon.find(p=>p.uid===1).spent,0);
 
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();

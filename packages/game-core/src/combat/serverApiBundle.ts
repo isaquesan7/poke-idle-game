@@ -40,3 +40,5 @@ export {onlineShopProjection,applyOnlineShopPurchase} from './serverShop.js';
 export {onlineMoveProjection} from './serverMoveProjection.js';
 
 export {applyOnlineEvolution,onlineEvolutionProjection} from './serverEvolution.js';
+
+export {applyOnlinePokemonTraining,onlinePokemonTrainingProjection} from './serverPokemonTraining.js';
