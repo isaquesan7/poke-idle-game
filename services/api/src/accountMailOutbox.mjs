@@ -165,7 +165,7 @@ export async function processOneAccountMail(pool,{keyring,from,providerKey,send}
     // Keep historical ciphertext intact. Release the lease with a bounded
     // delay so a missing key does not hot-loop or monopolize claim order.
     await pool.query(`UPDATE game_account_mail_outbox
-      SET status='pending',lease_until=NULL,
+      SET status='pending',lease_until=NULL,attempt_count=attempt_count-1,
           available_at=now()+interval '5 minutes',updated_at=now()
       WHERE id=$1 AND status='sending' AND attempt_count=$2
         AND lease_until>now()`,[id,row.attempt_count]);
