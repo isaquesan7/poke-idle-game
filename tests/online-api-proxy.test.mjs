@@ -156,3 +156,14 @@ test('23E9: untrusted headers, wrong methods and incomplete/oversized bodies nev
     assert.equal(received[1].headers.cookie,undefined);
   }finally{child.kill();await close(backend);}
 });
+
+test('reviewed Web forwarding refuses public or loopback upstream and gateway secrets',async()=>{
+  for(const patch of [{ONLINE_API_INTERNAL_URL:'http://127.0.0.1:3001/'},
+    {ONLINE_API_INTERNAL_URL:'https://api.up.railway.app/'},
+    {ONLINE_API_INTERNAL_URL:'http://api.railway.internal:3001/',GATEWAY_SUBJECT_HEX:'synthetic'}]){
+    const child=spawn(process.execPath,['server.mjs'],{env:{NODE_ENV:'production',PORT:'39179',
+      ONLINE_GATEWAY_FORWARD_MODE:'reviewed',...patch},stdio:'ignore'});
+    const code=await new Promise((resolve,reject)=>{child.once('exit',resolve);child.once('error',reject);});
+    assert.equal(code,1);
+  }
+});

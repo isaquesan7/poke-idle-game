@@ -51,7 +51,8 @@ test('23D7: production flag never enables public accounts, email actions or game
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
     env:{...process.env,PORT:'43158',NODE_ENV:'production',
-      ONLINE_REGISTRATION_ENABLED:'true',ACCOUNT_MAIL_MODE:'off'},
+      ONLINE_REGISTRATION_ENABLED:'true',ACCOUNT_MAIL_MODE:'off',
+      ONLINE_SIGNED_QUOTA_MODE:'reviewed',ONLINE_GATEWAY_RECEIVER_ACTIVE_HEX:'11'.repeat(32)},
     stdio:'ignore'
   });
   try{
