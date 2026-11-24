@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {randomBytes,createHash} from 'node:crypto';
 import pg from 'pg';
 import {mailKeyring,enqueueAccountMail,processOneAccountMail,claimAccountMail,
-  decryptMailPayload,encryptMailPayload} from '../src/accountMailOutbox.mjs';
+  decryptMailPayload,encryptMailPayload,reconcileAccountMail,accountMailMetrics} from '../src/accountMailOutbox.mjs';
 
 const ring=mailKeyring({activeId:'testkey',
   keys:{testkey:Buffer.alloc(32,31).toString('base64')}});
@@ -112,10 +112,13 @@ test('ONLINE-01C-23D0: transactional queue, leases, idempotency, retry and isola
       UPDATE game_account_mail_outbox SET created_at=now()-interval '1 hour',
         expires_at=now()-interval '1 second'
       WHERE idempotency_key=$1`,[second.idempotencyKey]);
+    const removed=await reconcileAccountMail(pool);
+    assert.deepEqual(removed,{expired:1,dead:0});
     const expired=await processOneAccountMail(pool,{keyring:ring,
       from:'Poke Idle <contas@example.test>',providerKey:'re_fake_ci',
       send:async()=>{throw Error('expired mail must not be sent');}});
-    assert.equal(expired.status,'expired');
+    assert.equal(expired.status,'idle');
+    assert.equal((await accountMailMetrics(pool)).counts.expired,1);
   }finally{
     if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
     await pool.end();
