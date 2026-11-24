@@ -12,7 +12,7 @@ export function applyOnlineExpedition(raw:string,kind:'start'|'claim'|'stop',now
  if(state?.mode!=='normal'||state.pendingBattle!=null||state.gymSession!=null||
    state.lastBattle?.captureStatus==='available'||inspectKantoBallPocket(state.ballPocket).status!=='valid')return null;
  if(kind==='start'){
-  if(!Number.isSafeInteger(regionId)||regionId!<1||regionId!>10||state.expedition!==null)return null;
+  if(typeof regionId!=='number'||!Number.isSafeInteger(regionId)||regionId<1||regionId>10||state.expedition!==null)return null;
  }else if(kind==='claim'||kind==='stop'){
   const e=state.expedition;
   if(regionId!==undefined||!e||!Number.isSafeInteger(e.regionId)||e.regionId<1||e.regionId>10||
@@ -22,7 +22,7 @@ export function applyOnlineExpedition(raw:string,kind:'start'|'claim'|'stop',now
  const journal=prepareRewardJournal(raw);
  if(!journal)return null;
  const base={id:'server-expedition',expectedRevision:0,nowMs};
- const result=applyRewardEvent(journal,kind==='start'?{...base,type:'start-expedition',regionId}:
+ const result=applyRewardEvent(journal,kind==='start'?{...base,type:'start-expedition',regionId:regionId!}:
   kind==='claim'?{...base,type:'claim-expedition'}:{...base,type:'stop-expedition'});
  return result.status==='applied'?result.journal.raw:null;
 }
