@@ -66,6 +66,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
     assert.equal(login.status,200);
     const cookie=login.headers.get('set-cookie');
     assert.ok(cookie?.includes('HttpOnly'));
+    assert.ok(cookie?.includes('Secure'),'__Host- cookie must be Secure even in CI');
     assert.ok(cookie?.includes('SameSite=Lax'));
     assert.ok(!cookie?.includes('password'));
     const sessionCookie=cookie.split(';')[0];
