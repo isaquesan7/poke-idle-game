@@ -1,3 +1,5 @@
+> **23F6 EM CORREÇÃO:** #275 integrada cinco CI SUCCESS; #276 CI final após reconciliação; #277 corrige reset do seletor R2 após refresh e fixture de turnos legais. Novo CI e reconciliação necessários, cadastro OFF, SQL027 candidata, /play local.
+
 > **23F6 CANDIDATA:** persistência e seletor das dez regiões CI-only, SQL027 manual no PG descartável; #274 merged, depende #275/#276 e CI final. Nenhuma alteração produção, /play local, 1v1/Gym3v3. Veja docs/ONLINE_REGIONAL_PERSISTENCE_23F6.md. Não repetir probes/PITR.
 
 > **23F5 CANDIDATA:** núcleo puro e SQL027 candidata para dez regiões; R1 única rota operacional CI; SQL026/027 não registradas. #273 integrada, #274/#275 dependências em validação. Próximo conectar writers e PG18 isolado. Cadastro OFF, /play local, 1v1/Gym3v3. Veja docs/ONLINE_REGIONAL_EXTENSION_23F5.md.
