@@ -13,7 +13,7 @@ const denies=[
   '/api/v1/auth/login','/api/v1/auth/logout',
   '/api/v1/account/export',
   '/api/v1/expedition/start','/api/v1/expedition/claim','/api/v1/expedition/stop',
-  '/api/v1/shop/purchase','/api/v1/moves/equip','/api/v1/evolution/evolve','/api/v1/pokemon-training/train',
+  '/api/v1/shop/purchase','/api/v1/moves/equip','/api/v1/moves/upgrade','/api/v1/evolution/evolve','/api/v1/pokemon-training/train',
   '/api/v1/adventure/start','/api/v1/trainer/invest',
   '/api/v1/collection/team','/api/v1/gym/reserve',
   '/api/v1/gym/start','/api/v1/gym/turn',
