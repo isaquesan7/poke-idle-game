@@ -52,7 +52,8 @@ if(process.env.NODE_ENV==='test'&&process.env.ONLINE_EVOLUTION_CI_ONLY==='true')
 if(process.env.NODE_ENV==='test'&&process.env.ONLINE_POKEMON_TRAINING_CI_ONLY==='true'){
   for(const command of ['current','train'])allowed.add('/api/v1/pokemon-training/'+command);
 }
-const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save','/api/v1/region/current','/api/v1/gym/current','/api/v1/expedition/current','/api/v1/shop/current','/api/v1/moves/current','/api/v1/evolution/current','/api/v1/pokemon-training/current']);
+if(process.env.NODE_ENV==='test'&&process.env.ONLINE_POKEDEX_CI_ONLY==='true')allowed.add('/api/v1/pokedex/current');
+const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save','/api/v1/region/current','/api/v1/gym/current','/api/v1/expedition/current','/api/v1/shop/current','/api/v1/moves/current','/api/v1/evolution/current','/api/v1/pokemon-training/current','/api/v1/pokedex/current']);
 const maxBody=16384;
 // Default strips proofs; reviewed deployment can relay opaque assertions without keys.
 // The web proxy has NO signing key and cannot create client identities.
