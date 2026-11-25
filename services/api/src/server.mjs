@@ -24,6 +24,8 @@ import {pokemonTrainingHttpEnabled,readPokemonTraining} from './pokemonTrainingH
 import {trainPokemon} from './pokemonTrainingWriter.mjs';
 import {evolutionHttpEnabled,readEvolution} from './evolutionHttp.mjs';
 import {evolvePokemon} from './evolutionWriter.mjs';
+import {trainerLoadoutHttpEnabled,readTrainerLoadout} from './trainerLoadoutHttp.mjs';
+import {changeTrainerLoadout} from './trainerLoadoutWriter.mjs';
 import {pokedexHttpEnabled,readPokedex} from './pokedexHttp.mjs';
 import {movesHttpEnabled,readMoves} from './movesHttp.mjs';
 import {upgradePokemonMove} from './pokemonMoveRankWriter.mjs';
@@ -420,6 +422,24 @@ const server=createServer(async(req,res)=>{
       if(Object.keys(data).sort().join(',')!=='actionId,expectedRevision,pokemonUid,targetSpeciesId')return json(res,400,{error:'Ação inválida'});
       const result=await evolvePokemon(pool,{accountId:account.id,...data});
       return json(res,result.status==='evolved'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
+    }
+    if(['/api/v1/inventory/current','/api/v1/inventory/loadout'].includes(pathname)){
+      if(!enabled||!trainerLoadoutHttpEnabled())return json(res,503,{error:'Inventário online em preparação'});
+      const read=pathname.endsWith('/current');
+      if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
+      if(!read)requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
+      if(read){
+        const result=await readTrainerLoadout(pool,account.id);
+        return json(res,result.status==='ok'?200:result.status==='missing-save'?404:409,result);
+      }
+      if(!await enforceThrottle(req,res,{scope:'trainer-loadout-account',identifier:account.id,limit:60}))return;
+      const data=await readJson(req);
+      if(Object.keys(data).sort().join(',')!=='actionId,command,expectedRevision')return json(res,400,{error:'Ação inválida'});
+      const result=await changeTrainerLoadout(pool,{accountId:account.id,...data});
+      return json(res,result.status==='applied'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(pathname==='/api/v1/pokedex/current'){
       if(!enabled||!pokedexHttpEnabled())return json(res,503,{error:'Pokédex online em preparação'});
