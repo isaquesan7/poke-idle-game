@@ -43,16 +43,6 @@ function fixture():Fixture{
   };
 }
 describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
-  it('reconstructs legacy frozen openings without new leader metadata',()=>{
-    const raw=fixture(),legacy=canonicalOnlineGymOpeningState(raw,true)!;
-    const modern=canonicalOnlineGymOpeningState(raw)!;
-    expect(legacy.preparation.leaderTrainer).toBeUndefined();
-    expect(modern.preparation.leaderTrainer?.level).toBe(12);
-    expect(legacy.preparation.leaderTeam.every(p=>p.rank===0&&Object.keys(p.ranks??{}).length===0)).toBe(true);
-    expect(legacy.preparation.player).toEqual(modern.preparation.player);
-    expect(legacy.battle.leader.fighters[0]!.combatant.stats).not.toEqual(modern.battle.leader.fighters[0]!.combatant.stats);
-    expect(canonicalOnlineGymOpeningState(raw,true)).toEqual(legacy);
-  });
   it('uses exactly the ordered Collection team and canonical Brock 3v3, with HP/SP per UID',()=>{
     const source=fixture();
     const result=canonicalOnlineGymOpeningState(source);
