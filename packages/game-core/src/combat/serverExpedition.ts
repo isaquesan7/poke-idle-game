@@ -1,3 +1,4 @@
+import {placeExpeditionLoot,inspectPendingExpeditionLoot} from '../inventory/serverExpeditionLoot.js';
 /** Server-only expedition transition; PostgreSQL owns revision/idempotency.
  * Reuse the exact audited local reducer with a fresh in-memory journal for
  * one transition. Its local receipt list is never written into the online save.
@@ -14,9 +15,10 @@ export function applyOnlineExpedition(raw:string,kind:'start'|'claim'|'stop',now
  if(state?.mode!=='normal'||state.pendingBattle!=null||state.gymSession!=null||
    state.lastBattle?.captureStatus==='available'||inspectKantoBallPocket(state.ballPocket).status!=='valid')return null;
  if(kind==='start'){
-  if(typeof regionId!=='number'||!Number.isSafeInteger(regionId)||regionId<1||regionId>10||state.expedition!==null||state.pendingRegionalLoot!=null)return null;
+  if(typeof regionId!=='number'||!Number.isSafeInteger(regionId)||regionId<1||regionId>10||state.expedition!==null||state.pendingRegionalLoot!=null||state.pendingExpeditionLoot!=null)return null;
  }else if(kind==='claim'||kind==='stop'){
   const e=state.expedition;
+  if(kind==='claim'&&state.pendingExpeditionLoot!=null)return null;
   if(regionId!==undefined||!e||!Number.isSafeInteger(e.regionId)||e.regionId<1||e.regionId>10||
     !Array.isArray(e.teamUids)||e.teamUids.length!==1||e.teamUids[0]!==state.team?.[0]||
     !Number.isSafeInteger(e.lastClaimAt)||nowMs<e.lastClaimAt)return null;
@@ -26,7 +28,7 @@ export function applyOnlineExpedition(raw:string,kind:'start'|'claim'|'stop',now
  const base={id:'server-expedition',expectedRevision:0,nowMs};
  const result=applyRewardEvent(journal,kind==='start'?{...base,type:'start-expedition',regionId:regionId!}:
   kind==='claim'?{...base,type:'claim-expedition'}:{...base,type:'stop-expedition'});
- return result.status==='applied'?result.journal.raw:null;
+ return result.status==='applied'?(kind==='start'?result.journal.raw:placeExpeditionLoot(raw,result.journal.raw,nowMs)):null;
 }
 
 export function onlineExpeditionProjection(raw:string,nowMs:number){
@@ -38,20 +40,22 @@ export function onlineExpeditionProjection(raw:string,nowMs:number){
  const regions=KANTO_REGIONS.map(r=>({id:r.id,name:r.name,levelMin:r.levelMin,levelMax:r.levelMax,
   trainerUnlockLevel:r.trainerUnlockLevel,unlocked:state.trainer.level>=r.trainerUnlockLevel&&leader.level>=r.levelMin}));
  const e=state.expedition;
+ const pendingLoot=state.pendingExpeditionLoot==null?null:inspectPendingExpeditionLoot(state.pendingExpeditionLoot);
+ if(state.pendingExpeditionLoot!=null&&!pendingLoot)return null;
  let expedition=null;
  if(e){
   if(!Number.isSafeInteger(e.regionId)||!regions.some(r=>r.id===e.regionId)||
    e.teamUids.length!==1||e.teamUids[0]!==leader.uid||e.lastClaimAt>nowMs)return null;
   const cycles=Math.min(MAX_EXPEDITION_CYCLES,Math.floor((nowMs-e.lastClaimAt)/EXPEDITION_CYCLE_MS));
   let preview=null;
-  if(cycles>0){
+  if(cycles>0&&!pendingLoot){
    const candidate=applyOnlineExpedition(raw,'claim',nowMs);
    if(!candidate)return null;
    const claim=JSON.parse(candidate).lastClaim;
-   preview={cycles:claim.cycles,coins:claim.coins,trainerXP:claim.trainerXP,pokemonXP:claim.pokemonXP,ballDrops:claim.ballDrops??{}};
+   preview={cycles:claim.cycles,coins:claim.coins,trainerXP:claim.trainerXP,pokemonXP:claim.pokemonXP,ballDrops:claim.ballDrops??{},pendingBallDrops:claim.pendingBallDrops??{}};
   }
   expedition={regionId:e.regionId,startedAt:e.startedAt,lastClaimAt:e.lastClaimAt,leaderUid:leader.uid,cycles,preview};
  }
- return {serverNowMs:nowMs,cycleMs:EXPEDITION_CYCLE_MS,maxCycles:MAX_EXPEDITION_CYCLES,
+ return {pendingLoot,serverNowMs:nowMs,cycleMs:EXPEDITION_CYCLE_MS,maxCycles:MAX_EXPEDITION_CYCLES,
   leader:{uid:leader.uid,speciesId:leader.pokemonId,level:leader.level},regions,expedition};
 }
