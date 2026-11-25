@@ -104,6 +104,30 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 #inventory-detail-action{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
 #inventory-detail-info{overflow-wrap:anywhere}
 @media(max-width:360px){#inventory-bag,#inventory-equipment{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* D6C: server-backed Collection and discovery-only Pokédex cards. */
+#collection-section,#pokedex-section{margin:20px 0;padding:14px;min-width:0;background:var(--inv-panel);border:1px solid var(--inv-border);border-radius:14px}
+#online-team{list-style:none;padding:0;display:grid;gap:6px}
+#online-team .team-row{background:var(--inv-card);border:1px solid var(--inv-border);border-radius:9px;padding:6px;flex-wrap:wrap}
+#online-team .team-row[data-leader="true"]{border-color:var(--inv-accent)}
+#online-roster,#pokedex-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:6px;min-width:0}
+#online-roster .collection-card,.dex-card{display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:4px;min-width:0;background:var(--inv-card);border:1px solid var(--inv-border);border-radius:10px;color:var(--inv-text);padding:7px;text-align:center;font:inherit;overflow-wrap:anywhere}
+.collection-card[data-selected="true"],.dex-card[data-dex-status="caught"]{border-color:var(--inv-green)}
+.dex-card[data-dex-status="seen"]{border-color:var(--inv-accent)}
+.dex-card[data-dex-status="unknown"]{border-style:dashed;color:var(--inv-muted)}
+.dex-card:not(:disabled){cursor:pointer}.dex-card:not(:disabled):hover{border-color:var(--inv-accent)}
+.collection-card img,.dex-card img,.dex-placeholder{width:64px;height:64px;max-width:100%;object-fit:contain;image-rendering:pixelated}
+.dex-placeholder{display:grid;place-items:center;font-size:2rem;font-weight:800;color:var(--inv-muted)}
+.collection-label,.dex-name{font-size:.8rem;font-weight:700;line-height:1.3}
+.dex-number,.dex-status,.collection-position{font-size:.68rem;line-height:1.3;color:var(--inv-muted)}
+.collection-card button,#pokedex-close{background:var(--inv-panel);border:1px solid var(--inv-border);border-radius:7px;padding:7px;color:var(--inv-text);cursor:pointer;max-width:100%;font-size:.74rem}
+.collection-card button:disabled{opacity:.55;cursor:not-allowed}
+#pokedex-filter{width:100%;padding:8px;background:var(--inv-card);color:var(--inv-text);border:1px solid var(--inv-border);border-radius:8px}
+#pokedex-progress{width:100%;height:10px;accent-color:var(--inv-green)}
+#pokedex-grid{margin-top:12px;max-height:500px;overflow:auto;padding:3px}
+#pokedex-dialog{width:min(520px,calc(100vw - 32px));max-height:85dvh;background:var(--inv-panel);color:var(--inv-text);border-color:var(--inv-border)!important}
+#pokedex-dialog::backdrop{background:#000a}
+.dex-detail-art{display:block;width:96px;height:96px;object-fit:contain;margin:auto;image-rendering:pixelated}
+@media(max-width:360px){#online-roster,#pokedex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 [hidden]{display:none!important}@media(max-width:760px){nav{margin-bottom:32px}.layout{grid-template-columns:1fr;gap:35px}.card{padding:23px}h1{font-size:2.75rem}}
 </style>
 </head>
@@ -192,7 +216,7 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 <h3 id="pokedex-heading">Pokédex de Kanto</h3><p id="pokedex-summary" class="helper" role="status"></p>
 <label for="pokedex-search">Buscar espécie descoberta ou número</label><input id="pokedex-search" type="search">
 <label for="pokedex-filter">Filtrar registros</label><select id="pokedex-filter"><option value="all">Todos</option><option value="caught">Capturados</option><option value="seen">Vistos</option><option value="unknown">Não encontrados</option></select>
-<div id="pokedex-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:12px"></div>
+<progress id="pokedex-progress" max="151" value="0" aria-label="Espécies capturadas"></progress><div id="pokedex-grid"></div><p id="pokedex-empty" class="helper" hidden>Nenhuma espécie corresponde à busca.</p>
 <dialog id="pokedex-dialog" aria-labelledby="pokedex-detail-name" style="max-width:min(680px,92vw);max-height:86vh;overflow:auto;border:1px solid #888;border-radius:12px;padding:20px">
 <button type="button" id="pokedex-close">Fechar</button><h3 id="pokedex-detail-name"></h3><div id="pokedex-detail-content"></div></dialog>
 </section>
@@ -211,9 +235,9 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 <button id="training-save" type="button" class="primary" disabled>Confirmar distribuição</button>
 <button id="training-reset" type="button" disabled>Redistribuir pontos</button><p id="training-note" role="status" aria-live="polite"></p></section>
 <h4>Atributos do treinador</h4><p id="online-points" class="helper"></p><div id="online-stats"></div>
-<h4>Equipe</h4><p class="helper">O primeiro Pokémon luta sozinho nas regiões. O trio escolhido aqui é usado nos ginásios.</p>
+<section id="collection-section" aria-labelledby="collection-heading"><h3 id="collection-heading">Coleção e equipe</h3><h4>Equipe</h4><p id="collection-team-count" class="helper"></p><p class="helper">O primeiro Pokémon luta sozinho nas regiões. O trio escolhido aqui é usado nos ginásios.</p>
 <ol id="online-team"></ol><h4>Coleção</h4><ul id="online-roster"></ul>
-<button id="online-team-save" type="button" class="primary" disabled>Salvar equipe</button><p class="helper" id="online-revision"></p></div>
+<button id="online-team-save" type="button" class="primary" disabled>Salvar equipe</button></section><p class="helper" id="online-revision"></p></div>
 <p id="online-error" role="status"></p>
 <button id="online-refresh" type="button" class="small-link">Atualizar progresso</button>
 <button id="online-logout" type="button" class="primary">Sair da conta</button>
@@ -728,13 +752,18 @@ async function submitLoadout(command){
  try{await api('/api/v1/inventory/loadout',args);ok=true;}catch{}
  const loaded=await refreshPortal();if(loaded&&inventoryState)$('inventory-note').textContent=ok?(['loot-store','loot-discard','discard-gear','expedition-loot-store','expedition-loot-discard'].includes(command.kind)?'Inventário atualizado.':'Equipamento ou título atualizado.'):'Ação não confirmada. Confira o inventário atualizado.';
 }
+function collectionSprite(id,lazy=true){
+ const img=document.createElement('img');img.src='/assets/pokemon-gifs/poke_'+id+'.gif';img.alt='';img.width=64;img.height=64;if(lazy)img.loading='lazy';return img;
+}
+function collectionText(className,value){const span=document.createElement('span');span.className=className;span.textContent=value;return span;}
 const dexStatus={unknown:'Não encontrado',seen:'Visto',caught:'Capturado'};
 const dexTypes={normal:'Normal',fire:'Fogo',water:'Água',electric:'Elétrico',grass:'Planta',ice:'Gelo',fighting:'Lutador',poison:'Venenoso',ground:'Terra',flying:'Voador',psychic:'Psíquico',bug:'Inseto',rock:'Pedra',ghost:'Fantasma',dragon:'Dragão',dark:'Sombrio',steel:'Aço',fairy:'Fada'};
 function renderPokedex(){
  const section=$('pokedex-section'),dialog=$('pokedex-dialog');
  section.hidden=!dexState||!serverProgress||dexState.revision!==serverProgress.revision;
  const grid=$('pokedex-grid');grid.replaceChildren();
- if(section.hidden){if(dialog.open)dialog.close();$('pokedex-detail-content').replaceChildren();return;}
+ if(section.hidden){if(dialog.open)dialog.close();$('pokedex-detail-content').replaceChildren();$('pokedex-progress').value=0;$('pokedex-empty').hidden=true;return;}
+ $('pokedex-progress').value=dexState.caught;
  $('pokedex-summary').textContent=dexState.caught+' / 151 capturados · '+dexState.seen+' vistos · '+dexState.unknown+' não encontrados';
  const term=$('pokedex-search').value.trim().toLowerCase(),filter=$('pokedex-filter').value;
  for(const entry of dexState.entries){
@@ -742,14 +771,21 @@ function renderPokedex(){
   if(term&&(/^#?\d+$/.test(term)?Number(term.replace('#',''))!==entry.id:entry.status==='unknown'||!entry.name.toLowerCase().includes(term)))continue;
   const id='#'+String(entry.id).padStart(3,'0');
   const btn=actionButton(id+' '+(entry.name??'???')+' · '+dexStatus[entry.status],()=>openDex(entry.id),entry.status==='unknown');
-  btn.dataset.dexId=String(entry.id);grid.append(btn);
+  btn.dataset.dexId=String(entry.id);btn.dataset.dexStatus=entry.status;btn.className='dex-card';
+  btn.setAttribute('aria-label',btn.textContent);
+  const art=entry.status==='unknown'?collectionText('dex-placeholder','?'):collectionSprite(entry.id);
+  art.setAttribute('aria-hidden','true');
+  btn.replaceChildren(collectionText('dex-number',id),art,collectionText('dex-name',entry.status==='unknown'?'???':entry.name),collectionText('dex-status',dexStatus[entry.status]));
+  grid.append(btn);
  }
+ $('pokedex-empty').hidden=grid.childElementCount!==0;
 }
 function openDex(id){
  if(!dexState||!serverProgress||dexState.revision!==serverProgress.revision)return;
  const detail=dexState.details.find(d=>d.id===id);if(!detail)return;
  const content=$('pokedex-detail-content');content.replaceChildren();
  $('pokedex-detail-name').textContent='#'+String(id).padStart(3,'0')+' '+detail.name;
+ const art=collectionSprite(id,false);art.className='dex-detail-art';content.append(art);
  const add=(tag,value)=>{const el=document.createElement(tag);el.textContent=value;content.append(el);};
  add('p',dexStatus[detail.status]+' · '+detail.types.map(t=>dexTypes[t]??t).join(' / '));
  add('h4','Atributos-base');for(const [key,value] of Object.entries(detail.base))add('p',statLabels[key]+': '+value);
@@ -829,21 +865,23 @@ function actionButton(label,handler,disabled=false){
 function renderTeam(){
  if(!serverProgress)return;
  const {state}=serverProgress,owned=new Map(state.roster.map(p=>[p.uid,p]));
+ $('collection-team-count').textContent=teamDraft.length+' / 3 Pokémon na equipe';
  $('online-team').replaceChildren(...teamDraft.map((uid,i)=>{
-  const li=document.createElement('li');li.className='team-row';
+  const li=document.createElement('li');li.className='team-row';li.dataset.leader=String(i===0);
   const label=document.createElement('span');label.textContent=(i===0?'Líder · ':'')+speciesNames[owned.get(uid).pokemonId];
-  li.append(label,actionButton('↑',()=>{if(i>0){[teamDraft[i-1],teamDraft[i]]=[teamDraft[i],teamDraft[i-1]];renderTeam();}},onlineBusy||adventureBusy()||i===0),
+  li.append(collectionSprite(owned.get(uid).pokemonId),label,actionButton('↑',()=>{if(i>0){[teamDraft[i-1],teamDraft[i]]=[teamDraft[i],teamDraft[i-1]];renderTeam();}},onlineBusy||adventureBusy()||i===0),
     actionButton('↓',()=>{if(i<teamDraft.length-1){[teamDraft[i+1],teamDraft[i]]=[teamDraft[i],teamDraft[i+1]];renderTeam();}},onlineBusy||adventureBusy()||i===teamDraft.length-1),
     actionButton('Remover',()=>{if(teamDraft.length>1){teamDraft=teamDraft.filter(x=>x!==uid);renderTeam();}},onlineBusy||adventureBusy()||teamDraft.length===1));
   return li;
  }));
  $('online-roster').replaceChildren(...state.roster.map(p=>{
-  const li=document.createElement('li');li.className='team-row';
-  const img=document.createElement('img');img.src='/assets/pokemon-gifs/poke_'+p.pokemonId+'.gif';img.alt='';
-  const label=document.createElement('span');label.textContent=speciesNames[p.pokemonId]+' · Nível '+p.level;
-  const selected=teamDraft.includes(p.uid);
+  const li=document.createElement('li');li.className='collection-card';
+  const img=collectionSprite(p.pokemonId);
+  const label=collectionText('collection-label',speciesNames[p.pokemonId]+' · Nível '+p.level);
+  const position=teamDraft.indexOf(p.uid),selected=position>=0;li.dataset.selected=String(selected);
+  const role=collectionText('collection-position',selected?(position===0?'Líder':'Reserva '+position):'Fora da equipe');
   const add=actionButton(selected?'Na equipe':'Adicionar',()=>{if(!teamDraft.includes(p.uid)&&teamDraft.length<3){teamDraft.push(p.uid);renderTeam();}},onlineBusy||adventureBusy()||selected||teamDraft.length>=3);
-  add.dataset.uid=String(p.uid);li.append(img,label,add);return li;
+  add.dataset.uid=String(p.uid);li.append(img,label,role,add);return li;
  }));
  $('online-team-save').disabled=onlineBusy||adventureBusy()||sameTeam(teamDraft,state.team);
 }
@@ -875,7 +913,7 @@ $('online-team-save').addEventListener('click',()=>{
 });
 function clearPortal(){
  portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;gymState=null;expeditionState=null;shopState=null;moveState=null;evolutionState=null;trainingState=null;dexState=null;inventoryState=null;selectedRegionId=1;selectedExpeditionRegion=1;selectedMoveUid=null;moveDraft=[];selectedEvolutionUid=null;trainingUid=null;clearTrainingDraft();$('training-note').textContent='';$('evolution-note').textContent='';renderRegion();renderGym();renderExpedition();renderShop();renderMoves();renderEvolution();renderTraining();renderPokedex();renderInventory();$('region-note').textContent='';$('gym-note').textContent='';$('expedition-note').textContent='';$('shop-note').textContent='';
- $('online-team').replaceChildren();$('online-stats').replaceChildren();$('online-points').textContent='';$('online-team-save').disabled=true;
+ $('online-team').replaceChildren();$('collection-team-count').textContent='';$('online-stats').replaceChildren();$('online-points').textContent='';$('online-team-save').disabled=true;
  $('online-trainer').textContent='';$('online-roster').replaceChildren();
  for(const id of ['online-level','online-coins','online-badges','online-count','online-revision','online-error'])$(id).textContent='';
  selectedStarter=null;starterButtons.forEach(b=>b.setAttribute('aria-pressed','false'));

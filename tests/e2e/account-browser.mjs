@@ -195,6 +195,9 @@ try{
   await page.locator('#online-progress').waitFor();
   assert.match(await page.locator('#online-team li').first().textContent(),/Líder · Pikachu/);
   assert.equal(await page.locator('#online-team li').count(),3);
+  assert.equal(await page.locator('#online-team [data-leader="true"]').count(),1);
+  assert.equal(await page.locator('#online-roster .collection-card[data-selected="true"]').count(),3);
+  assert.equal(await page.locator('#collection-team-count').textContent(),'3 / 3 Pokémon na equipe');
   const actionSave=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[registeredId]);
   const afterActions=JSON.parse(actionSave.rows[0].state.journal.raw);
   assert.equal(Number(actionSave.rows[0].revision),2);
@@ -561,12 +564,19 @@ try{
   assert.ok(!dex.details.some(e=>e.id===150));
   await page.locator('#pokedex-search').fill('Charmeleon');
   assert.equal(await page.locator('#pokedex-grid button').count(),1);
+  assert.equal(await page.locator('[data-dex-id="5"] img').getAttribute('src'),'/assets/pokemon-gifs/poke_5.gif');
+  assert.equal(await page.locator('#pokedex-progress').evaluate(el=>el.value),dex.caught);
   await page.locator('[data-dex-id="5"]').click();
   await page.locator('#pokedex-dialog[open]').waitFor();
   assert.match(await page.locator('#pokedex-detail-name').textContent(),/Charmeleon/);
   await page.locator('#pokedex-close').click();
   await page.locator('#pokedex-search').fill('150');
   assert.equal(await page.locator('[data-dex-id="150"]').isDisabled(),true);
+  assert.equal(await page.locator('[data-dex-id="150"] img').count(),0);
+  assert.equal(await page.locator('[data-dex-id="150"] .dex-placeholder').textContent(),'?');
+  assert.ok(!(await page.locator('[data-dex-id="150"]').textContent()).includes('Mewtwo'));
+  await page.locator('#pokedex-search').fill('zz-no-result');
+  assert.equal(await page.locator('#pokedex-empty').isVisible(),true);
   await page.locator('#pokedex-search').fill('');
   assert.equal((await moveRead()).revision,dex.revision);
 
@@ -596,6 +606,8 @@ try{
   await page.setViewportSize({width:390,height:844});
   assert.ok(await page.locator('#inventory-bag').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
   assert.ok(await page.locator('#inventory-slots').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
+  assert.ok(await page.locator('#online-roster').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
+  assert.ok(await page.locator('#pokedex-grid').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
   await page.setViewportSize({width:1365,height:768});
   assert.equal((await inventoryRead()).revision,inv.revision);
   const loadoutArgs={actionId:'browser-loadout-invalid-0001',expectedRevision:inv.revision,command:{kind:'equipment',slot:'hat',itemId:'gloves'}};
