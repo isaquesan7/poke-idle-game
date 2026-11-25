@@ -28,6 +28,8 @@ export interface GymFighterState {
   readonly status:KantoBattleStatus|null;
   /** Ações próprias de sono restantes, não correm na reserva. */
   readonly sleepActions?:number;
+  /** Próximo multiplicador residual de Toxic (1–15); ausente = veneno comum. */
+  readonly toxicStage?:number;
   readonly effects?:GymEffects;
   readonly confusionTurns?:number;
   readonly retreatRecoveriesUsed:number;
@@ -110,6 +112,7 @@ function checkFighter(f:GymFighterState):void{
     ||f.retreatRecoveriesUsed>GYM_SWITCH_RULES.maxRetreatRecoveryPerPokemon
     ||!Number.isSafeInteger(f.sleepActions??0)||(f.sleepActions??0)<0
     ||(f.sleepActions??0)>3
+    ||(f.toxicStage!==undefined&&(!Number.isSafeInteger(f.toxicStage)||f.toxicStage<1||f.toxicStage>15||f.status!=='poison'))
     ||!Number.isSafeInteger(f.confusionTurns??0)||(f.confusionTurns??0)<0
     ||(f.confusionTurns??0)>5
     ||!Number.isSafeInteger(f.focusUses)||f.focusUses<0

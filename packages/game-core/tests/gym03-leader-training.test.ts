@@ -52,7 +52,7 @@ describe('GYM03: eight leaders and 24 trained Pokemon on equal legal budgets',()
     const limit=legacyMoveRankLimits(mon.level);
     const spent=Object.values(mon.ranks!).reduce((a,b)=>a+b,0);
     expect(spent).toBe(Math.min(limit.skillPoints,rankable.length*limit.maxRankPerMove));
-    expect(spent).toBe(Math.min(limit.skillPoints,Math.min(4,available.size)*limit.maxRankPerMove));
+    expect(spent).toBe(Math.min(limit.skillPoints,Math.min(signature?.move.category==='status'?3:4,available.size)*limit.maxRankPerMove));
     expect(mon.ranks).toEqual(gymOpponentRanks(mon.speciesId,mon.level,moves));
     expect(mon.rank).toBe(mon.ranks![mon.move.name]);
     for(const m of moves){

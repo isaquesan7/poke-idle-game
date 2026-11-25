@@ -18,6 +18,8 @@ export const KANTO_MOVE_PP:Readonly<Record<string,number>>={
     .filter(meta=>meta.pp!==null&&meta.pp>0)
     .map(meta=>[meta.name,meta.pp!])),
   // NPC signature moves, FRLG historical PP; not learned or taught to players.
+  'toxic':10,
+  'calm-mind':20,
   'rock-tomb':10,
   'water-pulse':20,
   'shock-wave':20,

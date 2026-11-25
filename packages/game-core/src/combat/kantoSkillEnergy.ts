@@ -95,6 +95,7 @@ export function kantoMoveSpCost(move:KantoMove):number{
       'poison-powder':14,'thunder-wave':16,'stun-spore':16,glare:16,
       hypnosis:18,'sleep-powder':18,spore:20,
       // A cura de 50% HP paga escassez de PP + bônus fixo 18 (D-039).
+      toxic:18,'calm-mind':14,
       recover:18
     };
     const weight=weights[move.name];
