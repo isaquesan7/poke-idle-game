@@ -221,3 +221,44 @@ test('D6M empty document blocks all reviews and cannot activate',()=>{
   assert.equal(report.publicRegistrationAuthorized,false);
   assert.equal(report.publicSavesAuthorized,false);
 });
+
+import {productionReleaseState,releaseMigrationChecksums} from '../src/releaseActivation.mjs';
+import {ONLINE_ROUTES,webOnlineRoute} from '../src/onlineRoutePolicy.mjs';
+async function activationFixture(){
+ const evidence=releaseReviewFixture(),hashes=await releaseMigrationChecksums();
+ for(const [name,hash] of Object.entries(hashes))evidence.reviews['migration-'+name.slice(0,3)].sqlSha256=hash;
+ const env={NODE_ENV:'production',RAILWAY_GIT_COMMIT_SHA:sha,ONLINE_RELEASE_MODE:'reviewed',ONLINE_PUBLIC_SAVES_ENABLED:'true',ONLINE_REGISTRATION_ENABLED:'true',
+ DATABASE_URL:'postgresql://fixture:fixture@postgres.railway.internal:5432/game',APP_ORIGIN:'https://gateway.up.railway.app',ACCOUNT_MAIL_MODE:'resend',RESEND_API_KEY:'re_fixture',MAIL_FROM:'Game <accounts@example.test>',AUTH_RATE_LIMIT_SECRET:'fixture-rate-secret-not-for-production',ONLINE_SIGNED_QUOTA_MODE:'reviewed',ONLINE_GATEWAY_RECEIVER_ACTIVE_HEX:'12'.repeat(32),WILD_HMAC_ACTIVE_KEY_ID:'a',WILD_HMAC_KEYRING_JSON:JSON.stringify({a:'34'.repeat(32)}),GYM_HMAC_ACTIVE_KEY_ID:'a',GYM_HMAC_KEYRING_JSON:JSON.stringify({a:Buffer.alloc(32,86).toString('base64')}),ONLINE_RELEASE_REVIEW_JSON:JSON.stringify(evidence)};
+ const rows=Object.entries(hashes).map(([name,checksum])=>({name,checksum}));
+ const pool={query:async(sql)=>({rows:sql.includes('game_schema_migrations')?rows:[{nonce:true,regional:true}]})};
+ return {env,pool,rows};
+}
+test('release activation: explicit opt-in, all review checks and current ledger, registration can close independently',async()=>{
+ const {env,pool}=await activationFixture();
+ assert.deepEqual(await productionReleaseState(pool,env,{now}),{savesEnabled:true,registrationEnabled:true});
+ assert.deepEqual(await productionReleaseState(pool,{...env,ONLINE_REGISTRATION_ENABLED:'false'},{now}),{savesEnabled:true,registrationEnabled:false});
+ assert.deepEqual(await productionReleaseState(pool,{...env,ONLINE_RELEASE_MODE:undefined},{now}),{savesEnabled:false,registrationEnabled:false});
+ assert.deepEqual(await productionReleaseState(pool,{...env,NODE_ENV:'test'},{now}),{savesEnabled:false,registrationEnabled:false});
+ assert.deepEqual(await productionReleaseState(pool,{...env,ONLINE_PUBLIC_SAVES_ENABLED:'false',ONLINE_REGISTRATION_ENABLED:'false'},{now}),{savesEnabled:false,registrationEnabled:false});
+ await assert.rejects(productionReleaseState(pool,{...env,ONLINE_PUBLIC_SAVES_ENABLED:'false'},{now}),/requires online saves/);
+});
+test('release activation rejects stale evidence, unsafe environment and unapplied or altered SQL',async()=>{
+ const {env,pool,rows}=await activationFixture();
+ for(const patch of [{RAILWAY_GIT_COMMIT_SHA:'b'.repeat(40)},{ONLINE_RELEASE_REVIEW_JSON:'{}'},{ONLINE_SHOP_CI_ONLY:'true'},{ACCOUNT_MAIL_MODE:'off'},{ONLINE_SIGNED_QUOTA_MODE:undefined}])
+  await assert.rejects(productionReleaseState(pool,{...env,...patch},{now}));
+ rows[0].checksum='0'.repeat(64);
+ await assert.rejects(productionReleaseState(pool,env,{now}),/migrations not applied/);
+ const valid=await activationFixture();
+ await assert.rejects(productionReleaseState({query:async(sql)=>sql.includes('game_schema_migrations')?{rows:valid.rows}:{rows:[{nonce:true,regional:false}]}},valid.env,{now}),/schema not ready/);
+});
+test('release Web allows all reviewed game routes only with production opt-in',()=>{
+ const env={NODE_ENV:'production',ONLINE_RELEASE_MODE:'reviewed',ONLINE_PUBLIC_SAVES_ENABLED:'true',ONLINE_GATEWAY_FORWARD_MODE:'reviewed'};
+ for(const route of ONLINE_ROUTES){
+  assert.equal(webOnlineRoute(route.path,env),route);
+  if(route.group!=='base'){
+   for(const key of ['ONLINE_RELEASE_MODE','ONLINE_PUBLIC_SAVES_ENABLED','ONLINE_GATEWAY_FORWARD_MODE'])
+    assert.equal(webOnlineRoute(route.path,{...env,[key]:undefined}),null);
+  }
+ }
+ assert.equal(webOnlineRoute('/api/v1/unknown',env),null);
+});
