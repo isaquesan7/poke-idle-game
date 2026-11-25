@@ -4,6 +4,9 @@ import {
   canonicalOnlineGymTrainerBonuses,canonicalOnlineGymEquippedMoves,
   canonicalOnlineGymPreparation,canonicalOnlineGymOpeningState
 } from './serverGymPreparation.js';
+import {regionalNativeMoves} from './serverInheritedMoves.js';
+import {frozenValidatedEquippedMoves} from './serverFrozenBattle.js';
+import {gymPsychicLevelMoves} from '../gyms/gymPsychicMoves.js';
 import {resolveGymTurn} from '../gyms/gymTurn.js';
 import {KANTO_GYMS,KANTO_GYM_MASTER_TITLE_STATS} from '../gyms/kantoGyms.js';
 
@@ -199,5 +202,53 @@ describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
     expect(make(p=>{p.gymSession={id:'forged'}})).toBeNull();
     expect(make(p=>{p.pendingBattle={regionId:1}})).toBeNull();
     expect(make(p=>{p.lastBattle={captureStatus:'available'}})).toBeNull();
+  });
+});
+
+
+describe('D6B — shared online Collection move legality',()=>{
+  it('accepts every valid regional slot with identical move data at every species and level',()=>{
+    const mismatches:string[]=[];
+    for(let species=1;species<=151;species++)for(let level=1;level<=100;level++){
+      const names=[...regionalNativeMoves(species,level).keys()];
+      for(let i=0;i<names.length;i+=4){
+        const slots=names.slice(i,i+4);
+        const regional=frozenValidatedEquippedMoves(species,level,slots);
+        if(!regional)continue;
+        const gym=canonicalOnlineGymEquippedMoves(species,level,slots);
+        if(JSON.stringify(gym)!==JSON.stringify(regional))mismatches.push(
+          species+':'+level+':'+slots.join(','));
+      }
+    }
+    expect(mismatches).toEqual([]);
+  },60000);
+  it('prepares a real trio with the previously rejected fallback slots, ranks and Gym turn',()=>{
+    const raw=fixture();
+    for(const [index,species,level] of [[0,12,23],[1,64,23],[2,65,71]] as const){
+      const native=[...regionalNativeMoves(species,level).values()];
+      const attack=native.find(m=>m.category!=='status'&&m.power>0);
+      expect(attack).toBeDefined();
+      expect(gymPsychicLevelMoves(species,level).some(m=>m.move.category!=='status')).toBe(true);
+      raw.roster[index]={uid:index+1,pokemonId:species,level,affinity:0,
+        manual:blank(),moveName:attack!.name,equippedMoveNames:[attack!.name],
+        upgrades:{[attack!.name]:1}};
+    }
+    raw.seen=raw.roster.map(p=>p.pokemonId);
+    const opening=canonicalOnlineGymOpeningState(raw);
+    expect(opening).not.toBeNull();
+    for(const [index,p] of raw.roster.entries()){
+      expect(opening!.preparation.player[index]!.combatant.moves).toEqual(
+        frozenValidatedEquippedMoves(p.pokemonId,p.level,p.equippedMoveNames));
+      expect(opening!.preparation.player[index]!.combatant.ranks).toEqual(p.upgrades);
+    }
+    const action={kind:'move',moveName:raw.roster[0]!.moveName} as const;
+    expect(resolveGymTurn(opening!.battle,action,{kind:'basic'},17).status).toBe('applied');
+  });
+  it('preserves existing Gym psychic level-up permission without granting foreign or NPC TM moves',()=>{
+    expect(canonicalOnlineGymEquippedMoves(64,60,['psychic'])?.[0]?.name).toBe('psychic');
+    expect(canonicalOnlineGymEquippedMoves(25,20,['hydro-pump'])).toBeNull();
+    expect(canonicalOnlineGymEquippedMoves(109,60,['toxic'])).toBeNull();
+    expect(canonicalOnlineGymEquippedMoves(64,60,['calm-mind'])).toBeNull();
+    expect(canonicalOnlineGymEquippedMoves(64,60,['tackle','tackle'])).toBeNull();
   });
 });
