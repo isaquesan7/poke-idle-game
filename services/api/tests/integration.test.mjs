@@ -1877,6 +1877,11 @@ test('ONLINE-01C-21: verify every HMAC turn and pay exactly once (never auto-pre
     assert.deepEqual(parallel.map(x=>x.status).sort(),['paid','replay']);
     assert.deepEqual(parallel[0].paid,parallel[1].paid);
     assert.deepEqual(parallel[0].quote,parallel[1].quote);
+    assert.ok(parallel[0].quote.loot);
+    assert.ok(Array.isArray(parallel[0].paid.loot.stored));
+    assert.ok(Array.isArray(parallel[0].paid.loot.pending));
+    const {quoteCertifiedRegionalLoot}=await import('../src/regionalLootQuote.mjs');
+    assert.deepEqual(parallel[0].quote.loot,quoteCertifiedRegionalLoot(core,original.rows[0].battle_snapshot,{outcome:state.outcome},{accountId,encounterId:ids.encounterId,entropyKey:key}));
     assert.equal(parallel[0].revision,revision+1);
     assert.equal(parallel[0].paid.outcome,state.outcome);
     assert.equal(parallel[0].quote.outcome,state.outcome);

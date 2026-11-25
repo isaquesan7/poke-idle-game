@@ -7,6 +7,7 @@
  * → completed transition and the one-and-only account action receipt.
  */
 import {isDeepStrictEqual} from 'node:util';
+import {quoteCertifiedRegionalLoot} from './regionalLootQuote.mjs';
 import {createPrivateBattleRandom,createPrivateBattleKeyProof,
   BATTLE_ENTROPY_VERSION} from './battleEntropy.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
@@ -156,8 +157,10 @@ export async function finishPaidWildTurnEncounter(pool,{
     const dropRoll=createPrivateBattleRandom(entropyKey,{
       accountId,encounterId,phase:'wild-battle-ball-drop'
     }).integer(10000);
-    const expectedQuote=core.quoteFrozenBattleRewards(
+    const baseQuote=core.quoteFrozenBattleRewards(
       snapshot,verified.summary,affinityRoll,dropRoll);
+    const loot=quoteCertifiedRegionalLoot(core,snapshot,verified.summary,{accountId,encounterId,entropyKey});
+    const expectedQuote=baseQuote&&loot?{...baseQuote,loot}:null;
     const persistedQuote=encounter.battle_turn_payout_quote;
     if(!expectedQuote||!isDeepStrictEqual(expectedQuote,persistedQuote))
       return await rollback(client,{status:'invalid-payout'});
