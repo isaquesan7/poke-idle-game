@@ -26,18 +26,24 @@ function launch(command,args,env){
   const child=spawn(command,args,{cwd:repoDir,
     env:{...process.env,...env},stdio:['ignore','pipe','pipe']});
   let error='';
+  child.stdout.resume();
   child.stderr.on('data',part=>{error=(error+part.toString()).slice(-3000);});
   processes.push(child);
   return {child,get error(){return error;}};
 }
-async function ready(url,label){
+async function ready(url,label,service){
+  let last='no response';
   for(let i=0;i<160;i++){
+    if(service?.child.exitCode!==null&&service?.child.exitCode!==undefined)break;
     try{const r=await fetch(url,{signal:AbortSignal.timeout(1000)});
       if(r.status===200)return;
-    }catch{}
+      last='HTTP '+r.status;
+    }catch(e){last=e.name;}
     await new Promise(resolve=>setTimeout(resolve,100));
   }
-  throw new Error(label+' unavailable');
+  // The stderr getter must be read AFTER polling, not at call time. This
+  // harness is strictly isolated to disposable CI credentials.
+  throw new Error(label+' unavailable ('+last+', exit '+String(service?.child.exitCode??'running')+')\n'+(service?.error??''));
 }
 async function expectFeedback(page,text){
   await page.locator('#feedback').getByText(text,{exact:false}).waitFor();
@@ -64,8 +70,8 @@ try{
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
   });
-  await ready('http://127.0.0.1:'+apiPort+'/health','API: '+api.error);
-  await ready('http://127.0.0.1:'+webPort+'/','web: '+web.error);
+  await ready('http://127.0.0.1:'+apiPort+'/health','API',api);
+  await ready('http://127.0.0.1:'+webPort+'/','web',web);
   if(!process.env.BROWSER_TLS_CERT||!process.env.BROWSER_TLS_KEY)
     throw new Error('CI-only HTTPS certificate files required');
   tlsGateway=createTlsServer({
@@ -83,7 +89,7 @@ try{
     request.pipe(upstream);
   });
   await new Promise(resolve=>tlsGateway.listen(tlsPort,'127.0.0.1',resolve));
-  await ready(closedOrigin+'/','closed web: '+closed.error);
+  await ready(closedOrigin+'/','closed web',closed);
   browser=await chromium.launch({headless:true});
 
   // Closed public-facing mode: no browser can submit registration/login.
@@ -442,7 +448,8 @@ try{
   const gymAlpha=await context.newPage();await gymAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
   await gymAlpha.getByTestId('online-gym-battle').waitFor();
   await gymAlpha.getByTestId('battle-stage').waitFor();
-  await gymAlpha.getByRole('button',{name:'Pular apresentação',exact:true}).click();
+  const skipGymPresentation=gymAlpha.getByRole('button',{name:'Pular apresentação',exact:true});
+  if(await skipGymPresentation.isVisible()&&await skipGymPresentation.isEnabled())await skipGymPresentation.click();
   await gymAlpha.getByTestId('battle-fighter-player').getByText(/Charmander · Nv\./).waitFor();
   assert.match(await gymAlpha.getByTestId('battle-log').textContent(),/Treinador Browser substituiu Pikachu por Charmander/);
   await gymAlpha.close();
