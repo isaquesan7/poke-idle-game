@@ -286,7 +286,17 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     const current=mode==='region'?onlineViews?.region:onlineViews?.gym;
     if(!online||onlineLock.current||save.status!=='ready'||!current||current.revision!==save.snapshot.revision)return false;
     onlineLock.current=true;setBusy(true);setFeedback('');
-    try{const result=await onlineBattleCommand(mode,current,command,regionalArea,choice);await refreshOnline();if(command==='finish'){if(mode==='region'&&result?.rewardSummary)setRegionalReward(result.rewardSummary);else setFeedback(result?.capture==='captured'?'Pokémon capturado!':result?.capture==='failed'?'A captura falhou.':'Batalha encerrada.');}return true;}
+    try{const result=await onlineBattleCommand(mode,current,command,regionalArea,choice);const refreshed=await refreshOnline();
+      // Only a confirmed regional payout may trigger the existing level-up animation.
+      if(mode==='region'&&command==='reward'&&'encounter' in current&&current.encounter&&refreshed.status==='ready'){
+        const before=current.encounter;
+        const parsed=parseLegacySave(refreshed.snapshot.journal.raw);
+        if(parsed.status==='valid'){
+          const partner=parsed.save.roster.find(p=>p.uid===parsed.save.team[0]);
+          if(partner&&Number.isSafeInteger(before.playerLevel)&&partner.level>before.playerLevel)setLevelUpNotice({battleId:before.id});
+        }
+      }
+      if(command==='finish'){if(mode==='region'&&result?.rewardSummary)setRegionalReward(result.rewardSummary);else setFeedback(result?.capture==='captured'?'Pokémon capturado!':result?.capture==='failed'?'A captura falhou.':'Batalha encerrada.');}return true;}
     catch{await refreshOnline();setFeedback('Ação de combate não confirmada. Confira o estado atualizado.');return false;}
     finally{onlineLock.current=false;setBusy(false);}
   }
@@ -1253,7 +1263,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               />
             )}
 
-            {tab==='battle'&&online&&<OnlineBattle mode="region" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={KANTO_REGIONS.find(r=>r.id===regionalArea)?.name??battleRegion.name} reward={regionalReward} onDismissReward={()=>setRegionalReward(null)} busy={busy} blocked={!!onlineViews?.gym?.gym||!!expedition} onCommand={(command,choice)=>runOnlineBattle('region',command,choice)} onBack={()=>setTab('regions')}/>}
+            {tab==='battle'&&online&&<OnlineBattle mode="region" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={KANTO_REGIONS.find(r=>r.id===regionalArea)?.name??battleRegion.name} reward={regionalReward} levelUpEncounterId={levelUpNotice?.battleId??null} onDismissReward={()=>setRegionalReward(null)} busy={busy} blocked={!!onlineViews?.gym?.gym||!!expedition} onCommand={(command,choice)=>runOnlineBattle('region',command,choice)} onBack={()=>setTab('regions')}/>}
             {tab === 'battle' && !online && (
               <>
                 <section className={styles.battleIntro}>

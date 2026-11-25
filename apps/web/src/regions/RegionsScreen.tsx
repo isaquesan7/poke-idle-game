@@ -135,7 +135,7 @@ export function RegionsScreen({
       </section>
 
         {lastBattleRegionId===selected.id&&onReplayBattle&&
-          <button type="button" className={styles.link} onClick={onReplayBattle}>
+          <button type="button" className={styles.link} onClick={()=>{setDetailsOpen(false);onReplayBattle();}}>
             Rever último combate nesta região
           </button>}
         {!unlocked&&<p className={styles.notice} role="status">Alcance o nível {selected.trainerUnlockLevel} de treinador para lutar nesta região.</p>}

@@ -330,6 +330,14 @@ try{
   const replayTurn=await callRegion('turn',turnCommand);
   assert.equal(replayTurn.status,'replay');assert.equal(replayTurn.revision,battle.revision);
   const reloadState=await readRegion();assert.deepEqual(reloadState.encounter,battle.encounter);
+  // Reproduce actual persisted impact frames in Alpha, not invented browser damage.
+  const impact=battle.encounter.frames.find(f=>['attack','residual'].includes(f.kind)&&f.amount>0);
+  assert.ok(impact,'strong basic-attack fixture emits a damage frame');
+  const effectAlpha=await context.newPage();
+  await effectAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await effectAlpha.getByTestId('battle-impact-'+impact.target).waitFor({state:'visible'});
+  assert.ok((await effectAlpha.getByTestId('battle-impact-'+impact.target).textContent()).includes('HP'));
+  await effectAlpha.close();
   for(let i=2;battle.encounter.phase==='await-player'&&i<=30;i++)
     battle=await callRegion('turn',{encounterId,actionId:'browser-region-turn-'+String(i).padStart(2,'0'),expectedRevision:battle.revision,action:{kind:'basic'}});
   assert.equal(battle.encounter.phase,'resolved');

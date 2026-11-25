@@ -19,7 +19,7 @@ function Reserve({party,label}:{party:Party;label:string}){
  <div className={gymStyles.reserveSprite}><PokemonArt id={p.speciesId} name={name(p.speciesId)}/>{p.hp===0&&<span className={gymStyles.reserveKoTag}>Nocauteado</span>}</div><div className={gymStyles.reserveInfo}><strong>{name(p.speciesId)}</strong><small>Nv. {p.level}</small><label>HP {p.hp}/{p.maxHp}<progress value={p.hp} max={p.maxHp}/></label><label>SP {p.sp}/{p.maxSp}<progress value={p.sp} max={p.maxSp}/></label></div></div>)}
  </div></div>;
 }
-export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,blocked,onCommand,onBack,reward,onDismissReward}:{mode:'region'|'gym';region:RegionView|null;gym:GymView|null;data:LegacySave;regionId:number;regionName:string;busy:boolean;blocked:boolean;onCommand:BattleCommand;onBack:()=>void;reward?:RegionalReward|null;onDismissReward?:()=>void}){
+export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,blocked,onCommand,onBack,reward,onDismissReward,levelUpEncounterId}:{mode:'region'|'gym';region:RegionView|null;gym:GymView|null;data:LegacySave;regionId:number;regionName:string;busy:boolean;blocked:boolean;onCommand:BattleCommand;onBack:()=>void;reward?:RegionalReward|null;onDismissReward?:()=>void;levelUpEncounterId?:string|null}){
  const e=mode==='region'?region?.encounter:gym?.gym;
  const g=mode==='gym'?gym?.gym:null;
  const w=mode==='region'?region?.encounter:null;
@@ -28,12 +28,15 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  const stageRef=useRef<HTMLDivElement>(null);
  const captureRef=useRef<HTMLDivElement>(null);
  const startRef=useRef<HTMLButtonElement>(null);
- const [visible,setVisible]=useState(0);
+ const [reveal,setReveal]=useState({key:'',visible:0});
  const prev=useRef({id:'',length:0});
  const sent=useRef('');
  const key=e?e.id+':'+e.log.length:'';
  const prior=e&&prev.current.id===e.id?Math.min(prev.current.length,e.log.length):(g?.presentation?.logOffset??0);
  const playing=!!e&&e.log.length>0&&shown.key!==key;
+ const visible=playing?(reveal.key===key?reveal.visible:Math.min(e?.log.length??0,prior+1)):(e?.log.length??0);
+ const levelUp=!!w&&w.phase==='paid'&&levelUpEncounterId===w.id;
+ const focusedEncounter=useRef('');
  const onCommandRef=useRef(onCommand);onCommandRef.current=onCommand;
  useEffect(()=>{if(!e){setAuto(false);sent.current='';prev.current={id:'',length:0};return;}},[e?.id]);
  useEffect(()=>{
@@ -44,7 +47,8 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
   const timer=window.setTimeout(()=>{sent.current=token;void onCommandRef.current(e.phase==='await-player'?'turn':'reward').then(ok=>{if(!ok)setAuto(false);});},180);
   return()=>window.clearTimeout(timer);
  },[e?.id,e?.phase,e?.log.length,auto,busy,blocked,playing]);
- useEffect(()=>{if(busy||playing||reward)return;const target=w?.phase==='paid'?captureRef.current:e?stageRef.current:startRef.current;target?.focus({preventScroll:true});target?.scrollIntoView({block:'nearest'});},[e?.id,e?.phase,busy,playing,reward]);
+ useEffect(()=>{if(!e){focusedEncounter.current='';return;}if(busy||reward||!stageRef.current)return;if(focusedEncounter.current!==e.id){focusedEncounter.current=e.id;stageRef.current.focus({preventScroll:true});stageRef.current.scrollIntoView({block:'center'});}},[e?.id,busy,reward]);
+ useEffect(()=>{if(busy||playing||reward)return;const target=levelUp?stageRef.current:w?.phase==='paid'?captureRef.current:e?stageRef.current:startRef.current;target?.focus({preventScroll:true});target?.scrollIntoView({block:levelUp?'center':'nearest'});},[e?.id,e?.phase,busy,playing,reward,levelUp]);
  function launch(){sent.current='';setAuto(true);void onCommand('open').then(ok=>{if(!ok)setAuto(false);});}
  const lead=data.roster.find(p=>p.uid===data.team[0]);
  const xpMax=lead&&lead.level<100?xpThreshold('pokemon',lead.level):null;
@@ -75,12 +79,12 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  {e&&e.phase!=='reserved'&&<p>Turno {e.turn} · {playing?'Apresentando diário':e.phase==='await-player'?'Combate em andamento':e.outcome==='win'||e.outcome==='player-win'?'Vitória!':e.outcome==='draw'?'Empate':'Derrota'}</p>}
  {e?.phase==='await-player'&&<div className={gymStyles.actions}><button className={styles.primary} disabled={busy||auto||blocked} onClick={()=>{sent.current='';setAuto(true);}}>Continuar batalha automática</button><button className={styles.secondary} disabled={!auto} onClick={()=>setAuto(false)}>Pausar após a rodada</button></div>}
  </div>
- {lead&&<div className={styles.battleArenaColumn}><BattleStage stageRef={stageRef} player={{name:name(a?.speciesId??lead.pokemonId),level:a?.level??w?.playerLevel??lead.level,art:<PokemonArt id={a?.speciesId??lead.pokemonId} name={name(a?.speciesId??lead.pokemonId)} large/>}} wild={z?{name:name(z.speciesId),level:z.level??w?.level??1,art:<PokemonArt id={z.speciesId} name={name(z.speciesId)} large/>}:null} frame={frame} playerMaxHp={a?.maxHp??null} wildMaxHp={z?.maxHp??null} playerMaxSp={a?.maxSp??null} wildMaxSp={z?.maxSp??null} playing={playing&&!!frame} cue={key+':'+visible} {...(a&&z?{vitals:{playerHp:a.hp,wildHp:z.hp,playerSp:a.sp,wildSp:z.sp}}:{})} opponentLabel={g?'Pokémon de '+g.leader:'Pokémon selvagem'}/>
- {w?.phase==='paid'&&!playing&&<div className={styles.battleCapturePlacement} ref={captureRef} tabIndex={-1}><div className={styles.captureDecision}><h3>{w.outcome==='win'?'Tentar capturar '+name(w.wild?.speciesId??0)+'?':'Encerrar batalha'}</h3>{w.captureChoices.map(ball=><button key={ball.ballId} className={styles.primary} disabled={busy||ball.quantity<1} onClick={()=>void onCommand('finish',ball.ballId)}>{balls[ball.ballId]??ball.ballId} · {ball.quantity}</button>)}<button className={styles.secondary} disabled={busy} onClick={()=>void onCommand('finish','skip')}>Seguir sem capturar</button></div></div>}
+ {lead&&<div className={styles.battleArenaColumn}><BattleStage stageRef={stageRef} levelUp={levelUp} player={{name:name(a?.speciesId??lead.pokemonId),level:w?.phase==='paid'?lead.level:a?.level??w?.playerLevel??lead.level,art:<PokemonArt id={a?.speciesId??lead.pokemonId} name={name(a?.speciesId??lead.pokemonId)} large/>}} wild={z?{name:name(z.speciesId),level:z.level??w?.level??1,art:<PokemonArt id={z.speciesId} name={name(z.speciesId)} large/>}:null} frame={frame} playerMaxHp={a?.maxHp??null} wildMaxHp={z?.maxHp??null} playerMaxSp={a?.maxSp??null} wildMaxSp={z?.maxSp??null} playing={playing&&!!frame} cue={key+':'+visible} {...(a&&z?{vitals:{playerHp:a.hp,wildHp:z.hp,playerSp:a.sp,wildSp:z.sp}}:{})} opponentLabel={g?'Pokémon de '+g.leader:'Pokémon selvagem'}/>
+ {w?.phase==='paid'&&!playing&&!levelUp&&<div className={styles.battleCapturePlacement} ref={captureRef} tabIndex={-1}><div className={styles.captureDecision}><h3>{w.outcome==='win'?'Tentar capturar '+name(w.wild?.speciesId??0)+'?':'Encerrar batalha'}</h3>{w.captureChoices.map(ball=><button key={ball.ballId} className={styles.primary} disabled={busy||ball.quantity<1} onClick={()=>void onCommand('finish',ball.ballId)}>{balls[ball.ballId]??ball.ballId} · {ball.quantity}</button>)}<button className={styles.secondary} disabled={busy} onClick={()=>void onCommand('finish','skip')}>Seguir sem capturar</button></div></div>}
  </div>}
  </div>
  {g&&display?.player&&display.opponent&&<div className={gymStyles.benchColumns}><Reserve party={display.player} label="Suas reservas"/><Reserve party={display.opponent} label={'Reservas de '+g.leader}/></div>}
- {e&&log.length>0&&<BattlePlayback key={key} log={log} initialVisible={prior} turns={e.turn} playing={playing} onProgress={setVisible} onFinished={()=>{prev.current={id:e.id,length:log.length};setShown({key,length:log.length});}}/>}
+ {e&&log.length>0&&<BattlePlayback key={key} log={log} initialVisible={prior} turns={e.turn} playing={playing} holdLastFrame onProgress={n=>setReveal(old=>old.key===key&&old.visible===n?old:{key,visible:n})} onFinished={()=>{prev.current={id:e.id,length:log.length};setShown({key,length:log.length});}}/>}
  {e&&!playing&&['resolved','certified'].includes(e.phase)&&<button className={styles.primary} disabled={busy} onClick={()=>void onCommand('reward')}>{mode==='gym'?'Finalizar confronto':'Receber recompensas'}</button>}
  {mode==='region'&&reward&&onDismissReward&&<RegionDialog title="Resultado da batalha" onClose={onDismissReward}><h2>{reward.outcome==='win'?'Vitória!':reward.outcome==='draw'?'Empate':'Derrota'}</h2><div className={styles.battleRewards}><div><small><i className="fa-solid fa-user" aria-hidden="true"/> XP do treinador</small><strong>+{reward.trainerXp}</strong></div><div><small><i className="fa-solid fa-dragon" aria-hidden="true"/> XP do Pokémon</small><strong>+{reward.pokemonXp}</strong></div><div><small><i className="fa-solid fa-coins" aria-hidden="true"/> Ouro</small><strong>+{reward.coins}</strong></div><div><small><i className="fa-solid fa-circle-dot" aria-hidden="true"/> Captura</small><strong>{reward.capture==='captured'?'Bem-sucedida':reward.capture==='failed'?'Falhou':'Não realizada'}</strong></div></div><h3>Itens dropados</h3>{reward.loot.stored.length+reward.loot.pending.length===0?<p>Nenhum item dropado.</p>:<ul className={styles.rewardDrops}>{[...reward.loot.stored.map(item=>({item,pending:false})),...reward.loot.pending.map(item=>({item,pending:true}))].map(({item,pending},i)=><li key={i}>{item.kind==='gear'?item.gear.templateId+' · '+item.gear.rarity:(balls[item.itemId]??item.itemId)+' × '+item.quantity}{pending?' · Pendente na mochila':' · Guardado na mochila'}</li>)}</ul>}<button type="button" className={styles.primary} onClick={onDismissReward}>Continuar</button></RegionDialog>}
  </section>;
