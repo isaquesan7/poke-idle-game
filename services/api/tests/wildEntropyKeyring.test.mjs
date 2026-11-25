@@ -10,7 +10,7 @@ test('D6H: rotation preserves deterministic turn, reward and capture entropy aft
  assert.equal(next.resolve({...context,storedProof:null}).id,'next');
  const a=old.resolve({...context,storedProof:proof}),b=next.resolve({...context,storedProof:proof});
  assert.equal(b.status,'resolved');assert.equal(b.id,'old');assert.deepEqual(a.key,b.key);
- for(const phase of ['wild-turn-2','wild-affinity','wild-ball-drop','wild-capture']){
+ for(const phase of ['wild-turn-2','wild-battle-affinity','wild-battle-ball-drop','wild-turn-capture','wild-battle-gear-drop','wild-battle-stone-drop']){
   const draw=key=>createPrivateBattleRandom(key,{...context,phase}).integer(2**32);
   assert.equal(draw(a.key),draw(b.key));
  }

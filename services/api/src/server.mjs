@@ -15,7 +15,7 @@ import {
 import {throttle,requesterIp,issueVerification,consumeVerification} from './authSecurity.mjs';
 import {issuePasswordReset,consumePasswordReset} from './passwordReset.mjs';
 import {deliverAccountEmail} from './mailer.mjs';
-import {regionalPaths,loadRegionalTestKey,regionalExpansionEnabled,readRegionalEncounter,runRegionalCommand} from './regionalHttp.mjs';
+import {regionalPaths,loadRegionalTestKeyring,regionalExpansionEnabled,readRegionalEncounter,runRegionalCommand} from './regionalHttp.mjs';
 import {expeditionHttpEnabled,readExpedition} from './expeditionHttp.mjs';
 import {applyExpeditionCommand} from './expeditionWriter.mjs';
 import {shopHttpEnabled,readShop} from './shopHttp.mjs';
@@ -520,7 +520,7 @@ const server=createServer(async(req,res)=>{
       if(!account)return json(res,401,{error:'Não autenticado'});
       if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
       let key,expanded;
-      try{key=loadRegionalTestKey();expanded=regionalExpansionEnabled();}catch{return json(res,503,{error:'Regiões online em preparação'});}
+      try{key=loadRegionalTestKeyring();expanded=regionalExpansionEnabled();}catch{return json(res,503,{error:'Regiões online em preparação'});}
       if(read){
         const current=await readRegionalEncounter(pool,account.id,expanded);
         return json(res,current.status==='ok'?200:404,current);

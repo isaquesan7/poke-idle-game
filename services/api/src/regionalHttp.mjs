@@ -2,6 +2,7 @@
  * No combat rules here: calls the existing canonical writers. Never return
  * entropy keys, proofs, snapshots, internal engine state or receipt digests.
  */
+import {createWildEntropyKeyring,selectWildEncounterKey} from './wildEntropyKeyring.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
 import {reserveEncounter} from './encounterReservation.mjs';
 import {materializeReservedEncounter} from './encounterMaterialization.mjs';
@@ -31,6 +32,9 @@ export function loadRegionalTestKey(env=process.env){
     typeof hex!=='string'||!/^[a-f0-9]{64}$/.test(hex))
    throw new Error('Regional CI key unavailable');
  return Buffer.from(hex,'hex');
+}
+export function loadRegionalTestKeyring(env=process.env){
+ return createWildEntropyKeyring({activeId:'ci',keys:{ci:loadRegionalTestKey(env).toString('hex')}});
 }
 export function regionalExpansionEnabled(env=process.env){
  if(env.ONLINE_REGIONAL_EXPANSION_CI_ONLY!=='true')return false;
@@ -71,6 +75,11 @@ export async function runRegionalCommand(pool,accountId,command,data,entropyKey,
     (command!=='reserve'&&(typeof data.encounterId!=='string'||!UUID.test(data.encounterId)))||
     (command!=='start'&&(typeof data.actionId!=='string'||!ACTION.test(data.actionId))))
   return {status:'invalid'};
+ if(!Buffer.isBuffer(entropyKey)&&['start','turn','settle','finish'].includes(command)){
+  const selected=await selectWildEncounterKey(pool,entropyKey,{accountId,encounterId:data.encounterId});
+  if(!['new','resolved'].includes(selected.status))return {status:selected.status};
+  entropyKey=selected.key;
+ }
  const params={accountId,...data};
  let result;
  if(command==='reserve')result=await reserveEncounter(pool,{...params,allowExpandedRegions:expanded===true});
