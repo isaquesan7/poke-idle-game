@@ -90,6 +90,21 @@ describe('ONLINE-01C-19 — canonical wild 1v1 turn resolver',()=>{
     }
     throw new Error('Kanto wild battle did not resolve in 30 turns');
   });
+  it('rejects an altered secondary rank in the persisted engine on replay',()=>{
+    const base=snapshot(10),s={...base,version:2,opponent:{speciesId:7,level:10},
+      activePokemon:{...base.activePokemon,moveNames:['scratch','ember','growl'],upgrades:{scratch:1,ember:1}}};
+    const initial=createFrozenWildTurnSession(s)!;
+    const first=resolveFrozenWildTurn(s,initial,{kind:'move',moveName:'growl'},43)!;
+    expect(first.status).toBe('applied');
+    if(first.status!=='applied')throw Error('expected applied');
+    expect(first.turnState.phase).toBe('await-player');
+    expect(legalFrozenWildTurnActions(s,first.turnState)).not.toBeNull();
+    const tampered=structuredClone(first.turnState);
+    const fighter=tampered.engine!.player.fighters[0]!;
+    Object.assign(fighter.combatant,{ranks:{...fighter.combatant.ranks,ember:9}});
+    expect(legalFrozenWildTurnActions(s,tampered)).toBeNull();
+    expect(resolveFrozenWildTurn(s,tampered,{kind:'basic'},44)).toBeNull();
+  });
   it('rejects tampered combat state rather than recreating lost HP/SP',()=>{
     const s=snapshot(),initial=createFrozenWildTurnSession(s)!;
     expect(legalFrozenWildTurnActions(s,{
