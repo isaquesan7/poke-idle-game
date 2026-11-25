@@ -3216,3 +3216,60 @@ test('ONLINE-01C-23B2C: Gym reservation freezes Collection trio, replays and blo
     await pool.end();
   }
 });
+
+test('D6I: regional HTTP keyring binds materialization and survives rotation before first turn through settlement',async()=>{
+  const {firstSave}=await import('../src/initialAdventure.mjs');
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {runRegionalCommand}=await import('../src/regionalHttp.mjs');
+  const {createWildEntropyKeyring}=await import('../src/wildEntropyKeyring.mjs');
+  const {createPrivateBattleKeyProof}=await import('../src/battleEntropy.mjs');
+  const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+  let accountId;
+  try{
+    accountId=(await pool.query('INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id',['rotation-d6i-'+process.pid+'@example.test','x'.repeat(48)])).rows[0].id;
+    await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[accountId,JSON.stringify(firstSave('Rotation CI',4,1740000000000))]);
+    const reserved=await reserveEncounter(pool,{accountId,actionId:'rotation-d6i-reserve-0001',expectedRevision:0,regionId:1});
+    assert.equal(reserved.status,'reserved');
+    const encounterId=reserved.encounterId,ids={accountId,encounterId};
+    const keys={old:'39'.repeat(32),next:'a1'.repeat(32)};
+    const old=createWildEntropyKeyring({activeId:'old',keys}),rotated=createWildEntropyKeyring({activeId:'next',keys});
+    const missing=createWildEntropyKeyring({activeId:'next',keys:{next:keys.next}});
+    const first=await materializeReservedEncounter(pool,{...ids,entropyKey:old});
+    assert.equal(first.status,'materialized');
+    const read=async()=> (await pool.query('SELECT species_id,pokemon_level,battle_turn_entropy_proof,battle_turn_state FROM game_encounter_reservations WHERE account_id=$1 AND id=$2',[accountId,encounterId])).rows[0];
+    const before=await read();
+    assert.equal(before.battle_turn_state,null);
+    assert.equal(before.battle_turn_entropy_proof,createPrivateBattleKeyProof(Buffer.from(keys.old,'hex'),ids));
+    const call=(kind,data,ring=rotated)=>runRegionalCommand(pool,accountId,kind,{encounterId,...data},ring);
+    assert.equal((await call('start',{expectedRevision:1},missing)).status,'historical-key-missing');
+    assert.deepEqual(await read(),before);
+    const started=await call('start',{expectedRevision:1});
+    assert.equal(started.status,'started');
+    assert.equal(started.encounter.speciesId,first.speciesId);
+    assert.equal(started.encounter.level,first.level);
+    let result=started,turn=0;
+    while(result.encounter.phase==='await-player'&&turn<30){
+      const data={expectedRevision:result.revision,actionId:'rotation-d6i-turn-'+String(++turn).padStart(4,'0'),action:{kind:'basic'}};
+      if(turn===1)assert.equal((await call('turn',data,missing)).status,'historical-key-missing');
+      result=await call('turn',data);
+      assert.equal(result.status,'applied');
+    }
+    assert.equal(result.encounter.phase,'resolved');
+    const cert=await call('certify',{expectedRevision:result.revision,actionId:'rotation-d6i-cert-0001'});
+    assert.equal(cert.status,'certified');
+    const payout={expectedRevision:cert.revision,actionId:'rotation-d6i-pay-0001'};
+    assert.equal((await call('settle',payout,missing)).status,'historical-key-missing');
+    const paid=await call('settle',payout);
+    assert.equal(paid.status,'paid');
+    const finish={expectedRevision:paid.revision,actionId:'rotation-d6i-finish-0001',choice:'skip'};
+    assert.equal((await call('finish',finish,missing)).status,'historical-key-missing');
+    const finished=await call('finish',finish);
+    assert.equal(finished.status,'finished');
+    assert.equal((await read()).battle_turn_entropy_proof,before.battle_turn_entropy_proof);
+    assert.equal(finished.encounter,null);
+  }finally{
+    if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+    await pool.end();
+  }
+});
