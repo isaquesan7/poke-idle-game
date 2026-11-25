@@ -58,3 +58,8 @@ export function applyOnlineMoveRank(raw:string,uid:number,name:string){
  const limits=legacyMoveRankLimits(target.level);
  return {status:'ok',raw:JSON.stringify(after),rank:next[name]!,remaining:limits.skillPoints-Object.values(next).reduce((a,b)=>a+b,0)} as const;
 }
+
+/** Explicit zero for every unranked slot prevents primary rank leaking to other moves. */
+export function equippedOnlineRanks(moves:readonly KantoMove[],ranks:Readonly<Record<string,number>>):Record<string,number>{
+ return Object.fromEntries(moves.map(move=>[move.name,ranks[move.name]??0]));
+}
