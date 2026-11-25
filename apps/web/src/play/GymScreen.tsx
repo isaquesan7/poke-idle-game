@@ -207,6 +207,7 @@ export function GymScreen({game,data,busy,revision,onAction,onOpenCollection}:Pr
     </div>}
     {!session&&gym&&<div className={styles.panel}>
       <h3>Desafiar {gym.leader} · Insígnia {gym.name}</h3>
+      <p>Treinador nível {gym.trainerLevel} · equipe treinada e afinidade máxima.</p>
       <p>Recomendação: níveis {gym.recommendedMinLevel}–{gym.recommendedMaxLevel}.
         Recompensa por vitória: {gym.coins.toLocaleString('pt-BR')} moedas
         e {gym.trainerXp.toLocaleString('pt-BR')} XP de treinador.</p>

@@ -9,7 +9,7 @@
  * Region (1v1) snapshots v1/v2 must not import this module's bonuses.
  */
 import {KANTO_GYMS,kantoNextGym} from '../gyms/kantoGyms.js';
-import {prepareGymOpponent} from '../gyms/gymTactics.js';
+import {prepareGymOpponent,prepareGymLeader} from '../gyms/gymTactics.js';
 import {createGymBattleState} from '../gyms/gymBattleState.js';
 import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
 import {inheritedOnlineMoves} from './serverInheritedMoves.js';
@@ -147,6 +147,7 @@ export interface OnlineGymPreparationV1 {
     {readonly uid:number;readonly combatant:Combatant}
   ];
   readonly leaderTeam:readonly [Combatant,Combatant,Combatant];
+  readonly leaderTrainer:ReturnType<typeof prepareGymLeader>;
 }
 /** Three real members ONLY from the already-selected Collection team.
  * Not a wild battle, not the local Gym session, and not yet an online writer.
@@ -205,7 +206,7 @@ export function canonicalOnlineGymPreparation(source:unknown):
     teamUids:[source.team[0]!,source.team[1]!,source.team[2]!],
     trainer:bonuses,
     player:players as unknown as OnlineGymPreparationV1['player'],
-    leaderTeam:opponent.team
+    leaderTeam:opponent.team,leaderTrainer:opponent.trainer
   };
 }
 

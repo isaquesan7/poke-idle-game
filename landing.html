@@ -284,7 +284,7 @@ function renderGym(){
  gymSection.hidden=!gymState||!serverProgress;
  const g=gymState?.gym,next=gymState?.nextGym;
  $('gym-heading').textContent='Ginásios de Kanto';
- $('gym-info').textContent=g?'Equipe congelada durante o confronto.':next?'Próximo líder: '+next.leader:
+ $('gym-info').textContent=g?'Equipe congelada durante o confronto.'+(g.leaderLevel?' · Líder Nv. '+g.leaderLevel:''):next?'Próximo líder: '+next.leader+' · Nv. '+next.leaderLevel:
   serverProgress?.state.badges.length===8?'Oito insígnias conquistadas.':'Defina três Pokémon na Coleção para desafiar o próximo líder.';
  gymOpen.hidden=!!g&&g.phase!=='reserved';
  gymOpen.disabled=onlineBusy||expeditionActive()||!gymState||!serverProgress||regionActive()||(!g&&!gymState.canReserve);
