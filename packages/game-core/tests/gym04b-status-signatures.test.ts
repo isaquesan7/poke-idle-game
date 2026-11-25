@@ -63,6 +63,14 @@ describe('GYM04B: Toxic and Calm Mind only in NPC loadouts',()=>{
   expect(canonicalOnlineGymEquippedMoves(109,46,['toxic'])).toBeNull();
   expect(canonicalOnlineGymEquippedMoves(122,56,['calm-mind'])).toBeNull();
  });
+ it('AI chooses Calm Mind with a special attack available and stops at cap',()=>{
+  const special={name:'test-special',type:'normal',category:'special' as const,power:10,accuracy:100,priority:0};
+  const mon={...tank(calm),moves:[calm,special]};
+  const s=make(mon,tank(toxic));
+  expect(gymChooseAiAction(s,'player')).toEqual({kind:'move',moveName:'calm-mind'});
+  let capped=s;for(let i=0;i<6;i++)capped=gymCalmMind(capped,'player');
+  expect(gymChooseAiAction(capped,'player')).not.toEqual({kind:'move',moveName:'calm-mind'});
+ });
  it('boosts affect real special damage on both sides without altering physical damage',()=>{
   const special={name:'test-special',type:'normal',category:'special' as const,power:40,accuracy:100,priority:0};
   const s=make(tank(special),tank(special)),action={kind:'move',moveName:special.name} as const;

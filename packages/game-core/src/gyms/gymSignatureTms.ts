@@ -5,6 +5,7 @@
  * No player teaching, regional encounters, learnset mutation or TM rewards.
  */
 import type {KantoMove} from '../combat/kantoBattle.js';
+import {GYM_NPC_SUPPORT_MOVES} from './gymNpcSupportMoves.js';
 import {KANTO_BATTLE_MOVES} from '../combat/kantoBattle.js';
 const move=(name:string,type:string,category:'physical'|'special'|'status',power:number,accuracy:number):KantoMove=>({name,type,category,power,accuracy,priority:0});
 const SIGNATURES:Readonly<Record<string,Readonly<{tm:number;species:readonly number[];move:KantoMove}>>>={
@@ -12,8 +13,8 @@ const SIGNATURES:Readonly<Record<string,Readonly<{tm:number;species:readonly num
  cascade:{tm:3,species:[120,121],move:move('water-pulse','water','special',60,100)},
  thunder:{tm:34,species:[100,25,26],move:move('shock-wave','electric','special',60,100)},
  rainbow:{tm:19,species:[114,71,45],move:KANTO_BATTLE_MOVES['giga-drain']!},
- soul:{tm:6,species:[109,89,110],move:move('toxic','poison','status',0,85)},
- marsh:{tm:4,species:[122,64,65],move:move('calm-mind','psychic','status',0,100)},
+ soul:{tm:6,species:[109,89,110],move:GYM_NPC_SUPPORT_MOVES.toxic!},
+ marsh:{tm:4,species:[122,64,65],move:GYM_NPC_SUPPORT_MOVES['calm-mind']!},
  volcano:{tm:38,species:[77,78,59],move:KANTO_BATTLE_MOVES['fire-blast']!},
  earth:{tm:26,species:[51,31,34],move:move('earthquake','ground','physical',100,100)}
 };
