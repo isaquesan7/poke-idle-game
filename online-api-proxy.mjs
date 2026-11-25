@@ -1,5 +1,6 @@
 import {request as httpRequest} from 'node:http';
 import {request as httpsRequest} from 'node:https';
+import {webOnlineRoute,signedOnlineRoute} from './services/api/src/onlineRoutePolicy.mjs';
 
 // ONLINE-01C-4. Explicit opt-in: leave unset until private Railway routing,
 // backups and email delivery are independently verified.
@@ -12,13 +13,6 @@ if(upstreamValue){
       upstream.pathname!=='/' || !upstream.hostname)
     throw new Error('ONLINE_API_INTERNAL_URL must be an origin without credentials');
 }
-const allowed=new Set([
-  '/api/v1/status','/api/v1/me','/api/v1/save',
-  '/api/v1/auth/register','/api/v1/auth/verify','/api/v1/auth/login',
-  '/api/v1/auth/logout','/api/v1/auth/request-reset',
-  '/api/v1/auth/confirm-reset','/api/v1/adventure/start',
-  '/api/v1/trainer/invest'
-]);
 const hopByHop=new Set(['connection','keep-alive','proxy-authenticate',
   'proxy-authorization','te','trailer','transfer-encoding','upgrade',
   'host','forwarded','x-forwarded-for','x-forwarded-host',
@@ -28,35 +22,6 @@ const hopByHop=new Set(['connection','keep-alive','proxy-authenticate',
 const requestHeaders=new Set(['content-type','origin','cookie','accept']);
 const responseHeaders=new Set(['content-type','set-cookie','retry-after','allow',
   'x-frame-options','referrer-policy','x-robots-tag','content-disposition','vary']);
-// Collection writer is reachable through Web only in the existing test mode.
-if(process.env.NODE_ENV==='test'){
-  allowed.add('/api/v1/collection/team');
-  for(const command of ['current','reserve','start','turn','certify','settle','finish'])
-    allowed.add('/api/v1/region/'+command);
-}
-if(process.env.NODE_ENV==='test'&&process.env.ONLINE_GYM_PORTAL_CI_ONLY==='true'){
-  for(const command of ['current','reserve','start','turn','certify','settle'])allowed.add('/api/v1/gym/'+command);
-}
-if(process.env.NODE_ENV==='test'&&process.env.ONLINE_EXPEDITION_CI_ONLY==='true'){
-  for(const command of ['current','start','claim','stop'])allowed.add('/api/v1/expedition/'+command);
-}
-if(process.env.NODE_ENV==='test'&&process.env.ONLINE_SHOP_CI_ONLY==='true'){
-  for(const command of ['current','purchase'])allowed.add('/api/v1/shop/'+command);
-}
-if(process.env.NODE_ENV==='test'&&process.env.ONLINE_MOVES_CI_ONLY==='true'){
-  for(const command of ['current','equip','upgrade'])allowed.add('/api/v1/moves/'+command);
-}
-if(process.env.NODE_ENV==='test'&&process.env.ONLINE_EVOLUTION_CI_ONLY==='true'){
-  for(const command of ['current','evolve'])allowed.add('/api/v1/evolution/'+command);
-}
-if(process.env.NODE_ENV==='test'&&process.env.ONLINE_POKEMON_TRAINING_CI_ONLY==='true'){
-  for(const command of ['current','train'])allowed.add('/api/v1/pokemon-training/'+command);
-}
-if(process.env.NODE_ENV==='test'&&process.env.ONLINE_POKEDEX_CI_ONLY==='true')allowed.add('/api/v1/pokedex/current');
-if(process.env.NODE_ENV==='test'&&process.env.ONLINE_TRAINER_LOADOUT_CI_ONLY==='true'){
-  for(const command of ['current','loadout'])allowed.add('/api/v1/inventory/'+command);
-}
-const readPaths=new Set(['/api/v1/status','/api/v1/me','/api/v1/save','/api/v1/region/current','/api/v1/gym/current','/api/v1/expedition/current','/api/v1/shop/current','/api/v1/moves/current','/api/v1/evolution/current','/api/v1/pokemon-training/current','/api/v1/pokedex/current','/api/v1/inventory/current']);
 const maxBody=16384;
 // Default strips proofs; reviewed deployment can relay opaque assertions without keys.
 // The web proxy has NO signing key and cannot create client identities.
@@ -70,8 +35,6 @@ if(gatewayForwardReviewed&&(process.env.NODE_ENV!=='production'||gatewayForwardT
     !upstream||upstream.protocol!=='http:'||!(/^[a-z0-9-]+\.railway\.internal$/).test(upstream.hostname)||!upstream.port||
     ['GATEWAY_SIGNING_HEX','GATEWAY_SUBJECT_HEX','ONLINE_GATEWAY_RECEIVER_ACTIVE_HEX','ONLINE_SIGNED_QUOTA_TEST_KEY'].some(k=>process.env[k]!==undefined)))
   throw new Error('Reviewed forwarding requires private API and no gateway keys');
-const signedPaths=new Set(['/api/v1/auth/register','/api/v1/auth/verify',
-  '/api/v1/auth/login','/api/v1/auth/request-reset','/api/v1/auth/confirm-reset']);
 function gatewayProof(req){
   const values=[];
   for(let i=0;i<req.rawHeaders.length;i+=2)
@@ -101,19 +64,20 @@ function fail(res,status,message){
 }
 export function proxyOnlineApi(req,res,pathname){
   if(!pathname.startsWith('/api/'))return false;
-  if(!allowed.has(pathname)){
+  const route=webOnlineRoute(pathname);
+  if(!route){
     fail(res,404,'Rota não disponível');return true;
   }
   if(!upstream){
     fail(res,503,'Contas online em preparação');return true;
   }
   const method=req.method;
-  const allowedMethod=readPaths.has(pathname)?'GET':'POST';
+  const allowedMethod=route.method;
   if(method!==allowedMethod){
     res.setHeader('Allow',allowedMethod);
     fail(res,405,'Método não permitido');return true;
   }
-  const proofRequired=(gatewayForwardTest||gatewayForwardReviewed)&&signedPaths.has(pathname);
+  const proofRequired=(gatewayForwardTest||gatewayForwardReviewed)&&signedOnlineRoute(pathname);
   const proof=proofRequired?gatewayProof(req):null;
   if(proofRequired&&(!proof||req.url!==pathname)){
     fail(res,403,'Identidade de gateway inválida');req.resume();return true;

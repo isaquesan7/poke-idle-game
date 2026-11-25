@@ -15,7 +15,8 @@ import {
 import {throttle,requesterIp,issueVerification,consumeVerification} from './authSecurity.mjs';
 import {issuePasswordReset,consumePasswordReset} from './passwordReset.mjs';
 import {deliverAccountEmail} from './mailer.mjs';
-import {regionalPaths,loadRegionalTestKeyring,regionalExpansionEnabled,readRegionalEncounter,runRegionalCommand} from './regionalHttp.mjs';
+import {onlineRouteGroup,signedOnlineRoute} from './onlineRoutePolicy.mjs';
+import {loadRegionalTestKeyring,regionalExpansionEnabled,readRegionalEncounter,runRegionalCommand} from './regionalHttp.mjs';
 import {expeditionHttpEnabled,readExpedition} from './expeditionHttp.mjs';
 import {applyExpeditionCommand} from './expeditionWriter.mjs';
 import {shopHttpEnabled,readShop} from './shopHttp.mjs';
@@ -55,8 +56,6 @@ const enabled=process.env.NODE_ENV==='test' &&
   process.env.ONLINE_REGISTRATION_ENABLED==='true';
 // Test-only signed quota mode; never enabled by a production environment variable.
 const signedQuotaTest=enabled&&process.env.ONLINE_SIGNED_QUOTA_TEST_ONLY==='true';
-const signedRoutes=new Set(['/api/v1/auth/register','/api/v1/auth/verify',
-  '/api/v1/auth/login','/api/v1/auth/request-reset','/api/v1/auth/confirm-reset']);
 let signedQuotaReceiver;
 if(signedQuotaTest){
   const db=new URL(connectionString);
@@ -182,7 +181,7 @@ const server=createServer(async(req,res)=>{
     }
     if(!enabled&&pathname.startsWith('/api/v1/auth/'))
       return json(res,503,{error:'Cadastro e login em preparação'});
-    if(signedQuotaReceiver&&req.method==='POST'&&signedRoutes.has(pathname)){
+    if(signedQuotaReceiver&&req.method==='POST'&&signedOnlineRoute(pathname)){
       requireSameOrigin(req);
       if(req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       const assertions=[];
@@ -387,7 +386,7 @@ const server=createServer(async(req,res)=>{
         result.status==='missing'?404:result.status==='invalid'?400:409;
       return json(res,status,result.status==='ok'?result:{error:result.status});
     }
-    if(['/api/v1/pokemon-training/current','/api/v1/pokemon-training/train'].includes(pathname)){
+    if(onlineRouteGroup(pathname,'pokemon-training')){
       if(!enabled||!pokemonTrainingHttpEnabled())return json(res,503,{error:'Treinamento Pokémon online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
@@ -405,7 +404,7 @@ const server=createServer(async(req,res)=>{
       const result=await trainPokemon(pool,{accountId:account.id,...data});
       return json(res,result.status==='trained'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
-    if(['/api/v1/evolution/current','/api/v1/evolution/evolve'].includes(pathname)){
+    if(onlineRouteGroup(pathname,'evolution')){
       if(!enabled||!evolutionHttpEnabled())return json(res,503,{error:'Evoluções online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
@@ -423,7 +422,7 @@ const server=createServer(async(req,res)=>{
       const result=await evolvePokemon(pool,{accountId:account.id,...data});
       return json(res,result.status==='evolved'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
-    if(['/api/v1/inventory/current','/api/v1/inventory/loadout'].includes(pathname)){
+    if(onlineRouteGroup(pathname,'inventory')){
       if(!enabled||!trainerLoadoutHttpEnabled())return json(res,503,{error:'Inventário online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
@@ -450,7 +449,7 @@ const server=createServer(async(req,res)=>{
       const result=await readPokedex(pool,account.id);
       return json(res,result.status==='ok'?200:result.status==='missing-save'?404:409,result);
     }
-    if(['/api/v1/moves/current','/api/v1/moves/equip','/api/v1/moves/upgrade'].includes(pathname)){
+    if(onlineRouteGroup(pathname,'moves')){
       if(!enabled||!movesHttpEnabled())return json(res,503,{error:'Golpes online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
@@ -473,7 +472,7 @@ const server=createServer(async(req,res)=>{
       const result=await equipPokemonMoves(pool,{accountId:account.id,...data});
       return json(res,['equipped','replay'].includes(result.status)?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
-    if(['/api/v1/shop/current','/api/v1/shop/purchase'].includes(pathname)){
+    if(onlineRouteGroup(pathname,'shop')){
       if(!enabled||!shopHttpEnabled())return json(res,503,{error:'Loja online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
@@ -492,7 +491,7 @@ const server=createServer(async(req,res)=>{
       const result=await (shape.includes('templateId')?purchaseShopGear:purchaseShopBall)(pool,{accountId:account.id,...data});
       return json(res,result.status==='purchased'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
-    if(['/api/v1/expedition/current','/api/v1/expedition/start','/api/v1/expedition/claim','/api/v1/expedition/stop'].includes(pathname)){
+    if(onlineRouteGroup(pathname,'expedition')){
       if(!enabled||!expeditionHttpEnabled())return json(res,503,{error:'Expedições online em preparação'});
       const kind=pathname.split('/').at(-1),read=kind==='current';
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
@@ -510,7 +509,7 @@ const server=createServer(async(req,res)=>{
       const result=await applyExpeditionCommand(pool,{accountId:account.id,kind,...data});
       return json(res,result.status==='applied'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
-    if(pathname==='/api/v1/region/current'||regionalPaths.includes(pathname)){
+    if(onlineRouteGroup(pathname,'region')){
       if(!enabled)return json(res,503,{error:'Regiões online em preparação'});
       const read=pathname==='/api/v1/region/current';
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)

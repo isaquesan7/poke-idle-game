@@ -1,14 +1,6 @@
 /** D6G — centralized CI-only feature policy. No production activation path. */
-export const CI_FEATURE_FLAGS=Object.freeze([
-  'ONLINE_EXPEDITION_CI_ONLY',
-  'ONLINE_SHOP_CI_ONLY',
-  'ONLINE_MOVES_CI_ONLY',
-  'ONLINE_EVOLUTION_CI_ONLY',
-  'ONLINE_POKEMON_TRAINING_CI_ONLY',
-  'ONLINE_POKEDEX_CI_ONLY',
-  'ONLINE_TRAINER_LOADOUT_CI_ONLY',
-  'ONLINE_GYM_PORTAL_CI_ONLY'
-]);
+import {CI_FEATURE_FLAGS} from './onlineRoutePolicy.mjs';
+export {CI_FEATURE_FLAGS};
 export function disposableOnlineDatabase(env=process.env){
   try{
     const db=new URL(env.DATABASE_URL);
