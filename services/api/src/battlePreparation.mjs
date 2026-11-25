@@ -55,7 +55,10 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
   if(!pokemonManual||STATS.reduce((n,s)=>n+pokemonManual[s],0)>
       (selected.level-1)*2)return null;
   const history=selected.evolutionHistory;
-  const equipped=selected.equippedMoveNames===undefined?(history!==undefined?[selected.moveName]:undefined):selected.equippedMoveNames;
+  const upgrades=selected.upgrades;
+  if(upgrades!==undefined&&(!upgrades||typeof upgrades!=='object'||Array.isArray(upgrades)||Object.keys(upgrades).some(n=>! /^[a-z][a-z-]{1,63}$/.test(n)||!Number.isSafeInteger(upgrades[n])||upgrades[n]<1||upgrades[n]>10)))return null;
+  const ranked=upgrades!==undefined&&Object.keys(upgrades).length>0;
+  const equipped=selected.equippedMoveNames===undefined?(history!==undefined||ranked?[selected.moveName]:undefined):selected.equippedMoveNames;
   if(equipped!==undefined&&
     (!Array.isArray(equipped)||equipped.length<1||equipped.length>4||
      equipped[0]!==selected.moveName||
@@ -74,7 +77,8 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
       level:selected.level,affinity:selected.affinity,
       manual:pokemonManual,moveName:selected.moveName,
       ...(equipped===undefined?{}:{moveNames:[...equipped]}),
-      ...(history===undefined?{}:{evolutionHistory:history})
+      ...(history===undefined?{}:{evolutionHistory:history}),
+      ...(ranked?{upgrades:{...upgrades}}:{})
     }
   };
 }
