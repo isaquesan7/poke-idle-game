@@ -58,7 +58,7 @@ export async function readRegionalEncounter(pool,accountId,expanded=false){
  const actions=phase==='await-player'?core.legalFrozenWildTurnActions(row.battle_snapshot,state):[];
  const captureChoices=phase==='paid'&&state?.outcome==='win'?core.serverRegionalCaptureChoices(Number(row.region_id),Number(row.species_id),state.wild.maxHp,raw.ballPocket):[];
  return {status:'ok',revision:Number(row.revision),
-  regions:expanded?regions:regions.filter(r=>r.id===1),pendingLoot:raw.pendingRegionalLoot!=null,encounter:row.id?{
+  regions:expanded?regions:regions.filter(r=>r.id===1),pendingLoot:raw.pendingRegionalLoot!=null||raw.pendingExpeditionLoot!=null,encounter:row.id?{
   id:row.id,regionId:Number(row.region_id),speciesId:row.species_id,level:row.pokemon_level,
   phase,actions:actions??[],captureChoices,loot:phase==='paid'?row.battle_turn_payout_receipt?.loot??null:null,playerLevel:row.battle_snapshot?.activePokemon?.level??null,
   turn:state?.turn??0,outcome:state?.outcome??null,player:actor(state?.player),wild:actor(state?.wild),

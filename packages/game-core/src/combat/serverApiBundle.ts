@@ -53,3 +53,5 @@ export {inspectOnlineInventory,createOnlineDropGear} from '../inventory/onlineOw
 export {rollRegionalLoot} from '../inventory/regionalLoot.js';
 
 export {placeCertifiedRegionalLoot,inspectPendingRegionalLoot,resolvePendingRegionalLoot,discardOnlineGear} from '../inventory/serverRegionalLoot.js';
+
+export {inspectPendingExpeditionLoot,resolvePendingExpeditionLoot} from '../inventory/serverExpeditionLoot.js';

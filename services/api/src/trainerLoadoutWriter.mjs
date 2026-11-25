@@ -22,11 +22,12 @@ export async function changeTrainerLoadout(pool,params){
   if(busy.rows[0].busy)return await rollback(c,{status:'busy'});
   const core=await loadCombatAdapter();
   const lootAction=['loot-store','loot-discard'].includes(command.kind);
-  const result=lootAction?core.resolvePendingRegionalLoot(save.journal.raw,command):command.kind==='discard-gear'?core.discardOnlineGear(save.journal.raw,command):core.applyOnlineTrainerLoadout(save.journal.raw,command);
+  const expeditionLootAction=['expedition-loot-store','expedition-loot-discard'].includes(command.kind);
+  const result=expeditionLootAction?core.resolvePendingExpeditionLoot(save.journal.raw,command):lootAction?core.resolvePendingRegionalLoot(save.journal.raw,command):command.kind==='discard-gear'?core.discardOnlineGear(save.journal.raw,command):core.applyOnlineTrainerLoadout(save.journal.raw,command);
   if(result.status!=='ok')return await rollback(c,{status:result.status});
   const nextRevision=revision+1,next={...save,revision:nextRevision,journal:{...save.journal,revision:nextRevision,raw:result.raw}};
   await c.query('UPDATE game_saves SET revision=$3,state=$2::jsonb,updated_at=now() WHERE account_id=$1',[accountId,JSON.stringify(next),nextRevision]);
-  await c.query('INSERT INTO game_action_receipts(account_id,action_id,kind,save_revision) VALUES($1,$2,$3,$4)',[accountId,actionId,command.kind==='title'?'trainer-title':lootAction?'inventory-loot':'trainer-equipment',nextRevision]);
+  await c.query('INSERT INTO game_action_receipts(account_id,action_id,kind,save_revision) VALUES($1,$2,$3,$4)',[accountId,actionId,command.kind==='title'?'trainer-title':(lootAction||expeditionLootAction)?'inventory-loot':'trainer-equipment',nextRevision]);
   await c.query('COMMIT');
   return {status:'applied',revision:nextRevision,totals:result.totals};
  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}

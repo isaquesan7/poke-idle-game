@@ -16,5 +16,7 @@ export async function readTrainerLoadout(pool,accountId){
  if(!projection)return {status:'invalid-save'};
  const raw=JSON.parse(row.state.journal.raw),pending=raw.pendingRegionalLoot==null?null:core.inspectPendingRegionalLoot(raw.pendingRegionalLoot);
  if(raw.pendingRegionalLoot!=null&&!pending)return {status:'invalid-save'};
- return {status:'ok',revision:Number(row.revision),...projection,pending,busy:row.busy||projection.busy};
+ const expeditionPending=raw.pendingExpeditionLoot==null?null:core.inspectPendingExpeditionLoot(raw.pendingExpeditionLoot);
+ if(raw.pendingExpeditionLoot!=null&&!expeditionPending)return {status:'invalid-save'};
+ return {status:'ok',revision:Number(row.revision),...projection,pending,expeditionPending,canResolveExpeditionLoot:!!expeditionPending&&!row.busy&&raw.pendingBattle==null&&raw.gymSession==null&&raw.lastBattle?.captureStatus!=='available',busy:row.busy||projection.busy};
 }
