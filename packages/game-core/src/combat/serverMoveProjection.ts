@@ -4,13 +4,15 @@ import {kantoLevelMoves} from '../catalog/kantoLevelMoves.js';
 import {kantoSupportMoves} from '../catalog/kantoSupportMoves.js';
 import {frozenValidatedEquippedMoves} from './serverFrozenBattle.js';
 import {inheritedOnlineMoves} from './serverInheritedMoves.js';
+import {validatedOnlineMoveRanks} from './serverMoveRanks.js';
+import {legacyMoveRankLimits} from '../legacy/pokemonMoveReducer.js';
 import {prepareRewardJournal} from '../legacy/rewardEvents.js';
 export function onlineMoveProjection(raw:string){
  if(!prepareRewardJournal(raw))return null;
  const state=JSON.parse(raw);
  if(state.mode!=='normal')return null;
  const busy=state.expedition!==null||state.pendingBattle!=null||state.gymSession!=null||state.lastBattle?.captureStatus==='available';
- const pokemon=state.roster.map((p:{uid:number,pokemonId:number,level:number,moveName:string,equippedMoveNames?:string[],evolutionHistory?:unknown})=>{
+ const pokemon=state.roster.map((p:{uid:number,pokemonId:number,level:number,moveName:string,equippedMoveNames?:string[],evolutionHistory?:unknown,upgrades?:unknown})=>{
   const species=KANTO_BATTLE_SPECIES[p.pokemonId];
   const names=new Set([...kantoLevelMoves(p.pokemonId,p.level),...kantoSupportMoves(p.pokemonId,p.level)].map(x=>x.move.name));
   const inherited=inheritedOnlineMoves(p.pokemonId,p.level,p.evolutionHistory);
@@ -21,8 +23,12 @@ export function onlineMoveProjection(raw:string){
    const move=frozenValidatedEquippedMoves(p.pokemonId,p.level,[name],p.evolutionHistory)?.[0];
    return move?[{name:move.name,type:move.type,category:move.category,power:move.power,accuracy:move.accuracy}]:[];
   });
-  const equipped=p.equippedMoveNames??[p.moveName];
-  return {uid:p.uid,speciesId:p.pokemonId,level:p.level,learned,equipped,
+  const equipped=p.equippedMoveNames===undefined?[p.moveName]:p.equippedMoveNames;
+  const ranks=validatedOnlineMoveRanks(p.pokemonId,p.level,p.evolutionHistory,p.upgrades);
+  if(!ranks)return null;
+  const limits=legacyMoveRankLimits(p.level);
+  const remaining=limits.skillPoints-Object.values(ranks).reduce((a,b)=>a+b,0);
+  return {uid:p.uid,speciesId:p.pokemonId,level:p.level,learned,equipped,ranks,skillPoints:limits.skillPoints,maxRank:limits.maxRankPerMove,remaining,
    valid:Boolean(frozenValidatedEquippedMoves(p.pokemonId,p.level,equipped,p.evolutionHistory)?.some(move=>move.category!=='status'))};
  });
  if(pokemon.some((p:unknown)=>p===null))return null;
