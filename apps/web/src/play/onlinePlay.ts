@@ -25,8 +25,11 @@ export async function readOnlineViews(revision:number):Promise<OnlineViews>{
 export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>,revision:number){const r=await post(path,{...fields,actionId:crypto.randomUUID(),expectedRevision:revision});return r.ok;}
 
 type Account={name:string;save:PlayRead};
-const get=(path:string)=>fetch('/api/v1/'+path,{credentials:'same-origin',cache:'no-store'});
-const post=(path:string,body:unknown)=>fetch('/api/v1/'+path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+// The private web proxy already bounds the upstream request. Also bound the
+// browser's full response (including body reads) so a lost connection never
+// leaves an action pending forever. Do not automatically retry mutations.
+const get=(path:string)=>fetch('/api/v1/'+path,{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(20000)});
+const post=(path:string,body:unknown)=>fetch('/api/v1/'+path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
 export function parseOnlineSnapshot(input:unknown):PlayRead{
  if(!input||typeof input!=='object')return {status:'invalid'};
  const row=input as {schema_version?:unknown;revision?:unknown;state?:PlaySnapshot};
@@ -99,7 +102,15 @@ export async function sendOnlineAction(action:PlayAction,snapshot:PlaySnapshot){
  const command=onlineCommand(action,snapshot);
  if(!command)return false;
  const response=await post(command.path,{...command.fields,actionId:crypto.randomUUID(),expectedRevision:snapshot.revision});
- return response.ok;
+ // Read the entire reply before refreshing or closing the action. In
+ // particular, trainer investment confirms the actual atomic revision.
+ const receipt=await response.json();
+ if(!response.ok)return false;
+ if(action.type==='trainer-invest-batch')return receipt?.status==='ok'&&
+   receipt.revision===snapshot.revision+1&&
+   !!receipt.allocated&&Object.entries(action.increments).every(([stat,n])=>
+     typeof receipt.allocated[stat]==='number'&&receipt.allocated[stat]>=Number(n));
+ return true;
 }
 
 /** Only server-provided encounter IDs, revisions and legal decisions are sent. */

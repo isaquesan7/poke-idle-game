@@ -72,12 +72,16 @@ async function expectFeedback(page,text){
 }
 async function responseFor(page,route,click){
   console.log('[browser-ci] POST '+route);
-  const [response]=await Promise.all([
-    page.waitForResponse(r=>r.url().endsWith(route)&&r.request().method()==='POST',{timeout:15000}),
-    click()
-  ]);
+  const [response]=await bounded('POST '+route+' click and headers',()=>Promise.all([
+    page.waitForResponse(r=>r.url().endsWith(route)&&r.request().method()==='POST',{timeout:15000}).then(r=>{
+      console.log('[browser-ci] response '+route+' HTTP '+r.status());return r;
+    }),
+    Promise.resolve().then(click).then(()=>console.log('[browser-ci] clicked '+route))
+  ]),20000);
   assert.ok(response.ok(),route+' failed '+response.status());
-  return response.json();
+  const receipt=await bounded('POST '+route+' response body',()=>response.json());
+  console.log('[browser-ci] received body '+route);
+  return receipt;
 }
 try{
   assert.equal(process.env.GITHUB_ACTIONS,'true');
@@ -251,7 +255,17 @@ try{
   assert.equal(Number((await pool.query('SELECT revision FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].revision),0);
   const allocation=await responseFor(trainingAlpha,'/api/v1/trainer/invest',()=>trainingAlpha.getByRole('button',{name:'Confirmar distribuição',exact:true}).click());
   assert.equal(allocation.revision,1);assert.equal(allocation.allocated.attack,1);assert.equal(allocation.allocated.hp,1);
-  await trainingAlpha.close();await page.locator('#online-refresh').click();
+  checkpoint('trainer batch persisted and UI refresh');
+  const committed=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[registeredId]);
+  assert.equal(Number(committed.rows[0].revision),1);
+  const committedTrainer=JSON.parse(committed.rows[0].state.journal.raw).trainer;
+  assert.equal(committedTrainer.manual.hp,1);assert.equal(committedTrainer.manual.attack,1);
+  await bounded('trainer UI completed',()=>trainingAlpha.getByRole('button',{name:'Confirmando…',exact:true}).waitFor({state:'hidden'}));
+  await bounded('trainer UI no pending draft',()=>trainingAlpha.getByText('ainda não aplicados.',{exact:false}).waitFor({state:'hidden'}));
+  await bounded('trainer UI remaining points',()=>trainingAlpha.getByText('Pontos disponíveis: 2',{exact:true}).waitFor());
+  await bounded('trainer tab close',()=>trainingAlpha.close());
+  checkpoint('team refresh after trainer investment');
+  await bounded('portal refresh',()=>page.locator('#online-refresh').click());
   await page.getByText('Pontos disponíveis: 2',{exact:true}).waitFor();
   await page.locator('[data-uid="2"]').click();
   await page.locator('[data-uid="3"]').click();
