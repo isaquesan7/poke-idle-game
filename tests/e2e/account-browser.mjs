@@ -583,6 +583,21 @@ try{
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('[data-inventory-item="gear-cap"]').waitFor();
   const inv=await inventoryRead();assert.equal(inv.bag.capacity,12);
+  assert.equal(await page.locator('#inventory-bag > .inv-tile').count(),12);
+  assert.equal(await page.locator('#inventory-bag [data-empty="true"]').count(),inv.bag.available);
+  assert.equal(await page.locator('#inventory-slots [data-equipment-slot]').count(),9);
+  assert.equal(await page.locator('#inventory-capacity-track').evaluate(el=>el.value),inv.bag.used);
+  await page.locator('[data-bag-gear="gear-cap"]').click();
+  await page.locator('#inventory-dialog[open]').waitFor();
+  assert.match(await page.locator('#inventory-detail-info').textContent(),/Comum.*Nível exigido: 1/);
+  await page.keyboard.press('Escape');
+  await page.locator('#inventory-dialog').waitFor({state:'hidden'});
+  const stack=inv.bag.stacks[0];if(stack){await page.locator('[data-bag-stack="'+stack.id+'"]').click();await page.locator('#inventory-dialog[open]').waitFor();assert.match(await page.locator('#inventory-detail-info').textContent(),/Quantidade:/);await page.locator('#inventory-close').click();}
+  await page.setViewportSize({width:390,height:844});
+  assert.ok(await page.locator('#inventory-bag').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
+  assert.ok(await page.locator('#inventory-slots').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
+  await page.setViewportSize({width:1365,height:768});
+  assert.equal((await inventoryRead()).revision,inv.revision);
   const loadoutArgs={actionId:'browser-loadout-invalid-0001',expectedRevision:inv.revision,command:{kind:'equipment',slot:'hat',itemId:'gloves'}};
   assert.equal((await page.request.post(origin+'/api/v1/inventory/loadout',{data:loadoutArgs,headers:{Origin:origin}})).status(),409);
   assert.equal((await page.request.post(origin+'/api/v1/inventory/loadout',{data:{...loadoutArgs,command:{kind:'title',titleId:'gym-leader'}},headers:{Origin:origin}})).status(),400);
@@ -595,6 +610,9 @@ try{
   await responseFor(page,'/api/v1/inventory/loadout',()=>page.locator('#inventory-item-action').click());
   await page.getByText('Equipamento ou título atualizado.',{exact:true}).waitFor();
   const equipped=await inventoryRead();assert.equal(equipped.revision,inv.revision+1);
+  assert.equal(await page.locator('[data-bag-gear="gear-cap"]').count(),0);
+  assert.equal(await page.locator('[data-equipment-slot="hat"] .inv-equipped').count(),1);
+  assert.equal(await page.locator('#inventory-bag [data-empty="true"]').count(),equipped.bag.available);
   assert.equal(equipped.totals.hp,inv.totals.hp+2);assert.equal(equipped.equipment.find(e=>e.id==='gear-cap').equipped,true);
   await page.locator('#inventory-filter').selectOption('equipped');
   assert.equal(await page.locator('[data-inventory-item]').count(),1);

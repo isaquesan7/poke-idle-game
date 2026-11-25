@@ -66,6 +66,44 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 #expedition-note{font-size:.86rem;color:#9fefff}
 #shop-section{margin:20px 0;padding:14px;background:#0e1c2d;border:1px solid #36556e;border-radius:14px}
 .shop-item{padding:10px 0;border-bottom:1px solid #36556e}.shop-item input{max-width:110px}.shop-item button{margin-top:8px}.shop-item p{margin:5px 0;font-size:.85rem}
+/* D6A: visual inventory. The API remains the sole source of slot counts and ownership. */
+:root{--inv-panel:#0e1c2d;--inv-card:#182d40;--inv-border:#36556e;--inv-text:#e9f6ff;--inv-muted:#b1cadb;--inv-accent:#59ddeb;--inv-green:#53d89c;--inv-gold:#f3c85d;--inv-common:#b8c8d5;--inv-uncommon:#72dca3;--inv-rare:#7ab7ff;--inv-epic:#d1a2ff;--inv-legendary:#f3c85d}
+#inventory-section{margin:20px 0;padding:14px;background:var(--inv-panel);border:1px solid var(--inv-border);border-radius:14px;min-width:0}
+#inventory-section h4{margin:18px 0 8px}
+#inventory-capacity-track{display:block;width:100%;height:10px;margin:8px 0 12px;accent-color:var(--inv-green)}
+#inventory-capacity-track[data-full="true"]{accent-color:var(--inv-gold)}
+#inventory-bag,#inventory-equipment{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;min-width:0}
+#inventory-bag{max-height:420px;overflow:auto;padding:3px;scrollbar-color:var(--inv-border) var(--inv-panel)}
+#inventory-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.inv-tile{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;aspect-ratio:1;min-height:50px;border:1px solid var(--inv-border);border-radius:9px;background:linear-gradient(145deg,var(--inv-card),var(--inv-panel));color:var(--inv-text);font:inherit;padding:5px;text-align:center;box-shadow:inset 0 1px 0 #ffffff12}
+button.inv-tile{cursor:pointer}
+button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accent);outline-offset:1px}
+.inv-tile[data-rarity]{border-color:var(--rarity-color,var(--inv-border))}
+.inv-tile[data-rarity="common"]{--rarity-color:var(--inv-common)}
+.inv-tile[data-rarity="uncommon"]{--rarity-color:var(--inv-uncommon)}
+.inv-tile[data-rarity="rare"]{--rarity-color:var(--inv-rare)}
+.inv-tile[data-rarity="epic"]{--rarity-color:var(--inv-epic)}
+.inv-tile[data-rarity="legendary"]{--rarity-color:var(--inv-legendary)}
+.inv-tile[data-empty="true"]{border-style:dashed;opacity:.58}
+.inv-icon{width:26px;height:26px;flex:none;color:var(--rarity-color,var(--inv-accent))}
+.inv-caption{font-size:.65rem;line-height:1.15;color:var(--inv-muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inv-quantity{position:absolute;right:3px;bottom:2px;color:var(--inv-gold);font-size:.65rem;font-weight:800;font-variant-numeric:tabular-nums}
+.inv-equipped{position:absolute;top:3px;right:4px;font-size:.72rem;color:var(--inv-green);font-weight:800}
+.inv-slot-name{font-size:.68rem;line-height:1.2;color:var(--inv-muted)}
+#inventory-filter{width:100%;padding:8px;background:var(--inv-card);color:var(--inv-text);border:1px solid var(--inv-border);border-radius:8px;margin-bottom:8px}
+#inventory-pending:not(:empty){border:1px solid var(--inv-gold);border-radius:9px;padding:8px;margin:10px 0}
+#inventory-pending p{font-size:.78rem;margin:3px 0}
+#inventory-pending>div,#inventory-titles>div{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid var(--inv-border)}
+#inventory-pending span,#inventory-titles span{flex:1 1 100%;font-size:.8rem;overflow-wrap:anywhere}
+#inventory-section button:not(.inv-tile){background:var(--inv-card);color:var(--inv-text);border:1px solid var(--inv-border);border-radius:7px;padding:7px;cursor:pointer}
+#inventory-section button:disabled{opacity:.5;cursor:not-allowed}
+#inventory-badges,#inventory-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+#inventory-badges p,#inventory-totals p{margin:0;padding:7px;background:var(--inv-card);border-radius:7px;font-size:.75rem;overflow-wrap:anywhere}
+#inventory-dialog{width:min(420px,calc(100vw - 32px));max-height:85dvh;overflow:auto;background:var(--inv-panel);color:var(--inv-text);border-color:var(--inv-border)!important}
+#inventory-dialog::backdrop{background:#000a}
+#inventory-detail-action{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+#inventory-detail-info{overflow-wrap:anywhere}
+@media(max-width:360px){#inventory-bag,#inventory-equipment{grid-template-columns:repeat(3,minmax(0,1fr))}}
 [hidden]{display:none!important}@media(max-width:760px){nav{margin-bottom:32px}.layout{grid-template-columns:1fr;gap:35px}.card{padding:23px}h1{font-size:2.75rem}}
 </style>
 </head>
@@ -136,13 +174,13 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <div id="shop-items"></div><p id="shop-note" role="status" aria-live="polite"></p></section>
 <section id="inventory-section" hidden aria-labelledby="inventory-heading">
 <h3 id="inventory-heading">Mochila e equipamentos</h3>
-<h4>Mochila</h4><p id="inventory-capacity" class="helper"></p>
+<h4>Mochila</h4><p id="inventory-capacity" class="helper"></p><progress id="inventory-capacity-track" aria-label="Ocupação da mochila" max="10" value="0"></progress>
 <div id="inventory-pending" role="status"></div>
-<div id="inventory-bag" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px"></div>
+<div id="inventory-bag" aria-label="Espaços da mochila"></div>
 <h4>Equipamentos do treinador</h4><p id="inventory-empty" class="helper"></p>
 <div id="inventory-slots"></div>
 <label for="inventory-filter">Filtrar equipamentos</label><select id="inventory-filter"><option value="all">Todos</option><option value="equipped">Equipados</option></select>
-<div id="inventory-equipment" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px"></div>
+<div id="inventory-equipment" aria-label="Equipamentos individuais"></div>
 <dialog id="inventory-dialog" aria-labelledby="inventory-detail-name" style="max-width:min(460px,92vw);border:1px solid #888;border-radius:12px;padding:20px">
 <h4 id="inventory-detail-name"></h4><p id="inventory-detail-info"></p><div id="inventory-detail-action"></div>
 <button id="inventory-close" type="button">Fechar</button></dialog>
@@ -564,6 +602,46 @@ $('evolution-pokemon').addEventListener('change',()=>{selectedEvolutionUid=Numbe
 const slotLabels={hat:'Chapéu',jacket:'Jaqueta',gloves:'Luvas',pants:'Calça',shoes:'Sapatos',necklace:'Colar',ring1:'Anel 1',ring2:'Anel 2',earrings:'Brincos'};
 const bonusText=stats=>Object.entries(stats).map(([key,n])=>(statLabels[key]??key)+' +'+n).join(' · ');
 const lootLabel=item=>item.kind==='gear'?item.gear.templateId+' · '+item.gear.rarity+' · Nv. '+item.gear.requiredLevel+' · '+bonusText(item.gear.stats):({ 'poke-ball':'Poké Ball','great-ball':'Great Ball','ultra-ball':'Ultra Ball','fire-stone':'Pedra do Fogo','water-stone':'Pedra da Água','thunder-stone':'Pedra do Trovão','leaf-stone':'Pedra da Folha','moon-stone':'Pedra da Lua'}[item.itemId]??item.itemId);
+const inventoryRarities={common:'Comum',uncommon:'Incomum',rare:'Raro',epic:'Épico',legendary:'Lendário'};
+// Local, fixed SVG shapes: no external icon requests and no injected markup.
+const inventoryShapes={
+ ball:'M12 3a9 9 0 1 0 0 18 9 9 0 1 0 0-18 M3 12h6m6 0h6 M12 9a3 3 0 1 0 0 6 3 3 0 1 0 0-6',
+ stone:'M7 3h10l5 7-10 11L2 10z M2 10h20M7 3l5 18 5-18',
+ hat:'M4 14V9a7 7 0 0 1 14 0v5 M3 14h18v3H3z',
+ jacket:'M8 3 3 6 2 13l4 1v7h12v-7l4-1-1-7-5-3-4 4z M12 7v14',
+ gloves:'M7 14V5a2 2 0 0 1 4 0v6-8a2 2 0 0 1 4 0v8-5a2 2 0 0 1 4 0v9a6 6 0 0 1-12 0l-3-4a2 2 0 0 1 3-2',
+ pants:'M5 3h14l1 18h-6l-2-10-2 10H4z M5 7h14',
+ shoes:'M4 4h8v8l7 2 3 3v3H2v-8z M2 17h20',
+ necklace:'M4 3v5a8 8 0 0 0 16 0V3 M12 13l4 4-4 4-4-4z',
+ ring1:'M12 7a7 7 0 1 0 0 14 7 7 0 1 0 0-14 M8 6l4-4 4 4-4 4z',
+ ring2:'M12 7a7 7 0 1 0 0 14 7 7 0 1 0 0-14 M8 6l4-4 4 4-4 4z',
+ earrings:'M7 3v5m10-5v5 M7 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8 M17 8a4 4 0 1 0 0 8 4 4 0 1 0 0-8',
+ empty:'M12 7v10M7 12h10'
+};
+function inventoryIcon(kind){
+ const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),path=document.createElementNS(ns,'path');
+ svg.setAttribute('class','inv-icon');svg.setAttribute('viewBox','0 0 24 24');svg.setAttribute('aria-hidden','true');
+ path.setAttribute('d',inventoryShapes[kind]??inventoryShapes.empty);path.setAttribute('fill','none');path.setAttribute('stroke','currentColor');path.setAttribute('stroke-width','1.7');path.setAttribute('stroke-linecap','round');path.setAttribute('stroke-linejoin','round');svg.append(path);return svg;
+}
+function inventoryTile({name,caption,icon,rarity,quantity,equipped,handler,empty=false}){
+ const tile=handler?actionButton('',handler):document.createElement('div');
+ tile.className='inv-tile';tile.setAttribute('aria-label',name);tile.title=name;
+ if(empty){tile.dataset.empty='true';tile.setAttribute('role','img');}
+ if(rarity)tile.dataset.rarity=rarity;
+ tile.append(inventoryIcon(icon));
+ if(caption){const label=document.createElement('span');label.className='inv-caption';label.textContent=caption;tile.append(label);}
+ if(quantity!==undefined){const n=document.createElement('span');n.className='inv-quantity';n.textContent='×'+quantity;tile.append(n);}
+ if(equipped){const mark=document.createElement('span');mark.className='inv-equipped';mark.textContent='✓';mark.setAttribute('aria-hidden','true');tile.append(mark);}
+ return tile;
+}
+function openInventoryStack(id){
+ if(!inventoryState||!serverProgress||inventoryState.revision!==serverProgress.revision)return;
+ const stack=inventoryState.bag.stacks.find(i=>i.id===id);if(!stack)return;
+ $('inventory-detail-name').textContent=stack.name;
+ $('inventory-detail-info').textContent='Quantidade: '+stack.quantity+' · '+(stack.kind==='ball'?'Captura de Pokémon':'Evolução de Pokémon')+' · Uma pilha ocupa um espaço.';
+ $('inventory-detail-action').replaceChildren();
+ $('inventory-dialog').showModal();$('inventory-close').focus();
+}
 function renderInventory(){
  const section=$('inventory-section'),dialog=$('inventory-dialog');
  section.hidden=!inventoryState||!serverProgress||inventoryState.revision!==serverProgress.revision;
@@ -572,11 +650,21 @@ function renderInventory(){
  if(section.hidden){if(dialog.open)dialog.close();$('inventory-detail-action').replaceChildren();$('inventory-detail-name').textContent='';$('inventory-detail-info').textContent='';$('inventory-note').textContent='';return;}
  const {bag,equipment,slots,titles,badges,totals}=inventoryState,locked=onlineBusy||inventoryState.busy||adventureBusy();
  $('inventory-capacity').textContent=bag.used+' / '+bag.capacity+' espaços ocupados · '+bag.available+' livres';
+ const track=$('inventory-capacity-track');track.max=bag.capacity;track.value=Math.min(bag.used,bag.capacity);track.dataset.full=String(bag.used>=bag.capacity);
  const line=(id,value)=>{const p=document.createElement('p');p.textContent=value;$(id).append(p);};
- for(const stack of bag.stacks)line('inventory-bag',stack.name+' × '+stack.quantity);
- for(const item of equipment.filter(i=>!i.equipped))line('inventory-bag',item.name+' · '+item.rarity+' · Nv. '+item.requiredLevel);
- for(let i=bag.used;i<bag.capacity;i++)line('inventory-bag','Espaço vazio');
- for(const slot of slots)line('inventory-slots',slotLabels[slot.slot]+': '+(equipment.find(e=>e.id===slot.itemId)?.name??'Vazio'));
+ for(const stack of bag.stacks){
+  const tile=inventoryTile({name:stack.name+' · Quantidade '+stack.quantity,icon:stack.kind,quantity:stack.quantity,handler:()=>openInventoryStack(stack.id)});
+  tile.dataset.bagStack=stack.id;$('inventory-bag').append(tile);
+ }
+ for(const item of equipment.filter(i=>!i.equipped)){
+  const tile=inventoryTile({name:item.name+' · '+inventoryRarities[item.rarity]+' · Nv. '+item.requiredLevel,icon:item.slot,rarity:item.rarity,caption:'Nv. '+item.requiredLevel,handler:()=>openInventoryItem(item.id)});
+  tile.dataset.bagGear=item.id;$('inventory-bag').append(tile);
+ }
+ for(let i=bag.used;i<bag.capacity;i++)$('inventory-bag').append(inventoryTile({name:'Espaço vazio '+(i+1),icon:'empty',empty:true}));
+ for(const slot of slots){
+  const item=equipment.find(e=>e.id===slot.itemId),tile=inventoryTile({name:slotLabels[slot.slot]+': '+(item?.name??'Vazio'),icon:slot.slot,rarity:item?.rarity,caption:slotLabels[slot.slot],equipped:!!item,empty:!item,handler:item?()=>openInventoryItem(item.id):null});
+  tile.dataset.equipmentSlot=slot.slot;$('inventory-slots').append(tile);
+ }
  $('inventory-empty').textContent=equipment.length?'Selecione um equipamento para conferir os bônus.':'Nenhum equipamento adquirido.';
  if(inventoryState.pending){
   line('inventory-pending','Itens pendentes: finalize a captura e resolva antes de iniciar outra batalha.');
@@ -602,11 +690,10 @@ function renderInventory(){
    row.append(label,store,discard);$('inventory-pending').append(row);
   }
  }
- const rarityLabels={common:'Comum',uncommon:'Incomum',rare:'Raro',epic:'Épico',legendary:'Lendário'};
  const filtered=$('inventory-filter').value==='equipped'?equipment.filter(i=>i.equipped):equipment;
  for(const item of filtered){
-  const button=actionButton(item.name+' · '+rarityLabels[item.rarity]+' · Nv. '+item.requiredLevel+(item.equipped?' · Equipado':''),()=>openInventoryItem(item.id));
-  button.dataset.inventoryItem=item.id;button.setAttribute('aria-label',item.name+(item.equipped?' · Equipado':''));$('inventory-equipment').append(button);
+  const button=inventoryTile({name:item.name+(item.equipped?' · Equipado':'')+' · '+inventoryRarities[item.rarity],icon:item.slot,rarity:item.rarity,caption:'Nv. '+item.requiredLevel,equipped:item.equipped,handler:()=>openInventoryItem(item.id)});
+  button.dataset.inventoryItem=item.id;$('inventory-equipment').append(button);
  }
  for(const title of titles){
   const row=document.createElement('div'),text=document.createElement('span');text.textContent=title.name+' · '+bonusText(title.stats)+' ';
@@ -623,7 +710,7 @@ function openInventoryItem(id){
  if(!inventoryState||!serverProgress||inventoryState.revision!==serverProgress.revision)return;
  const item=inventoryState.equipment.find(e=>e.id===id);if(!item)return;
  $('inventory-detail-name').textContent=item.name;
- $('inventory-detail-info').textContent=slotLabels[item.slot]+' · Nível exigido: '+item.requiredLevel+' · '+(item.source==='shop'?'Loja':('Região '+item.regionId))+' · '+bonusText(item.stats);
+ $('inventory-detail-info').textContent=slotLabels[item.slot]+' · '+inventoryRarities[item.rarity]+' · Nível exigido: '+item.requiredLevel+' · '+(item.source==='shop'?'Loja':('Região '+item.regionId))+' · '+bonusText(item.stats);
  const action=actionButton(item.equipped?'Desequipar':'Equipar',()=>{
   $('inventory-dialog').close();submitLoadout({kind:'equipment',slot:item.slot,itemId:item.equipped?null:item.id});
  },onlineBusy||inventoryState.busy||adventureBusy()||(!item.equipped&&!item.canEquip)||(item.equipped&&inventoryState.bag.available===0));
