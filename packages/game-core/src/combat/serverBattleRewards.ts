@@ -46,9 +46,10 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
     wildSpeciesId:wild.speciesId,wildLevel:wild.level,activeLevel:player.level,
     outcome,progressFactorTenths:Math.round(factor*10),
     coins:win?scaledRegionalReward(25+wild.level*3,factor):0,
-    trainerXp:win?scaledRegionalReward(battleTrainerXp(wild.level),factor):0,
+    trainerXp:win?scaledRegionalReward(battleTrainerXp(wild.level),factor):
+      outcome==='loss'?Math.floor(scaledRegionalReward(battleTrainerXp(wild.level),factor)/2):0,
     pokemonXp:win?scaledRegionalReward(20+wild.level*6,factor):
-      beginnerBattleXp(player.level,outcome),
+      outcome==='loss'?Math.floor(scaledRegionalReward(20+wild.level*6,factor)/2):beginnerBattleXp(player.level,outcome),
     affinityDelta,ballDropId,
     // Legacy rewardEvents.ts increments losses on either loss or draw,
     // tracks draws separately, and gates battle records by progress factor.

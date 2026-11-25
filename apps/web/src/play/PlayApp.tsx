@@ -276,10 +276,10 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     finally{onlineLock.current=false;setBusy(false);}
   }
   async function onlineExtra(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>){
-    if(!online||onlineLock.current||save.status!=='ready')return;
+    if(!online||onlineLock.current||save.status!=='ready')return false;
     onlineLock.current=true;setBusy(true);setFeedback('');
-    try{const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');}
-    catch{await refreshOnline();setFeedback('Ação não confirmada. Confira o progresso.');}
+    try{const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');return ok;}
+    catch{await refreshOnline();setFeedback('Ação não confirmada. Confira o progresso.');return false;}
     finally{onlineLock.current=false;setBusy(false);}
   }
   async function runOnlineBattle(mode:'region'|'gym',command:'open'|'turn'|'reward'|'finish',choice?:string){
@@ -1225,7 +1225,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
             )}
 
             {tab === 'regions' && (
-              <RegionsScreen
+              <RegionsScreen online={online}
                 trainerLevel={view.level}
                 leaderSpeciesId={active.pokemonId}
                 leaderLevel={active.level}
@@ -1469,8 +1469,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               onOpenCollection={()=>setTab('collection')}/>}
             {tab === 'shop' && <BallShopPreview coins={data.coins}
               trainerLevel={view.level} quantities={ballQuantities}
-              busy={busy||!!onlineViews?.shop?.busy} onBuy={(ballId,quantity)=>void buyBall(ballId,quantity)}
-              {...(onlineViews?.shop?{onlineShop:onlineViews.shop,onBuyGear:(id:string)=>void onlineExtra('shop/purchase',{templateId:id})}:{})}/>} 
+              busy={busy||(online&&!onlineViews?.shop)||!!onlineViews?.shop?.busy} onBuy={(ballId,quantity)=>void buyBall(ballId,quantity)}
+              {...(onlineViews?.shop?{onlineShop:onlineViews.shop,onCheckout:(items:readonly {itemId:string;quantity:number}[])=>onlineExtra('shop/purchase',{items})}:{})}/>} 
             {tab === 'expedition' && (
               <ExpeditionScreen
                 expedition={expedition??null}

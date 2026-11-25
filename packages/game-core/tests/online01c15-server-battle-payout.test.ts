@@ -35,12 +35,14 @@ describe('ONLINE-01C-15 — canonical payout candidate',()=>{
   expect(state.badges).toEqual([]);
   expect(r.paid).toMatchObject({coins:31,trainerXp:56,pokemonXp:32,affinityDelta:4});
  });
- it('keeps beginner defeat rules and level 1 compensation',()=>{
+ it('credits half XP on defeat without coins or drops',()=>{
   const s=snap();
   const q=quoteFrozenBattleRewards(s,preview('loss'),0)!;
   const r=applyFrozenBattleRewardQuote(JSON.stringify(source()),s,preview('loss'),q)!;
   const state=JSON.parse(r.raw);
-  expect([state.roster[0].xp,state.coins,state.losses]).toEqual([22,0,1]);
+  expect([state.roster[0].xp,state.coins,state.losses]).toEqual([16,0,1]);
+  expect(state.trainer.xp).toBe(28);
+  expect(state.ballPocket.quantities['poke-ball']).toBe(12);
   expect(state.roster[0].battleRecord.losses).toBe(1);
   expect(state.roster[0].affinity).toBe(0);
  });

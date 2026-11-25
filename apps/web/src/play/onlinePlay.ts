@@ -31,7 +31,14 @@ export async function readOnlineViews(revision:number):Promise<OnlineViews>{
  const [inventory,shop,expedition,region,gym]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),load<ExpeditionView>('expedition/current'),load<RegionView>('region/current'),load<GymView>('gym/current')]);
  return {inventory,shop,expedition,region,gym,clockOffset:expedition?expedition.serverNowMs-Date.now():0};
 }
-export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>,revision:number){const r=await post(path,{...fields,actionId:crypto.randomUUID(),expectedRevision:revision});return r.ok;}
+export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>,revision:number){
+ const r=await post(path,{...fields,actionId:crypto.randomUUID(),expectedRevision:revision});
+ // Consume the complete server receipt before triggering a new refresh.
+ const receipt=await r.json();
+ if(!r.ok)return false;
+ if(path==='shop/purchase'&&Array.isArray(fields.items))return receipt?.status==='purchased'&&receipt.revision===revision+1&&Array.isArray(receipt.purchase?.items)&&receipt.purchase.items.length>0;
+ return true;
+}
 
 type Account={name:string;save:PlayRead};
 // The private web proxy already bounds the upstream request. Also bound the

@@ -32,7 +32,7 @@
 .unknown{width:68px;height:68px;display:grid;place-items:center;font-size:2rem!important;color:var(--color-text-muted);font-weight:800}
 .prepare{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,1fr);gap:var(--space-4);align-items:end;padding:var(--space-4);background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:var(--radius-card)}
 .leader{display:flex;gap:var(--space-3);align-items:center;min-width:0}
-.leader img{object-fit:contain;max-width:76px;flex-shrink:0}
+.leader img{object-fit:contain;width:108px;height:108px;max-width:108px;flex-shrink:0}
 .leader>div{display:grid;gap:var(--space-2)}
 .leader strong{overflow-wrap:anywhere}
 .link{padding:0;border:0;background:transparent;color:var(--color-primary);text-align:left;text-decoration:underline;cursor:pointer;width:max-content}

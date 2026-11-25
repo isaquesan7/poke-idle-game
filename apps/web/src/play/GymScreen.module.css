@@ -151,7 +151,7 @@
 /* GYM-07: reservas nocauteadas usam o MESMO estado de sprite do palco regional. */
 .reserveSprite{position:relative;display:grid;place-items:center;width:100%;min-height:72px}
 .reserveFainted{border-color:var(--color-border);box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
-.reserveFainted .reserveSprite .pokemonArt{filter:grayscale(1) brightness(.57);
+.reserveFainted .reserveSprite img{filter:grayscale(1) brightness(.57);
   opacity:.48;transform:translateY(9px) scale(.96);
   transition:filter .35s ease,opacity .35s ease,transform .35s ease}
 .reserveKoTag{position:absolute;bottom:0;left:50%;transform:translateX(-50%);
@@ -168,3 +168,6 @@
 .teamSetup p{margin:0;color:var(--color-text-muted)}
 .teamSetup .choices{width:100%;margin:var(--space-2) 0;border:0;padding:0;max-height:none;overflow:visible}
 .teamSetup .choiceOn{cursor:default}
+
+/* Online uses JourneyShell sprite CSS, so match the actual element. */
+.reserveSprite img{width:76px;height:76px;object-fit:contain;max-width:100%}

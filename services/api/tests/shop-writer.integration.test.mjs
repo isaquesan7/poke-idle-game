@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import pg from 'pg';
 import {firstSave} from '../src/initialAdventure.mjs';
-import {purchaseShopBall,purchaseShopGear} from '../src/shopWriter.mjs';
+import {purchaseShopBall,purchaseShopGear,purchaseShopCart} from '../src/shopWriter.mjs';
 import {reserveEncounter} from '../src/encounterReservation.mjs';
 import {applyExpeditionCommand} from '../src/expeditionWriter.mjs';
 test('23F9A: canonical shop price, unlock, inventory and atomic checkout',async()=>{
@@ -73,5 +73,23 @@ test('D4D: basic gear checkout is fixed, atomic and capacity-aware; expander dis
   assert.equal((await buy('coat',11)).status,'unavailable');assert.deepEqual(await read(),full);
   assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),expectedRevision:11,regionId:1})).status,'reserved');
   assert.equal((await buy('coat',12)).status,'busy');
+ }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
+});
+
+
+test('Alpha cart: mixed checkout is atomic, rejects duplicate offers and stale/duplicate requests',async()=>{
+ const db=new URL(process.env.DATABASE_URL);assert.equal(db.hostname,'127.0.0.1');assert.equal(db.port,'55432');assert.equal(db.pathname,'/kanto_ci');assert.equal(db.username,'kanto_ci');
+ const pool=new pg.Pool({connectionString:db.href});let id;
+ try{
+  id=(await pool.query("INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id",['cart-'+randomUUID()+'@example.test','x'.repeat(48)])).rows[0].id;
+  const save=firstSave('Cart CI',4,1740000000000),raw=JSON.parse(save.journal.raw);raw.coins=5000;save.journal.raw=JSON.stringify(raw);
+  await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[id,JSON.stringify(save)]);
+  const read=async()=>(await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[id])).rows[0];
+  const buy=(items,expectedRevision=0,actionId=randomUUID())=>purchaseShopCart(pool,{accountId:id,actionId,expectedRevision,items});
+  const before=await read();assert.equal((await buy([{itemId:'poke-ball',quantity:1},{itemId:'ultra-ball',quantity:1}])).status,'unavailable');assert.deepEqual(await read(),before);
+  assert.equal((await buy([{itemId:'cap',quantity:1},{itemId:'cap',quantity:1}])).status,'invalid');
+  const actionId=randomUUID(),items=[{itemId:'poke-ball',quantity:2},{itemId:'cap',quantity:1}];
+  const race=await Promise.all([buy(items,0,actionId),buy(items,0,actionId)]);assert.deepEqual(race.map(x=>x.status).sort(),['duplicate','purchased']);
+  const result=await read(),paid=JSON.parse(result.state.journal.raw);assert.equal(Number(result.revision),1);assert.equal(paid.coins,2600);assert.equal(paid.ballPocket.quantities['poke-ball'],14);assert.equal(paid.inventory.gear.length,1);assert.equal((await buy(items)).status,'stale');
  }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
 });

@@ -125,7 +125,7 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLab
     // D-041: reinicia só a animação CSS do impacto. Remontar o palco
     // reiniciava também o GIF do Pokémon a cada linha do diário (900 ms).
     // O elemento <img> permanece o MESMO ao avançar e reassistir.
-    if(!playing||knockedOut||(!hit&&!heal&&!status&&!focus))return;
+    if(!playing||(!hit&&!heal&&!status&&!focus))return;
     for(const animation of animatedSprite.current?.getAnimations({subtree:false})??[]){
       animation.cancel();
       animation.play();
@@ -135,7 +135,7 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLab
   return (
     <div className={styles.battleFighter} data-testid={'battle-fighter-'+side}>
       <div className={styles.battleSpriteStage}>
-        <div className={knockedOut?styles.battleSpriteFainted:animateClass} ref={animatedSprite}
+        <div className={knockedOut?styles.battleSpriteFainted+(hit?' '+styles.battleSpriteKoImpact:''):animateClass} ref={animatedSprite}
           data-testid={'battle-visual-'+side} data-fainted={knockedOut?'true':'false'}>{fighter.art}</div>
         {side==='player'&&levelUp&&<span
           className={styles.battleLevelUpBurst} role="status" aria-live="polite"

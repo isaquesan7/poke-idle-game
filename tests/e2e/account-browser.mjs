@@ -492,6 +492,30 @@ try{
   await page.getByText('Saldo: 3.800 moedas',{exact:true}).waitFor();
   const shopAfter=await shopRead();assert.equal(shopAfter.coins,3800);assert.equal(shopAfter.items.find(i=>i.id==='poke-ball').owned,ownedBefore+2);
 
+  // Buy from both categories in one actual authenticated Alpha checkout.
+  const cartAlpha=await context.newPage();
+  await cartAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await cartAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Loja',exact:true}).click();
+  await cartAlpha.getByTestId('shop-buy-poke-ball').click();
+  await cartAlpha.getByRole('button',{name:'Equipamentos',exact:true}).click();
+  await cartAlpha.getByTestId('shop-buy-cap').click();
+  const cart=cartAlpha.getByRole('region',{name:'Carrinho de compras'});
+  assert.match(await cart.textContent(),/Poké Ball × 1/);
+  assert.match(await cart.textContent(),/Boné de Kanto × 1/);
+  assert.match(await cart.textContent(),/Total: 1\.800 moedas/);
+  const cartPaid=await responseFor(cartAlpha,'/api/v1/shop/purchase',()=>cart.getByRole('button',{name:'Finalizar compra'}).click());
+  assert.equal(cartPaid.purchase.cost,1800);assert.equal(cartPaid.purchase.items.length,2);
+  assert.equal(cartPaid.revision,shopAfter.revision+1);
+  await cartAlpha.getByText('Adicione itens para comprar de uma vez.').waitFor();
+  assert.equal((await shopRead()).coins,2000);
+  await cartAlpha.getByRole('button',{name:'Expansores',exact:true}).click();
+  await cartAlpha.getByRole('heading',{name:'Expansor de mochila'}).waitFor();
+  assert.equal(await cartAlpha.getByRole('heading',{name:'Chances de encontrar Pokébolas'}).count(),0);
+  await cartAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Ginásios',exact:true}).click();
+  await cartAlpha.getByTestId('online-battle-start').waitFor();
+  assert.equal(await cartAlpha.getByTestId('battle-stage').count(),0);
+  await cartAlpha.close();
+
   checkpoint("gym API and Alpha switch replay");
   // Gym portal read contract via the real authenticated Web proxy.
   const gymPath=origin+'/api/v1/gym/';
@@ -566,6 +590,18 @@ try{
     gymNow=await gymRead();
   }
   assert.equal(gymNow.gym.phase,'resolved');assert.equal(gymNow.gym.outcome,'player-win');
+  const koAlpha=await context.newPage();await koAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await koAlpha.getByTestId('online-gym-battle').waitFor();
+  const finalImpact=gymNow.gym.presentation?.events.find(event=>event.frame.target&&['attack','residual'].includes(event.frame.kind)&&event.frame.amount>0);
+  if(finalImpact)await koAlpha.getByTestId('battle-impact-'+finalImpact.frame.target).waitFor({state:'visible'});
+  const skipKo=koAlpha.getByRole('button',{name:'Pular apresentação',exact:true});
+  if(await skipKo.isVisible()&&await skipKo.isEnabled())await skipKo.click();
+  await koAlpha.getByRole('button',{name:'Finalizar confronto',exact:true}).waitFor();
+  await koAlpha.getByTestId('battle-fainted-wild').waitFor();
+  const opponentReserves=koAlpha.locator('[class*="reserveGroup"]').filter({hasText:'Reservas de Brock'});
+  assert.equal(await opponentReserves.locator('[data-fainted="true"]').count(),2);
+  for(const img of await opponentReserves.locator('[data-fainted="true"] img').all())assert.match(await img.evaluate(el=>getComputedStyle(el).filter),/grayscale/);
+  await koAlpha.close();
   const beforeGymCoins=Number(await page.locator('#online-coins').textContent());
   const gymPaid=await responseFor(page,'/api/v1/gym/settle',()=>page.locator('[data-gym-action="reward"]').click());
   assert.equal(gymPaid.paid.badgeId,'boulder');assert.equal(gymPaid.paid.coins,1500);assert.equal(gymPaid.paid.trainerXp,120);
@@ -828,7 +864,7 @@ try{
   assert.deepEqual(finalInv.bag,inv.bag);
   checkpoint("Alpha confirmed level-up");
   // A disposable low-level Pokémon needs only one XP to level up.
-  // A win or the existing beginner consolation reward must cross the threshold.
+  // A win, half-XP defeat or beginner draw must cross the threshold.
   const levelFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
   const levelRaw=JSON.parse(levelFixture.journal.raw);
   const beginner=levelRaw.roster.find(p=>p.uid===4);
