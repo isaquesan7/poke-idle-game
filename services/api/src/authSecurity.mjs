@@ -45,6 +45,31 @@ export async function issueVerification(client,accountId){
     [accountId,verificationDigest(token)]);
   return token;
 }
+
+/** Reissue confirmation for an existing unverified account only.
+ * Keep an earlier unexpired link usable if delivery of the new link fails.
+ * The caller applies the existing per-IP and per-email recovery quotas.
+ */
+export async function reissueVerification(pool,email,{enqueue}={}){
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const found=await client.query(
+      'SELECT id FROM game_accounts WHERE email=$1 AND disabled_at IS NULL AND email_verified_at IS NULL FOR UPDATE',[email]);
+    if(!found.rowCount){await client.query('COMMIT');return null;}
+    const accountId=found.rows[0].id;
+    const token=verificationToken();
+    const inserted=await client.query(`INSERT INTO game_email_verifications
+      (account_id,token_sha256,expires_at)
+      VALUES($1,$2,now()+interval '24 hours') RETURNING id,expires_at`,[accountId,verificationDigest(token)]);
+    const row=inserted.rows[0];
+    if(enqueue)await enqueue(client,{accountId,token,tokenId:row.id,expiresAt:row.expires_at});
+    await client.query('COMMIT');
+    return {token,tokenId:row.id};
+  }catch(e){await client.query('ROLLBACK');throw e;}
+  finally{client.release();}
+}
+
 export async function consumeVerification(pool,token){
   if(typeof token!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(token))return false;
   const client=await pool.connect();
@@ -56,11 +81,11 @@ export async function consumeVerification(pool,token){
       FOR UPDATE`,[verificationDigest(token)]);
     if(!found.rowCount){await client.query('ROLLBACK');return false;}
     const {id,account_id}=found.rows[0];
-    await client.query('UPDATE game_accounts SET email_verified_at=now() WHERE id=$1',
+    const activated=await client.query('UPDATE game_accounts SET email_verified_at=now() WHERE id=$1 AND email_verified_at IS NULL AND disabled_at IS NULL RETURNING id',
       [account_id]);
     await client.query('UPDATE game_email_verifications SET used_at=now() WHERE id=$1',[id]);
     await client.query('COMMIT');
-    return true;
+    return activated.rowCount===1;
   }catch(error){
     await client.query('ROLLBACK');
     throw error;
