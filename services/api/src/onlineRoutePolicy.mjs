@@ -24,6 +24,8 @@ export function webOnlineRoute(path,env=process.env){
  const route=onlineRoute(path);
  if(!route)return null;
  if(route.group==='base')return route;
+ if(env.NODE_ENV==='production'&&env.ONLINE_RELEASE_MODE==='reviewed'&&
+    env.ONLINE_PUBLIC_SAVES_ENABLED==='true'&&env.ONLINE_GATEWAY_FORWARD_MODE==='reviewed')return route;
  if(env.NODE_ENV!=='test'||(route.flag&&env[route.flag]!=='true'))return null;
  return route;
 }
