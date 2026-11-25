@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {KANTO_REGIONS} from '../src/map/kantoRegions.js';
+import {KANTO_REGIONS,kantoRegionalSpeciesPool} from '../src/map/kantoRegions.js';
 import {serverRegionalAccess,serverRegionalCatalog,serverRegionalOpponent,serverRegionalRoll} from '../src/combat/serverRegionalPolicy.js';
 import {canonicalFrozenCombatants} from '../src/combat/serverFrozenBattle.js';
 import {createFrozenWildTurnSession} from '../src/combat/serverWildTurnSession.js';
@@ -15,15 +15,16 @@ describe('23F5 canonical regional extension (pure, not HTTP enablement)',()=>{
   for(const r of KANTO_REGIONS){
    expect(serverRegionalAccess(r.id,r.trainerUnlockLevel-1)).toBe(false);
    expect(serverRegionalAccess(r.id,r.trainerUnlockLevel)).toBe(true);
-   const weights=r.speciesIds.map(id=>r.rareSpeciesIds.includes(id)?r.rareWeight:r.commonWeight);
+   const pool=kantoRegionalSpeciesPool(r,r.levelMin);
+   const weights=pool.map(entry=>entry.weight);
    const total=weights.reduce((n,w)=>n+w,0);
    const counts=new Map<number,number>();
    for(let pick=0;pick<total;pick++){
-    const value=serverRegionalRoll(r.id,100,r.levelMin, max=>max===total?pick:0)!;
+    const value=serverRegionalRoll(r.id,100,r.levelMin, (()=>{let call=0;const fixed=pool.length===r.speciesIds.length;return ()=>((call++===0)===fixed)?pick:0;})())!;
     counts.set(value.speciesId,(counts.get(value.speciesId)??0)+1);
     expect(value.level).toBe(r.levelMin);
    }
-   expect(r.speciesIds.map(id=>counts.get(id))).toEqual(weights);
+   expect(pool.map(entry=>counts.get(entry.speciesId))).toEqual(weights);
    expect(serverRegionalRoll(r.id,100,100,max=>max-1)?.level).toBe(r.levelMax);
    expect(serverRegionalOpponent(r.id,100,r.speciesIds[0]!,r.levelMax+1)).toBe(false);
   }

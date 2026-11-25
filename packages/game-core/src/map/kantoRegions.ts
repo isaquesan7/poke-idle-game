@@ -7,6 +7,7 @@
  * Seleção determinística e pools usados tanto para sorteio quanto para UI.
  * NÃO ALTERA a Arena clássica, saves, economia ou roteamento nesta etapa.
  */
+import {kantoCaptureStartingLevel} from '../catalog/kantoEvolution.js';
 import {KANTO_POKEDEX} from '../catalog/kantoSpecies.js';
 
 export interface KantoRegionDefinition {
@@ -32,13 +33,13 @@ export const KANTO_REGIONS:readonly KantoRegionDefinition[]=[
     speciesIds:[10,13,16,54,21,29,32,43,46,48,60,69,1,4,7],
     rareSpeciesIds:[],commonWeight:1,rareWeight:1},
   {id:2,name:'Colinas de Kanto',levelMin:11,levelMax:20,trainerUnlockLevel:6,
-    speciesIds:[11,14,17,20,22,23,24,27,28,30,33,35,37,39,41,44,47,49,50,51,53,56,58],
+    speciesIds:[11,14,17,20,22,23,27,30,33,35,37,39,41,50,56,58],
     rareSpeciesIds:[],commonWeight:1,rareWeight:1},
   {id:3,name:'Caverna Rochosa',levelMin:21,levelMax:30,trainerUnlockLevel:12,
-    speciesIds:[12,15,40,42,19,55,57,59,63,64,66,67,70,71,72,73,74,75,95],
+    speciesIds:[12,15,40,42,19,57,59,63,64,66,67,70,71,72,73,74,75,95,24,28,44,47,51,53],
     rareSpeciesIds:[],commonWeight:1,rareWeight:1},
   {id:4,name:'Lagos Serenos',levelMin:31,levelMax:40,trainerUnlockLevel:20,
-    speciesIds:[52,61,62,79,80,86,87,90,91,98,99,116,117,118,119,120,121,129],
+    speciesIds:[52,61,62,79,80,86,87,90,91,98,99,116,117,118,119,120,121,129,49,55],
     rareSpeciesIds:[],commonWeight:1,rareWeight:1},
   {id:5,name:'Planícies Elétricas',levelMin:41,levelMax:50,trainerUnlockLevel:30,
     speciesIds:[25,26,81,82,100,101,102,103,104,105,106,107,108,109,110,111,112],
@@ -69,23 +70,34 @@ export function kantoRegion(id:number):KantoRegionDefinition|undefined {
 export function kantoRegionForSpecies(speciesId:number):KantoRegionDefinition|undefined {
   return KANTO_REGIONS.find(region=>region.speciesIds.includes(speciesId));
 }
+/** D064BT: draw the usual encounter level FIRST; only species which can
+ * exist at that level enter the weighted pool. Stone/trade inherit earlier
+ * level requirements. No level inflation, duplicate regions or new weights.
+ */
+export function kantoRegionalLevel(region:KantoRegionDefinition,leaderLevel:number,offset:number):number{
+  return Math.max(region.levelMin,Math.min(region.levelMax,leaderLevel+offset-2));
+}
+export function kantoRegionalSpeciesPool(region:KantoRegionDefinition,level:number){
+  if(!Number.isSafeInteger(level)||level<region.levelMin||level>region.levelMax)return [];
+  return region.speciesIds.filter(id=>kantoCaptureStartingLevel(id)<=level).map(speciesId=>({
+    speciesId,weight:region.rareSpeciesIds.includes(speciesId)?region.rareWeight:region.commonWeight
+  }));
+}
 export function kantoRegionalEncounter(regionId:number,seed:number,leaderLevel:number):
   {readonly speciesId:number;readonly level:number}|null {
   const region=kantoRegion(regionId);
   if(!region||!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff
     ||!Number.isSafeInteger(leaderLevel)||leaderLevel<1||leaderLevel>100)return null;
-  const rare=new Set(region.rareSpeciesIds);
-  const weights=region.speciesIds.map(id=>rare.has(id)?region.rareWeight:region.commonWeight);
-  const total=weights.reduce((sum,weight)=>sum+weight,0);
+  const level=kantoRegionalLevel(region,leaderLevel,(seed>>>16)%5);
+  const pool=kantoRegionalSpeciesPool(region,level);
+  const total=pool.reduce((sum,entry)=>sum+entry.weight,0);
+  if(!total)return null;
   let pick=seed%total;
-  let speciesId=region.speciesIds[0]!;
-  for(let i=0;i<weights.length;i++){
-    pick-=weights[i]!;
-    if(pick<0){speciesId=region.speciesIds[i]!;break;}
+  for(const entry of pool){
+    pick-=entry.weight;
+    if(pick<0)return {speciesId:entry.speciesId,level};
   }
-  const level=Math.max(region.levelMin,
-    Math.min(region.levelMax,leaderLevel+((seed>>>16)%5)-2));
-  return {speciesId,level};
+  return null;
 }
 
 export function kantoRegionCatalogInvariant():boolean {
@@ -99,6 +111,8 @@ export function kantoRegionCatalogInvariant():boolean {
       &&r.commonWeight>0&&r.rareWeight>0
       &&(i===0||previous!==undefined&&r.levelMin===previous.levelMax+1)
       &&r.rareSpeciesIds.every(id=>r.speciesIds.includes(id))
+      &&r.speciesIds.some(id=>kantoCaptureStartingLevel(id)<=r.levelMin)
+      &&r.speciesIds.every(id=>kantoCaptureStartingLevel(id)<=r.levelMax)
       &&r.speciesIds.every(id=>{
         const species=KANTO_POKEDEX[id-1];
         if(!species)return false;

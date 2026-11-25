@@ -4,7 +4,7 @@
  */
 import {d064CaptureProjection} from '../capture/regionalCaptureProjection.js';
 import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
-import {kantoRegion,KANTO_REGIONS} from '../map/kantoRegions.js';
+import {kantoRegion,KANTO_REGIONS,kantoRegionalLevel,kantoRegionalSpeciesPool} from '../map/kantoRegions.js';
 const validLevel=(value:unknown):value is number=>
   typeof value==='number'&&Number.isSafeInteger(value)&&value>=1&&value<=100;
 export function serverRegionalAccess(regionId:number,trainerLevel:unknown):boolean{
@@ -15,8 +15,7 @@ export function serverRegionalOpponent(regionId:number,trainerLevel:unknown,
   speciesId:number,level:unknown):boolean{
   const region=kantoRegion(regionId);
   return !!region&&serverRegionalAccess(regionId,trainerLevel)&&
-    region.speciesIds.includes(speciesId)&&validLevel(level)&&
-    level>=region.levelMin&&level<=region.levelMax;
+    validLevel(level)&&kantoRegionalSpeciesPool(region,level).some(entry=>entry.speciesId===speciesId);
 }
 export function serverRegionalCatalog(trainerLevel:unknown){
   if(!validLevel(trainerLevel))return null;
@@ -30,18 +29,24 @@ export function serverRegionalRoll(regionId:number,trainerLevel:unknown,leaderLe
   const region=kantoRegion(regionId);
   if(!region||!serverRegionalAccess(regionId,trainerLevel)||!validLevel(leaderLevel)||
     typeof integer!=='function')return null;
-  const weights=region.speciesIds.map(id=>region.rareSpeciesIds.includes(id)?region.rareWeight:region.commonWeight);
-  const total=weights.reduce((n,w)=>n+w,0);
-  const pick=integer(total),offset=integer(5);
-  if(!Number.isSafeInteger(pick)||pick<0||pick>=total||
-    !Number.isSafeInteger(offset)||offset<0||offset>=5)return null;
+  // Preserve the historical draw order for pools that are legal across the
+  // entire region (including R1 and rare encounters R9/R10).
+  const fullPool=kantoRegionalSpeciesPool(region,region.levelMin);
+  const fixed=fullPool.length===region.speciesIds.length;
+  const fullTotal=fullPool.reduce((n,e)=>n+e.weight,0);
+  const fixedPick=fixed?integer(fullTotal):null;
+  const offset=integer(5);
+  if(!Number.isSafeInteger(offset)||offset<0||offset>=5)return null;
+  const level=kantoRegionalLevel(region,leaderLevel,offset);
+  const pool=fixed?fullPool:kantoRegionalSpeciesPool(region,level);
+  const total=pool.reduce((n,e)=>n+e.weight,0);
+  if(!total)return null;
+  const pick=fixed?fixedPick:integer(total);
+  if(pick===null||!Number.isSafeInteger(pick)||pick<0||pick>=total)return null;
   let remaining=pick;
-  for(let i=0;i<weights.length;i++){
-    remaining-=weights[i]!;
-    if(remaining<0)return {
-      speciesId:region.speciesIds[i]!,
-      level:Math.max(region.levelMin,Math.min(region.levelMax,leaderLevel+offset-2))
-    };
+  for(const entry of pool){
+    remaining-=entry.weight;
+    if(remaining<0)return {speciesId:entry.speciesId,level};
   }
   return null;
 }
