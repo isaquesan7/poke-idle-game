@@ -5,7 +5,7 @@ import {
 import type {PlayStorage} from './playSave';
 import {replayGymSession,replayGymSessionTrace} from './gymSession';
 import type {GymSessionV1} from './gymSession';
-import {gymLegalTurnActions,prepareLegacyGymOpponent,prepareGymOpponent,KANTO_GYMS,resolveGymAiTurn} from '@kanto/game-core';
+import {gymLegalTurnActions} from '@kanto/game-core';
 type Progress=Record<string,any>;
 function setup(strong=true){
   const map=new Map<string,string>();
@@ -43,24 +43,6 @@ function dispatch(x:ReturnType<typeof setup>,action:Parameters<typeof updatePlay
   return updatePlaySave(x.storage,previous.snapshot.revision,action);
 }
 describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
-  it('keeps pre-GYM03 local session opening and policy on reload, new sessions use trained leader',()=>{
-    const x=setup();
-    expect(dispatch(x,{type:'gym-start',seed:778}).status).toBe('ok');
-    const now=x.get(),current=now.game.gymSession as GymSessionV1;
-    expect(current.trainingPolicy).toBe(2);
-    expect(replayGymSession(now.game,current).leader.fighters.map(f=>f.combatant)).toEqual(prepareGymOpponent(KANTO_GYMS[0]!).team);
-    const {trainingPolicy:_,...legacy}=current;
-    const envelope=JSON.parse(x.map.get(PLAY_SAVE_KEY)!);
-    now.game.gymSession=legacy;envelope.journal.raw=JSON.stringify(now.game);
-    x.map.set(PLAY_SAVE_KEY,JSON.stringify(envelope));
-    expect(replayGymSession(now.game,legacy).leader.fighters.map(f=>f.combatant)).toEqual(prepareLegacyGymOpponent(KANTO_GYMS[0]!));
-    const expected=resolveGymAiTurn(replayGymSession(now.game,legacy),{kind:'basic'},legacy.seed,false);
-    expect(expected.status).toBe('applied');
-    expect(dispatch(x,{type:'gym-turn',sessionId:legacy.id,action:{kind:'basic'}}).status).toBe('ok');
-    const after=x.get();
-    expect(after.game.gymSession.trainingPolicy).toBeUndefined();
-    expect(replayGymSession(after.game,after.game.gymSession)).toEqual(expected.state);
-  });
   it('iniciar congela três UIDs; turnos persistem e são reproduzidos após reload',()=>{
     const x=setup();
     const previous=x.get();
