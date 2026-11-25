@@ -282,7 +282,7 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 <button id="online-logout" type="button" class="primary">Sair da conta</button>
 <p class="helper">Regiões online em homologação. O /play continua separado.</p>
 </section>
-<div id="reset-link-wrap" class="sub"><button id="reset-link" type="button" class="small-link">Esqueceu a senha?</button></div>
+<div id="reset-link-wrap" class="sub"><button id="reset-link" type="button" class="small-link">Esqueceu a senha ou não recebeu o e-mail?</button></div>
 <p id="feedback" role="status" aria-live="polite"></p>
 </section></div><footer>Projeto de fãs não oficial · Em desenvolvimento · <a href="/play">Acessar laboratório /play</a></footer></main>
 <script>
@@ -1230,7 +1230,7 @@ form.addEventListener('submit',async event=>{
  submit.disabled=true;message('Processando…');
  try{
   await api(path,payload);
-  if(view==='register'){password.value='';confirmPassword.value='';message('Conta criada. Verifique seu e-mail antes de entrar.');}
+  if(view==='register'){password.value='';confirmPassword.value='';message('Conta criada. Verifique seu e-mail antes de entrar. Se não recebeu o link, use a recuperação de acesso.');}
   else if(view==='verify'){
     token='';password.value='';confirmPassword.value='';
     message('E-mail confirmado. Volte à página inicial para entrar.');

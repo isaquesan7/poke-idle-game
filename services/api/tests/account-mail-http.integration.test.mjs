@@ -59,8 +59,21 @@ test('23D1: HTTP issuance and queued delivery share commit; stale resets never s
     const opts={keyring,providerKey:'re_fake_ci',from:'contas@example.test',send:fakeProvider};
     assert.equal((await processOneAccountMail(pool,opts)).status,'delivered');
     assert.equal(sent,1);
-    assert.equal((await request('/api/v1/auth/verify',{token:verificationToken})).status,200);
-    assert.equal((await request('/api/v1/auth/verify',{token:verificationToken})).status,400);
+    const unknown=await request('/api/v1/auth/request-reset',{email:'unknown-'+process.pid+'@example.test'});
+    const resend=await request('/api/v1/auth/request-reset',{email});
+    assert.deepEqual(resend,unknown);
+    assert.deepEqual(resend,{status:200,data:{accepted:true}});
+    queued=await messages(pool,accountId);
+    assert.equal(queued.length,2);
+    assert.equal(queued[1].purpose,'verify');
+    assert.notEqual(queued[1].payload.token,verificationToken);
+    const replacementVerification=queued[1].payload.token;
+    assert.equal((await processOneAccountMail(pool,opts)).status,'delivered');
+    assert.equal(sent,2);
+    assert.equal((await request('/api/v1/auth/verify',{token:replacementVerification})).status,200);
+    assert.equal((await request('/api/v1/auth/verify',{token:replacementVerification})).status,400);
+    assert.equal((await request('/api/v1/auth/verify',{token:verificationToken})).status,400,
+      'a different link cannot activate an already verified account again');
     assert.equal((await request('/api/v1/auth/login',{email,password})).status,200);
     const resetA=await request('/api/v1/auth/request-reset',{email});
     const resetB=await request('/api/v1/auth/request-reset',{email});
@@ -69,15 +82,15 @@ test('23D1: HTTP issuance and queued delivery share commit; stale resets never s
     assert.equal(Object.hasOwn(resetA.data,'testResetToken'),false);
     assert.equal(Object.hasOwn(resetB.data,'testResetToken'),false);
     queued=await messages(pool,accountId);
-    assert.equal(queued.length,3);
+    assert.equal(queued.length,4);
     const resets=queued.filter(row=>row.purpose==='reset');
     assert.equal(resets.length,2);
     assert.notEqual(resets[0].payload.token,resets[1].payload.token);
     assert.equal((await processOneAccountMail(pool,opts)).status,'revoked',
       'old reset cannot reach provider after newer reset was issued');
-    assert.equal(sent,1);
-    assert.equal((await processOneAccountMail(pool,opts)).status,'delivered');
     assert.equal(sent,2);
+    assert.equal((await processOneAccountMail(pool,opts)).status,'delivered');
+    assert.equal(sent,3);
     assert.equal((await request('/api/v1/auth/confirm-reset',{
       token:resets[0].payload.token,
       password:'changed strong password for CI only 2026'})).status,400);
