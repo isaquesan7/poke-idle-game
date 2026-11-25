@@ -163,6 +163,29 @@ export function gymOpponentRanks(speciesId:number,level:number,moves:readonly Ka
  }
  return ranks;
 }
+/** Preserve the normal loadout unless more legal attacks are needed to spend
+ * the rank budget. Replace the least recent support first, never invent TM.
+ */
+export function gymTrainedMoves(speciesId:number,level:number):readonly KantoMove[]{
+ const moves=[...gymLegalMoves(speciesId,level)];
+ const {skillPoints,maxRankPerMove}=legacyMoveRankLimits(level);
+ const offensive=(m:KantoMove)=>m.category!=='status'&&m.power>0;
+ const required=Math.min(4,Math.max(1,Math.ceil(skillPoints/maxRankPerMove)));
+ const candidates=[...kantoLevelMoves(speciesId,level),...gymPsychicLevelMoves(speciesId,level)]
+  .sort((a,b)=>b.learnedAt-a.learnedAt||a.move.name.localeCompare(b.move.name));
+ for(const {move} of candidates){
+  if(moves.filter(offensive).length>=required)break;
+  if(!offensive(move)||moves.some(m=>m.name===move.name))continue;
+  if(moves.length<4)moves.push(move);
+  else {
+   let index=moves.length-1;
+   while(index>=0&&offensive(moves[index]!))index--;
+   if(index<0)break;
+   moves[index]=move;
+  }
+ }
+ return moves;
+}
 export interface GymPreparedOpponent {
   readonly gymId:string;
   readonly trainer:ReturnType<typeof prepareGymLeader>;
@@ -175,7 +198,7 @@ export function prepareGymOpponent(gym:KantoGymDefinition):GymPreparedOpponent{
   const team=gym.team.map(({speciesId,level})=>{
     const species=kantoSpecies(speciesId);
     if(!species)throw new RangeError('Espécie inválida.');
-    const moves=gymLegalMoves(speciesId,level);
+    const moves=gymTrainedMoves(speciesId,level);
     const manual=gymPokemonTraining(speciesId,level,moves);
     const ranks=gymOpponentRanks(speciesId,level,moves);
     return {
