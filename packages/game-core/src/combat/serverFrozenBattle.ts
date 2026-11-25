@@ -11,7 +11,10 @@ import {inheritedOnlineMoves,regionalNativeMoves} from './serverInheritedMoves.j
 import type {OnlineEvolutionStep} from './serverInheritedMoves.js';
 import {kantoWildMoveLoadout} from '../catalog/kantoWildMoves.js';
 import {pokemonFinalStats,pokemonOwnStats} from '../stats/pokemon.js';
-import {trainerTotals} from '../stats/trainer.js';
+import {canonicalOnlineGymTrainerBonuses} from './serverGymPreparation.js';
+import {inspectInventoryOwnership} from '../inventory/ownership.js';
+import type {InventoryOwnershipV1} from '../inventory/ownership.js';
+import type {EquipmentSlot} from '../stats/trainer.js';
 import {STATS,zeroStats} from '../stats/types.js';
 import type {StatValues} from '../stats/types.js';
 import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
@@ -20,7 +23,10 @@ export interface ServerBattleSnapshotV1 {
   readonly version:1;
   readonly regionId:number;
   readonly opponent:{readonly speciesId:number;readonly level:number};
-  readonly trainer:{readonly level:number;readonly manual:Readonly<StatValues>};
+  readonly trainer:{readonly level:number;readonly manual:Readonly<StatValues>;
+    readonly equipped:Readonly<Partial<Record<EquipmentSlot,string>>>;
+    readonly title:string;readonly wins:number;readonly seen:readonly number[];
+    readonly badges:readonly string[];readonly inventory:InventoryOwnershipV1};
   readonly activePokemon:{
     readonly uid:number;readonly speciesId:number;readonly level:number;
     readonly affinity:number;readonly manual:Readonly<StatValues>;
@@ -114,9 +120,14 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   if(!ranks)return null;
   const selected=equipped[0]!;
   const equippedRanks=equippedOnlineRanks(equipped,ranks);
-  const trainerStats=trainerTotals({
-    manual:trainer.manual,equipment:[],activeTitle:null,badges:[]
-  });
+  // Required current snapshot contract. Recompute from canonical sources;
+  // no client totals and no fallback to manual-only laboratory snapshots.
+  if(inspectInventoryOwnership(trainer.inventory).status!=='valid')return null;
+  const bonuses=canonicalOnlineGymTrainerBonuses({version:1,mode:'normal',
+    trainer:{level:trainer.level,manual:trainer.manual,equipped:trainer.equipped,title:trainer.title},
+    wins:trainer.wins,seen:trainer.seen,badges:trainer.badges,inventory:trainer.inventory});
+  if(!bonuses)return null;
+  const trainerStats=bonuses.totals;
   const playerCombatant:Combatant={
     speciesId:own.id,name:own.name,types:own.types,level:player.level,
     stats:pokemonFinalStats(own.base,player.level,player.manual,

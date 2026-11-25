@@ -9,7 +9,7 @@ import type {ServerBattleSnapshotV1} from '../src/index.js';
 const blank=()=>({hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0});
 const fresh=():ServerBattleSnapshotV1=>({
   version:1,regionId:1,
-  trainer:{level:1,manual:blank()},
+  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:1,manual:blank()},
   activePokemon:{uid:1,speciesId:4,level:1,affinity:0,manual:blank(),moveName:'scratch'},
   opponent:{speciesId:10,level:2}
 });
@@ -21,7 +21,7 @@ describe('ONLINE-01C-11 — canonical frozen PvE adapter (no grants)',()=>{
    expect(p.speciesId).toBe(4);
    expect(p.move.name).toBe('scratch');
    expect(p.stats).toEqual(pokemonFinalStats(
-     KANTO_BATTLE_SPECIES[4]!.base,1,blank(),blank(),0));
+     KANTO_BATTLE_SPECIES[4]!.base,1,blank(),{...blank(),hp:1},0));
    expect(w.speciesId).toBe(10);
    expect(w.stats).toEqual(pokemonOwnStats(
      KANTO_BATTLE_SPECIES[10]!.base,2,zeroStats()));
@@ -92,7 +92,7 @@ describe('ONLINE-01C-11 — canonical frozen PvE adapter (no grants)',()=>{
    expect(legacy.player.ranks).toBeUndefined();
  });
  it('accepts legal FRLG learned attacks and computes player investment bonuses',()=>{
-   const input={...fresh(),trainer:{level:2,manual:{...blank(),hp:1}},
+   const input={...fresh(),trainer:{...fresh().trainer,level:2,manual:{...blank(),hp:1}},
      activePokemon:{...fresh().activePokemon,level:7,moveName:'ember'}};
    const pair=canonicalFrozenCombatants(input);
    expect(pair).not.toBeNull();
