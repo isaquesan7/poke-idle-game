@@ -42,3 +42,5 @@ export {onlineMoveProjection} from './serverMoveProjection.js';
 export {applyOnlineEvolution,onlineEvolutionProjection} from './serverEvolution.js';
 
 export {applyOnlinePokemonTraining,onlinePokemonTrainingProjection} from './serverPokemonTraining.js';
+
+export {applyOnlineMoveRank,validatedOnlineMoveRanks} from './serverMoveRanks.js';

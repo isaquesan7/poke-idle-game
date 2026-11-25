@@ -521,7 +521,7 @@ function renderMoves(reset=false){
  const chosen=list.find(x=>x.uid===selectedMoveUid)??list[0];
  if(!chosen)return;
  if(reset||chosen.uid!==selectedMoveUid){selectedMoveUid=chosen.uid;moveDraft=chosen.equipped.filter(n=>chosen.learned.some(m=>m.name===n));}
- const locked=onlineBusy||moveState.busy||adventureBusy();
+ const locked=onlineBusy||moveState.busy||adventureBusy()||moveState.revision!==serverProgress.revision;
  const select=$('moves-pokemon');select.replaceChildren(...list.map(p=>{
   const option=document.createElement('option');option.value=String(p.uid);option.textContent=speciesNames[p.speciesId]+' · Nv. '+p.level+' (#'+p.uid+')';return option;
  }));
@@ -535,11 +535,18 @@ function renderMoves(reset=false){
   equipped.append(row);
  });
  const learned=$('moves-learned');learned.replaceChildren();
+ const points=document.createElement('p');points.id='move-rank-points';points.className='helper';points.textContent='Pontos de habilidade: '+chosen.remaining+' de '+chosen.skillPoints+' · Rank máximo '+chosen.maxRank;learned.append(points);
  chosen.learned.forEach(m=>{
   const row=document.createElement('div');row.className='team-row';
-  const label=document.createElement('span');label.textContent=m.name+' · '+m.type+' · '+m.category+(m.power?' · Poder '+m.power:'');
+  const label=document.createElement('span');const rank=chosen.ranks[m.name]??0;
+  label.textContent=m.name+' · '+m.type+' · '+m.category+(m.power?' · Poder '+m.power+' · Rank '+rank+' · Poder aprimorado '+Math.round(m.power*(1+rank*.05)):'');
   const btn=actionButton(moveDraft.includes(m.name)?'Equipado':'Equipar',()=>{moveDraft.push(m.name);renderMoves();},locked||moveDraft.includes(m.name)||moveDraft.length>=4);
-  btn.dataset.moveName=m.name;row.append(label,btn);learned.append(row);
+  btn.dataset.moveName=m.name;row.append(label,btn);
+  if(m.category!=='status'&&m.power>0){
+   const upgrade=actionButton('Aprimorar +1',()=>submitMoveRank(m.name),locked||!chosen.valid||!sameTeam(moveDraft,chosen.equipped)||!chosen.equipped.includes(m.name)||chosen.remaining<1||rank>=chosen.maxRank);
+   upgrade.dataset.moveRank=m.name;row.append(upgrade);
+  }
+  learned.append(row);
  });
  $('moves-save').disabled=locked||moveDraft.length<1||moveDraft.length>4||!chosen.learned.some(m=>m.category!=='status'&&moveDraft.includes(m.name))||sameTeam(moveDraft,chosen.equipped);
 }
@@ -553,6 +560,16 @@ $('moves-save').addEventListener('click',async()=>{
  try{await api('/api/v1/moves/equip',args);ok=true;}catch{}
  const loaded=await refreshPortal();if(loaded&&moveState)$('moves-note').textContent=ok?'Golpes salvos.':'Ação não confirmada. Confira os golpes atualizados.';
 });
+async function submitMoveRank(name){
+ if(onlineBusy||adventureBusy()||!moveState||moveState.busy||!serverProgress||moveState.revision!==serverProgress.revision)return;
+ const chosen=moveState.pokemon.find(p=>p.uid===selectedMoveUid),move=chosen?.learned.find(m=>m.name===name);
+ if(!chosen||!chosen.valid||!move||move.category==='status'||move.power<=0||!sameTeam(moveDraft,chosen.equipped)||!chosen.equipped.includes(name)||chosen.remaining<1||(chosen.ranks[name]??0)>=chosen.maxRank)return;
+ if(!window.confirm('Aprimorar '+name+' de '+speciesNames[chosen.speciesId]+' (#'+chosen.uid+') por 1 ponto de habilidade?'))return;
+ const args={actionId:crypto.randomUUID(),expectedRevision:moveState.revision,pokemonUid:chosen.uid,moveName:name};
+ setOnlineBusy(true);let ok=false;
+ try{await api('/api/v1/moves/upgrade',args);ok=true;}catch{}
+ const loaded=await refreshPortal();if(loaded&&moveState)$('moves-note').textContent=ok?'Golpe aprimorado.':'Ação não confirmada. Confira os ranks atualizados.';
+}
 const sameTeam=(a,b)=>a.length===b.length&&a.every((uid,i)=>uid===b[i]);
 function actionButton(label,handler,disabled=false){
  const b=document.createElement('button');b.type='button';b.textContent=label;b.disabled=disabled;b.addEventListener('click',handler);return b;

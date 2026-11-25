@@ -99,3 +99,14 @@ test('ONLINE-01C-23 correction: a three-Pokémon Gym team never becomes a region
    'only the selected lead of the stored team enters the regional battle');
  assert.equal(otherLead.activePokemon.speciesId,25);
 });
+
+ test('23F12B2: ranked single slot upgrades snapshot to v2, old v1 unchanged',()=>{
+ const save=initial();const raw=JSON.parse(save.journal.raw);
+ Object.assign(raw.roster[0],{level:10,upgrades:{scratch:2}});
+ const ranked=buildBattleSnapshot({...save,journal:{...save.journal,raw:JSON.stringify(raw)}},opponent);
+ assert.equal(ranked.version,2);assert.deepEqual(ranked.activePokemon.moveNames,['scratch']);
+ assert.deepEqual(ranked.activePokemon.upgrades,{scratch:2});
+ assert.equal(buildBattleSnapshot(save,opponent).version,1);
+ raw.roster[0].upgrades={scratch:11};
+ assert.equal(buildBattleSnapshot({...save,journal:{...save.journal,raw:JSON.stringify(raw)}},opponent),null);
+});

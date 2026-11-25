@@ -90,6 +90,44 @@ describe('ONLINE-01C-19 — canonical wild 1v1 turn resolver',()=>{
     }
     throw new Error('Kanto wild battle did not resolve in 30 turns');
   });
+  it('ranked primary increases real turn damage without boosting other moves or basic attack',()=>{
+    const base=snapshot(30),s={...base,version:2,regionId:3,trainer:{level:12,manual:zero()},
+      opponent:{speciesId:66,level:30},activePokemon:{...base.activePokemon,moveNames:['scratch','ember','growl']}};
+    const ranked={...s,activePokemon:{...s.activePokemon,upgrades:{scratch:4}}};
+    const turn=(input:unknown,action:unknown,seed:number)=>{
+      const initial=createFrozenWildTurnSession(input)!;
+      const result=resolveFrozenWildTurn(input,initial,action,seed);
+      if(result?.status!=='applied')throw Error('expected applied turn');
+      return {damage:initial.wild.hp-result.turnState.wild.hp,sp:result.turnState.player.sp};
+    };
+    let improved=0;
+    for(let seed=1;seed<=32;seed++){
+      const action={kind:'move',moveName:'scratch'};
+      const before=turn(s,action,seed),after=turn(ranked,action,seed);
+      expect(after.damage).toBeGreaterThanOrEqual(before.damage);
+      expect(after.sp).toBe(before.sp);
+      if(after.damage>before.damage)improved++;
+      for(const unranked of [{kind:'move',moveName:'ember'},{kind:'basic'}]){
+        expect(turn(ranked,unranked,seed)).toEqual(turn(s,unranked,seed));
+      }
+    }
+    expect(improved).toBeGreaterThan(0);
+  });
+  it('rejects an altered secondary rank in the persisted engine on replay',()=>{
+    const base=snapshot(10),s={...base,version:2,opponent:{speciesId:7,level:10},
+      activePokemon:{...base.activePokemon,moveNames:['scratch','ember','growl'],upgrades:{scratch:1,ember:1}}};
+    const initial=createFrozenWildTurnSession(s)!;
+    const first=resolveFrozenWildTurn(s,initial,{kind:'move',moveName:'growl'},43)!;
+    expect(first.status).toBe('applied');
+    if(first.status!=='applied')throw Error('expected applied');
+    expect(first.turnState.phase).toBe('await-player');
+    expect(legalFrozenWildTurnActions(s,first.turnState)).not.toBeNull();
+    const tampered=JSON.parse(JSON.stringify(first.turnState)) as typeof first.turnState;
+    const fighter=tampered.engine!.player.fighters[0]!;
+    Object.assign(fighter.combatant,{ranks:{...fighter.combatant.ranks,ember:9}});
+    expect(legalFrozenWildTurnActions(s,tampered)).toBeNull();
+    expect(resolveFrozenWildTurn(s,tampered,{kind:'basic'},44)).toBeNull();
+  });
   it('rejects tampered combat state rather than recreating lost HP/SP',()=>{
     const s=snapshot(),initial=createFrozenWildTurnSession(s)!;
     expect(legalFrozenWildTurnActions(s,{

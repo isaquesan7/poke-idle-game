@@ -1,3 +1,11 @@
+> **23F12B4 CANDIDATA:** #288 inclui prova diferencial de dano por turno real em Região/Gym (32 seeds cada), sem alterar motor. CI final obrigatório, confirmar rebuild API. Cadastro OFF. Próximo Pokédex.
+
+> **23F12B3 CANDIDATA:** #288 aprimoramento de ranks por UID persistente e interface CI-only; CI final e prova de dano/replay real obrigatórios; API #287 SKIPPED, confirmar rebuild. Cadastro OFF.
+
+> **23F12B2 CANDIDATA:** #287 integrada; #288 congela ranks em região/Gym, valida replay e preserva snapshots antigos. Sem writer de rank ainda, CI obrigatório. Próximo B3 writer/HTTP/UI. Cadastro OFF.
+
+> **23F12B1 CANDIDATA PURA:** depende #287 D064BT, ranks por UID/slot com reducer legado; sem writer ou aplicação em combate, CI e reconciliação obrigatórios. Próximo B2 snapshots/replay Gym e região. Cadastro OFF.
+
 > **D064BT CANDIDATA:** #286 integrada seis CI SUCCESS; corrigir encontros selvagens por piso evolutivo no catálogo compartilhado, oito espécies realocadas, Primeape R3 Nv28–30, sem mudar captura D064BF. CI antes de merge. Próximo ranks 23F12B. Cadastro OFF.
 
 > **23F12A2 CANDIDATA:** #285 Web/API SUCCESS; #286 treino manual e reset gratuito D056, UI/HTTP CI-only e testes PG18/browser, CI final obrigatório. Cadastro OFF. Próximo ranks por golpe. docs/ONLINE_POKEMON_TRAINING_23F12A.md.

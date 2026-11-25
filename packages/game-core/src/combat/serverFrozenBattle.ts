@@ -5,6 +5,7 @@
  * battle seeds exclusively from the persisted encounter's private entropy.
  */
 import {KANTO_BATTLE_SPECIES,simulateKantoBattle} from '../combat/kantoBattle.js';
+import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
 import {serverRegionalOpponent} from './serverRegionalPolicy.js';
 import {inheritedOnlineMoves,regionalNativeMoves} from './serverInheritedMoves.js';
 import type {OnlineEvolutionStep} from './serverInheritedMoves.js';
@@ -35,6 +36,7 @@ export interface ServerBattleSnapshotV2 extends
   readonly activePokemon:ServerBattleSnapshotV1['activePokemon']&{
     readonly moveNames:readonly string[];
     readonly evolutionHistory?:readonly OnlineEvolutionStep[];
+    readonly upgrades?:Readonly<Record<string,number>>;
   };
 }
 /** Only canonical FRLG learned/implemented moves (plus the historical
@@ -101,13 +103,17 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   // Legacy v1 cannot smuggle a multi-move loadout without versioning it.
   // v2 MUST bind the first equipped slot to the legacy primary moveName.
   const history=(player as {evolutionHistory?:unknown}).evolutionHistory;
-  if(s.version===1&&(rawNames!==undefined||history!==undefined))return null;
+  const upgrades=(player as {upgrades?:unknown}).upgrades;
+  if(s.version===1&&(rawNames!==undefined||history!==undefined||upgrades!==undefined))return null;
   if(s.version===2&&(!Array.isArray(rawNames)||
      rawNames[0]!==player.moveName))return null;
   const equipped=frozenValidatedEquippedMoves(
     player.speciesId,player.level,s.version===2?rawNames:[player.moveName],history);
   if(!equipped)return null;
+  const ranks=validatedOnlineMoveRanks(player.speciesId,player.level,history,upgrades);
+  if(!ranks)return null;
   const selected=equipped[0]!;
+  const equippedRanks=equippedOnlineRanks(equipped,ranks);
   const trainerStats=trainerTotals({
     manual:trainer.manual,equipment:[],activeTitle:null,badges:[]
   });
@@ -115,7 +121,8 @@ export function canonicalFrozenCombatants(snapshot:unknown):
     speciesId:own.id,name:own.name,types:own.types,level:player.level,
     stats:pokemonFinalStats(own.base,player.level,player.manual,
       trainerStats,player.affinity),
-    move:selected,moves:equipped,rank:0
+    move:selected,moves:equipped,rank:equippedRanks[selected.name]??0,
+    ...(Object.keys(ranks).length?{ranks:equippedRanks}:{})
   };
   const wildMoves=kantoWildMoveLoadout(enemy.speciesId,enemy.level,other.move);
   const wildCombatant:Combatant={

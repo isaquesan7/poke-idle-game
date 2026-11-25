@@ -524,6 +524,30 @@ try{
   assert.equal(redistributed.pokemon.find(p=>p.uid===1).remaining,30);
   assert.equal(redistributed.pokemon.find(p=>p.uid===1).spent,0);
 
+  // Rank upgrades use the real evolved UID and only equipped offensive moves.
+  await page.locator('#moves-pokemon').selectOption('1');
+  const rankBefore=await moveRead(),rankMember=rankBefore.pokemon.find(p=>p.uid===1);
+  assert.equal(rankMember.skillPoints,3);assert.equal(rankMember.remaining,3);
+  const rankButton=page.locator('[data-move-rank="scratch"]');
+  assert.equal(await rankButton.isEnabled(),true);
+  assert.equal(await page.locator('[data-move-rank="growl"]').count(),0);
+  const rankArgs={actionId:'browser-rank-invalid-0001',expectedRevision:rankBefore.revision,pokemonUid:1,moveName:'growl'};
+  assert.equal((await page.request.post(origin+'/api/v1/moves/upgrade',{data:rankArgs,headers:{Origin:origin}})).status(),409);
+  assert.equal((await page.request.post(origin+'/api/v1/moves/upgrade',{data:{...rankArgs,moveName:'scratch',rank:10},headers:{Origin:origin}})).status(),400);
+  page.once('dialog',d=>d.dismiss());await rankButton.click();
+  assert.equal((await moveRead()).revision,rankBefore.revision);
+  page.once('dialog',d=>d.accept());
+  await responseFor(page,'/api/v1/moves/upgrade',()=>rankButton.click());
+  await page.getByText('Golpe aprimorado.',{exact:true}).waitFor();
+  const rankAfter=await moveRead();
+  assert.equal(rankAfter.revision,rankBefore.revision+1);
+  assert.equal(rankAfter.pokemon.find(p=>p.uid===1).ranks.scratch,1);
+  assert.equal(rankAfter.pokemon.find(p=>p.uid===1).remaining,2);
+  assert.deepEqual(rankAfter.pokemon.filter(p=>p.uid!==1),rankBefore.pokemon.filter(p=>p.uid!==1));
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('#moves-pokemon').selectOption('1');
+  assert.equal((await moveRead()).pokemon.find(p=>p.uid===1).ranks.scratch,1);
+
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();
   assert.ok(page.url().endsWith('/reset-password'));

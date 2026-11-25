@@ -3,6 +3,7 @@ import {
   canonicalOnlineGymTrainerBonuses,canonicalOnlineGymEquippedMoves,
   canonicalOnlineGymPreparation,canonicalOnlineGymOpeningState
 } from './serverGymPreparation.js';
+import {resolveGymTurn} from '../gyms/gymTurn.js';
 import {KANTO_GYMS,KANTO_GYM_MASTER_TITLE_STATS} from '../gyms/kantoGyms.js';
 
 type Stats={hp:number;attack:number;defense:number;specialAttack:number;
@@ -134,6 +135,42 @@ describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
     expect(canonicalOnlineGymTrainerBonuses(raw)).toBeNull();
   });
 
+  it('freezes ranks independently for all three members and leaves untrained slots at zero',()=>{
+    const raw=fixture();
+    raw.roster[0]!.upgrades={scratch:3};
+    raw.roster[1]!.upgrades={'water-gun':2};
+    const prepared=canonicalOnlineGymOpeningState(raw)!;
+    expect(prepared.preparation.player[0].combatant.ranks).toEqual({scratch:3,ember:0,growl:0});
+    expect(prepared.preparation.player[1].combatant.ranks).toEqual({tackle:0,'water-gun':2,'tail-whip':0});
+    expect(prepared.battle.player.fighters[1].combatant.ranks).toEqual({tackle:0,'water-gun':2,'tail-whip':0});
+    expect(prepared.preparation.player[2].combatant.ranks).toEqual({});
+    raw.roster[0]!.upgrades={scratch:3,ember:2};
+    expect(canonicalOnlineGymPreparation(raw)).toBeNull();
+  });
+  it('rank affects actual Gym turn damage only for the upgraded slot, with unchanged SP cost',()=>{
+    const raw=fixture(),plain=canonicalOnlineGymOpeningState(raw)!;
+    raw.roster[0]!.upgrades={ember:3};
+    const ranked=canonicalOnlineGymOpeningState(raw)!;
+    const basic={kind:'basic'} as const;
+    const hit=(battle:typeof plain.battle,action:Parameters<typeof resolveGymTurn>[1],seed:number)=>{
+      const result=resolveGymTurn(battle,action,basic,seed);
+      if(result.status!=='applied')throw Error('expected applied Gym turn');
+      return {damage:battle.leader.fighters[0]!.hp-result.state.leader.fighters[0]!.hp,
+        sp:result.state.player.fighters[0]!.sp};
+    };
+    let improved=0;
+    for(let seed=1;seed<=32;seed++){
+      const action={kind:'move',moveName:'ember'} as const;
+      const a=hit(plain.battle,action,seed),b=hit(ranked.battle,action,seed);
+      expect(b.damage).toBeGreaterThanOrEqual(a.damage);
+      expect(b.sp).toBe(a.sp);
+      if(b.damage>a.damage)improved++;
+      for(const other of [basic,{kind:'move',moveName:'scratch'} as const]){
+        expect(hit(ranked.battle,other,seed)).toEqual(hit(plain.battle,other,seed));
+      }
+    }
+    expect(improved).toBeGreaterThan(0);
+  });
   it('blocks arbitrary stats, future/TM/foreign moves, duplicate UIDs and unearned ranks',()=>{
     const raw=fixture();
     expect(canonicalOnlineGymEquippedMoves(25,20,
