@@ -14,7 +14,7 @@ export function applyOnlineExpedition(raw:string,kind:'start'|'claim'|'stop',now
  if(state?.mode!=='normal'||state.pendingBattle!=null||state.gymSession!=null||
    state.lastBattle?.captureStatus==='available'||inspectKantoBallPocket(state.ballPocket).status!=='valid')return null;
  if(kind==='start'){
-  if(typeof regionId!=='number'||!Number.isSafeInteger(regionId)||regionId<1||regionId>10||state.expedition!==null)return null;
+  if(typeof regionId!=='number'||!Number.isSafeInteger(regionId)||regionId<1||regionId>10||state.expedition!==null||state.pendingRegionalLoot!=null)return null;
  }else if(kind==='claim'||kind==='stop'){
   const e=state.expedition;
   if(regionId!==undefined||!e||!Number.isSafeInteger(e.regionId)||e.regionId<1||e.regionId>10||

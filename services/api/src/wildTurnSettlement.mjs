@@ -7,6 +7,7 @@
  * from the server-owned snapshot, actions and domain-separated HMAC.
  */
 import {isDeepStrictEqual} from 'node:util';
+import {quoteCertifiedRegionalLoot} from './regionalLootQuote.mjs';
 import {auditResolvedWildTurnTranscript} from './wildTurnCertificate.mjs';
 import {buildPersistedBattleSnapshot} from './battlePreparation.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
@@ -206,9 +207,19 @@ export async function payCertifiedWildTurns(pool,{
     if(!candidate||typeof candidate.raw!=='string'||!candidate.paid||
        candidate.paid.outcome!==verified.certificate.outcome)
       return await rollback(client,{status:'invalid-state'});
+    const loot=quoteCertifiedRegionalLoot(core,snapshot,verified.summary,{accountId,encounterId,entropyKey});
+    if(!loot)return await rollback(client,{status:'invalid-loot'});
+    const placed=core.placeCertifiedRegionalLoot(save.journal.raw,candidate.raw,{
+      encounterId,regionId:snapshot.regionId,speciesId:snapshot.opponent.speciesId,
+      outcome:quote.outcome,gear:loot.gear,stone:loot.stone,ballId:quote.ballDropId
+    });
+    if(!placed)return await rollback(client,{status:'invalid-inventory'});
+    const fullQuote={...quote,loot};
+    const paid={...candidate.paid,ballDrop:candidate.paid.ballDrop?{...candidate.paid.ballDrop,quantity:placed.ballQuantity}:null,
+      loot:{stored:placed.stored,pending:placed.pending}};
     const nextRevision=revision+1;
     const next={...save,revision:nextRevision,
-      journal:{...save.journal,raw:candidate.raw,revision:nextRevision}};
+      journal:{...save.journal,raw:placed.raw,revision:nextRevision}};
     await client.query(
       `UPDATE game_encounter_reservations
           SET battle_turn_payout_action_id=$3,
@@ -218,7 +229,7 @@ export async function payCertifiedWildTurns(pool,{
               battle_turn_paid_at=now()
         WHERE account_id=$1 AND id=$2`,
       [accountId,encounterId,actionId,nextRevision,
-       JSON.stringify(quote),JSON.stringify(candidate.paid)]);
+       JSON.stringify(fullQuote),JSON.stringify(paid)]);
     await client.query(
       'UPDATE game_saves SET revision=$3,state=$2::jsonb,updated_at=now() WHERE account_id=$1',
       [accountId,JSON.stringify(next),nextRevision]);
@@ -228,7 +239,7 @@ export async function payCertifiedWildTurns(pool,{
       [accountId,actionId,nextRevision]);
     await client.query('COMMIT');
     return {status:'paid',revision:nextRevision,
-      paid:candidate.paid,quote};
+      paid,quote:fullQuote};
   }catch(error){
     await client.query('ROLLBACK');
     throw error;

@@ -60,6 +60,7 @@ export async function reserveNextGym(pool,params){
     try{raw=JSON.parse(save.journal.raw);}catch{
       return await rollback(client,{status:'invalid-save'});
     }
+    if(raw?.pendingRegionalLoot!=null)return await rollback(client,{status:'busy'});
     const adapter=await loadCombatAdapter();
     if(typeof adapter.canonicalOnlineGymOpeningState!=='function')
       throw new Error('Private Gym bundle unavailable');
