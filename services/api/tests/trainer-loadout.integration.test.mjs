@@ -1,0 +1,54 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import pg from 'pg';
+import {firstSave} from '../src/initialAdventure.mjs';
+import {changeTrainerLoadout} from '../src/trainerLoadoutWriter.mjs';
+import {loadCombatAdapter} from '../src/battlePreview.mjs';
+import {reserveEncounter} from '../src/encounterReservation.mjs';
+test('23F12D1: inventory ownership, capacity, titles, atomic equipment and busy lock',async()=>{
+ const db=new URL(process.env.DATABASE_URL);
+ assert.equal(db.protocol,'postgresql:');assert.equal(db.hostname,'127.0.0.1');assert.equal(db.port,'55432');assert.equal(db.pathname,'/kanto_ci');assert.equal(db.username,'kanto_ci');assert.equal(db.search,'');
+ const pool=new pg.Pool({connectionString:db.href});let id;
+ try{
+  id=(await pool.query("INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id",['loadout-'+randomUUID()+'@example.test','x'.repeat(48)])).rows[0].id;
+  const save=firstSave('Loadout CI',4,1740000000000),core=await loadCombatAdapter();
+  const initial=core.onlineInventoryProjection(save.journal.raw);
+  assert.equal(initial.bag.capacity,10);assert.equal(initial.bag.used,1);assert.deepEqual(initial.equipment,[]);
+  const raw=JSON.parse(save.journal.raw);
+  // Only this disposable fixture owns equipment and stones; no production grant.
+  raw.inventory={version:1,ownedEquipment:{cap:2,visor:1,coat:1},extraBagSlots:2};
+  raw.evolutionStones={'fire-stone':3};raw.wins=4;
+  save.journal.raw=JSON.stringify(raw);
+  await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[id,JSON.stringify(save)]);
+  const read=async()=>{const row=(await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[id])).rows[0];return {revision:Number(row.revision),raw:JSON.parse(row.state.journal.raw),projection:core.onlineInventoryProjection(row.state.journal.raw)};};
+  const apply=(command,expectedRevision,actionId=randomUUID())=>changeTrainerLoadout(pool,{accountId:id,actionId,expectedRevision,command});
+  const equip=(slot,itemId)=>({kind:'equipment',slot,itemId});
+  const before=await read();assert.equal(before.projection.bag.capacity,12);assert.equal(before.projection.bag.used,2);assert.equal(before.projection.bag.available,10);
+  assert.equal((await apply(equip('hat','gloves'),0)).status,'unavailable');
+  assert.equal((await apply(equip('jacket','cap'),0)).status,'unavailable');
+  assert.equal((await apply({kind:'title',titleId:'mestre'},0)).status,'unavailable');
+  assert.equal((await apply({kind:'title',titleId:'gym-leader'},0)).status,'invalid');
+  assert.equal((await apply({...equip('hat','cap'),stats:{hp:99}},0)).status,'invalid');
+  assert.deepEqual((await read()).raw,before.raw);
+  const actionId=randomUUID(),race=await Promise.all([apply(equip('hat','cap'),0,actionId),apply(equip('hat','cap'),0,actionId)]);
+  assert.deepEqual(race.map(r=>r.status).sort(),['applied','duplicate']);
+  const equipped=await read();assert.equal(equipped.projection.totals.hp,before.projection.totals.hp+2);
+  assert.equal(equipped.projection.equipment.find(i=>i.id==='cap').quantity,2);
+  assert.equal(equipped.projection.equipment.find(i=>i.id==='cap').equipped,true);
+  assert.equal((await apply(equip('hat','visor'),0)).status,'stale');
+  assert.equal((await apply(equip('hat','visor'),1)).status,'applied');
+  const swapped=await read();assert.equal(swapped.projection.totals.hp,before.projection.totals.hp);assert.equal(swapped.projection.totals.speed,before.projection.totals.speed+2);
+  assert.equal((await apply(equip('hat',null),2)).status,'applied');
+  assert.equal((await apply({kind:'title',titleId:'veterano'},3)).status,'applied');
+  const final=await read();assert.equal(final.projection.totals.attack,before.projection.totals.attack+2);
+  assert.deepEqual(final.raw.inventory,raw.inventory);assert.deepEqual(final.raw.ballPocket,raw.ballPocket);assert.deepEqual(final.raw.evolutionStones,raw.evolutionStones);
+  assert.deepEqual(final.projection.totals,core.canonicalOnlineGymTrainerBonuses(final.raw).totals);
+  assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:4})).status,'reserved');
+  assert.equal((await apply(equip('hat','cap'),5)).status,'busy');
+  const bad=structuredClone(raw);delete bad.inventory;assert.equal(core.onlineInventoryProjection(JSON.stringify(bad)),null);
+  bad.inventory={version:1,ownedEquipment:{cap:1},extraBagSlots:0};bad.trainer.equipped={hat:'visor'};
+  assert.equal(core.onlineInventoryProjection(JSON.stringify(bad)),null);
+  const receipts=await pool.query("SELECT count(*)::int AS n FROM game_action_receipts WHERE account_id=$1 AND kind IN ('trainer-title','trainer-equipment')",[id]);assert.equal(receipts.rows[0].n,4);
+ }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
+});
