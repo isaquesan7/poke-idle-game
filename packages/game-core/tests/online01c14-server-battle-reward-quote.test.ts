@@ -41,7 +41,7 @@ describe('ONLINE-01C-14 — server reward quote parity (no grants)',()=>{
     const experienced=quoteFrozenBattleRewards(snapshot(5),outcomePreview('loss'),0)!;
     expect(experienced.pokemonXp).toBe(0);
   });
-  it('blocks farming by overlevel and forbids malformed inputs',()=>{
+  it('blocks XP and coin progression by overlevel and forbids malformed inputs',()=>{
     const veteran=quoteFrozenBattleRewards(snapshot(14,5),outcomePreview('win'),3)!;
     expect(veteran.progressFactorTenths).toBe(0);
     expect([veteran.coins,veteran.trainerXp,veteran.pokemonXp,

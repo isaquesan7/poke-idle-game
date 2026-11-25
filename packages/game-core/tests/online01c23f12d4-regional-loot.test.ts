@@ -4,7 +4,7 @@ import {LEGACY_ITEMS} from '../src/legacy/catalog.js';
 import {eligibleEvolutionStones,rollRegionalLoot,regionalLootPolicy,LOOT_AFFIX_COUNT} from '../src/inventory/regionalLoot.js';
 const input=(id:number)=>{
  const r=KANTO_REGIONS[id-1]!,wildLevel=r.levelMin;
- return {regionId:id,speciesId:kantoRegionalSpeciesPool(r,wildLevel)[0]!.speciesId,wildLevel,trainerLevel:r.trainerUnlockLevel,pokemonLevel:wildLevel,won:true,capped:false};
+ return {regionId:id,speciesId:kantoRegionalSpeciesPool(r,wildLevel)[0]!.speciesId,wildLevel,trainerLevel:r.trainerUnlockLevel,pokemonLevel:wildLevel,won:true};
 };
 const low=()=>0,high=(max:number)=>max-1;
 const sequence=(values:number[])=>{let i=0;return (max:number)=>Math.min(max-1,values[i++]??0);};
@@ -29,7 +29,7 @@ describe('23F12D4A: region procedural loot, pure candidate',()=>{
    expect(Object.values(gear.stats).every(n=>n>=regionalLootPolicy(id)!.minBonus&&n<=regionalLootPolicy(id)!.maxBonus)).toBe(true);
   }
  });
- it('8% eligible drop, 0.16% legendary in R10, scaled overlevel and no reroll for denied rewards',()=>{
+ it('8% eligible drop, 0.16% legendary in R10, full rates regardless of overlevel, no drops after loss',()=>{
   const s=input(10);
   expect(rollRegionalLoot(s,sequence([799]),high)!.gear).not.toBeNull();
   expect(rollRegionalLoot(s,sequence([800]),high)!.gear).toBeNull();
@@ -37,9 +37,12 @@ describe('23F12D4A: region procedural loot, pure candidate',()=>{
   expect(rollRegionalLoot(s,sequence([0,0,0,97]),high)!.gear!.rarity).toBe('epic');
   const early=input(1),never=()=>{throw Error('must not draw');};
   expect(rollRegionalLoot({...early,won:false},never,never)).toEqual({gear:null,stone:null});
-  expect(rollRegionalLoot({...early,capped:true},never,never)).toEqual({gear:null,stone:null});
-  expect(rollRegionalLoot({...early,pokemonLevel:early.wildLevel+12},never,never)).toEqual({gear:null,stone:null});
-  expect(rollRegionalLoot({...early,pokemonLevel:early.wildLevel+7},sequence([400]),high)!.gear).toBeNull();
+  expect(rollRegionalLoot({...early,pokemonLevel:80},sequence([799]),high)).toEqual(rollRegionalLoot(early,sequence([799]),high));
+  expect(rollRegionalLoot({...early,pokemonLevel:80},sequence([800]),high)!.gear).toBeNull();
+  const electric={...input(5),speciesId:25,wildLevel:45,pokemonLevel:80};
+  const farm=rollRegionalLoot(electric,low,low)!;
+  expect(farm.stone).toBe('thunder-stone');expect(farm.gear!.regionId).toBe(5);
+  expect(farm).toEqual(rollRegionalLoot({...electric,pokemonLevel:45},low,low));
   expect(rollRegionalLoot(early,()=>-1,high)).toBeNull();
  });
  it('maps actual catalog types and selects at most one stone independently',()=>{

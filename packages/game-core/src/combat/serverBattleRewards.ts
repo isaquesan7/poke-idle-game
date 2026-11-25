@@ -32,7 +32,8 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
   const affinityBase=win?2+affinityRoll:0;
   const drop=d064BattleBallDropFromRoll(s.regionId,ballRoll);
   if(!drop)return null;
-  const ballDropId=win&&factor>0?
+  // Item drop rates depend on the region, not the player's level.
+  const ballDropId=win?
     (drop['poke-ball']?'poke-ball':drop['great-ball']?'great-ball':
       drop['ultra-ball']?'ultra-ball':null):null;
   const affinityDelta=win?

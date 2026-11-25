@@ -107,18 +107,17 @@ export function applyFrozenBattleRewardQuote(raw:string,snapshot:unknown,preview
     oldWins+(input.wins as number));
 
   // One optional ball is credited in the SAME transaction as XP/coins.
-  // An eligible victory at the 100k regional-win cap cannot farm items.
+  // The regional counter saturates, but neither the counter nor overlevel blocks item farming.
   const bag=inspectKantoBallPocket(state.ballPocket);
   if(bag.status!=='valid')return null;
   const rolledId=legacy?null:input.ballDropId;
   if(rolledId!==null&&rolledId!=='poke-ball'&&rolledId!=='great-ball'&&
     rolledId!=='ultra-ball')return null;
-  if(rolledId!==null&&input.wins!==1)return null;
+  if(rolledId!==null&&input.outcome!=='win')return null;
   let ballDrop:null|{ballId:'poke-ball'|'great-ball'|'ultra-ball';quantity:number}=null;
   if(rolledId!==null){
     const old=bag.pocket.quantities[rolledId]??0;
-    const quantity=oldWins>=KANTO_REGION_WINS_CAP?0:
-      Math.min(100000,old+1)-old; // Pocket max from validator.
+    const quantity=Math.min(100000,old+1)-old; // Pocket max from validator.
     state.ballPocket={version:1,quantities:{
       ...bag.pocket.quantities,[rolledId]:old+quantity
     }};

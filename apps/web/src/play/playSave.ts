@@ -334,16 +334,17 @@ function playBattle(
     }
     if(selectedRegion){
       const priorRegionWins=regionWins![selectedRegion.id-1]??0;
-      const eligibleWin=result.outcome==='win'&&rewardFactor>0;
+      const itemWin=result.outcome==='win';
+      const eligibleWin=itemWin&&rewardFactor>0;
       // D064BQ: o contador histórico satura em 100k, MAS o farm aleatório
-      // continua em cada vitória remunerada. Não há marcos fixos nem reroll
+      // continua em cada vitória, mesmo sem XP/moedas por sobre-nível. Não há marcos fixos nem reroll
       // por playback: mesmo seed + battleId do journal = mesmo resultado.
       const regionWinNumber=eligibleWin
         ?Math.min(KANTO_REGION_WINS_CAP,priorRegionWins+1):priorRegionWins;
       regionWins![selectedRegion.id-1]=regionWinNumber;
-      const drop=eligibleWin
+      const drop=itemWin
         ?d064DraftBallDrop(selectedRegion.id,seed,eventId):null;
-      if(eligibleWin&&!drop)
+      if(itemWin&&!drop)
         return{status:'blocked',reason:'Sorteio regional inválido.'};
       const quantities={...nextPocket.quantities};
       const credited={'poke-ball':0,'great-ball':0,'ultra-ball':0};
