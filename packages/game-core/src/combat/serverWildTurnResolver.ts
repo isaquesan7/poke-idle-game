@@ -37,6 +37,8 @@ const uint32=(n:unknown):n is number=>Number.isSafeInteger(n)&&
 const movesEqual=(a:Combatant,b:Combatant)=>a.speciesId===b.speciesId&&
   a.level===b.level&&a.name===b.name&&a.rank===b.rank&&
   a.types.join(',')===b.types.join(',')&&
+  Object.keys(a.ranks??{}).length===Object.keys(b.ranks??{}).length&&
+  Object.entries(a.ranks??{}).every(([name,rank])=>b.ranks?.[name]===rank)&&
   (Object.keys(a.stats) as (keyof typeof a.stats)[])
     .every(k=>a.stats[k]===b.stats[k])&&
   (a.moves??[a.move]).length===(b.moves??[b.move]).length&&
