@@ -1,7 +1,7 @@
 import {loadCombatAdapter} from './battlePreview.mjs';
+import {ciOnlineFeatureEnabled} from './onlineFeatureGate.mjs';
 export function evolutionHttpEnabled(env=process.env){
- if(env.NODE_ENV!=='test'||env.ONLINE_REGISTRATION_ENABLED!=='true'||env.ONLINE_EVOLUTION_CI_ONLY!=='true')return false;
- try{const db=new URL(env.DATABASE_URL);return db.protocol==='postgresql:'&&db.hostname==='127.0.0.1'&&db.port==='55432'&&db.username==='kanto_ci'&&db.pathname==='/kanto_ci'&&!db.search;}catch{return false;}
+ return ciOnlineFeatureEnabled('ONLINE_EVOLUTION_CI_ONLY',env);
 }
 export async function readEvolution(pool,accountId){
  const q=await pool.query(`SELECT s.revision,s.state,

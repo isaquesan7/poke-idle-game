@@ -3,12 +3,9 @@
  * One SQL statement gives the revision, active reservation and log coherently.
  */
 import {loadCombatAdapter} from './battlePreview.mjs';
+import {ciOnlineFeatureEnabled} from './onlineFeatureGate.mjs';
 export function gymPortalEnabled(env=process.env){
- if(env.NODE_ENV!=='test'||env.ONLINE_REGISTRATION_ENABLED!=='true'||env.ONLINE_GYM_PORTAL_CI_ONLY!=='true')return false;
- let db;
- try{db=new URL(env.DATABASE_URL??'');}catch{return false;}
- return db.protocol==='postgresql:'&&db.hostname==='127.0.0.1'&&db.port==='55432'&&
-  db.pathname==='/kanto_ci'&&db.username==='kanto_ci'&&!db.search;
+ return ciOnlineFeatureEnabled('ONLINE_GYM_PORTAL_CI_ONLY',env);
 }
 function side(p){
  return {activeIndex:p.activeIndex,needsReplacement:p.needsReplacement,
