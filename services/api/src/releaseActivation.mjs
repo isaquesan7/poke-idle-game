@@ -10,14 +10,14 @@ export async function releaseMigrationChecksums(){
   name,createHash('sha256').update(await readFile(new URL('../sql/'+name,import.meta.url))).digest('hex')
  ])));
 }
-export async function approvedReleaseEvidence(env=process.env){
+export async function approvedReleaseEvidence(env=process.env,{now=new Date()}={}){
  const sha=env.RAILWAY_GIT_COMMIT_SHA;
  if(typeof sha!=='string'||!/^[a-f0-9]{40}$/.test(sha))throw Error('Release commit unavailable');
  if(!evaluateReleaseConfig('api',{...env,ONLINE_REGISTRATION_ENABLED:'false'}).configShapeValid)
   throw Error('Release configuration rejected');
  let evidence;
  try{evidence=JSON.parse(env.ONLINE_RELEASE_REVIEW_JSON??'');}catch{throw Error('Release review unavailable');}
- if(evidence?.headSha!==sha||!evaluateReleaseReview(evidence).reviewComplete)
+ if(evidence?.headSha!==sha||!evaluateReleaseReview(evidence,{now}).reviewComplete)
   throw Error('Release review rejected');
  const hashes=await releaseMigrationChecksums();
  for(const name of RELEASE_MIGRATIONS)
@@ -25,7 +25,7 @@ export async function approvedReleaseEvidence(env=process.env){
    throw Error('Release migration review mismatch');
  return hashes;
 }
-export async function productionReleaseState(pool,env=process.env){
+export async function productionReleaseState(pool,env=process.env,{now=new Date()}={}){
  const closed={savesEnabled:false,registrationEnabled:false};
  if(env.NODE_ENV!=='production'||env.ONLINE_RELEASE_MODE===undefined)return closed;
  if(env.ONLINE_RELEASE_MODE!=='reviewed')throw Error('Invalid release mode');
@@ -36,7 +36,7 @@ export async function productionReleaseState(pool,env=process.env){
   if(env.ONLINE_REGISTRATION_ENABLED==='true')throw Error('Registration requires online saves');
   return closed;
  }
- const hashes=await approvedReleaseEvidence(env);
+ const hashes=await approvedReleaseEvidence(env,{now});
  const result=await pool.query('SELECT name,checksum FROM public.game_schema_migrations WHERE name=ANY($1::text[])',[RELEASE_MIGRATIONS]);
  if(result.rows.length!==RELEASE_MIGRATIONS.length||
     RELEASE_MIGRATIONS.some(name=>!result.rows.some(row=>row.name===name&&row.checksum===hashes[name])))
