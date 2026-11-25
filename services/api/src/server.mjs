@@ -14,7 +14,7 @@ import {
   hashPassword,verifyPassword,newSessionToken,tokenDigest,
   sessionCookie,parseSessionCookie
 } from './auth.mjs';
-import {throttle,requesterIp,issueVerification,consumeVerification} from './authSecurity.mjs';
+import {throttle,requesterIp,issueVerification,reissueVerification,consumeVerification} from './authSecurity.mjs';
 import {issuePasswordReset,consumePasswordReset} from './passwordReset.mjs';
 import {deliverAccountEmail} from './mailer.mjs';
 import {onlineRouteGroup,signedOnlineRoute} from './onlineRoutePolicy.mjs';
@@ -277,6 +277,22 @@ const server=createServer(async(req,res)=>{
         // Never reveal whether the account exists by the provider status.
         // The next stage adds durable outbox retries; no credentials or token logged.
         console.error('Account mail transport unavailable');
+      }
+      // Recover an unverified account through the same quota-protected form.
+      // Never issue password reset for an unverified address or reveal its status.
+      if(!token){
+        try{
+          const confirmation=await reissueVerification(pool,cleanEmail,outboxKeyring?{
+            enqueue:async(client,{accountId,token,tokenId,expiresAt})=>
+              enqueueAccountMail(client,outboxKeyring,{
+                accountId,idempotencyKey:'verify/'+tokenId,purpose:'verify',
+                to:cleanEmail,token,origin:appOrigin,expiresAt
+              })
+          }:undefined);
+          if(confirmation&&!outboxKeyring)
+            await deliver({to:cleanEmail,purpose:'verify',token:confirmation.token,
+              idempotencyKey:'verify/'+confirmation.tokenId});
+        }catch{console.error('Account mail transport unavailable');}
       }
       // No email-account enumeration. Tokens returned ONLY in test harness
       // when mail adapter is disabled, never in any production response.
