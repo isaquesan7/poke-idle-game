@@ -128,6 +128,24 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 #pokedex-dialog::backdrop{background:#000a}
 .dex-detail-art{display:block;width:96px;height:96px;object-fit:contain;margin:auto;image-rendering:pixelated}
 @media(max-width:360px){#online-roster,#pokedex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* D6D: read-only profile and confirmed training/move drafts. */
+#training-section,#moves-section,#evolution-section{margin:20px 0;padding:14px;min-width:0;border:1px solid var(--inv-border);border-radius:14px;background:var(--inv-panel)}
+#training-pokemon,#moves-pokemon,#evolution-pokemon{width:100%;min-width:0;padding:8px;color:var(--inv-text);background:var(--inv-card);border:1px solid var(--inv-border);border-radius:8px}
+.pokemon-profile{display:grid;grid-template-columns:76px minmax(0,1fr);gap:10px;align-items:center;background:var(--inv-card);padding:10px;border-radius:10px;margin:12px 0}
+.pokemon-profile img{width:72px;height:72px;max-width:100%;object-fit:contain;image-rendering:pixelated}
+.pokemon-profile h4{margin:0 0 5px;overflow-wrap:anywhere}
+.pokemon-profile p{margin:3px 0;font-size:.78rem;overflow-wrap:anywhere}
+.pokemon-profile progress,#training-budget-bar,#move-budget-bar{width:100%;height:9px;accent-color:var(--inv-green)}
+.profile-links,.training-actions{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.profile-links button,.training-actions button:not(.primary),#moves-equipped button,#moves-learned button,#evolution-options button,#training-stats button{background:var(--inv-card);border:1px solid var(--inv-border);border-radius:7px;color:var(--inv-text);padding:8px;cursor:pointer}
+#training-section button:disabled,#moves-section button:disabled,#evolution-section button:disabled{opacity:.5;cursor:not-allowed}
+#training-stats .team-row,#moves-equipped .team-row,#moves-learned .team-row,#evolution-options .team-row{background:var(--inv-card);border:1px solid var(--inv-border);border-radius:8px;margin:6px 0;padding:8px;flex-wrap:wrap}
+#training-stats .team-row[data-preview="true"]{border-color:var(--inv-accent)}
+#moves-learned .team-row[data-equipped="true"]{border-color:var(--inv-green)}
+#moves-learned .team-row span,#moves-equipped .team-row span{flex:1 1 100%;overflow-wrap:anywhere;font-size:.83rem}
+#moves-learned .team-row progress{width:100%;height:7px;accent-color:var(--inv-accent)}
+#training-stats .team-row span{overflow-wrap:anywhere;font-size:.85rem}
+#evolution-options .team-row img{width:48px;height:48px;object-fit:contain}
 [hidden]{display:none!important}@media(max-width:760px){nav{margin-bottom:32px}.layout{grid-template-columns:1fr;gap:35px}.card{padding:23px}h1{font-size:2.75rem}}
 </style>
 </head>
@@ -223,14 +241,14 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 <section id="moves-section" hidden aria-labelledby="moves-heading"><h3 id="moves-heading">Golpes da Coleção</h3>
 <label for="moves-pokemon">Pokémon</label><select id="moves-pokemon"></select>
 <p id="moves-info" class="helper">Escolha de 1 a 4 golpes aprendidos, incluindo pelo menos um ofensivo, na ordem desejada.</p>
-<div id="moves-equipped"></div><div id="moves-learned"></div>
+<h4>Golpes equipados</h4><div id="moves-equipped"></div><h4>Golpes aprendidos</h4><div id="moves-learned"></div>
 <button id="moves-save" type="button" class="primary" disabled>Salvar golpes</button><p id="moves-note" role="status"></p></section>
 <section id="evolution-section" hidden aria-labelledby="evolution-heading"><h3 id="evolution-heading">Evoluções da Coleção</h3>
 <label for="evolution-pokemon">Pokémon</label><select id="evolution-pokemon"></select>
 <p class="helper">Evolução manual. O UID, o progresso e os golpes são preservados.</p><div id="evolution-options"></div><p id="evolution-note" role="status" aria-live="polite"></p></section>
 <section id="training-section" hidden aria-labelledby="training-heading"><h3 id="training-heading">Treinamento Pokémon</h3>
 <label for="training-pokemon">Pokémon</label><select id="training-pokemon"></select>
-<p id="training-points" class="helper"></p><div id="training-stats"></div>
+<div id="pokemon-profile" class="pokemon-profile"></div><div class="profile-links"><button type="button" id="profile-moves">Ver golpes</button><button type="button" id="profile-evolution">Ver evolução</button></div><p id="training-points" class="helper"></p><progress id="training-budget-bar" max="1" value="0" aria-label="Pontos de atributos utilizados e em prévia"></progress><div id="training-stats"></div>
 <button id="training-cancel" type="button" disabled>Cancelar prévia</button>
 <button id="training-save" type="button" class="primary" disabled>Confirmar distribuição</button>
 <button id="training-reset" type="button" disabled>Redistribuir pontos</button><p id="training-note" role="status" aria-live="polite"></p></section>
@@ -556,9 +574,43 @@ async function shopPurchase(ballId,quantity){
 let selectedMoveUid=null,moveDraft=[],selectedEvolutionUid=null;
 let trainingUid=null,trainingDraft={},trainingRevision=null;
 function clearTrainingDraft(){trainingDraft={};trainingRevision=null;}
+function renderPokemonProfile(chosen){
+ const profile=$('pokemon-profile');profile.replaceChildren();
+ const member=serverProgress?.state.roster.find(p=>p.uid===chosen.uid);
+ if(!member)return;
+ profile.dataset.profileUid=String(chosen.uid);
+ const info=document.createElement('div'),name=document.createElement('h4');
+ name.textContent=speciesNames[chosen.speciesId]+' · Nv. '+chosen.level;
+ const line=(text)=>{const p=document.createElement('p');p.textContent=text;info.append(p);};
+ info.append(name);line('XP acumulado neste nível: '+member.xp);
+ line('Afinidade: '+member.affinity+'%');
+ const affinity=document.createElement('progress');affinity.max=100;affinity.value=member.affinity;affinity.setAttribute('aria-label','Afinidade');info.append(affinity);
+ const record=member.battleRecord??{};
+ line('Vitórias: '+(record.wins??0)+' · Empates: '+(record.draws??0)+' · Derrotas: '+(record.losses??0));
+ profile.append(collectionSprite(chosen.speciesId,false),info);
+ $('profile-moves').disabled=!moveState||moveState.revision!==serverProgress.revision||!moveState.pokemon.some(p=>p.uid===chosen.uid)||onlineBusy;
+ $('profile-evolution').disabled=!evolutionState||evolutionState.revision!==serverProgress.revision||!evolutionState.pokemon.some(p=>p.uid===chosen.uid)||onlineBusy;
+}
+function focusPokemonSection(id){const section=$(id);if(!section.hidden){section.scrollIntoView({block:'start'});section.querySelector('select')?.focus({preventScroll:true});}}
+function openPokemonProfile(uid){
+ if(onlineBusy||!trainingState||!serverProgress||trainingState.revision!==serverProgress.revision||!trainingState.pokemon.some(p=>p.uid===uid))return;
+ if(uid!==trainingUid&&Object.keys(trainingDraft).length&&!window.confirm('Descartar a prévia de atributos não confirmada?'))return;
+ if(uid!==trainingUid){trainingUid=uid;clearTrainingDraft();}
+ renderTraining();focusPokemonSection('training-section');
+}
+$('profile-moves').addEventListener('click',()=>{
+ if(!trainingUid||!moveState||!serverProgress||moveState.revision!==serverProgress.revision||!moveState.pokemon.some(p=>p.uid===trainingUid))return;
+ const current=moveState.pokemon.find(p=>p.uid===selectedMoveUid);
+ if(selectedMoveUid!==trainingUid&&current&&!sameTeam(moveDraft,current.equipped)&&!window.confirm('Descartar a seleção de golpes não salva?'))return;
+ if(selectedMoveUid!==trainingUid){selectedMoveUid=trainingUid;renderMoves(true);}focusPokemonSection('moves-section');
+});
+$('profile-evolution').addEventListener('click',()=>{
+ if(!trainingUid||!evolutionState||!serverProgress||evolutionState.revision!==serverProgress.revision||!evolutionState.pokemon.some(p=>p.uid===trainingUid))return;
+ selectedEvolutionUid=trainingUid;renderEvolution();focusPokemonSection('evolution-section');
+});
 function renderTraining(){
  const section=$('training-section');section.hidden=!trainingState||!serverProgress;
- if(section.hidden)return;
+ if(section.hidden){$('pokemon-profile').replaceChildren();delete $('pokemon-profile').dataset.profileUid;return;}
  const list=trainingState.pokemon,chosen=list.find(p=>p.uid===trainingUid)??list[0];
  if(!chosen)return;
  if(chosen.uid!==trainingUid||trainingRevision!==trainingState.revision){clearTrainingDraft();trainingUid=chosen.uid;trainingRevision=trainingState.revision;}
@@ -567,12 +619,14 @@ function renderTraining(){
   const opt=document.createElement('option');opt.value=String(p.uid);opt.textContent=speciesNames[p.speciesId]+' · Nv. '+p.level+' (#'+p.uid+')';return opt;
  }));
  select.value=String(chosen.uid);select.disabled=locked;
+ renderPokemonProfile(chosen);
  const staged=Object.values(trainingDraft).reduce((a,b)=>a+b,0),remaining=chosen.remaining-staged;
  $('training-points').textContent='Pontos disponíveis: '+remaining+' de '+chosen.budget+' · '+chosen.spent+' utilizados · '+staged+' na prévia';
+ const budgetBar=$('training-budget-bar');budgetBar.max=Math.max(1,chosen.budget);budgetBar.value=chosen.spent+staged;
  const stats=$('training-stats');stats.replaceChildren();
  for(const [stat,label] of Object.entries(statLabels)){
   const row=document.createElement('div');row.className='team-row';
-  const value=document.createElement('span');const pending=trainingDraft[stat]??0;
+  const value=document.createElement('span');const pending=trainingDraft[stat]??0;row.dataset.preview=String(pending>0);
   value.textContent=label+': '+chosen.manual[stat]+(pending?' → '+(chosen.manual[stat]+pending):'');
   const minus=actionButton('−1',()=>{if(pending>1)trainingDraft[stat]=pending-1;else delete trainingDraft[stat];renderTraining();},locked||!pending);
   const plus=actionButton('+1',()=>{trainingDraft[stat]=pending+1;renderTraining();},locked||remaining<1);
@@ -619,7 +673,7 @@ function renderEvolution(){
    try{await api('/api/v1/evolution/evolve',args);ok=true;}catch{}
    const loaded=await refreshPortal();if(loaded&&evolutionState)$('evolution-note').textContent=ok?'Evolução concluída.':'Evolução não confirmada. Confira o progresso atualizado.';
   },locked||!option.available);
-  button.dataset.evolutionTarget=String(option.targetSpeciesId);row.append(label,button);options.append(row);
+  button.dataset.evolutionTarget=String(option.targetSpeciesId);row.append(collectionSprite(option.targetSpeciesId),label,button);options.append(row);
  }
 }
 $('evolution-pokemon').addEventListener('change',()=>{selectedEvolutionUid=Number($('evolution-pokemon').value);renderEvolution();renderTraining();renderPokedex();renderInventory();});
@@ -824,15 +878,16 @@ function renderMoves(reset=false){
  });
  const learned=$('moves-learned');learned.replaceChildren();
  const points=document.createElement('p');points.id='move-rank-points';points.className='helper';points.textContent='Pontos de habilidade: '+chosen.remaining+' de '+chosen.skillPoints+' · Rank máximo '+chosen.maxRank;learned.append(points);
+ const budget=document.createElement('progress');budget.id='move-budget-bar';budget.max=Math.max(1,chosen.skillPoints);budget.value=chosen.skillPoints-chosen.remaining;budget.setAttribute('aria-label','Pontos de habilidade utilizados');learned.append(budget);
  chosen.learned.forEach(m=>{
   const row=document.createElement('div');row.className='team-row';
-  const label=document.createElement('span');const rank=chosen.ranks[m.name]??0;
+  const label=document.createElement('span');const rank=chosen.ranks[m.name]??0;row.dataset.equipped=String(moveDraft.includes(m.name));
   label.textContent=m.name+' · '+m.type+' · '+m.category+(m.power?' · Poder '+m.power+' · Rank '+rank+' · Poder aprimorado '+Math.round(m.power*(1+rank*.05)):'');
   const btn=actionButton(moveDraft.includes(m.name)?'Equipado':'Equipar',()=>{moveDraft.push(m.name);renderMoves();},locked||moveDraft.includes(m.name)||moveDraft.length>=4);
   btn.dataset.moveName=m.name;row.append(label,btn);
   if(m.category!=='status'&&m.power>0){
    const upgrade=actionButton('Aprimorar +1',()=>submitMoveRank(m.name),locked||!chosen.valid||!sameTeam(moveDraft,chosen.equipped)||!chosen.equipped.includes(m.name)||chosen.remaining<1||rank>=chosen.maxRank);
-   upgrade.dataset.moveRank=m.name;row.append(upgrade);
+   upgrade.dataset.moveRank=m.name;const meter=document.createElement('progress');meter.max=Math.max(1,chosen.maxRank);meter.value=rank;meter.setAttribute('aria-label','Rank de '+m.name);row.append(meter,upgrade);
   }
   learned.append(row);
  });
@@ -881,7 +936,7 @@ function renderTeam(){
   const position=teamDraft.indexOf(p.uid),selected=position>=0;li.dataset.selected=String(selected);
   const role=collectionText('collection-position',selected?(position===0?'Líder':'Reserva '+position):'Fora da equipe');
   const add=actionButton(selected?'Na equipe':'Adicionar',()=>{if(!teamDraft.includes(p.uid)&&teamDraft.length<3){teamDraft.push(p.uid);renderTeam();}},onlineBusy||adventureBusy()||selected||teamDraft.length>=3);
-  add.dataset.uid=String(p.uid);li.append(img,label,role,add);return li;
+  add.dataset.uid=String(p.uid);const profile=actionButton('Perfil',()=>openPokemonProfile(p.uid),onlineBusy||!trainingState||trainingState.revision!==serverProgress.revision);profile.dataset.profilePokemon=String(p.uid);profile.setAttribute('aria-label','Perfil de '+speciesNames[p.pokemonId]+' (#'+p.uid+')');li.append(img,label,role,profile,add);return li;
  }));
  $('online-team-save').disabled=onlineBusy||adventureBusy()||sameTeam(teamDraft,state.team);
 }
