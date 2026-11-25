@@ -58,7 +58,7 @@ function equipment(level:number,regionId:number,mode:Mode,seed:number){
 }
 function teams(gym:typeof KANTO_GYMS[number],level:number){
  const accessible=KANTO_REGIONS.filter(r=>r.trainerUnlockLevel<=gym.trainerLevel&&r.levelMin<=level);
- const candidates=accessible.flatMap(r=>r.speciesIds).filter(id=>kantoCaptureStartingLevel(id)<=level&&!!KANTO_BATTLE_SPECIES[id]).map(id=>{
+ const candidates=accessible.flatMap(r=>r.speciesIds.filter(id=>!r.rareSpeciesIds.includes(id))).filter(id=>kantoCaptureStartingLevel(id)<=level&&!!KANTO_BATTLE_SPECIES[id]).map(id=>{
   const species=KANTO_BATTLE_SPECIES[id]!;
   const native=[...regionalNativeMoves(id,level).values()];
   const attacks=native.filter(m=>m.category!=='status'&&m.power>0);
@@ -69,8 +69,9 @@ function teams(gym:typeof KANTO_GYMS[number],level:number){
   const coverage=gym.team.reduce((s,p)=>s+Math.max(0,...attacks.map(m=>kantoTypeMultiplier(m.type,KANTO_BATTLE_SPECIES[p.speciesId]!.types))),0);
   return {id,species,moves,base,coverage};
  }).filter(x=>x!==null);
- const choose=(counter:boolean)=>{
-  const sorted=[...candidates].sort((a,b)=>(counter?b.coverage-a.coverage:0)||b.base-a.base||a.id-b.id);
+ const median=[...candidates].sort((a,b)=>a.base-b.base)[Math.floor(candidates.length/2)]!.base;
+ const choose=(strategy:'ordinary'|'mixed'|'counter')=>{
+  const sorted=[...candidates].sort((a,b)=>(strategy==='ordinary'?Math.abs(a.base-median)-Math.abs(b.base-median):strategy==='counter'?b.coverage-a.coverage:0)||b.base-a.base||a.id-b.id);
   const distinct=new Set<string>(),chosen:typeof sorted=[];
   for(const p of sorted){const t=p.species.types[0]!;if(distinct.has(t))continue;distinct.add(t);chosen.push(p);if(chosen.length===3)break;}
   if(chosen.length!==3)throw Error('insufficient candidate team');
@@ -78,13 +79,15 @@ function teams(gym:typeof KANTO_GYMS[number],level:number){
    manual:gymPokemonTraining(p.id,level,p.moves),moveName:p.moves[0]!.name,equippedMoveNames:p.moves.map(m=>m.name),
    upgrades:Object.fromEntries(Object.entries(gymOpponentRanks(p.id,level,p.moves)).filter(([name,n])=>n>0&&regionalNativeMoves(p.id,level).has(name)))}));
  };
- return {regionId:accessible.at(-1)!.id,mixed:choose(false),counter:choose(true)};
+ return {regionId:accessible.at(-1)!.id,ordinary:choose('ordinary'),mixed:choose('mixed'),counter:choose('counter')};
 }
 describe('D5A paired gym balance matrix',()=>{
  for(const gym of KANTO_GYMS)it(gym.leader+' — same team/seed across four gear policies',()=>{
   const level=Math.round((gym.recommendedMinLevel+gym.recommendedMaxLevel)/2),selected=teams(gym,level);
   const rows=[];
-  for(const strategy of ['mixed','counter'] as const){
+  const rareIds=new Set(KANTO_REGIONS.flatMap(r=>r.rareSpeciesIds));
+  for(const strategy of ['ordinary','mixed','counter'] as const)expect(selected[strategy].every(p=>!rareIds.has(p.pokemonId))).toBe(true);
+  for(const strategy of ['ordinary','mixed','counter'] as const){
    const roster=selected[strategy];
    for(const mode of modes){
     let wins=0,draws=0,losses=0,turns=0,gearSum=0;
