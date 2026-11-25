@@ -55,12 +55,9 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  const next=kantoNextGym(data.badges);
  const log=e?.log.map((line,i)=>{
   if(!g)return line;
-  const match=/^(player|leader)\s+(.+)$/.exec(line),j=present?i-present.logOffset:-1;
-  if(!match||!present||j<0||!present.events[j])return line.replace(/\bplayer\b/g,()=>data.name).replace(/\bleader\b/g,()=>g.leader);
-  const side=match[1]==='player'?'player':'opponent',other=side==='player'?'opponent':'player';
-  const before=j===0?present.before:present.events[j-1]!.display,after=present.events[j]!.display;
-  const active=(d:typeof before,k:'player'|'opponent')=>name(d[k].fighters[d[k].activeIndex]!.speciesId);
-  return narrateGymAction(present.turn,match[2]!,active(before,side),active(before,other),side==='player'?data.name:g.leader,active(after,side));
+  const match=/^(player|leader)\s+(.+)$/.exec(line),actor=g.narration?.[i];
+  if(!match||!actor)return line.replace(/\bplayer\b/g,()=>data.name).replace(/\bleader\b/g,()=>g.leader);
+  return narrateGymAction(actor.turn,match[2]!,name(actor.actor),name(actor.foe),actor.side==='player'?data.name:g.leader,name(actor.entered));
  })??[];
  return <section className={mode==='gym'?gymStyles.screen:styles.panel} data-testid={'online-'+mode+'-battle'}>
  {mode==='gym'&&!e&&<><div className={gymStyles.intro}><div><p className={gymStyles.kicker}>DESAFIO OFICIAL · KANTO</p><h2>Ginásios Pokémon</h2><p>Defina sua equipe na Coleção. A IA conduz o duelo 3 × 3.</p></div><strong className={gymStyles.progress}>{data.badges.length}/8 insígnias</strong></div><div className={gymStyles.gymList}>{KANTO_GYMS.map(x=><article key={x.id} className={next?.id===x.id?gymStyles.gymCurrent:gymStyles.gymCard}><small>{x.order} · {x.city}</small><strong>{x.name}</strong><span>{x.leader}</span><small>{data.badges.includes(x.id)?'✓ Insígnia conquistada':next?.id===x.id?'Desafio atual':'Bloqueado'}</small></article>)}</div></>}

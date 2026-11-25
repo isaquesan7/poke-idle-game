@@ -7,7 +7,7 @@ export type Encounter={id:string;phase:'reserved'|'await-player'|'resolved'|'cer
 export type RegionEncounter=Encounter&{regionId:number;level:number;playerLevel:number;player:Actor|null;wild:Actor|null;frames:KantoBattleVisualFrame[];captureChoices:{ballId:string;quantity:number}[]};
 export type GymDisplay={player:Party;opponent:Party};
 export type GymPresentation={before:GymDisplay;events:{display:GymDisplay;frame:KantoBattleVisualFrame}[];turn:number;logOffset:number};
-export type GymEncounter=Encounter&{presentation:GymPresentation|null;gymId:string;leader:string;actionNumber:number;player:Party|null;opponent:Party|null};
+export type GymEncounter=Encounter&{presentation:GymPresentation|null;narration:({turn:number;side:'player'|'opponent';actor:number;foe:number;entered:number}|null)[];gymId:string;leader:string;actionNumber:number;player:Party|null;opponent:Party|null};
 export type RegionView={revision:number;encounter:RegionEncounter|null;pendingLoot:boolean;regions:{id:number;unlocked:boolean}[]};
 export type GymView={revision:number;gym:GymEncounter|null;canReserve:boolean;nextGym:{gymId:string;leader:string;leaderLevel:number;teamUids:number[]}|null};
 import {pokemonMoveSlots} from '@kanto/game-core';
