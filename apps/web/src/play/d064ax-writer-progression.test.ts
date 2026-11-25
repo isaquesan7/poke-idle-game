@@ -144,3 +144,27 @@ describe('D064AX — progressão e IA por writer real',()=>{
     expect(next.regionWins[8]).toBe(0);
   });
 });
+
+
+describe('D4C farm regional independente de XP/moedas',()=>{
+ it('nível 80 recebe bolas em R1 sem progressão nem recibos duplicados',()=>{
+  const store=new MemoryStorage();
+  expect(createPlaySave(store,'Farm CI',4,1000,false).status).toBe('ok');
+  const read=readPlaySave(store);if(read.status!=='ready')throw Error('fixture');
+  const state=JSON.parse(read.snapshot.journal.raw);
+  state.roster[0].level=80;state.trainer.level=40;state.regionWins[0]=100000;
+  store.setItem(PLAY_SAVE_KEY,JSON.stringify({...read.snapshot,journal:{...read.snapshot.journal,raw:JSON.stringify(state)}}));
+  let gotBall=false;
+  for(let i=0;i<64&&!gotBall;i++){
+   const before=game(store),rev=version(store);
+   expect(act(store,{type:'regional-battle',regionId:1,seed:seed(4,i),ballId:null}).status).toBe('ok');
+   const after=game(store);
+   expect(after.coins).toBe(before.coins);expect(after.trainer.xp).toBe(before.trainer.xp);
+   expect(after.roster[0].xp).toBe(before.roster[0].xp);expect(after.regionWins[0]).toBe(100000);
+   expect(after.lastBattle.rewardFactor).toBe(0);
+   gotBall=after.ballPocket.quantities['poke-ball']>before.ballPocket.quantities['poke-ball'];
+   expect(updatePlaySave(store,rev,{type:'regional-battle',regionId:1,seed:seed(4,i),ballId:null}).status).toBe('blocked');
+  }
+  expect(gotBall).toBe(true);
+ });
+});

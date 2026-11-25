@@ -75,10 +75,10 @@ describe('ONLINE-01C-17 — regional victory drops, canonical thresholds',()=>{
     expect(quoteFrozenBattleRewards(snapshot(),preview('win'),0,10000)).toBeNull();
   });
   it('pays a farm-only victory: full item probability but zero XP, coins or progression',()=>{
-    const s={...snapshot(80),regionId:5,trainer:{...snapshot().trainer,level:40},opponent:{speciesId:25,level:45}};
+    const s={...snapshot(80),regionId:5,trainer:{...snapshot().trainer,level:40},activePokemon:{...snapshot(80).activePokemon,speciesId:25,moveName:'thunder-shock'},opponent:{speciesId:25,level:45}};
     const p=preview('win'),q=quoteFrozenBattleRewards(s,p,0,2500)!;
     expect(q).toMatchObject({coins:0,trainerXp:0,pokemonXp:0,wins:0,affinityDelta:0,ballDropId:'great-ball'});
-    const state=raw();state.trainer.level=40;state.roster[0]!.level=80;
+    const state=raw();state.trainer.level=40;state.roster[0]!.level=80;state.roster[0]!.pokemonId=25;
     const result=applyFrozenBattleRewardQuote(JSON.stringify(state),s,p,q)!;
     expect(result.paid).toMatchObject({coins:0,trainerXp:0,pokemonXp:0,ballDrop:{ballId:'great-ball',quantity:1}});
     const after=JSON.parse(result.raw);
