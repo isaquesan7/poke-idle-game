@@ -98,15 +98,19 @@ try{
     await grid.getByRole('button',{name:/ÁREA 09/}).click();
     await page.getByRole('heading',{name:'Pico Dracônico'}).waitFor();
     assert.equal(await page.getByRole('button',{name:/Entrar na região/}).isDisabled(),true);
+    await page.keyboard.press('Escape');
+    await page.getByRole('dialog',{name:'Detalhes da região'}).waitFor({state:'hidden'});
     await grid.getByRole('button',{name:/ÁREA 04/}).focus();
     await page.keyboard.press('Enter');
     await page.getByRole('heading',{name:'Lagos Serenos'}).waitFor();
     assert.equal(await page.getByRole('button',{name:/Entrar na região/}).isDisabled(),false);
+    await page.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:'Fechar'}).click();
     const selected=grid.getByRole('button',{name:/ÁREA 04/});
     assert.equal(await selected.getAttribute('aria-pressed'),'true');
     const before=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     // Navegação e consulta não podem alterar a revisão nem saldo.
     await grid.getByRole('button',{name:/ÁREA 03/}).click();
+    await page.keyboard.press('Escape');
     await grid.getByRole('button',{name:/ÁREA 04/}).click();
     const consulted=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     assert.deepEqual(consulted,before);

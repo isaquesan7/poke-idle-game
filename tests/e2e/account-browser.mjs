@@ -220,6 +220,17 @@ try{
   assert.equal(await alpha.getByTestId('play-root').count(),1);
   await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Coleção',exact:true}).click();
   await alpha.getByTestId('pokemon-uid-1').getByText('Charmander',{exact:true}).waitFor();
+  await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Pokédex',exact:true}).click();
+  assert.equal(await alpha.getByTestId('pokedex-grid').evaluate(el=>getComputedStyle(el).overflowY),'auto');
+  await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Regiões',exact:true}).click();
+  await alpha.getByRole('button',{name:/ÁREA 09/}).click();
+  const lockedDialog=alpha.getByRole('dialog',{name:'Detalhes da região'});
+  assert.equal(await lockedDialog.getByRole('button',{name:/Entrar na região/}).isDisabled(),true);
+  await alpha.keyboard.press('Escape');
+  await alpha.getByRole('button',{name:/ÁREA 01/}).click();
+  await alpha.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:/Entrar na região/}).click();
+  await alpha.getByRole('progressbar',{name:'XP do Pokémon líder'}).waitFor();
+  await alpha.getByRole('button',{name:'Voltar às regiões'}).click();
   await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Treinador',exact:true}).click();
   await alpha.getByRole('button',{name:'Mochila',exact:true}).click();
   await alpha.getByTestId('inventory-item-poke-ball').waitFor();
@@ -322,6 +333,14 @@ try{
   for(let i=2;battle.encounter.phase==='await-player'&&i<=30;i++)
     battle=await callRegion('turn',{encounterId,actionId:'browser-region-turn-'+String(i).padStart(2,'0'),expectedRevision:battle.revision,action:{kind:'basic'}});
   assert.equal(battle.encounter.phase,'resolved');
+  // Reproduce actual persisted impact frames in Alpha, not invented browser damage.
+  const impact=battle.encounter.frames.find(f=>['attack','residual'].includes(f.kind)&&f.amount>0);
+  assert.ok(impact,'strong basic-attack fixture emits a damage frame');
+  const effectAlpha=await context.newPage();
+  await effectAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await effectAlpha.getByTestId('battle-impact-'+impact.target).waitFor({state:'visible'});
+  assert.ok((await effectAlpha.getByTestId('battle-impact-'+impact.target).textContent()).includes('HP'));
+  await effectAlpha.close();
   const certified=await callRegion('certify',{encounterId,actionId:'browser-region-certify-01',expectedRevision:battle.revision});
   const paid=await callRegion('settle',{encounterId,actionId:'browser-region-settle-01',expectedRevision:certified.revision});
   assert.equal(paid.encounter.phase,'paid');
@@ -353,6 +372,9 @@ try{
   assert.equal(canCapture,1,'strong CI fixture should win');
   const capture=await responseFor(page,'/api/v1/region/finish',()=>page.locator('[data-region-action="poke-ball"]').click());
   assert.ok(['captured','failed'].includes(capture.capture));
+  assert.equal(capture.rewardSummary.capture,capture.capture);
+  for(const field of ['trainerXp','pokemonXp','coins'])assert.ok(Number.isSafeInteger(capture.rewardSummary[field])&&capture.rewardSummary[field]>=0);
+  assert.ok(Array.isArray(capture.rewardSummary.loot.stored)&&Array.isArray(capture.rewardSummary.loot.pending));
   await page.locator('#region-open').waitFor();
   await page.waitForFunction(()=>document.activeElement?.id==='region-open');
   const afterCapture=await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId]);
@@ -387,10 +409,21 @@ try{
   await page.locator('#region-phase[data-phase="resolved"]').waitFor();
   await page.locator('[data-region-action="reward"]').click();
   await page.locator('#region-phase[data-phase="paid"]').waitFor();
-  await responseFor(page,'/api/v1/region/finish',()=>page.locator('[data-region-action="skip"]').click());
+  const rewardAlpha=await context.newPage();
+  await rewardAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  const skip=rewardAlpha.getByRole('button',{name:'Seguir sem capturar'});
+  await skip.waitFor();
+  const closedRegion=await responseFor(rewardAlpha,'/api/v1/region/finish',()=>skip.click());
+  const summary=rewardAlpha.getByRole('dialog',{name:'Resultado da batalha'});
+  await summary.waitFor();
+  assert.ok((await summary.textContent()).includes('+'+closedRegion.rewardSummary.trainerXp));
+  assert.ok((await summary.textContent()).includes('+'+closedRegion.rewardSummary.pokemonXp));
+  assert.ok((await summary.textContent()).includes('+'+closedRegion.rewardSummary.coins));
+  await summary.getByRole('button',{name:'Continuar'}).click();
+  await rewardAlpha.getByTestId('online-battle-start').waitFor();
+  await rewardAlpha.close();
+  await page.locator('#online-refresh').click();
   await page.locator('#region-open').waitFor();
-  await page.waitForFunction(()=>document.activeElement?.id==='region-open');
-  assert.equal(await page.locator('#region-select').inputValue(),'2');
   assert.equal((await readRegion()).encounter,null);
 
   checkpoint("expedition");
@@ -567,6 +600,20 @@ try{
   await page.locator('#moves-pokemon').waitFor();
   assert.deepEqual((await moveRead()).pokemon.find(p=>p.uid===1).equipped,['scratch','growl']);
 
+  // The React Alpha must show the exact server loadout and preserve offensive moves.
+  const moveAlpha=await context.newPage();
+  await moveAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await moveAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Coleção',exact:true}).click();
+  const teamTrain=moveAlpha.getByRole('button',{name:'Treinar UID 1 pelo slot da equipe'});
+  if(await teamTrain.count())await teamTrain.click();else await moveAlpha.getByTestId('pokemon-uid-1').getByRole('button',{name:/Treinar/}).click();
+  await moveAlpha.getByRole('button',{name:'Golpes',exact:true}).click();
+  await moveAlpha.getByTestId('equipped-moves').getByText('growl',{exact:true}).waitFor();
+  await responseFor(moveAlpha,'/api/v1/moves/equip',()=>moveAlpha.getByRole('button',{name:'Retirar golpe growl'}).click());
+  await moveAlpha.getByRole('button',{name:'Adicionar golpe growl'}).waitFor();
+  await responseFor(moveAlpha,'/api/v1/moves/equip',()=>moveAlpha.getByRole('button',{name:'Adicionar golpe growl'}).click());
+  await moveAlpha.getByTestId('equipped-moves').getByText('growl',{exact:true}).waitFor();
+  assert.deepEqual((await moveRead()).pokemon.find(p=>p.uid===1).equipped,['scratch','growl']);
+  await moveAlpha.close();await page.reload({waitUntil:'domcontentloaded'});await page.locator('#moves-pokemon').waitFor();
   checkpoint("evolution");
   // Evolution via Collection, not an injected client save. Only fixture grants level.
   const evoRead=async()=>{const q=await page.request.get(origin+'/api/v1/evolution/current');assert.equal(q.status(),200);return q.json();};
@@ -779,6 +826,37 @@ try{
   assert.ok(!finalInv.titles.some(t=>t.id==='gym-leader'));
   assert.equal(finalInv.badges.length,8);
   assert.deepEqual(finalInv.bag,inv.bag);
+  checkpoint("Alpha confirmed level-up");
+  // A disposable low-level Pokémon needs only one XP to level up.
+  // A win or the existing beginner consolation reward must cross the threshold.
+  const levelFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const levelRaw=JSON.parse(levelFixture.journal.raw);
+  const beginner=levelRaw.roster.find(p=>p.uid===4);
+  assert.equal(beginner.level,1);
+  beginner.xp=86;levelRaw.team=[4];
+  levelFixture.journal.raw=JSON.stringify(levelRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(levelFixture)]);
+  const levelRegion=await readRegion();
+  const levelReserve=await callRegion('reserve',{actionId:'browser-level-reserve-01',expectedRevision:levelRegion.revision,regionId:1});
+  const levelId=levelReserve.encounter.id;
+  let levelBattle=await callRegion('start',{encounterId:levelId,expectedRevision:levelReserve.revision});
+  for(let i=1;levelBattle.encounter.phase==='await-player'&&i<=30;i++)
+    levelBattle=await callRegion('turn',{encounterId:levelId,actionId:'browser-level-turn-'+String(i).padStart(2,'0'),expectedRevision:levelBattle.revision,action:{kind:'basic'}});
+  assert.equal(levelBattle.encounter.phase,'resolved');
+  const levelAlpha=await context.newPage();
+  await levelAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  const skipLevelReplay=levelAlpha.getByRole('button',{name:'Pular apresentação',exact:true});
+  await skipLevelReplay.waitFor();
+  if(await skipLevelReplay.isEnabled())await skipLevelReplay.click();
+  await levelAlpha.getByRole('button',{name:'Receber recompensas',exact:true}).click();
+  await levelAlpha.getByTestId('battle-level-up').waitFor({state:'visible'});
+  assert.match(await levelAlpha.getByTestId('battle-fighter-player').textContent(),/Nv\. [2-9]/);
+  const newLevel=JSON.parse((await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state.journal.raw).roster.find(p=>p.uid===4).level;
+  assert.ok(newLevel>1);
+  await levelAlpha.getByRole('button',{name:'Seguir sem capturar'}).click();
+  await levelAlpha.getByRole('dialog',{name:'Resultado da batalha'}).waitFor();
+  await levelAlpha.close();
+
   checkpoint("password recovery and logout");
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();

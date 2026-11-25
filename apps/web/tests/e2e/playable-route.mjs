@@ -31,7 +31,9 @@ async function ready() {
 /** D-064AJ: a batalha não existe na navegação; replay somente após entrar na região. */
 async function openSavedBattle(page){
   await page.getByRole('button',{name:'Regiões',exact:true}).click();
-  await page.getByRole('button',{name:'Rever último combate nesta região'}).click();
+  const lastRegion=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).lastBattle.regionId,SAVE);
+  await page.getByRole('region',{name:'Escolha de região'}).getByRole('button',{name:new RegExp('ÁREA '+String(lastRegion).padStart(2,'0'))}).click();
+  await page.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:'Rever último combate nesta região'}).click();
 }
 
 
@@ -404,7 +406,8 @@ async function exercise(browser, label, viewport) {
   await page.getByRole('button',{name:'Regiões',exact:true}).click();
   await page.getByRole('heading',{name:'Suas regiões'}).waitFor();
   assert.equal(await page.getByRole('button',{name:'Arena',exact:true}).count(),0);
-  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('region',{name:'Escolha de região'}).getByRole('button',{pressed:true}).click();
+  await page.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:/Entrar na região/}).click();
   await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.getByRole('heading',{name:'Batalha no Bosque Inicial'}).waitFor();
   // D-063: a visão inicial da Arena apresenta líder, indicadores e ação
@@ -837,7 +840,8 @@ async function exercise(browser, label, viewport) {
   assert.equal(teamGame.roster.find(p=>p.uid===firstUid).manual.speed,0);
 
   await page.getByRole('button',{name:'Regiões',exact:true}).click();
-  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('region',{name:'Escolha de região'}).getByRole('button',{pressed:true}).click();
+  await page.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:/Entrar na região/}).click();
   await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.getByLabel('Líder do combate').getByText('UID #'+firstUid,{exact:false}).waitFor();
   await page.waitForFunction(({key,revision})=>
@@ -976,7 +980,8 @@ async function exercise(browser, label, viewport) {
       }
     });
   });
-  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('region',{name:'Escolha de região'}).getByRole('button',{pressed:true}).click();
+  await page.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:/Entrar na região/}).click();
   await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.waitForFunction(({key,revision})=>JSON.parse(localStorage.getItem(key))?.revision===revision,
     {key:SAVE,revision:18+secondBattleOffset});
@@ -1154,7 +1159,8 @@ async function exerciseNewMoves(browser,label,viewport){
     });
   });
   const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),SAVE);
-  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('region',{name:'Escolha de região'}).getByRole('button',{pressed:true}).click();
+  await page.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:/Entrar na região/}).click();
   await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.waitForFunction(({key,before})=>
     JSON.parse(localStorage.getItem(key))?.revision>before,
@@ -1272,7 +1278,8 @@ async function exerciseGuaranteedLevelUp(browser,label,viewport){
       }
     });
   });
-  await page.getByRole('button',{name:/Entrar na região/}).click();
+  await page.getByRole('region',{name:'Escolha de região'}).getByRole('button',{pressed:true}).click();
+  await page.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:/Entrar na região/}).click();
   await page.getByRole('button',{name:'Batalhar na região'}).click();
   await page.getByRole('heading',{name:'Batalha em andamento…'}).waitFor();
   const staged=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw),SAVE);

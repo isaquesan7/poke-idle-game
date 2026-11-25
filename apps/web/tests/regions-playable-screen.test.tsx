@@ -16,24 +16,26 @@ describe('D-064AI — tela de exploração integrada ao perfil',()=>{
     expect(new Set(KANTO_REGIONS.flatMap(r=>r.speciesIds)).size).toBe(151);
     const markup=renderToStaticMarkup(<RegionsScreen {...props}/>);
     for(const region of KANTO_REGIONS)expect(markup).toContain(region.name);
-    expect(markup).toContain('Entrar na região');
+    expect(markup).toContain('aria-haspopup="dialog"');
+    expect(markup).not.toContain('Entrar na região');
     expect(markup).toContain('7');
     expect(markup).toContain('Poké Ball');
     expect(markup).toContain('Pokébolas disponíveis');
     expect(markup).toContain('<b>12</b>');
-    expect(markup).toContain('Desconhecido');
+    expect(markup).not.toContain('Desconhecido');
   });
   it('região bloqueada não permite batalha mas permanece consultável',()=>{
     const html=renderToStaticMarkup(<RegionsScreen {...props}
       trainerLevel={21} selectedRegionId={9}/>);
-    expect(html).toContain('Entrar na região');
-    expect(html).toContain('Desbloqueia no nível 82');
-    expect(html).toMatch(/disabled=""/);
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain('Treinador Lv. 82');
+    // Locked cards remain consultable; their dialog CTA is disabled (browser regression).
+    expect(html).not.toContain('Entrar na região');
   });
   it('permite lutar sem bola quando estoque está vazio',()=>{
     const html=renderToStaticMarkup(<RegionsScreen {...props}
       balls={{'poke-ball':0}} />);
     expect(html).toContain('Após vencer você poderá escolher uma Pokébola');
-    expect(html).toContain('Entrar na região');
+    expect(html).toContain('aria-haspopup="dialog"');
   });
 });

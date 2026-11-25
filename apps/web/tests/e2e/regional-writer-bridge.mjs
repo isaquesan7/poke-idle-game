@@ -38,6 +38,8 @@ try{
     await region.getByRole('button',{name:/ÁREA 05/}).click();
     assert.equal(await page.getByRole('button',{name:/Entrar na região/}).isDisabled(),true,
       'Região 5 deve estar bloqueada para treinador nível 21');
+    await page.keyboard.press('Escape');
+    await page.getByRole('dialog',{name:'Detalhes da região'}).waitFor({state:'hidden'});
     await region.getByRole('button',{name:/ÁREA 04/}).click();
     const before=await page.evaluate(k=>JSON.parse(localStorage.getItem(k)),key);
     await page.getByRole('button',{name:/Entrar na região/}).click();

@@ -67,7 +67,7 @@ export async function finishPaidWildTurnEncounter(pool,{
           Number(encounter.battle_turn_final_revision);
       return await rollback(client,replay?
         {status:'replay',revision:Number(encounter.battle_turn_final_revision),
-          result:encounter.battle_turn_final_result}:
+          result:encounter.battle_turn_final_result,paid:encounter.battle_turn_payout_receipt}:
         {status:'already-finished'});
     }
     if(previous.rowCount)return await rollback(client,{status:'duplicate-action'});
@@ -209,7 +209,7 @@ export async function finishPaidWildTurnEncounter(pool,{
        VALUES($1,$2,'wild-turn-finish',$3)`,
       [accountId,actionId,nextRevision]);
     await client.query('COMMIT');
-    return {status:'finished',revision:nextRevision,result:candidate.result};
+    return {status:'finished',revision:nextRevision,result:candidate.result,paid:receipt};
   }catch(error){
     await client.query('ROLLBACK');throw error;
   }finally{client.release();}

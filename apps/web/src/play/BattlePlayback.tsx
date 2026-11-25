@@ -11,6 +11,8 @@ interface BattlePlaybackProps {
   readonly onProgress?: (visible:number) => void;
   /** Ginásios reutilizam o diário inteiro, mas só revelam linhas novas. */
   readonly initialVisible?:number;
+  /** Online rounds may end on an impact; keep that final frame visible before advancing. */
+  readonly holdLastFrame?:boolean;
 }
 
 const fmt=(ms:number):string=>{
@@ -27,9 +29,11 @@ const fmt=(ms:number):string=>{
  * Unmount/troca de aba cancela os timers sem perder a batalha salva.
  */
 export function BattlePlayback({log,turns,playing,onFinished,onProgress,
-  initialVisible=0}:BattlePlaybackProps) {
+  initialVisible=0,holdLastFrame=false}:BattlePlaybackProps) {
   const [visible,setVisible]=useState(()=>playing
     ?Math.min(log.length,Math.max(0,Math.floor(initialVisible))+1):log.length);
+  const [skipped,setSkipped]=useState(false);
+  const finishRef=useRef(onFinished);finishRef.current=onFinished;
   const [speed,setSpeed]=useState<1|2>(1);
   const [paused,setPaused]=useState(false);
   const [assistive,setAssistive]=useState(false);
@@ -63,8 +67,11 @@ export function BattlePlayback({log,turns,playing,onFinished,onProgress,
   },[inProgress,paused,speed,assistive,visible,log.length]);
 
   useEffect(()=>{
-    if(playing&&visible>=log.length)onFinished();
-  },[playing,visible,log.length,onFinished]);
+    if(!playing||visible<log.length)return;
+    if(!holdLastFrame||skipped){finishRef.current();return;}
+    const timer=window.setTimeout(()=>finishRef.current(),(assistive?3000:900)/speed);
+    return()=>window.clearTimeout(timer);
+  },[playing,visible,log.length,holdLastFrame,skipped,assistive,speed]);
 
   useEffect(()=>{
     if(listRef.current)listRef.current.scrollTop=listRef.current.scrollHeight;
@@ -129,7 +136,7 @@ export function BattlePlayback({log,turns,playing,onFinished,onProgress,
             onClick={()=>setVisible(value=>Math.min(log.length,value+1))}
             disabled={!inProgress||!paused}>Avançar uma linha</button>
           <button type="button" className={styles.textButton}
-            onClick={()=>setVisible(log.length)} disabled={!inProgress}>Pular apresentação</button>
+            onClick={()=>{setSkipped(true);setVisible(log.length);}} disabled={!inProgress}>Pular apresentação</button>
         </div>
       )}
       <p id={helpId} className={styles.battlePlaybackHelp}>

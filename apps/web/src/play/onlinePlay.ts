@@ -11,6 +11,15 @@ export type GymEncounter=Encounter&{presentation:GymPresentation|null;narration:
 export type RegionView={revision:number;encounter:RegionEncounter|null;pendingLoot:boolean;regions:{id:number;unlocked:boolean}[]};
 export type GymView={revision:number;gym:GymEncounter|null;canReserve:boolean;nextGym:{gymId:string;leader:string;leaderLevel:number;teamUids:number[]}|null};
 import {pokemonMoveSlots} from '@kanto/game-core';
+import type {LegacyPokemon} from '../storage/legacySave';
+/** The server's authoritative slots are not the local save's moveNames. */
+export function onlineMoveSlots(p:LegacyPokemon,fallback:string):readonly string[]{
+ const slots=p.equippedMoveNames;
+ return Array.isArray(slots)&&slots.length>=1&&slots.length<=4&&slots.every(n=>typeof n==='string')&&new Set(slots).size===slots.length
+  ?slots as string[]:pokemonMoveSlots({moveName:p.moveName},fallback);
+}
+export type RegionalReward={outcome:string;trainerXp:number;pokemonXp:number;coins:number;loot:{stored:RegionalDrop[];pending:RegionalDrop[]};capture:'captured'|'failed'|'skipped'|null};
+type RegionalDrop={kind:'ball'|'stone';itemId:string;quantity:number}|{kind:'gear';gear:{templateId:string;rarity:string}};
 import type {onlineInventoryProjection,onlineShopProjection,onlineExpeditionProjection} from '@kanto/game-core';
 import type {PendingRegionalLoot,PendingExpeditionLoot} from '@kanto/game-core';
 export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number;pending:PendingRegionalLoot|null;expeditionPending:PendingExpeditionLoot|null;canResolveExpeditionLoot:boolean};
@@ -82,13 +91,13 @@ export function onlineCommand(action:PlayAction,snapshot:PlaySnapshot):{path:str
  case 'move':{
   if(action.operation==='upgrade')return {path:'moves/upgrade',fields:{pokemonUid:action.uid,moveName:action.moveName}};
   const p=data.roster.find(p=>p.uid===action.uid);if(!p)return null;
-  const current=[...pokemonMoveSlots(p,typeof p.moveName==='string'?p.moveName:'tackle')];
+  const current=[...onlineMoveSlots(p,typeof p.moveName==='string'?p.moveName:'tackle')];
   const names=current.includes(action.moveName)?[action.moveName,...current.filter(n=>n!==action.moveName)]:[action.moveName,...current.slice(1)];
   return {path:'moves/equip',fields:{pokemonUid:action.uid,moveNames:names}};
  }
  case 'move-set':{
   const p=data.roster.find(p=>p.uid===action.uid);if(!p)return null;
-  let names=[...pokemonMoveSlots(p,typeof p.moveName==='string'?p.moveName:'tackle')];
+  let names=[...onlineMoveSlots(p,typeof p.moveName==='string'?p.moveName:'tackle')];
   if(action.operation==='add'&&!names.includes(action.moveName))names.push(action.moveName);
   else if(action.operation==='remove'&&names.includes(action.moveName)&&names.length>1)names=names.filter(n=>n!==action.moveName);
   else if(action.operation==='primary'&&names.includes(action.moveName))names=[action.moveName,...names.filter(n=>n!==action.moveName)];
