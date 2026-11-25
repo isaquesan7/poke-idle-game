@@ -54,7 +54,7 @@ test('23D7: production flag never enables public accounts, email actions or game
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
     env:{...process.env,PORT:'23158',NODE_ENV:'production',
-      ONLINE_REGISTRATION_ENABLED:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ACCOUNT_MAIL_MODE:'off',
+      ONLINE_REGISTRATION_ENABLED:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ACCOUNT_MAIL_MODE:'off',
       ONLINE_SIGNED_QUOTA_MODE:'reviewed',ONLINE_GATEWAY_RECEIVER_ACTIVE_HEX:'11'.repeat(32)},
     stdio:'ignore'
   });
@@ -84,6 +84,7 @@ test('23D7: production flag never enables public accounts, email actions or game
     assert.equal((await call('/api/v1/expedition/current')).status,503);
     assert.equal((await call('/api/v1/shop/current')).status,503);
     assert.equal((await call('/api/v1/moves/current')).status,503);
+    assert.equal((await call('/api/v1/pokedex/current')).status,503);
     assert.equal((await call('/api/v1/evolution/current')).status,503);
     assert.equal((await call('/api/v1/pokemon-training/current')).status,503);
     assert.equal((await call('/api/v1/gym/current')).status,503);
