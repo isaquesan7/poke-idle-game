@@ -20,7 +20,7 @@ function side(p){
 export async function readCurrentGym(pool,accountId){
  const q=await pool.query(
   `SELECT s.revision,s.state,g.id,g.gym_id,g.team_uids,
-    g.frozen_preparation->>'leader' AS leader,g.turn_state,
+    g.frozen_preparation->>'leader' AS leader,g.frozen_preparation->'leaderTrainer'->'level' AS leader_level,g.turn_state,
     g.certificate_action_id,
     EXISTS(SELECT 1 FROM game_encounter_reservations e
       WHERE e.account_id=s.account_id AND e.status='reserved') AS regional_busy,
@@ -39,7 +39,7 @@ export async function readCurrentGym(pool,accountId){
   const phase=row.certificate_action_id?'certified':!state?'reserved':
     state.outcome==='ongoing'?'await-player':'resolved';
   return {status:'ok',revision,nextGym:null,canReserve:false,gym:{
-   id:row.id,gymId:row.gym_id,leader:row.leader,teamUids:row.team_uids,
+   id:row.id,gymId:row.gym_id,leader:row.leader,leaderLevel:row.leader_level??null,teamUids:row.team_uids,
    phase,turn:state?.turn??0,outcome:state?.outcome??null,
    actionNumber:row.history.at(-1)?.actionNumber??0,
    player:state?side(state.player):null,opponent:state?side(state.leader):null,
@@ -52,5 +52,5 @@ export async function readCurrentGym(pool,accountId){
  const preparation=core.canonicalOnlineGymPreparation(raw);
  return {status:'ok',revision,gym:null,canReserve:!!preparation&&!row.regional_busy,
   nextGym:preparation?{gymId:preparation.gymId,leader:preparation.leader,
-   teamUids:preparation.teamUids}:null};
+   leaderLevel:preparation.leaderTrainer.level,teamUids:preparation.teamUids}:null};
 }
