@@ -87,3 +87,43 @@ test('23F12D1: inventory ownership, capacity, titles, atomic equipment and busy 
   const receipts=await pool.query("SELECT count(*)::int AS n FROM game_action_receipts WHERE account_id=$1 AND kind IN ('trainer-title','trainer-equipment')",[id]);assert.equal(receipts.rows[0].n,4);
  }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
 });
+
+
+test('D4C1: full bag retains certified drops; resolve once under the save lock',async()=>{
+ const db=new URL(process.env.DATABASE_URL);assert.equal(db.hostname,'127.0.0.1');assert.equal(db.port,'55432');assert.equal(db.pathname,'/kanto_ci');assert.equal(db.username,'kanto_ci');
+ const pool=new pg.Pool({connectionString:db.href});let id;
+ try{
+  id=(await pool.query("INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id",['loot-'+randomUUID()+'@example.test','x'.repeat(48)])).rows[0].id;
+  const save=firstSave('Loot CI',4,1740000000000),core=await loadCombatAdapter();
+  const encounterId=randomUUID(),gear={templateId:'cap',slot:'hat',rarity:'common',requiredLevel:1,regionId:1,stats:{hp:2}};
+  const raw=JSON.parse(save.journal.raw);
+  raw.inventory.gear=Array.from({length:9},(_,i)=>({...gear,source:'drop',id:'gear-owned-'+i}));
+  raw.trainer.level=40;raw.roster[0].level=80;
+  const before=JSON.stringify(raw),paid=structuredClone(raw);paid.ballPocket.quantities['poke-ball']++;
+  const input={encounterId,regionId:1,speciesId:4,outcome:'win',gear,stone:'fire-stone',ballId:'poke-ball'};
+  const placed=core.placeCertifiedRegionalLoot(before,JSON.stringify(paid),input);
+  assert.ok(placed);assert.equal(placed.ballQuantity,1);assert.equal(placed.stored.length,1);assert.equal(placed.pending.length,2);
+  const state=JSON.parse(placed.raw);assert.equal(state.coins,0);assert.equal(state.roster[0].level,80);assert.equal(state.ballPocket.quantities['poke-ball'],13);assert.equal(state.inventory.gear.length,9);
+  assert.equal(core.onlineInventoryProjection(placed.raw).bag.used,10);
+  assert.equal(core.placeCertifiedRegionalLoot(placed.raw,placed.raw,input),null);
+  assert.equal(core.placeCertifiedRegionalLoot(before,JSON.stringify(paid),{...input,stone:'thunder-stone'}),null);
+  assert.equal(core.placeCertifiedRegionalLoot(before,JSON.stringify(paid),{...input,outcome:'loss'}),null);
+  save.journal.raw=placed.raw;
+  await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[id,JSON.stringify(save)]);
+  const apply=(command,expectedRevision,actionId=randomUUID())=>changeTrainerLoadout(pool,{accountId:id,actionId,expectedRevision,command});
+  const pendingGear=placed.pending.find(i=>i.kind==='gear').gear;
+  const store={kind:'loot-store',encounterId,itemId:pendingGear.id};
+  assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:0})).status,'busy');
+  assert.equal((await apply(store,0)).status,'bag-full');
+  assert.equal((await apply({...store,encounterId:randomUUID()},0)).status,'unavailable');
+  assert.equal((await apply({kind:'discard-gear',itemId:'gear-owned-0'},0)).status,'applied');
+  const actionId=randomUUID();const race=await Promise.all([apply(store,1,actionId),apply(store,1,actionId)]);
+  assert.deepEqual(race.map(i=>i.status).sort(),['applied','duplicate']);
+  assert.equal((await apply(store,2)).status,'unavailable');
+  assert.equal((await apply({kind:'loot-discard',encounterId,itemId:'fire-stone'},2)).status,'applied');
+  const after=JSON.parse((await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[id])).rows[0].state.journal.raw);
+  assert.equal(after.pendingRegionalLoot,undefined);assert.equal(after.inventory.gear.filter(i=>i.id===pendingGear.id).length,1);
+  assert.equal(after.ballPocket.quantities['poke-ball'],13);assert.deepEqual(after.evolutionStones,{});assert.equal(after.coins,0);
+  assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:3})).status,'reserved');
+ }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
+});
