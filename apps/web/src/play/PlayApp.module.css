@@ -1136,3 +1136,19 @@
 .regionLeaderSummary{display:grid;gap:var(--space-2);margin:var(--space-4) 0;padding:var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface)}
 .regionLeaderSummary progress{width:100%;accent-color:var(--color-primary)}
 .rewardDrops{display:grid;gap:var(--space-2);padding-left:var(--space-5);color:var(--color-text)}
+
+/* Alpha regional loot cards and responsive storefront. */
+.rewardDrops{grid-template-columns:repeat(auto-fit,minmax(135px,1fr));list-style:none;padding:0;gap:var(--space-3)}
+.rewardDropCard{min-width:0;display:grid;align-content:start;justify-items:center;text-align:center;gap:var(--space-2);padding:var(--space-3);background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:var(--radius-card)}
+.rewardDropIcon{display:grid;place-items:center;width:48px;height:48px;border:1px solid var(--color-primary);border-radius:var(--radius-card);color:var(--color-primary);font-size:1.35rem}
+.rewardDropCard[data-rarity='legendary'] .rewardDropIcon{color:var(--color-gold);border-color:var(--color-gold)}
+.rewardDropCard small{color:var(--color-text-muted)}
+.shopItems{grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:var(--space-3)}
+.shopItem{display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;text-align:center;min-width:0;min-height:225px;padding:var(--space-4);gap:var(--space-3)}
+.shopItem .shopIcon{width:62px;height:62px;margin:auto;font-size:1.6rem}
+.shopItem .shopPriceGroup{justify-items:center;text-align:center}
+.shopPurchaseControls{justify-content:center}
+.shopCategories{display:flex;flex-wrap:wrap;gap:var(--space-2);margin:var(--space-4) 0}
+.shopCart{display:grid;gap:var(--space-3);margin-top:var(--space-5);padding:var(--space-4);background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:var(--radius-card)}
+.shopCartLine{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);flex-wrap:wrap;padding:var(--space-2) 0;border-bottom:1px solid var(--color-border)}
+.shopCartLine button{min-height:38px}

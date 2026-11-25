@@ -29,17 +29,21 @@ describe('ONLINE-01C-14 — server reward quote parity (no grants)',()=>{
       expect(Object.hasOwn(q,'pokeballs')).toBe(false);
     }
   });
-  it('handles beginner loss/draw XP without imaginary coins or affinity',()=>{
+  it('credits half of a victory on defeat, keeps draw policy and excludes coins/balls',()=>{
     const loss=quoteFrozenBattleRewards(snapshot(1,2),outcomePreview('loss'),0)!;
     expect([loss.coins,loss.trainerXp,loss.pokemonXp,loss.affinityDelta])
-      .toEqual([0,0,22,-2]);
+      .toEqual([0,28,16,-2]);
+    expect(loss.ballDropId).toBeNull();
     expect([loss.wins,loss.losses,loss.draws]).toEqual([0,1,0]);
     const draw=quoteFrozenBattleRewards(snapshot(1,1),outcomePreview('draw'),0)!;
     expect([draw.coins,draw.trainerXp,draw.pokemonXp,draw.affinityDelta])
       .toEqual([0,0,22,-1]);
     expect([draw.wins,draw.losses,draw.draws]).toEqual([0,1,1]);
     const experienced=quoteFrozenBattleRewards(snapshot(5),outcomePreview('loss'),0)!;
-    expect(experienced.pokemonXp).toBe(0);
+    expect(experienced.pokemonXp).toBe(14);
+    expect(experienced.trainerXp).toBe(25);
+    const overlevel=quoteFrozenBattleRewards(snapshot(14),outcomePreview('loss'),0,0)!;
+    expect([overlevel.trainerXp,overlevel.pokemonXp,overlevel.coins,overlevel.ballDropId]).toEqual([0,0,0,null]);
   });
   it('blocks XP and coin progression by overlevel and forbids malformed inputs',()=>{
     const veteran=quoteFrozenBattleRewards(snapshot(14,5),outcomePreview('win'),3)!;

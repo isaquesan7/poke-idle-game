@@ -20,6 +20,7 @@ interface Props{
   readonly onOpenTeam:()=>void;
   readonly lastBattleRegionId?:number|undefined;
   readonly onReplayBattle?:()=>void;
+  readonly online?:boolean;
 }
 const ballLabels=[
   {id:'poke-ball',name:'Poké Ball'},
@@ -31,7 +32,7 @@ const ballLabels=[
 export function RegionsScreen({
   trainerLevel,leaderSpeciesId,leaderLevel,selectedRegionId,onSelectRegion,balls,
   wins,seenIds,capturedIds,busy,onEnterRegion,onOpenTeam,
-  lastBattleRegionId,onReplayBattle
+  lastBattleRegionId,onReplayBattle,online=false
 }:Props){
   const [detailsOpen,setDetailsOpen]=useState(false);
   const selected=KANTO_REGIONS.find(region=>region.id===selectedRegionId)??KANTO_REGIONS[0]!;
@@ -56,7 +57,7 @@ export function RegionsScreen({
 
       <section aria-label="Preparar combate regional" className={styles.prepare}>
         <div className={styles.leader}>
-          <img src={`/assets/pokemon-gifs/poke_${leaderSpeciesId}.gif`} alt="" width="76" height="76"/>
+          <img src={`/assets/pokemon-gifs/poke_${leaderSpeciesId}.gif`} alt="" width="108" height="108"/>
           <div><span className={styles.kicker}>SEU LÍDER</span>
             <strong>{KANTO_BATTLE_SPECIES[leaderSpeciesId]?.name??'Pokémon'} · Lv. {leaderLevel}</strong>
             <button type="button" className={styles.link} onClick={onOpenTeam}>Alterar equipe</button>
@@ -139,7 +140,7 @@ export function RegionsScreen({
             Rever último combate nesta região
           </button>}
         {!unlocked&&<p className={styles.notice} role="status">Alcance o nível {selected.trainerUnlockLevel} de treinador para lutar nesta região.</p>}
-        {selected.id===1&&leaderLevel===1&&
+        {online?<p className={styles.notice}>Derrotas concedem metade da experiência de uma vitória válida, sem moedas ou itens. Empates seguem a regra de aprendizado inicial.</p>:selected.id===1&&leaderLevel===1&&
           <p className={styles.notice}>Primeiros passos: mesmo se não vencer, seu Pokémon ganha 22 XP de aprendizado até alcançar o nível 2. O treinador só ganha XP nas vitórias ou expedições.</p>}
         <p className={styles.notice}>Entrar na área não gera encontro. Na tela de combate, use Batalhar na região para encontrar um adversário; após a vitória, você pode decidir sobre uma única tentativa de captura.</p>
 

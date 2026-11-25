@@ -23,7 +23,7 @@ import {loadRegionalTestKeyring,regionalExpansionEnabled,readRegionalEncounter,r
 import {expeditionHttpEnabled,readExpedition} from './expeditionHttp.mjs';
 import {applyExpeditionCommand} from './expeditionWriter.mjs';
 import {shopHttpEnabled,readShop} from './shopHttp.mjs';
-import {purchaseShopBall,purchaseShopGear} from './shopWriter.mjs';
+import {purchaseShopBall,purchaseShopGear,purchaseShopCart} from './shopWriter.mjs';
 import {pokemonTrainingHttpEnabled,readPokemonTraining} from './pokemonTrainingHttp.mjs';
 import {trainPokemon} from './pokemonTrainingWriter.mjs';
 import {evolutionHttpEnabled,readEvolution} from './evolutionHttp.mjs';
@@ -516,8 +516,8 @@ const server=createServer(async(req,res)=>{
       if(!await enforceThrottle(req,res,{scope:'shop-account',identifier:account.id,limit:60}))return;
       const data=await readJson(req);
       const shape=Object.keys(data).sort().join(',');
-      if(!['actionId,ballId,expectedRevision,quantity','actionId,expectedRevision,templateId'].includes(shape))return json(res,400,{error:'Ação inválida'});
-      const result=await (shape.includes('templateId')?purchaseShopGear:purchaseShopBall)(pool,{accountId:account.id,...data});
+      if(!['actionId,ballId,expectedRevision,quantity','actionId,expectedRevision,templateId','actionId,expectedRevision,items'].includes(shape))return json(res,400,{error:'Ação inválida'});
+      const result=await (shape.includes('items')?purchaseShopCart:shape.includes('templateId')?purchaseShopGear:purchaseShopBall)(pool,{accountId:account.id,...data});
       return json(res,result.status==='purchased'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(onlineRouteGroup(pathname,'expedition')){
