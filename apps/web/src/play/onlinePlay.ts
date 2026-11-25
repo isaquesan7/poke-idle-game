@@ -5,10 +5,12 @@ export type Actor={speciesId:number;level?:number;hp:number;maxHp:number;sp:numb
 export type Party={activeIndex:number;needsReplacement:boolean;fighters:Actor[]};
 export type Encounter={id:string;phase:'reserved'|'await-player'|'resolved'|'certified'|'paid';turn:number;outcome:string|null;log:string[];recommendedAction:GymTurnAction|null};
 export type RegionEncounter=Encounter&{regionId:number;level:number;playerLevel:number;player:Actor|null;wild:Actor|null;frames:KantoBattleVisualFrame[];captureChoices:{ballId:string;quantity:number}[]};
-export type GymEncounter=Encounter&{gymId:string;leader:string;actionNumber:number;player:Party|null;opponent:Party|null};
+export type GymDisplay={player:Party;opponent:Party};
+export type GymPresentation={before:GymDisplay;events:{display:GymDisplay;frame:KantoBattleVisualFrame}[];turn:number;logOffset:number};
+export type GymEncounter=Encounter&{presentation:GymPresentation|null;gymId:string;leader:string;actionNumber:number;player:Party|null;opponent:Party|null};
 export type RegionView={revision:number;encounter:RegionEncounter|null;pendingLoot:boolean;regions:{id:number;unlocked:boolean}[]};
 export type GymView={revision:number;gym:GymEncounter|null;canReserve:boolean;nextGym:{gymId:string;leader:string;leaderLevel:number;teamUids:number[]}|null};
-import {STATS,pokemonMoveSlots} from '@kanto/game-core';
+import {pokemonMoveSlots} from '@kanto/game-core';
 import type {onlineInventoryProjection,onlineShopProjection,onlineExpeditionProjection} from '@kanto/game-core';
 import type {PendingRegionalLoot,PendingExpeditionLoot} from '@kanto/game-core';
 export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number;pending:PendingRegionalLoot|null;expeditionPending:PendingExpeditionLoot|null;canResolveExpeditionLoot:boolean};
@@ -62,10 +64,7 @@ export function onlineCommand(action:PlayAction,snapshot:PlaySnapshot):{path:str
  case 'start-expedition':return {path:'expedition/start',fields:{regionId:action.regionId}};
  case 'claim-expedition':return {path:'expedition/claim',fields:{}};
  case 'stop-expedition':return {path:'expedition/stop',fields:{}};
- case 'trainer-invest-batch':{
-  const entries=STATS.filter(k=>(action.increments[k]??0)>0);
-  return entries.length===1&&action.increments[entries[0]!]===1?{path:'trainer/invest',fields:{stat:entries[0]}}:null;
- }
+ case 'trainer-invest-batch':return {path:'trainer/invest',fields:{increments:action.increments}};
  case 'trainer':return action.value.type==='title'?{path:'inventory/loadout',fields:{command:{kind:'title',titleId:action.value.titleId}}}:action.value.type==='equip'?{path:'inventory/loadout',fields:{command:{kind:'equipment',slot:action.value.slot,itemId:action.value.itemId||null}}}:null;
  case 'pokemon':{
   const a=action.value;

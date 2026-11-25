@@ -34,9 +34,14 @@ export function gymNarratedLog(
     const pokemon=activeName(round,index,side,'before');
     const foe=activeName(round,index,other,'before');
     const coach=partyName(side,trainer,leader);
+    return narrateGymAction(round.turn,action,pokemon,foe,coach,activeName(round,index,side,'after'));
+  }));
+}
+
+export function narrateGymAction(turn:number,action:string,pokemon:string,foe:string,coach:string,enteredName:string):string{
     let narration:string;
     if(action.startsWith('trocou Pokémon')||action.startsWith('substituiu após KO')){
-      const entered=activeName(round,index,side,'after');
+      const entered=enteredName;
       narration=coach+' substituiu '+pokemon+' por '+entered+
         (action.startsWith('substituiu após KO')?' após o nocaute.':'.');
     }else if(action.startsWith('sofreu KO')){
@@ -60,6 +65,5 @@ export function gymNarratedLog(
     }else if(/^(sofreu|recebeu|ficou|está|acordou|perdeu|se feriu)/.test(action)){
       narration=pokemon+' '+action;
     }else narration=coach+' '+action;
-    return 'T'+round.turn+' '+narration;
-  }));
+    return 'T'+turn+' '+narration;
 }

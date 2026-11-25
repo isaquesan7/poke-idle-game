@@ -5,6 +5,7 @@ import type {Actor,Party,RegionView,GymView} from './onlinePlay';
 import {BattleStage} from './BattleStage';
 import {BattlePlayback} from './BattlePlayback';
 import {PokemonArt} from './JourneyShell';
+import {narrateGymAction} from './gymLogText';
 import styles from './PlayApp.module.css';
 import gymStyles from './GymScreen.module.css';
 
@@ -30,7 +31,7 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  const prev=useRef({id:'',length:0});
  const sent=useRef('');
  const key=e?e.id+':'+e.log.length:'';
- const prior=e&&prev.current.id===e.id?Math.min(prev.current.length,e.log.length):0;
+ const prior=e&&prev.current.id===e.id?Math.min(prev.current.length,e.log.length):(g?.presentation?.logOffset??0);
  const playing=!!e&&e.log.length>0&&shown.key!==key;
  const onCommandRef=useRef(onCommand);onCommandRef.current=onCommand;
  useEffect(()=>{if(!e){setAuto(false);sent.current='';prev.current={id:'',length:0};return;}},[e?.id]);
@@ -45,11 +46,22 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  useEffect(()=>{if(busy||playing)return;const target=w?.phase==='paid'?captureRef.current:e?stageRef.current:startRef.current;target?.focus({preventScroll:true});target?.scrollIntoView({block:'nearest'});},[e?.id,e?.phase,busy,playing]);
  function launch(){sent.current='';setAuto(true);void onCommand('open').then(ok=>{if(!ok)setAuto(false);});}
  const lead=data.roster.find(p=>p.uid===data.team[0]);
- const a:Actor|null|undefined=w?w.player:g?.player?.fighters[g.player.activeIndex];
- const z:Actor|null|undefined=w?w.wild:g?.opponent?.fighters[g.opponent.activeIndex];
- const frame=w?.frames?.length===w?.log.length&&w&&w.frames.length>0?w.frames[Math.max(0,Math.min(w.frames.length-1,playing?Math.max(prior,visible-1):w.frames.length-1))]??null:null;
+ const present=g?.presentation;
+ const index=present?Math.max(-1,Math.min(present.events.length-1,visible-present.logOffset-1)):-1;
+ const display=present&&playing?(index<0?present.before:present.events[index]?.display??present.before):g;
+ const a:Actor|null|undefined=w?w.player:display?.player?.fighters[display.player.activeIndex];
+ const z:Actor|null|undefined=w?w.wild:display?.opponent?.fighters[display.opponent.activeIndex];
+ const frame=w?.frames?.length===w?.log.length&&w&&w.frames.length>0?w.frames[Math.max(0,Math.min(w.frames.length-1,playing?Math.max(prior,visible-1):w.frames.length-1))]??null:present&&playing&&index>=0?present.events[index]?.frame??null:null;
  const next=kantoNextGym(data.badges);
- const log=e?.log.map(line=>g?line.replace(/\bplayer\b/g,()=>data.name).replace(/\bleader\b/g,()=>g.leader):line)??[];
+ const log=e?.log.map((line,i)=>{
+  if(!g)return line;
+  const match=/^(player|leader)\s+(.+)$/.exec(line),j=present?i-present.logOffset:-1;
+  if(!match||!present||j<0||!present.events[j])return line.replace(/\bplayer\b/g,()=>data.name).replace(/\bleader\b/g,()=>g.leader);
+  const side=match[1]==='player'?'player':'opponent',other=side==='player'?'opponent':'player';
+  const before=j===0?present.before:present.events[j-1]!.display,after=present.events[j]!.display;
+  const active=(d:typeof before,k:'player'|'opponent')=>name(d[k].fighters[d[k].activeIndex]!.speciesId);
+  return narrateGymAction(present.turn,match[2]!,active(before,side),active(before,other),side==='player'?data.name:g.leader,active(after,side));
+ })??[];
  return <section className={mode==='gym'?gymStyles.screen:styles.panel} data-testid={'online-'+mode+'-battle'}>
  {mode==='gym'&&!e&&<><div className={gymStyles.intro}><div><p className={gymStyles.kicker}>DESAFIO OFICIAL · KANTO</p><h2>Ginásios Pokémon</h2><p>Defina sua equipe na Coleção. A IA conduz o duelo 3 × 3.</p></div><strong className={gymStyles.progress}>{data.badges.length}/8 insígnias</strong></div><div className={gymStyles.gymList}>{KANTO_GYMS.map(x=><article key={x.id} className={next?.id===x.id?gymStyles.gymCurrent:gymStyles.gymCard}><small>{x.order} · {x.city}</small><strong>{x.name}</strong><span>{x.leader}</span><small>{data.badges.includes(x.id)?'✓ Insígnia conquistada':next?.id===x.id?'Desafio atual':'Bloqueado'}</small></article>)}</div></>}
  <div className={mode==='gym'?gymStyles.panel:styles.battleIntro}>
@@ -64,7 +76,7 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  {w?.phase==='paid'&&!playing&&<div className={styles.battleCapturePlacement} ref={captureRef} tabIndex={-1}><div className={styles.captureDecision}><h3>{w.outcome==='win'?'Tentar capturar '+name(w.wild?.speciesId??0)+'?':'Encerrar batalha'}</h3>{w.captureChoices.map(ball=><button key={ball.ballId} className={styles.primary} disabled={busy||ball.quantity<1} onClick={()=>void onCommand('finish',ball.ballId)}>{balls[ball.ballId]??ball.ballId} · {ball.quantity}</button>)}<button className={styles.secondary} disabled={busy} onClick={()=>void onCommand('finish','skip')}>Seguir sem capturar</button></div></div>}
  </div>}
  </div>
- {g?.player&&g.opponent&&<div className={gymStyles.benchColumns}><Reserve party={g.player} label="Suas reservas"/><Reserve party={g.opponent} label={'Reservas de '+g.leader}/></div>}
+ {g&&display?.player&&display.opponent&&<div className={gymStyles.benchColumns}><Reserve party={display.player} label="Suas reservas"/><Reserve party={display.opponent} label={'Reservas de '+g.leader}/></div>}
  {e&&log.length>0&&<BattlePlayback key={key} log={log} initialVisible={prior} turns={e.turn} playing={playing} onProgress={setVisible} onFinished={()=>{prev.current={id:e.id,length:log.length};setShown({key,length:log.length});}}/>}
  {e&&!playing&&['resolved','certified'].includes(e.phase)&&<button className={styles.primary} disabled={busy} onClick={()=>void onCommand('reward')}>{mode==='gym'?'Finalizar confronto':'Receber recompensas'}</button>}
  </section>;

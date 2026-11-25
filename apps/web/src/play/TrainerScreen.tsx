@@ -92,7 +92,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
 
 
   function stage(stat:Stat){
-    if(busy||submitting||(onlineInventory&&pendingCount>=1)||remaining<=0||view.manual[stat]+(pending[stat]??0)>=40)return;
+    if(busy||submitting||remaining<=0||view.manual[stat]+(pending[stat]??0)>=40)return;
     setDraftRevision(revision);
     setDraft({...pending,[stat]:(pending[stat]??0)+1});
   }
@@ -187,14 +187,14 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
                   {(pending[stat]??0)>0&&<button type="button" className={styles.undoPoint}
                     disabled={busy||submitting} onClick={()=>unstage(stat)}
                     aria-label={'Retirar um ponto da prévia de '+STAT_LABELS[stat]}>−</button>}
-                  <button type="button" disabled={busy||submitting||(!!onlineInventory&&pendingCount>=1)||remaining<1||view.manual[stat]+(pending[stat]??0)>=40}
+                  <button type="button" disabled={busy||submitting||remaining<1||view.manual[stat]+(pending[stat]??0)>=40}
                     onClick={()=>stage(stat)} aria-label={'Pré-visualizar +1 em '+STAT_LABELS[stat]}>+1</button>
                 </div>
               </div>;
             })}
           </div>
           <div className={styles.points}><span>Pontos disponíveis: <strong>{remaining}</strong></span>
-            <small>Máximo manual: 40 por atributo{onlineInventory?' · confirmação de um ponto por vez':''}</small></div>
+            <small>Máximo manual: 40 por atributo</small></div>
           {hasStaleDraft&&<p className={styles.staleNotice} role="alert">Seu progresso mudou em outra ação. Refaça a distribuição para manter os valores corretos.</p>}
           {pendingCount>0&&<div className={styles.confirm}>
             <p role="status">Prévia: <strong>{pendingCount} ponto(s)</strong> ainda não aplicados.</p>
