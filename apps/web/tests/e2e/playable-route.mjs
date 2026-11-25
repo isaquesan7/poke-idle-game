@@ -31,7 +31,9 @@ async function ready() {
 /** D-064AJ: a batalha não existe na navegação; replay somente após entrar na região. */
 async function openSavedBattle(page){
   await page.getByRole('button',{name:'Regiões',exact:true}).click();
-  await page.getByRole('button',{name:'Rever último combate nesta região'}).click();
+  const lastRegion=await page.evaluate(key=>JSON.parse(JSON.parse(localStorage.getItem(key)).journal.raw).lastBattle.regionId,SAVE);
+  await page.getByRole('region',{name:'Escolha de região'}).getByRole('button',{name:new RegExp('ÁREA '+String(lastRegion).padStart(2,'0'))}).click();
+  await page.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:'Rever último combate nesta região'}).click();
 }
 
 
