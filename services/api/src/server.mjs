@@ -24,6 +24,7 @@ import {pokemonTrainingHttpEnabled,readPokemonTraining} from './pokemonTrainingH
 import {trainPokemon} from './pokemonTrainingWriter.mjs';
 import {evolutionHttpEnabled,readEvolution} from './evolutionHttp.mjs';
 import {evolvePokemon} from './evolutionWriter.mjs';
+import {pokedexHttpEnabled,readPokedex} from './pokedexHttp.mjs';
 import {movesHttpEnabled,readMoves} from './movesHttp.mjs';
 import {upgradePokemonMove} from './pokemonMoveRankWriter.mjs';
 import {equipPokemonMoves} from './pokemonMoveEquipment.mjs';
@@ -419,6 +420,15 @@ const server=createServer(async(req,res)=>{
       if(Object.keys(data).sort().join(',')!=='actionId,expectedRevision,pokemonUid,targetSpeciesId')return json(res,400,{error:'Ação inválida'});
       const result=await evolvePokemon(pool,{accountId:account.id,...data});
       return json(res,result.status==='evolved'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
+    }
+    if(pathname==='/api/v1/pokedex/current'){
+      if(!enabled||!pokedexHttpEnabled())return json(res,503,{error:'Pokédex online em preparação'});
+      if(req.method!=='GET'||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
+      const result=await readPokedex(pool,account.id);
+      return json(res,result.status==='ok'?200:result.status==='missing-save'?404:409,result);
     }
     if(['/api/v1/moves/current','/api/v1/moves/equip','/api/v1/moves/upgrade'].includes(pathname)){
       if(!enabled||!movesHttpEnabled())return json(res,503,{error:'Golpes online em preparação'});
