@@ -39,6 +39,7 @@ export function kantoPerHitSecondaryEffect(moveName:string):KantoSecondaryEffect
 }
 export const KANTO_SECONDARY_EFFECTS: Readonly<Record<string,KantoSecondaryEffect>> = {
   ...FRLG_SECONDARY_EFFECTS,
+  'rock-tomb':{kind:'speed-drop',chance:100,stages:1},
   ember:{kind:'status',status:'burn',chance:10},
   'thunder-shock':{kind:'status',status:'paralysis',chance:10},
   'poison-sting':{kind:'status',status:'poison',chance:30},

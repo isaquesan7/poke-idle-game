@@ -17,6 +17,10 @@ export const KANTO_MOVE_PP:Readonly<Record<string,number>>={
   ...Object.fromEntries(Object.values(KANTO_FRLG_MOVE_META)
     .filter(meta=>meta.pp!==null&&meta.pp>0)
     .map(meta=>[meta.name,meta.pp!])),
+  // NPC signature moves, FRLG historical PP; not learned or taught to players.
+  'rock-tomb':10,
+  'water-pulse':20,
+  'shock-wave':20,
   'absorb':25,
   'bubble':30,
   'drill-peck':20,
