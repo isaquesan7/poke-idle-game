@@ -1,5 +1,5 @@
 /** 23F7A — read-only projection for the authenticated disposable Gym portal.
- * Never serialize frozen preparations, receipt internals or entropy proofs.
+ * Never serialize frozen preparations, NPC title metadata, receipt internals or entropy proofs.
  * One SQL statement gives the revision, active reservation and log coherently.
  */
 import {loadCombatAdapter} from './battlePreview.mjs';
