@@ -9,7 +9,7 @@
  * Region (1v1) snapshots v1/v2 must not import this module's bonuses.
  */
 import {KANTO_GYMS,kantoNextGym} from '../gyms/kantoGyms.js';
-import {prepareGymOpponent,prepareGymLeader} from '../gyms/gymTactics.js';
+import {prepareGymOpponent,prepareGymLeader,prepareLegacyGymOpponent} from '../gyms/gymTactics.js';
 import {createGymBattleState} from '../gyms/gymBattleState.js';
 import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
 import {inheritedOnlineMoves} from './serverInheritedMoves.js';
@@ -147,12 +147,12 @@ export interface OnlineGymPreparationV1 {
     {readonly uid:number;readonly combatant:Combatant}
   ];
   readonly leaderTeam:readonly [Combatant,Combatant,Combatant];
-  readonly leaderTrainer:ReturnType<typeof prepareGymLeader>;
+  readonly leaderTrainer?:ReturnType<typeof prepareGymLeader>;
 }
 /** Three real members ONLY from the already-selected Collection team.
  * Not a wild battle, not the local Gym session, and not yet an online writer.
  */
-export function canonicalOnlineGymPreparation(source:unknown):
+export function canonicalOnlineGymPreparation(source:unknown,legacyLeader=false):
  OnlineGymPreparationV1|null{
   const bonuses=canonicalOnlineGymTrainerBonuses(source);
   if(!bonuses||!isRecord(source)||!Array.isArray(source.team)||
@@ -206,7 +206,8 @@ export function canonicalOnlineGymPreparation(source:unknown):
     teamUids:[source.team[0]!,source.team[1]!,source.team[2]!],
     trainer:bonuses,
     player:players as unknown as OnlineGymPreparationV1['player'],
-    leaderTeam:opponent.team,leaderTrainer:opponent.trainer
+    leaderTeam:legacyLeader?prepareLegacyGymOpponent(gym):opponent.team,
+    ...(legacyLeader?{}:{leaderTrainer:opponent.trainer})
   };
 }
 
@@ -214,10 +215,10 @@ export function canonicalOnlineGymPreparation(source:unknown):
  * A future authenticated writer must lock the save, freeze the trio and sign
  * turns/settlement before exposing this to any player-facing online route.
  */
-export function canonicalOnlineGymOpeningState(source:unknown):
+export function canonicalOnlineGymOpeningState(source:unknown,legacyLeader=false):
  {readonly preparation:OnlineGymPreparationV1;
   readonly battle:GymBattleState}|null{
-  const preparation=canonicalOnlineGymPreparation(source);
+  const preparation=canonicalOnlineGymPreparation(source,legacyLeader);
   if(!preparation)return null;
   return {preparation,battle:createGymBattleState(
     preparation.player,preparation.leaderTeam)};
