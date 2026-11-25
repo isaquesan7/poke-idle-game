@@ -40,6 +40,7 @@ test('23F11B: canonical UID evolution is atomic and preserves the instance',asyn
   const snap=buildBattleSnapshot(evolved.save,{regionId:1,speciesId:16,level:3});
   assert.equal(snap.version,2);assert.deepEqual(snap.activePokemon.evolutionHistory,history);
   assert.deepEqual(core.canonicalFrozenCombatants(snap).player.moves.map(m=>m.name),['scratch','growl']);
+  assert.deepEqual(core.canonicalFrozenCombatants(snap).player.ranks,{scratch:1,growl:0});
   assert.deepEqual(core.canonicalOnlineGymEquippedMoves(5,16,['scratch','growl'],history).map(m=>m.name),['scratch','growl']);
   assert.ok(core.onlineMoveProjection(evolved.save.journal.raw).pokemon[0].valid);
   assert.equal(core.canonicalFrozenCombatants({...snap,activePokemon:{...snap.activePokemon,evolutionHistory:[{...history[0],level:1}]}}),null);
