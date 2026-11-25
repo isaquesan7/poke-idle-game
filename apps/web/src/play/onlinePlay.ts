@@ -2,7 +2,8 @@ import {parseLegacySave} from '../storage/legacySave';
 import type {PlayRead,PlaySnapshot,PlayAction} from './playSave';
 import {STATS,pokemonMoveSlots} from '@kanto/game-core';
 import type {onlineInventoryProjection,onlineShopProjection,onlineExpeditionProjection} from '@kanto/game-core';
-export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number};
+import type {PendingRegionalLoot,PendingExpeditionLoot} from '@kanto/game-core';
+export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number;pending:PendingRegionalLoot|null;expeditionPending:PendingExpeditionLoot|null;canResolveExpeditionLoot:boolean};
 export type ShopView=NonNullable<ReturnType<typeof onlineShopProjection>> & {revision:number};
 export type ExpeditionView=NonNullable<ReturnType<typeof onlineExpeditionProjection>> & {revision:number;busy:boolean};
 export interface OnlineViews {inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;clockOffset:number}

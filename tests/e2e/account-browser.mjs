@@ -168,6 +168,21 @@ try{
   assert.equal(await page.locator('#online-new').isHidden(),true);
   assert.match(await page.locator('#online-roster').textContent(),/Charmander · Nível 1/);
   assert.equal(await page.evaluate(()=>localStorage.getItem('online-portal-ci-sentinel')),'must-not-change');
+  // Reuse the actual Alpha React UI against the same authenticated PostgreSQL save.
+  const alpha=await context.newPage();
+  alpha.on('pageerror',err=>browserErrors.push(err.message));
+  await alpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await alpha.getByRole('heading',{name:'Bem-vindo de volta, Treinador Browser!'}).waitFor();
+  assert.equal(await alpha.getByTestId('play-root').count(),1);
+  await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Coleção',exact:true}).click();
+  await alpha.getByTestId('pokemon-uid-1').getByText('Charmander',{exact:true}).waitFor();
+  await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Treinador',exact:true}).click();
+  await alpha.getByRole('button',{name:'Mochila',exact:true}).click();
+  await alpha.getByTestId('inventory-item-poke-ball').waitFor();
+  await alpha.reload({waitUntil:'domcontentloaded'});
+  await alpha.getByRole('heading',{name:'Bem-vindo de volta, Treinador Browser!'}).waitFor();
+  assert.equal(await alpha.evaluate(()=>localStorage.getItem('kanto-idle-play-v02')),null);
+  await alpha.close();
   const duplicate=await page.request.post(origin+'/api/v1/adventure/start',{data:{starterId:7},headers:{Origin:origin}});
   assert.equal(duplicate.status(),409);
   const persisted=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[registeredId]);

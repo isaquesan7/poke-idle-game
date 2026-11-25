@@ -42,8 +42,10 @@ export interface TrainerScreenProps{
   onTitle:(titleId:string)=>void;
   onlineInventory?:InventoryView;
   onDiscardGear?:(id:string)=>void;
+  onLoot?:(command:Record<string,unknown>)=>void;
+  lootBusy?:boolean;
 }
-export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,onlineInventory,onDiscardGear}:TrainerScreenProps){
+export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,onlineInventory,onDiscardGear,onLoot,lootBusy=false}:TrainerScreenProps){
   const [section,setSection]=useState<Section>('profile');
   const [selectedEquipment,setSelectedEquipment]=useState<string|null>(null);
   const [equipmentFilter,setEquipmentFilter]=useState<'all'|'equipped'>('all');
@@ -282,6 +284,10 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
         <span className={styles.smallTag}>Capacidade: {bagCapacity}</span></div>
       <p className={styles.hint}>Cada tipo de item empilhado ocupa um cubo, independentemente da quantidade.
         Passe o mouse ou use o foco do teclado para ver detalhes. No celular, toque no cubo.</p>
+      {onlineInventory&&onLoot&&<>
+        {onlineInventory.pending&&<section className={styles.panel}><h3>Recompensas regionais pendentes</h3>{onlineInventory.pending.items.map(item=>{const itemId=item.kind==='gear'?item.gear.id:item.itemId;const name=item.kind==='gear'?(LEGACY_ITEMS.find(m=>m.id===item.gear.templateId)?.name??itemId):itemId;const fields={encounterId:onlineInventory.pending!.encounterId,itemId};return <div key={itemId} className={styles.detailActions}><strong>{name}</strong><button type="button" className={styles.confirmButton} disabled={busy} onClick={()=>onLoot({kind:'loot-store',...fields})}>Guardar</button><button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar este drop definitivamente?'))onLoot({kind:'loot-discard',...fields});}}>Descartar</button></div>;})}</section>}
+        {onlineInventory.expeditionPending&&<section className={styles.panel}><h3>Recompensas da expedição pendentes</h3>{Object.entries(onlineInventory.expeditionPending.quantities).filter(([,n])=>Number(n)>0).map(([itemId,n])=>{const fields={claimAt:onlineInventory.expeditionPending!.claimAt,itemId};const blocked=lootBusy||!onlineInventory.canResolveExpeditionLoot;return <div key={itemId} className={styles.detailActions}><strong>{itemId} × {n}</strong><button type="button" className={styles.confirmButton} disabled={blocked} onClick={()=>onLoot({kind:'expedition-loot-store',...fields})}>Guardar</button><button type="button" className={styles.cancel} disabled={blocked} onClick={()=>{if(window.confirm('Descartar estas Pokébolas definitivamente?'))onLoot({kind:'expedition-loot-discard',...fields});}}>Descartar</button></div>;})}</section>}
+      </>}
       <InventoryGrid title="Mochila" items={bagEntries} capacity={bagCapacity}/>
       <p className={styles.hint}>{onlineInventory?'Capacidade e propriedade confirmadas pelo servidor.':'A expansão da mochila será desbloqueada por um item futuro.'}{!onlineInventory&&<>
         A capacidade é informativa até ser ligada às regras de aquisição e ao writer de itens.

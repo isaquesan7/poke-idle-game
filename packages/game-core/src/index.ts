@@ -205,3 +205,5 @@ export {legalFrozenWildTurnActions,resolveFrozenWildTurn}
 export {onlineInventoryProjection} from './inventory/serverInventory.js';
 export {onlineShopProjection} from './combat/serverShop.js';
 export {onlineExpeditionProjection} from './combat/serverExpedition.js';
+export type {PendingRegionalLoot} from './inventory/serverRegionalLoot.js';
+export type {PendingExpeditionLoot} from './inventory/serverExpeditionLoot.js';

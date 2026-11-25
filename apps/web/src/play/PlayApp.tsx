@@ -176,6 +176,13 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   /** Apenas efeito temporário da subida de nível já confirmada pelo writer. */
   const [levelUpNotice,setLevelUpNotice]=useState<{battleId:string}|null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const viewRevision=save.status==='ready'?save.snapshot.revision:null;
+  useEffect(()=>{
+    if(!online||tab!=='expedition'||viewRevision===null||busy)return;
+    let active=true;
+    const timer=window.setInterval(()=>{void readOnlineViews(viewRevision).then(v=>{if(active&&!onlineLock.current)setOnlineViews(v);});},10000);
+    return()=>{active=false;window.clearInterval(timer);};
+  },[online,tab,viewRevision,busy]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -777,7 +784,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
             )}
             {tab === 'trainer' && <TrainerScreen view={view} data={data}
               revision={save.snapshot.revision} busy={busy||!!inventory?.busy}
-              {...(inventory?{onlineInventory:inventory,onDiscardGear:(id:string)=>void onlineExtra('inventory/loadout',{command:{kind:'discard-gear',itemId:id}})}:{})}
+              {...(inventory?{onlineInventory:inventory,onDiscardGear:(id:string)=>void onlineExtra('inventory/loadout',{command:{kind:'discard-gear',itemId:id}}),onLoot:(command:Record<string,unknown>)=>void onlineExtra('inventory/loadout',{command}),lootBusy:busy}:{})}
               onInvest={investTrainerBatch}
               onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
@@ -1453,13 +1460,13 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 leaderName={view.active.name}
                 leaderLevel={active.level}
                 leaderArt={<PokemonArt id={active.pokemonId} name={view.active.name} />}
-                pending={online?(onlineViews?.expedition?.expedition?.preview?{cycles:onlineViews.expedition.expedition.preview.cycles,coins:onlineViews.expedition.expedition.preview.coins,trainerXp:onlineViews.expedition.expedition.preview.trainerXP,pokemonXpPerMember:onlineViews.expedition.expedition.preview.pokemonXP}:null):pendingClaim??null}
+                pending={online?(onlineViews?.expedition?.expedition?.preview?{cycles:onlineViews.expedition.expedition.preview.cycles,coins:onlineViews.expedition.expedition.preview.coins,trainerXp:onlineViews.expedition.expedition.preview.trainerXP,pokemonXpPerMember:onlineViews.expedition.expedition.preview.pokemonXP,ballDrops:{'poke-ball':onlineViews.expedition.expedition.preview.ballDrops?.['poke-ball']??0,'great-ball':onlineViews.expedition.expedition.preview.ballDrops?.['great-ball']??0,'ultra-ball':onlineViews.expedition.expedition.preview.ballDrops?.['ultra-ball']??0}}:null):pendingClaim??null}
                 ballStockCapped={pendingStockLimitReached}
                 ballProgress={expProgress}
                 activePokemonLevel={expeditionMembers[0]?.level??active.level}
                 nowMs={now+(onlineViews?.clockOffset??0)}
                 busy={busy||!!onlineViews?.expedition?.busy}
-                onStart={()=>dispatch({type:'start-expedition',regionId:expeditionArea,nowMs:Date.now()})}
+                onStart={()=>{if(online&&(inventory?.pending||inventory?.expeditionPending)){setFeedback('Resolva os itens pendentes na mochila.');return;}dispatch({type:'start-expedition',regionId:expeditionArea,nowMs:Date.now()});}}
                 onClaim={()=>{if(onlineViews?.expedition?.pendingLoot){setFeedback('Resolva os itens pendentes na mochila antes de resgatar novamente.');return;}dispatch({type:'claim-expedition',nowMs:Date.now()});}}
                 onStop={()=>dispatch({type:'stop-expedition',nowMs:Date.now()})}
               />
