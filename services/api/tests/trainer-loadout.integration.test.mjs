@@ -5,6 +5,7 @@ import pg from 'pg';
 import {firstSave} from '../src/initialAdventure.mjs';
 import {changeTrainerLoadout} from '../src/trainerLoadoutWriter.mjs';
 import {loadCombatAdapter} from '../src/battlePreview.mjs';
+import {buildPersistedBattleSnapshot} from '../src/battlePreparation.mjs';
 import {reserveEncounter} from '../src/encounterReservation.mjs';
 test('23F12D1: inventory ownership, capacity, titles, atomic equipment and busy lock',async()=>{
  const db=new URL(process.env.DATABASE_URL);
@@ -42,6 +43,14 @@ test('23F12D1: inventory ownership, capacity, titles, atomic equipment and busy 
   assert.equal((await apply(equip('hat',null),2)).status,'applied');
   assert.equal((await apply({kind:'title',titleId:'veterano'},3)).status,'applied');
   const final=await read();assert.equal(final.projection.totals.attack,before.projection.totals.attack+2);
+  // Build a genuine server-persistable regional input from the changed save.
+  const saved=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[id])).rows[0].state;
+  const frozen=await buildPersistedBattleSnapshot(saved,{regionId:1,speciesId:10,level:2});
+  assert.ok(frozen);assert.equal(frozen.trainer.title,'veterano');
+  assert.deepEqual(frozen.trainer.inventory,raw.inventory);
+  assert.ok(core.canonicalFrozenCombatants(frozen));
+  const forged=structuredClone(saved);const invalidRaw=JSON.parse(forged.journal.raw);invalidRaw.trainer.equipped={hat:'gloves'};forged.journal.raw=JSON.stringify(invalidRaw);
+  assert.equal(await buildPersistedBattleSnapshot(forged,{regionId:1,speciesId:10,level:2}),null);
   assert.deepEqual(final.raw.inventory,raw.inventory);assert.deepEqual(final.raw.ballPocket,raw.ballPocket);assert.deepEqual(final.raw.evolutionStones,raw.evolutionStones);
   assert.deepEqual(final.projection.totals,core.canonicalOnlineGymTrainerBonuses(final.raw).totals);
   assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:4})).status,'reserved');
