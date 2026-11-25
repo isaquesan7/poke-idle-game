@@ -74,8 +74,15 @@ async function measureReplayTiming(page,speed,label){
     label,speed,viewport:await page.evaluate(()=>({width:innerWidth,height:innerHeight})),
     intervalsMs:data.map(ms=>Math.round(ms)),meanIntervalMs:mean
   }));
-  await page.getByRole('button',{name:'Pular apresentação'}).click();
-  await page.getByRole('button',{name:'Reassistir à batalha'}).waitFor();
+  // A short replay may finish naturally while metrics cross the browser/host boundary.
+  // Both terminal paths must restore the replay button; preserve timing assertions.
+  const skip=page.getByRole('button',{name:'Pular apresentação'});
+  const replay=page.getByRole('button',{name:'Reassistir à batalha'});
+  if(await skip.isVisible()){
+    try{await skip.click({timeout:1500});}
+    catch(error){if(!await replay.isVisible())throw error;}
+  }
+  await replay.waitFor();
   return mean;
 }
 
