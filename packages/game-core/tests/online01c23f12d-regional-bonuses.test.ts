@@ -6,8 +6,8 @@ import {resolveFrozenWildTurn} from '../src/combat/serverWildTurnResolver.js';
 import {zeroStats} from '../src/stats/types.js';
 const state=()=>{
  const p={uid:1,pokemonId:4,level:30,xp:0,manual:zeroStats(),affinity:100,moveName:'ember',upgrades:{}};
- return {version:1,mode:'normal',trainer:{level:40,manual:{...zeroStats(),specialAttack:10},equipped:{gloves:'gloves-tech',jacket:'coat'},title:'veterano'},
- wins:4,seen:[4],badges:['boulder','cascade'],inventory:{version:1,ownedEquipment:{'gloves-tech':1,coat:1},extraBagSlots:0},
+ return {version:1,mode:'normal',trainer:{level:40,manual:{...zeroStats(),specialAttack:10},equipped:{gloves:'gear-tech',jacket:'gear-coat'},title:'veterano'},
+ wins:4,seen:[4],badges:['boulder','cascade'],inventory:{version:1,gear:[{"id":"gear-tech","source":"drop","templateId":"gloves-tech","slot":"gloves","rarity":"common","regionId":3,"requiredLevel":12,"stats":{"specialAttack":3}},{"id":"gear-coat","source":"drop","templateId":"coat","slot":"jacket","rarity":"common","regionId":3,"requiredLevel":12,"stats":{"defense":3}}],extraBagSlots:0},
  roster:[p,{...p,uid:2},{...p,uid:3}],team:[1,2,3],nextUid:4,expedition:null};
 };
 const snapshot=(s=state())=>({version:1,regionId:1,opponent:{speciesId:10,level:2},
@@ -33,7 +33,7 @@ describe('23F12D2 regional and Gym trainer bonuses share authority',()=>{
  it('rejects missing ownership, wrong slots, locked and exclusive titles, forged badges',()=>{
   const s=snapshot();
   for(const patch of [
-   {inventory:{version:1,ownedEquipment:{},extraBagSlots:0}},
+   {inventory:{version:1,gear:[],extraBagSlots:0}},
    {equipped:{hat:'coat'}},{title:'mestre'},{title:'gym-leader'},
    {badges:['cascade']},{badges:['boulder','boulder']},{wins:0},{inventory:undefined}
   ])expect(canonicalFrozenCombatants({...s,trainer:{...s.trainer,...patch}})).toBeNull();

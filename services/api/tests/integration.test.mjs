@@ -2801,12 +2801,12 @@ test('ONLINE-01C-23B2B: Gym preflight reads the stored Collection trio and canon
     assert.equal((await inspectNextGym(pool,{
       accountId,expectedRevision:1})).status,'unavailable',
       'unearned master title cannot be used');
-    await setRaw(r=>{r.trainer.title='aprendiz';r.trainer.equipped={hat:'cap'}});
+    await setRaw(r=>{r.trainer.title='aprendiz';r.trainer.equipped={hat:'gear-cap'}});
     assert.equal((await inspectNextGym(pool,{
       accountId,expectedRevision:1})).status,'unavailable',
       'legacy equipment without an ownership ledger is not owned');
     await setRaw(r=>{
-      r.inventory={version:1,ownedEquipment:{cap:1},extraBagSlots:0};
+      r.inventory={version:1,gear:[{"id":"gear-cap","source":"drop","templateId":"cap","slot":"hat","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"hp":2}}],extraBagSlots:0};
       r.badges=['boulder'];
     });
     const misty=await inspectNextGym(pool,{accountId,expectedRevision:1});
@@ -2814,7 +2814,7 @@ test('ONLINE-01C-23B2B: Gym preflight reads the stored Collection trio and canon
     assert.equal(misty.preparation.gymId,'cascade');
     assert.deepEqual(misty.preparation.trainer.badges,['boulder']);
     assert.deepEqual(misty.preparation.trainer.equipment,
-      [{slot:'hat',itemId:'cap'}]);
+      [{slot:'hat',itemId:'gear-cap'}]);
     assert.equal(misty.preparation.trainer.totals.hp,5,
       'apprentice hp1 + earned Boulder hp2 + owned cap hp2');
     assert.equal(misty.preparation.trainer.totals.defense,4);
