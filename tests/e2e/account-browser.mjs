@@ -502,10 +502,27 @@ try{
   // Train the evolved UID through the actual browser; draft never mutates PG.
   const trainingRead=async()=>{const q=await page.request.get(origin+'/api/v1/pokemon-training/current');assert.equal(q.status(),200);return q.json();};
   await page.locator('#training-pokemon').selectOption('1');
+  await page.locator('[data-profile-pokemon="1"]').click();
+  assert.equal(await page.locator('#pokemon-profile').getAttribute('data-profile-uid'),'1');
+  assert.match(await page.locator('#pokemon-profile').textContent(),/Charmeleon.*Nv. 16/);
+  await page.locator('#profile-moves').click();
+  assert.equal(await page.locator('#moves-pokemon').inputValue(),'1');
+  await page.locator('#profile-evolution').click();
+  assert.equal(await page.locator('#evolution-pokemon').inputValue(),'1');
   const trainBefore=await trainingRead(),trainedBefore=trainBefore.pokemon.find(p=>p.uid===1);
   assert.equal(trainedBefore.budget,30);assert.ok(trainedBefore.remaining>=2);
+  assert.equal(trainedBefore.xpToNext,417);
+  assert.equal(await page.locator('#pokemon-xp-bar').evaluate(el=>el.max),trainedBefore.xpToNext);
+  assert.equal(await page.locator('#pokemon-xp-bar').evaluate(el=>el.value),trainedBefore.xp);
+  await page.locator('#portal-navigation a[href="#collection-section"]').click();
+  assert.equal(await page.evaluate(()=>document.activeElement.id),'collection-heading');
+  assert.equal(await page.locator('#portal-motion').count(),0);
+  assert.equal(await page.locator('#pokemon-profile img').getAttribute('src'),'/assets/pokemon-gifs/poke_5.gif');
+  assert.equal((await trainingRead()).revision,trainBefore.revision);
   await page.locator('[data-training-plus="attack"]').click();
   await page.locator('[data-training-plus="hp"]').click();
+  assert.equal(await page.locator('#training-stats [data-preview="true"]').count(),2);
+  assert.equal(await page.locator('#training-budget-bar').evaluate(el=>el.value),trainedBefore.spent+2);
   assert.equal((await trainingRead()).revision,trainBefore.revision);
   await page.locator('#training-cancel').click();
   assert.equal(await page.locator('#training-save').isDisabled(),true);
