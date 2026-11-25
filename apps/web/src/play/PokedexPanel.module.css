@@ -165,3 +165,5 @@
   .tileHint{font-size:.61rem}
 }
 @media(prefers-reduced-motion:reduce){.tileSeen,.tileCaught,.tileUnknown{transition:none}}
+
+.grid{max-height:clamp(280px,60dvh,680px);overflow-y:auto;overscroll-behavior:contain;align-content:start;scrollbar-gutter:stable;padding-right:var(--space-2)}

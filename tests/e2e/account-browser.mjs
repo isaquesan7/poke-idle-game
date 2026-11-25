@@ -567,6 +567,20 @@ try{
   await page.locator('#moves-pokemon').waitFor();
   assert.deepEqual((await moveRead()).pokemon.find(p=>p.uid===1).equipped,['scratch','growl']);
 
+  // The React Alpha must show the exact server loadout and preserve offensive moves.
+  const moveAlpha=await context.newPage();
+  await moveAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await moveAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Coleção',exact:true}).click();
+  const teamTrain=moveAlpha.getByRole('button',{name:'Treinar UID 1 pelo slot da equipe'});
+  if(await teamTrain.count())await teamTrain.click();else await moveAlpha.getByTestId('pokemon-uid-1').getByRole('button',{name:/Treinar/}).click();
+  await moveAlpha.getByRole('button',{name:'Golpes',exact:true}).click();
+  await moveAlpha.getByTestId('equipped-moves').getByText('growl',{exact:true}).waitFor();
+  await responseFor(moveAlpha,'/api/v1/moves/equip',()=>moveAlpha.getByRole('button',{name:'Retirar golpe growl'}).click());
+  await moveAlpha.getByRole('button',{name:'Adicionar golpe growl'}).waitFor();
+  await responseFor(moveAlpha,'/api/v1/moves/equip',()=>moveAlpha.getByRole('button',{name:'Adicionar golpe growl'}).click());
+  await moveAlpha.getByTestId('equipped-moves').getByText('growl',{exact:true}).waitFor();
+  assert.deepEqual((await moveRead()).pokemon.find(p=>p.uid===1).equipped,['scratch','growl']);
+  await moveAlpha.close();await page.reload({waitUntil:'domcontentloaded'});await page.locator('#moves-pokemon').waitFor();
   checkpoint("evolution");
   // Evolution via Collection, not an injected client save. Only fixture grants level.
   const evoRead=async()=>{const q=await page.request.get(origin+'/api/v1/evolution/current');assert.equal(q.status(),200);return q.json();};

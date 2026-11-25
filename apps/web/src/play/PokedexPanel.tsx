@@ -91,7 +91,7 @@ export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena}:P
               onClick={()=>{setFilter(value);setSelectedId(null);}}>{label}</button>
           ))}
         </div>
-        <div className={styles.grid} data-testid="pokedex-grid">
+        <div className={styles.grid} data-testid="pokedex-grid" tabIndex={0} aria-label="Lista de registros nacionais">
           {filtered.map(species=>{
             const status=kantoDexStatus(species.id,seen,caught);
             const revealed=status!=='unknown';

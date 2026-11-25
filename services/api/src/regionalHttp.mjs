@@ -105,5 +105,8 @@ export async function runRegionalCommand(pool,accountId,command,data,entropyKey,
    return {status:result.status};
  const current=await readRegionalEncounter(pool,accountId,expanded);
  return {status:result.status,revision:current.revision,regions:current.regions,encounter:current.encounter,pendingLoot:current.pendingLoot,
-   ...(command==='finish'?{capture:result.result?.outcome??null}: {})};
+   ...(command==='finish'?{capture:result.result?.outcome??null,rewardSummary:result.paid?{
+     outcome:result.paid.outcome,coins:result.paid.coins,trainerXp:result.paid.trainerXp,pokemonXp:result.paid.pokemonXp,
+     loot:result.paid.loot??{stored:[],pending:[]},capture:result.result?.outcome??null
+   }:null}: {})};
 }

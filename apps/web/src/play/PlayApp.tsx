@@ -26,8 +26,8 @@ import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
 import { GymScreen } from './GymScreen';
 import { PokemonTraining } from './PokemonTraining';
-import type {OnlineViews} from './onlinePlay';
-import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand,onlineBattleCommand} from './onlinePlay';
+import type {OnlineViews,RegionalReward} from './onlinePlay';
+import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand,onlineBattleCommand,onlineMoveSlots} from './onlinePlay';
 import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
 import { formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
@@ -149,6 +149,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   useEffect(()=>{if(online)void refreshOnline();},[online]);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [regionalArea, setRegionalArea] = useState(1);
+  const [regionalReward,setRegionalReward]=useState<RegionalReward|null>(null);
   const [arenaEncounterId,setArenaEncounterId]=useState<string|null>(null);
   const [expeditionArea, setExpeditionArea] = useState(1);
   const [captureBall,setCaptureBall] = useState<KantoBallId|null>('poke-ball');
@@ -285,7 +286,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     const current=mode==='region'?onlineViews?.region:onlineViews?.gym;
     if(!online||onlineLock.current||save.status!=='ready'||!current||current.revision!==save.snapshot.revision)return false;
     onlineLock.current=true;setBusy(true);setFeedback('');
-    try{const result=await onlineBattleCommand(mode,current,command,regionalArea,choice);await refreshOnline();if(command==='finish')setFeedback(result?.capture==='captured'?'Pokémon capturado!':result?.capture==='failed'?'A captura falhou.':'Batalha encerrada.');return true;}
+    try{const result=await onlineBattleCommand(mode,current,command,regionalArea,choice);await refreshOnline();if(command==='finish'){if(mode==='region'&&result?.rewardSummary)setRegionalReward(result.rewardSummary);else setFeedback(result?.capture==='captured'?'Pokémon capturado!':result?.capture==='failed'?'A captura falhou.':'Batalha encerrada.');}return true;}
     catch{await refreshOnline();setFeedback('Ação de combate não confirmada. Confira o estado atualizado.');return false;}
     finally{onlineLock.current=false;setBusy(false);}
   }
@@ -428,7 +429,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   const currentMoveName=typeof focused?.moveName==='string'?focused.moveName:'';
   const currentMove=KANTO_BATTLE_MOVES[currentMoveName]
     ??KANTO_SUPPORT_MOVES[currentMoveName]??focusedSpeciesFallback(focused?.pokemonId);
-  const equippedNames=focused?pokemonMoveSlots(focused,currentMove?.name??'tackle'):[];
+  const equippedNames=focused?(online?onlineMoveSlots(focused,currentMove?.name??'tackle'):pokemonMoveSlots(focused,currentMove?.name??'tackle')):[];
   const moveRanks=focused?.upgrades && typeof focused.upgrades==='object'
     ? focused.upgrades as Record<string,number> : {};
   const moveLimits=focused?legacyMoveRankLimits(focused.level):null;
@@ -1113,7 +1114,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                   </div>
                   <p className={styles.disclaimer}>Máximo de 3 Pokémon. A equipe precisa manter pelo menos 1 integrante. Durante uma expedição não é possível adicionar, remover ou trocar o líder.</p>
                 </section>
-                <section className={styles.panel}>
+                <section className={styles.panel+' '+styles.collectionAllPanel}>
                   <div className={styles.collectionToolbar}>
                     <div>
                       <h2><i className="fa-solid fa-layer-group" aria-hidden="true"/> Todos os Pokémon</h2>
@@ -1145,7 +1146,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                       </select>
                     </label>
                   </div>
-                  <div className={styles.collectionGrid}>
+                  <div className={styles.collectionGrid+' '+styles.collectionScroll} tabIndex={0} aria-label="Lista de todos os Pokémon">
                     {rosterFiltered.map(pokemon=>{
                       const inTeam=data.team.includes(pokemon.uid);
                       const leader=data.team[0]===pokemon.uid;
@@ -1252,7 +1253,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               />
             )}
 
-            {tab==='battle'&&online&&<OnlineBattle mode="region" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={battleRegion.name} busy={busy} blocked={!!onlineViews?.gym?.gym||!!expedition} onCommand={(command,choice)=>runOnlineBattle('region',command,choice)} onBack={()=>setTab('regions')}/>}
+            {tab==='battle'&&online&&<OnlineBattle mode="region" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={KANTO_REGIONS.find(r=>r.id===regionalArea)?.name??battleRegion.name} reward={regionalReward} onDismissReward={()=>setRegionalReward(null)} busy={busy} blocked={!!onlineViews?.gym?.gym||!!expedition} onCommand={(command,choice)=>runOnlineBattle('region',command,choice)} onBack={()=>setTab('regions')}/>}
             {tab === 'battle' && !online && (
               <>
                 <section className={styles.battleIntro}>

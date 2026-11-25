@@ -1,3 +1,5 @@
+import {useState} from 'react';
+import {RegionDialog} from './RegionDialog';
 import {KANTO_REGIONS,KANTO_BATTLE_SPECIES} from '@kanto/game-core';
 import type {KantoBallId} from '@kanto/game-core';
 import styles from './RegionsScreen.module.css';
@@ -31,6 +33,7 @@ export function RegionsScreen({
   wins,seenIds,capturedIds,busy,onEnterRegion,onOpenTeam,
   lastBattleRegionId,onReplayBattle
 }:Props){
+  const [detailsOpen,setDetailsOpen]=useState(false);
   const selected=KANTO_REGIONS.find(region=>region.id===selectedRegionId)??KANTO_REGIONS[0]!;
   const unlocked=trainerLevel>=selected.trainerUnlockLevel;
   const seen=new Set(seenIds);
@@ -51,14 +54,35 @@ export function RegionsScreen({
       </div>
     </header>
 
+      <section aria-label="Preparar combate regional" className={styles.prepare}>
+        <div className={styles.leader}>
+          <img src={`/assets/pokemon-gifs/poke_${leaderSpeciesId}.gif`} alt="" width="76" height="76"/>
+          <div><span className={styles.kicker}>SEU LÍDER</span>
+            <strong>{KANTO_BATTLE_SPECIES[leaderSpeciesId]?.name??'Pokémon'} · Lv. {leaderLevel}</strong>
+            <button type="button" className={styles.link} onClick={onOpenTeam}>Alterar equipe</button>
+          </div>
+        </div>
+        <div className={styles.ballStock} aria-label="Seu estoque para capturar depois do combate">
+          <strong><i className="fa-solid fa-baseball" aria-hidden="true"/> Pokébolas disponíveis</strong>
+          <div className={styles.ballStockItems}>
+            {ballLabels.map(ball=><span key={ball.id} className={styles.ballStockItem}>
+              <i className="fa-solid fa-circle-dot" aria-hidden="true"/>
+              {ball.name} <b>{balls[ball.id]??0}</b>
+            </span>)}
+          </div>
+          <small>Após vencer você poderá escolher uma Pokébola ou deixar o Pokémon ir. Uma tentativa por batalha.</small>
+        </div>
+
+      </section>
+
     <section aria-label="Escolha de região" className={styles.regions}>
       {KANTO_REGIONS.map(region=>{
         const availableRegion=trainerLevel>=region.trainerUnlockLevel;
         const active=region.id===selected.id;
         return <div key={region.id} className={styles.regionSlot}>
           <button type="button" className={active?styles.regionActive:styles.region}
-            aria-pressed={active} aria-controls="regional-details"
-            onClick={()=>onSelectRegion(region.id)}>
+            aria-pressed={active} aria-haspopup="dialog"
+            onClick={()=>{onSelectRegion(region.id);setDetailsOpen(true);}}>
             <span className={styles.regionNumber}>ÁREA {String(region.id).padStart(2,'0')}</span>
             <strong>{region.name}</strong>
             <span className={styles.regionRange}>Pokémon Lv. {region.levelMin}–{region.levelMax}</span>
@@ -67,15 +91,12 @@ export function RegionsScreen({
               {availableRegion?' Desbloqueada':' Treinador Lv. '+region.trainerUnlockLevel}
             </span>
           </button>
-          {active&&<button type="button" className={styles.regionInlineEnter}
-            disabled={!availableRegion||busy} onClick={()=>onEnterRegion(region.id)}>
-            <i className="fa-solid fa-door-open" aria-hidden="true"/> Entrar na região
-          </button>}
+
         </div>;
       })}
     </section>
 
-    <section id="regional-details" aria-label="Detalhes da região" className={styles.details}>
+    {detailsOpen&&<RegionDialog title="Detalhes da região" onClose={()=>setDetailsOpen(false)}><section id="regional-details" aria-label="Detalhes da região" className={styles.details}>
       <div className={styles.heading}>
         <div>
           <span className={styles.kicker}>REGIÃO {String(selected.id).padStart(2,'0')}</span>
@@ -113,25 +134,6 @@ export function RegionsScreen({
         </ul>
       </section>
 
-      <section aria-label="Preparar combate regional" className={styles.prepare}>
-        <div className={styles.leader}>
-          <img src={`/assets/pokemon-gifs/poke_${leaderSpeciesId}.gif`} alt="" width="76" height="76"/>
-          <div><span className={styles.kicker}>SEU LÍDER</span>
-            <strong>{KANTO_BATTLE_SPECIES[leaderSpeciesId]?.name??'Pokémon'} · Lv. {leaderLevel}</strong>
-            <button type="button" className={styles.link} onClick={onOpenTeam}>Alterar equipe</button>
-          </div>
-        </div>
-        <div className={styles.ballStock} aria-label="Seu estoque para capturar depois do combate">
-          <strong><i className="fa-solid fa-baseball" aria-hidden="true"/> Pokébolas disponíveis</strong>
-          <div className={styles.ballStockItems}>
-            {ballLabels.map(ball=><span key={ball.id} className={styles.ballStockItem}>
-              <i className="fa-solid fa-circle-dot" aria-hidden="true"/>
-              {ball.name} <b>{balls[ball.id]??0}</b>
-            </span>)}
-          </div>
-          <small>Após vencer você poderá escolher uma Pokébola ou deixar o Pokémon ir. Uma tentativa por batalha.</small>
-        </div>
-
         {lastBattleRegionId===selected.id&&onReplayBattle&&
           <button type="button" className={styles.link} onClick={onReplayBattle}>
             Rever último combate nesta região
@@ -140,7 +142,9 @@ export function RegionsScreen({
         {selected.id===1&&leaderLevel===1&&
           <p className={styles.notice}>Primeiros passos: mesmo se não vencer, seu Pokémon ganha 22 XP de aprendizado até alcançar o nível 2. O treinador só ganha XP nas vitórias ou expedições.</p>}
         <p className={styles.notice}>Entrar na área não gera encontro. Na tela de combate, use Batalhar na região para encontrar um adversário; após a vitória, você pode decidir sobre uma única tentativa de captura.</p>
-      </section>
-    </section>
+
+      <button type="button" className={styles.fight} disabled={!unlocked||busy} onClick={()=>{setDetailsOpen(false);onEnterRegion(selected.id);}}><i className="fa-solid fa-door-open" aria-hidden="true"/> Entrar na região</button>
+
+    </section></RegionDialog>}
   </div>;
 }
