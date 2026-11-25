@@ -55,11 +55,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -100,6 +100,7 @@ try{
   assert.equal((await publicPage.request.get(closedOrigin+'/play')).status(),200);
   assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/evolution/current')).status(),404);
   assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/pokemon-training/current')).status(),404);
+  assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/pokedex/current')).status(),404);
   assert.equal(await publicPage.locator('#online-panel').isHidden(),true);
   await mobile.close();
 
@@ -547,6 +548,26 @@ try{
   await page.reload({waitUntil:'domcontentloaded'});
   await page.locator('#moves-pokemon').selectOption('1');
   assert.equal((await moveRead()).pokemon.find(p=>p.uid===1).ranks.scratch,1);
+
+  // Pokédex is read-only, reflects actual account discovery and evolution.
+  const dexResponse=await page.request.get(origin+'/api/v1/pokedex/current');
+  assert.equal(dexResponse.status(),200);
+  const dex=await dexResponse.json();
+  assert.equal(dex.entries.length,151);
+  assert.equal(dex.entries.find(e=>e.id===4).status,'caught');
+  assert.equal(dex.entries.find(e=>e.id===5).status,'caught');
+  assert.deepEqual(dex.entries.find(e=>e.id===150),{id:150,status:'unknown'});
+  assert.ok(!dex.details.some(e=>e.id===150));
+  await page.locator('#pokedex-search').fill('Charmeleon');
+  assert.equal(await page.locator('#pokedex-grid button').count(),1);
+  await page.locator('[data-dex-id="5"]').click();
+  await page.locator('#pokedex-dialog[open]').waitFor();
+  assert.match(await page.locator('#pokedex-detail-name').textContent(),/Charmeleon/);
+  await page.locator('#pokedex-close').click();
+  await page.locator('#pokedex-search').fill('150');
+  assert.equal(await page.locator('[data-dex-id="150"]').isDisabled(),true);
+  await page.locator('#pokedex-search').fill('');
+  assert.equal((await moveRead()).revision,dex.revision);
 
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();
