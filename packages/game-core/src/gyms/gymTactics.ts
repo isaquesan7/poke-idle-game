@@ -13,7 +13,7 @@ import {kantoSpecies} from '../catalog/kantoSpecies.js';
 import {gymPsychicLevelMoves} from './gymPsychicMoves.js';
 import {pokemonFinalStats} from '../stats/pokemon.js';
 import {trainerTotals,MANUAL_TRAINER_CAP} from '../stats/trainer.js';
-import {gymSignatureTm} from './gymSignatureTms.js';
+import {gymSignatureTm,gymSignatureSupport} from './gymSignatureTms.js';
 import {LEGACY_ITEMS} from '../legacy/catalog.js';
 import {legacyMoveRankLimits} from '../legacy/pokemonMoveReducer.js';
 import {KANTO_GYMS} from './kantoGyms.js';
@@ -182,7 +182,7 @@ export function gymTrainedMoves(speciesId:number,level:number,gymId?:string):rea
   if(moves.length<4)moves.push(move);
   else {
    let index=moves.length-1;
-   while(index>=0&&offensive(moves[index]!))index--;
+   while(index>=0&&(offensive(moves[index]!)||moves[index]!.name===signature?.name))index--;
    if(index<0)break;
    moves[index]=move;
   }
@@ -230,6 +230,8 @@ export function gymAiDecision(args:{
   readonly consecutiveSwitches?:number;
   /** False quando Concentrar esgotou quotas ou cooldown no motor 3×3. */
   readonly allowConcentrate?:boolean;
+  readonly defenderStatus?:string|null;
+  readonly calmMindStage?:number;
 }):GymAiDecision{
   const {actor,defender,actorHp,actorSp,bench}=args;
   const maxSp=kantoMaxSp(actor.level,actor.speciesId);
@@ -252,6 +254,12 @@ export function gymAiDecision(args:{
     if(cost>actorSp)continue;
     if(move.category==='status'){
       const support=kantoSupportEffect(move.name);
+      const signature=gymSignatureSupport(move.name);
+      if(signature){
+        const score=signature==='toxic'?(args.defenderStatus||defender.types.includes('poison')||defender.types.includes('steel')?-100:36)
+          :((args.calmMindStage??0)>=6||!moves.some(m=>m.category==='special'&&m.power>0)||actorHp/actor.stats.hp<.35?-100:(args.calmMindStage??0)===0?40:18);
+        decisions.push({action:'move',moveName:move.name,score});continue;
+      }
       if(!support)continue;
       const hpRatio=actorHp/actor.stats.hp;
       let score= support.kind==='heal' ? (hpRatio<=.35?75:hpRatio<=.55?45:-30)

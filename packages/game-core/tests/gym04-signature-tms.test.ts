@@ -28,7 +28,7 @@ describe('GYM04 NPC-only signature machines',()=>{
     expect(result.status).toBe('applied');
    }
   }
-  expect(count).toBe(15);
+  expect(count).toBe(21);
  });
  it('never injects Rock Tomb into non-original party or player level-up catalogue',()=>{
   expect(gymSignatureTm('boulder',74)).toBeNull();
