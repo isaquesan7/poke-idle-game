@@ -262,3 +262,34 @@ test('release Web allows all reviewed game routes only with production opt-in',(
  }
  assert.equal(webOnlineRoute('/api/v1/unknown',env),null);
 });
+
+import {HOMOLOGATION_OWNER,assertHomologationApiScope} from '../src/homologation.mjs';
+import {privateHomologationRole} from '../src/onlineRoutePolicy.mjs';
+test('private homologation: isolated deployment only, one owner, real migration checks and never public registration',async()=>{
+ const {env:releaseEnv,rows}=await activationFixture();
+ const env={...releaseEnv,ONLINE_RELEASE_MODE:undefined,ONLINE_RELEASE_REVIEW_JSON:undefined,ONLINE_PUBLIC_SAVES_ENABLED:'false',ONLINE_REGISTRATION_ENABLED:'false',
+ ONLINE_HOMOLOGATION_ENABLED:'true',RAILWAY_PROJECT_ID:'5e70b6da-2aaa-4d6b-add7-3c69ac44b986',RAILWAY_ENVIRONMENT_ID:'41df5039-d980-437a-ab9c-66b827695c67',RAILWAY_SERVICE_ID:'523ef5c2-4a8c-41da-9d3b-37733cd8f9aa',RAILWAY_ENVIRONMENT_NAME:'homologacao',ACCOUNT_MAIL_MODE:'off',RESEND_API_KEY:undefined,MAIL_FROM:undefined};
+ const owner={email:HOMOLOGATION_OWNER,email_verified_at:now,disabled_at:null,account_id:'fixture'};
+ const pool={query:async(sql)=>({rows:sql.includes('game_schema_migrations')?rows:sql.includes('pg_constraint')?[{nonce:true,regional:true}]:[owner]})};
+ assert.deepEqual(await productionReleaseState(pool,env,{now}),{savesEnabled:true,registrationEnabled:false,privateHomologation:true});
+ assert.deepEqual(await productionReleaseState(pool,{...env,ONLINE_HOMOLOGATION_ENABLED:'false'},{now}),{savesEnabled:false,registrationEnabled:false});
+ for(const patch of [{RAILWAY_PROJECT_ID:'other'},{RAILWAY_ENVIRONMENT_NAME:'production'},{RAILWAY_SERVICE_ID:'other'},{NODE_ENV:'test'},{ONLINE_REGISTRATION_ENABLED:'true'},{ONLINE_PUBLIC_SAVES_ENABLED:'true'},{ONLINE_RELEASE_MODE:'reviewed'},{ONLINE_SHOP_CI_ONLY:'true'},{DATABASE_URL:'postgresql://fixture:fixture@other.railway.internal:5432/game'},{ONLINE_SIGNED_QUOTA_MODE:undefined},{ACCOUNT_MAIL_MODE:'resend'}])
+  await assert.rejects(productionReleaseState(pool,{...env,...patch},{now}));
+ owner.email='other@example.test';
+ await assert.rejects(productionReleaseState(pool,env,{now}),/exactly one/);
+ owner.email=HOMOLOGATION_OWNER;
+ rows[0].checksum='0'.repeat(64);
+ await assert.rejects(productionReleaseState(pool,env,{now}),/migrations not applied/);
+ assert.throws(()=>assertHomologationApiScope({...env,RAILWAY_ENVIRONMENT_NAME:'production'}));
+});
+test('private Web and gateway use scoped switches, production does not inherit them',()=>{
+ const env={NODE_ENV:'production',RAILWAY_ENVIRONMENT_NAME:'homologacao',ONLINE_PUBLIC_SAVES_ENABLED:'false',ONLINE_HOMOLOGATION_ENABLED:'true',ONLINE_GATEWAY_FORWARD_MODE:'reviewed',
+ RAILWAY_PROJECT_ID:'5e70b6da-2aaa-4d6b-add7-3c69ac44b986',RAILWAY_ENVIRONMENT_ID:'41df5039-d980-437a-ab9c-66b827695c67',RAILWAY_SERVICE_ID:'53c40d91-e1b5-453f-8950-c43efdac694c'};
+ assert.ok(webOnlineRoute('/api/v1/inventory/current',env));
+ assert.equal(webOnlineRoute('/api/v1/inventory/current',{...env,RAILWAY_ENVIRONMENT_NAME:'production'}),null);
+ assert.equal(webOnlineRoute('/api/v1/account/export',env),null);
+ assert.equal(privateHomologationRole('gateway',env),false);
+ const gateway={...env,RAILWAY_PROJECT_ID:'b1031f8b-66bb-4173-9cbf-0fec206a6f2d',RAILWAY_ENVIRONMENT_ID:'7d4158a4-b017-4cdb-bb0c-0e7119e27606',RAILWAY_SERVICE_ID:'900db0b8-af72-4bb7-8477-18e331e951fa'};
+ assert.equal(privateHomologationRole('gateway',gateway),true);
+ assert.equal(privateHomologationRole('gateway',{...gateway,ONLINE_PUBLIC_SAVES_ENABLED:'true'}),false);
+});

@@ -292,7 +292,7 @@ const $=id=>document.getElementById(id);
 const form=$('auth-form'), status=$('status'),feedback=$('feedback');
 const submit=$('submit'),tabs=$('tabs'),password=$('password');
 const confirmPassword=$('confirm-password');
-let available=false,registrationAvailable=false,view='login',token='',onlineBusy=false,selectedStarter=null,portalEpoch=0;
+let available=false,registrationAvailable=false,privateHomologation=false,view='login',token='',onlineBusy=false,selectedStarter=null,portalEpoch=0;
 const panel=$('online-panel'),newAdventure=$('online-new'),progress=$('online-progress');
 const starterButtons=[...panel.querySelectorAll('[data-starter]')];
 const starterNames={1:'Bulbasaur',4:'Charmander',7:'Squirtle'};
@@ -1155,7 +1155,7 @@ function render(next){
  $('email').hidden=verify||(reset&&!!token);
  $('email').required=!$('email').hidden;
  $('email').previousElementSibling.hidden=$('email').hidden;
- $('reset-link-wrap').hidden=reset||verify;
+ $('reset-link-wrap').hidden=privateHomologation||reset||verify;
  $('tab-login').setAttribute('aria-selected',String(!register));
  $('tab-register').setAttribute('aria-selected',String(register));
  if(verify){form.hidden=false;submit.textContent='Confirmar e-mail';}
@@ -1190,10 +1190,11 @@ async function init(){
  try{
  const response=await fetch('/api/v1/status',{credentials:'same-origin',cache:'no-store'});
  const data=await response.json();
- registrationAvailable=response.ok&&data.registrationEnabled===true;
+ privateHomologation=response.ok&&data.stage==='homologation';
+ registrationAvailable=response.ok&&data.registrationEnabled===true&&!privateHomologation;
  available=response.ok&&(data.savesEnabled===true||registrationAvailable);
- status.textContent=data.savesEnabled===true&&response.ok?(registrationAvailable?'Jogo online disponível.':'Login disponível. Novos cadastros temporariamente fechados.'):(available?'Acesso de testes habilitado.':'Cadastro e login online em preparação. Continue explorando em /play.');
- }catch{available=false;registrationAvailable=false;status.textContent='Cadastro e login online em preparação. Continue explorando em /play.';}
+ status.textContent=privateHomologation?'Homologação privada — somente conta autorizada.':data.savesEnabled===true&&response.ok?(registrationAvailable?'Jogo online disponível.':'Login disponível. Novos cadastros temporariamente fechados.'):(available?'Acesso de testes habilitado.':'Cadastro e login online em preparação. Continue explorando em /play.');
+ }catch{available=false;registrationAvailable=false;privateHomologation=false;status.textContent='Cadastro e login online em preparação. Continue explorando em /play.';}
  render(view);
  if(!validLink)message('O link recebido é inválido.',true);
  else if(route==='/verify-email'&&!token)message('Link de confirmação ausente.',true);

@@ -5,6 +5,7 @@
 import {createServer} from 'node:http';
 import {createProxyReceiver} from './proxyKeyring.mjs';
 import {productionReleaseState} from './releaseActivation.mjs';
+import {HOMOLOGATION_OWNER} from './homologation.mjs';
 import {loadWildEntropyKeyringFromEnv} from './wildEntropyKeyring.mjs';
 import {createHash} from 'node:crypto';
 import {enqueueAccountMail,mailKeyring} from './accountMailOutbox.mjs';
@@ -161,7 +162,8 @@ async function accountForSession(req){
       JOIN game_profiles p ON p.account_id=a.id
      WHERE s.token_sha256=$1 AND s.revoked_at IS NULL
        AND s.expires_at>now() AND a.disabled_at IS NULL LIMIT 1`,[digest]);
-  return result.rows[0]??null;
+  const account=result.rows[0]??null;
+  return release.privateHomologation&&account?.email!==HOMOLOGATION_OWNER?null:account;
 }
 function rejectCors(res){
   // Não permitir CORS. A futura página / consumirá /api no MESMO host.
@@ -178,7 +180,7 @@ const server=createServer(async(req,res)=>{
       await pool.query('SELECT 1');return json(res,200,{ok:true});
     }
     if(pathname==='/api/v1/status'&&req.method==='GET')
-      return json(res,200,{stage:release.savesEnabled?'online':'foundation',registrationEnabled,
+      return json(res,200,{stage:release.privateHomologation?'homologation':release.savesEnabled?'online':'foundation',registrationEnabled,
         savesEnabled:release.savesEnabled});
     if(pathname==='/api/v1/me'&&req.method==='GET'){
       const account=await accountForSession(req);
@@ -187,6 +189,9 @@ const server=createServer(async(req,res)=>{
     }
     if((!enabled||(!registrationEnabled&&pathname==='/api/v1/auth/register'))&&pathname.startsWith('/api/v1/auth/'))
       return json(res,503,{error:'Cadastro e login em preparação'});
+    if(release.privateHomologation&&pathname.startsWith('/api/v1/auth/')&&
+      !['/api/v1/auth/login','/api/v1/auth/logout'].includes(pathname))
+      return json(res,503,{error:'Acesso exclusivo de homologação'});
     if(signedQuotaReceiver&&req.method==='POST'&&signedOnlineRoute(pathname)){
       requireSameOrigin(req);
       if(req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
@@ -320,6 +325,8 @@ const server=createServer(async(req,res)=>{
         identifier:quotaSubject(req),limit:30}))return;
       if(!await enforceThrottle(req,res,{scope:'login-email',
         identifier:cleanEmail,limit:6}))return;
+      if(release.privateHomologation&&cleanEmail!==HOMOLOGATION_OWNER)
+        return json(res,401,{error:'Credenciais inválidas'});
       const users=await pool.query(
         'SELECT id,password_hash,email_verified_at FROM game_accounts WHERE email=$1 AND disabled_at IS NULL',
         [cleanEmail]);
@@ -347,7 +354,7 @@ const server=createServer(async(req,res)=>{
     if(pathname==='/api/v1/account/export'&&req.method==='POST'){
       // ONLINE-01C-23E2: CI-only, same-origin, reauthenticated owner export.
       // No public account data route until LGPD/security review is complete.
-      if(!enabled)return json(res,503,{error:'Exportação em preparação'});
+      if(!ciEnabled)return json(res,503,{error:'Exportação em preparação'});
       requireSameOrigin(req);
       const account=await accountForSession(req);
       if(!account)return json(res,401,{error:'Não autenticado'});

@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {evaluateReleaseConfig} from './releaseConfigPreflight.mjs';
 import {evaluateReleaseReview} from './releaseReview.mjs';
+import {assertHomologationRuntime,assertHomologationOwner} from './homologation.mjs';
 export const RELEASE_MIGRATIONS=Object.freeze(['026_proxy_identity_nonces.sql','027_regional_turn_binding.sql']);
 export async function releaseMigrationChecksums(){
  return Object.fromEntries(await Promise.all(RELEASE_MIGRATIONS.map(async name=>[
@@ -27,6 +28,12 @@ export async function approvedReleaseEvidence(env=process.env,{now=new Date()}={
 }
 export async function productionReleaseState(pool,env=process.env,{now=new Date()}={}){
  const closed={savesEnabled:false,registrationEnabled:false};
+ if(env.ONLINE_HOMOLOGATION_ENABLED==='true'){
+  assertHomologationRuntime(env);
+  await assertReleaseSchema(pool,await releaseMigrationChecksums());
+  await assertHomologationOwner(pool);
+  return {savesEnabled:true,registrationEnabled:false,privateHomologation:true};
+ }
  if(env.NODE_ENV!=='production'||env.ONLINE_RELEASE_MODE===undefined)return closed;
  if(env.ONLINE_RELEASE_MODE!=='reviewed')throw Error('Invalid release mode');
  if(![undefined,'false','true'].includes(env.ONLINE_PUBLIC_SAVES_ENABLED)||
@@ -37,6 +44,10 @@ export async function productionReleaseState(pool,env=process.env,{now=new Date(
   return closed;
  }
  const hashes=await approvedReleaseEvidence(env,{now});
+ await assertReleaseSchema(pool,hashes);
+ return {savesEnabled:true,registrationEnabled:env.ONLINE_REGISTRATION_ENABLED==='true'};
+}
+async function assertReleaseSchema(pool,hashes){
  const result=await pool.query('SELECT name,checksum FROM public.game_schema_migrations WHERE name=ANY($1::text[])',[RELEASE_MIGRATIONS]);
  if(result.rows.length!==RELEASE_MIGRATIONS.length||
     RELEASE_MIGRATIONS.some(name=>!result.rows.some(row=>row.name===name&&row.checksum===hashes[name])))
@@ -46,5 +57,5 @@ export async function productionReleaseState(pool,env=process.env,{now=new Date(
  AND conname='game_encounter_turn_mode_exclusive' AND convalidated
  AND pg_get_constraintdef(oid) LIKE '%battle_snapshot%regionId%region_id%') AS regional`);
  if(schema.rows[0]?.nonce!==true||schema.rows[0]?.regional!==true)throw Error('Release schema not ready');
- return {savesEnabled:true,registrationEnabled:env.ONLINE_REGISTRATION_ENABLED==='true'};
+
 }

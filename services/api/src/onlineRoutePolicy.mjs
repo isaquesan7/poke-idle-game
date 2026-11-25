@@ -20,10 +20,19 @@ export const ONLINE_ROUTES=Object.freeze(groups.flatMap(([group,flag,entries])=>
 const byPath=new Map(ONLINE_ROUTES.map(route=>[route.path,route]));
 export function onlineRoute(path){return byPath.get(path)??null;}
 export function onlineRouteGroup(path,group){return onlineRoute(path)?.group===group;}
+export function privateHomologationRole(role,env=process.env){
+ const ids=role==='web'?['5e70b6da-2aaa-4d6b-add7-3c69ac44b986','41df5039-d980-437a-ab9c-66b827695c67','53c40d91-e1b5-453f-8950-c43efdac694c']:
+ role==='gateway'?['b1031f8b-66bb-4173-9cbf-0fec206a6f2d','7d4158a4-b017-4cdb-bb0c-0e7119e27606','900db0b8-af72-4bb7-8477-18e331e951fa']:null;
+ return !!ids&&env.NODE_ENV==='production'&&env.RAILWAY_ENVIRONMENT_NAME==='homologacao'&&
+  env.RAILWAY_PROJECT_ID===ids[0]&&env.RAILWAY_ENVIRONMENT_ID===ids[1]&&env.RAILWAY_SERVICE_ID===ids[2]&&
+  env.ONLINE_HOMOLOGATION_ENABLED==='true'&&env.ONLINE_PUBLIC_SAVES_ENABLED==='false'&&
+  env.ONLINE_RELEASE_MODE===undefined&&env.ONLINE_REGISTRATION_ENABLED!== 'true';
+}
 export function webOnlineRoute(path,env=process.env){
  const route=onlineRoute(path);
  if(!route)return null;
  if(route.group==='base')return route;
+ if(privateHomologationRole('web',env)&&env.ONLINE_GATEWAY_FORWARD_MODE==='reviewed')return route;
  if(env.NODE_ENV==='production'&&env.ONLINE_RELEASE_MODE==='reviewed'&&
     env.ONLINE_PUBLIC_SAVES_ENABLED==='true'&&env.ONLINE_GATEWAY_FORWARD_MODE==='reviewed')return route;
  if(env.NODE_ENV!=='test'||(route.flag&&env[route.flag]!=='true'))return null;
