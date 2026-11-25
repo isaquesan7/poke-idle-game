@@ -1,3 +1,5 @@
+> **GYM03A CANDIDATA:** #289 cinco CI SUCCESS no HEAD anterior; versionar sessões/IA para preservar replay pré-GYM03. Novas partidas treinadas, 32 duelos espelhados, CI final antes de merge. Cadastro OFF.
+
 > **GYM03 CANDIDATA:** líderes com nível próprio, treino Pokémon por espécie, ranks legais, equipamentos/título/insígnias, afinidade 100 e contribuição 10% canônica. CI antes de merge, validar dificuldade. #288 integrada e Web/API SUCCESS. Cadastro OFF. Próximo Pokédex.
 
 > **23F12B4 CANDIDATA:** #288 inclui prova diferencial de dano por turno real em Região/Gym (32 seeds cada), sem alterar motor. CI final obrigatório, confirmar rebuild API. Cadastro OFF. Próximo Pokédex.
