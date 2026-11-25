@@ -11,7 +11,7 @@ import {kantoLevelMoves} from '../catalog/kantoLevelMoves.js';
 import {kantoSupportMoves,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import {kantoSpecies} from '../catalog/kantoSpecies.js';
 import {gymPsychicLevelMoves} from './gymPsychicMoves.js';
-import {pokemonFinalStats,pokemonOwnStats} from '../stats/pokemon.js';
+import {pokemonFinalStats} from '../stats/pokemon.js';
 import {trainerTotals,MANUAL_TRAINER_CAP} from '../stats/trainer.js';
 import {LEGACY_ITEMS,LEGACY_TITLES} from '../legacy/catalog.js';
 import {legacyMoveRankLimits} from '../legacy/pokemonMoveReducer.js';
@@ -186,16 +186,6 @@ export function gymTrainedMoves(speciesId:number,level:number):readonly KantoMov
  }
  return moves;
 }
-/** Historical opening for sessions created before leader training parity. */
-export function prepareLegacyGymOpponent(gym:KantoGymDefinition):readonly [Combatant,Combatant,Combatant]{
- return gym.team.map(({speciesId,level})=>{
-  const species=kantoSpecies(speciesId)!;
-  const moves=gymLegalMoves(speciesId,level);
-  return {speciesId,name:species.name,level,types:species.types,
-   stats:pokemonOwnStats(species.base,level,gymTrainerPoints(gym.order,level)),
-   move:moves[0]!,moves,rank:0,ranks:{}};
- }) as unknown as [Combatant,Combatant,Combatant];
-}
 export interface GymPreparedOpponent {
   readonly gymId:string;
   readonly trainer:ReturnType<typeof prepareGymLeader>;
@@ -237,7 +227,6 @@ export function gymAiDecision(args:{
   readonly consecutiveSwitches?:number;
   /** False quando Concentrar esgotou quotas ou cooldown no motor 3×3. */
   readonly allowConcentrate?:boolean;
-  readonly rankedPolicy?:boolean;
 }):GymAiDecision{
   const {actor,defender,actorHp,actorSp,bench}=args;
   const maxSp=kantoMaxSp(actor.level,actor.speciesId);
@@ -250,7 +239,7 @@ export function gymAiDecision(args:{
   // A propriedade opcional 'moves' deve ser OMITIDA (exactOptionalPropertyTypes).
   const {moves: _loadout,...combatantWithoutSlots}=actor;
   const estimate=(move:KantoMove)=>kantoDamage(
-    {...combatantWithoutSlots,move,rank:args.rankedPolicy?(move.name===KANTO_BASIC_ATTACK.name?0:actor.ranks?.[move.name]??(move.name===actor.move.name?actor.rank:0)):actor.rank},defender,.5,.5);
+    {...combatantWithoutSlots,move,rank:move.name===KANTO_BASIC_ATTACK.name?0:actor.ranks?.[move.name]??(move.name===actor.move.name?actor.rank:0)},defender,.5,.5);
   // Ataque básico gratuito permanece disponível mesmo com SP esgotado.
   const basicDamage=estimate(KANTO_BASIC_ATTACK).damage;
   const decisions:GymAiDecision[]=[{action:'basic',score:Math.round(
