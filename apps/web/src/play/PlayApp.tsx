@@ -1469,7 +1469,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               onOpenCollection={()=>setTab('collection')}/>}
             {tab === 'shop' && <BallShopPreview coins={data.coins}
               trainerLevel={view.level} quantities={ballQuantities}
-              busy={busy||!!onlineViews?.shop?.busy} onBuy={(ballId,quantity)=>void buyBall(ballId,quantity)}
+              busy={busy||(online&&!onlineViews?.shop)||!!onlineViews?.shop?.busy} onBuy={(ballId,quantity)=>void buyBall(ballId,quantity)}
               {...(onlineViews?.shop?{onlineShop:onlineViews.shop,onCheckout:(items:readonly {itemId:string;quantity:number}[])=>onlineExtra('shop/purchase',{items})}:{})}/>} 
             {tab === 'expedition' && (
               <ExpeditionScreen

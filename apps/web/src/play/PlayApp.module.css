@@ -1152,3 +1152,9 @@
 .shopCart{display:grid;gap:var(--space-3);margin-top:var(--space-5);padding:var(--space-4);background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:var(--radius-card)}
 .shopCartLine{display:flex;align-items:center;justify-content:space-between;gap:var(--space-2);flex-wrap:wrap;padding:var(--space-2) 0;border-bottom:1px solid var(--color-border)}
 .shopCartLine button{min-height:38px}
+
+/* A lethal hit still animates the existing sprite before the persistent KO style. */
+.battleSpriteKoImpact{animation:battleKoImpact var(--duration-battle-impact) ease-out both}
+@keyframes battleKoImpact{0%{filter:brightness(1.4);opacity:1;transform:translateX(0)}28%{transform:translateX(-7px)}55%{transform:translateX(5px)}100%{filter:grayscale(1) brightness(.57);opacity:.48;transform:translateY(9px) scale(.96)}}
+@media(prefers-reduced-motion:reduce){.battleSpriteKoImpact{animation:none}}
+.appShell[data-motion='full'] .battleSpriteKoImpact{animation:battleKoImpact var(--duration-battle-impact) ease-out both}

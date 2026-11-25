@@ -75,7 +75,7 @@ export async function purchaseShopCart(pool,params){
  if(!params||Object.keys(params).sort().join(',')!=='accountId,actionId,expectedRevision,items'||
   typeof params.accountId!=='string'||!UUID.test(params.accountId)||typeof params.actionId!=='string'||!ACTION.test(params.actionId)||
   !Number.isSafeInteger(params.expectedRevision)||params.expectedRevision<0||!Array.isArray(params.items)||params.items.length<1||params.items.length>17||params.items.some(x=>!x||Object.keys(x).sort().join(',')!=='itemId,quantity'||typeof x.itemId!=='string'||!/^[a-z][a-z-]{1,40}$/.test(x.itemId)||!Number.isSafeInteger(x.quantity)||x.quantity<1||x.quantity>50)||new Set(params.items.map(x=>x.itemId)).size!==params.items.length)return {status:'invalid'};
- const {accountId,actionId,expectedRevision,templateId}=params,c=await pool.connect();
+ const {accountId,actionId,expectedRevision,items}=params,c=await pool.connect();
  try{
   await c.query('BEGIN');
   const found=await c.query('SELECT schema_version,revision,state FROM game_saves WHERE account_id=$1 FOR UPDATE',[accountId]);
