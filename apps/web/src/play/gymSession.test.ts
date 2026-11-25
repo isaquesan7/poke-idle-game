@@ -5,7 +5,7 @@ import {
 import type {PlayStorage} from './playSave';
 import {replayGymSession,replayGymSessionTrace} from './gymSession';
 import type {GymSessionV1} from './gymSession';
-import {gymLegalTurnActions,prepareLegacyGymOpponent,prepareGymOpponent,KANTO_GYMS} from '@kanto/game-core';
+import {gymLegalTurnActions,prepareLegacyGymOpponent,prepareGymOpponent,KANTO_GYMS,resolveGymAiTurn} from '@kanto/game-core';
 type Progress=Record<string,any>;
 function setup(strong=true){
   const map=new Map<string,string>();
@@ -54,10 +54,12 @@ describe('GYM-03B: sessão de Ginásio transacional no save v0.2',()=>{
     now.game.gymSession=legacy;envelope.journal.raw=JSON.stringify(now.game);
     x.map.set(PLAY_SAVE_KEY,JSON.stringify(envelope));
     expect(replayGymSession(now.game,legacy).leader.fighters.map(f=>f.combatant)).toEqual(prepareLegacyGymOpponent(KANTO_GYMS[0]!));
+    const expected=resolveGymAiTurn(replayGymSession(now.game,legacy),{kind:'basic'},legacy.seed,false);
+    expect(expected.status).toBe('applied');
     expect(dispatch(x,{type:'gym-turn',sessionId:legacy.id,action:{kind:'basic'}}).status).toBe('ok');
     const after=x.get();
     expect(after.game.gymSession.trainingPolicy).toBeUndefined();
-    expect(replayGymSession(after.game,after.game.gymSession)).toEqual(replayGymSession(after.game,after.game.gymSession));
+    expect(replayGymSession(after.game,after.game.gymSession)).toEqual(expected.state);
   });
   it('iniciar congela três UIDs; turnos persistem e são reproduzidos após reload',()=>{
     const x=setup();
