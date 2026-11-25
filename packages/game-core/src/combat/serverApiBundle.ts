@@ -48,3 +48,6 @@ export {applyOnlineMoveRank,validatedOnlineMoveRanks} from './serverMoveRanks.js
 export {onlinePokedexProjection,onlinePokedexDetail} from '../catalog/serverPokedex.js';
 
 export {onlineInventoryProjection,applyOnlineTrainerLoadout} from '../inventory/serverInventory.js';
+
+export {inspectOnlineInventory,createOnlineDropGear} from '../inventory/onlineOwnership.js';
+export {rollRegionalLoot} from '../inventory/regionalLoot.js';

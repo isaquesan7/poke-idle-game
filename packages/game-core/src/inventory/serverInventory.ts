@@ -1,7 +1,8 @@
 /** 23F12D1: authoritative inventory projection and private trainer loadout transition.
  * Ownership is not an acquisition mechanism. No item grants, purchases or capacity changes.
  */
-import {BASE_BAG_SLOTS,inspectInventoryOwnership,inventorySlotsUsed,inventorySlotsAvailable,mayEquipOwnedItem} from './ownership.js';
+import {BASE_BAG_SLOTS,inventorySlotsUsed,inventorySlotsAvailable} from './ownership.js';
+import {inspectOnlineInventory,onlineGearForSlot} from './onlineOwnership.js';
 import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
 import {KANTO_BALLS} from '../capture/kantoBalls.js';
 import {KANTO_EVOLUTION_STONES} from '../catalog/kantoEvolution.js';
@@ -15,13 +16,13 @@ const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&
 function checked(raw:string){
  if(typeof raw!=='string'||!prepareRewardJournal(raw))return null;
  const state=JSON.parse(raw);
- const ownership=inspectInventoryOwnership(state.inventory),balls=inspectKantoBallPocket(state.ballPocket);
+ const ownership=inspectOnlineInventory(state.inventory),balls=inspectKantoBallPocket(state.ballPocket);
  const bonuses=canonicalOnlineGymTrainerBonuses(state);
- if(ownership.status!=='valid'||balls.status!=='valid'||!bonuses||!record(state.evolutionStones))return null;
+ if(!ownership||balls.status!=='valid'||!bonuses||!record(state.evolutionStones))return null;
  const stones=state.evolutionStones as Record<string,unknown>;
  if(Object.entries(stones).some(([id,n])=>!KANTO_EVOLUTION_STONES.some(s=>s.id===id)||typeof n!=='number'||!Number.isSafeInteger(n)||n<0))return null;
  const busy=state.expedition!==null||state.pendingBattle!=null||state.gymSession!=null||state.lastBattle?.captureStatus==='available';
- return {state,inventory:ownership.inventory,balls:balls.pocket,bonuses,stones:stones as Record<string,number>,busy};
+ return {state,inventory:ownership,balls:balls.pocket,bonuses,stones:stones as Record<string,number>,busy};
 }
 export function onlineInventoryProjection(raw:string){
  const c=checked(raw);if(!c)return null;
@@ -30,9 +31,10 @@ export function onlineInventoryProjection(raw:string){
   ...Object.values(KANTO_BALLS).map(b=>({id:b.id,name:b.name,kind:'ball' as const,quantity:balls.quantities[b.id]??0})),
   ...KANTO_EVOLUTION_STONES.map(s=>({id:s.id,name:s.name,kind:'stone' as const,quantity:stones[s.id]??0}))
  ].filter(s=>s.quantity>0);
- const used=inventorySlotsUsed(Object.fromEntries(stacks.map(s=>[s.id,s.quantity])));
+ const equippedIds=new Set(bonuses.equipment.map(e=>e.itemId));
+ const used=inventorySlotsUsed(Object.fromEntries(stacks.map(s=>[s.id,s.quantity])))+inventory.gear.filter(i=>!equippedIds.has(i.id)).length;
  return {busy,bag:{capacity:BASE_BAG_SLOTS+inventory.extraBagSlots,used,available:inventorySlotsAvailable(used,inventory.extraBagSlots),stacks},
-  equipment:LEGACY_ITEMS.filter(i=>(inventory.ownedEquipment[i.id]??0)>0).map(i=>({...i,quantity:inventory.ownedEquipment[i.id]!,equipped:bonuses.equipment.some(e=>e.itemId===i.id)})),
+  equipment:inventory.gear.map(i=>({...i,name:LEGACY_ITEMS.find(m=>m.id===i.templateId)!.name,quantity:1,equipped:equippedIds.has(i.id),canEquip:i.requiredLevel<=state.trainer.level})),
   slots:SLOTS.map(slot=>({slot,itemId:bonuses.equipment.find(e=>e.slot===slot)?.itemId??null})),
   titles:LEGACY_TITLES.map(t=>({...t,unlocked:legacyTitleIsUnlocked(t.id,state.wins,state.seen.length,state.badges.length),active:t.id===bonuses.activeTitle})),
   badges:KANTO_GYMS.map(g=>({id:g.id,name:g.name,stats:g.badgeStats,earned:bonuses.badges.includes(g.id)})),
@@ -53,9 +55,13 @@ export function applyOnlineTrainerLoadout(raw:string,command:unknown){
   const slot=command.slot as EquipmentSlot,itemId=command.itemId;
   const current=state.trainer.equipped[slot]||null;
   if(itemId===current)return {status:'unavailable'} as const;
-  if(itemId===null)delete state.trainer.equipped[slot];
+  if(itemId===null){
+   const projection=onlineInventoryProjection(raw);
+   if(!projection||projection.bag.available===0)return {status:'bag-full'} as const;
+   delete state.trainer.equipped[slot];
+  }
   else{
-   if(typeof itemId!=='string'||!mayEquipOwnedItem(itemId,slot,inventory))return {status:'unavailable'} as const;
+   if(typeof itemId!=='string'||!onlineGearForSlot(inventory,itemId,slot,state.trainer.level))return {status:'unavailable'} as const;
    state.trainer.equipped[slot]=itemId;
   }
  }else{

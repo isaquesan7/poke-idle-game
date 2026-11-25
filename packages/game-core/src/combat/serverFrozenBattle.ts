@@ -12,8 +12,8 @@ import type {OnlineEvolutionStep} from './serverInheritedMoves.js';
 import {kantoWildMoveLoadout} from '../catalog/kantoWildMoves.js';
 import {pokemonFinalStats,pokemonOwnStats} from '../stats/pokemon.js';
 import {canonicalOnlineGymTrainerBonuses} from './serverGymPreparation.js';
-import {inspectInventoryOwnership} from '../inventory/ownership.js';
-import type {InventoryOwnershipV1} from '../inventory/ownership.js';
+import {inspectOnlineInventory} from '../inventory/onlineOwnership.js';
+import type {OnlineInventory} from '../inventory/onlineOwnership.js';
 import type {EquipmentSlot} from '../stats/trainer.js';
 import {STATS,zeroStats} from '../stats/types.js';
 import type {StatValues} from '../stats/types.js';
@@ -26,7 +26,7 @@ export interface ServerBattleSnapshotV1 {
   readonly trainer:{readonly level:number;readonly manual:Readonly<StatValues>;
     readonly equipped:Readonly<Partial<Record<EquipmentSlot,string>>>;
     readonly title:string;readonly wins:number;readonly seen:readonly number[];
-    readonly badges:readonly string[];readonly inventory:InventoryOwnershipV1};
+    readonly badges:readonly string[];readonly inventory:OnlineInventory};
   readonly activePokemon:{
     readonly uid:number;readonly speciesId:number;readonly level:number;
     readonly affinity:number;readonly manual:Readonly<StatValues>;
@@ -122,7 +122,7 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   const equippedRanks=equippedOnlineRanks(equipped,ranks);
   // Required current snapshot contract. Recompute from canonical sources;
   // no client totals and no fallback to manual-only laboratory snapshots.
-  if(inspectInventoryOwnership(trainer.inventory).status!=='valid')return null;
+  if(!inspectOnlineInventory(trainer.inventory))return null;
   const bonuses=canonicalOnlineGymTrainerBonuses({version:1,mode:'normal',
     trainer:{level:trainer.level,manual:trainer.manual,equipped:trainer.equipped,title:trainer.title},
     wins:trainer.wins,seen:trainer.seen,badges:trainer.badges,inventory:trainer.inventory});
