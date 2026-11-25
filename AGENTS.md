@@ -1,3 +1,5 @@
+> **GYM03 CANDIDATA:** líderes com nível próprio, treino Pokémon por espécie, ranks legais, equipamentos/título/insígnias, afinidade 100 e contribuição 10% canônica. CI antes de merge, validar dificuldade. #288 integrada e Web/API SUCCESS. Cadastro OFF. Próximo Pokédex.
+
 > **23F12B4 CANDIDATA:** #288 inclui prova diferencial de dano por turno real em Região/Gym (32 seeds cada), sem alterar motor. CI final obrigatório, confirmar rebuild API. Cadastro OFF. Próximo Pokédex.
 
 > **23F12B3 CANDIDATA:** #288 aprimoramento de ranks por UID persistente e interface CI-only; CI final e prova de dano/replay real obrigatórios; API #287 SKIPPED, confirmar rebuild. Cadastro OFF.
