@@ -13,8 +13,8 @@ function match(index:number):GymBattleState{
     {uid:11,combatant:team[0]},{uid:12,combatant:team[1]},
     {uid:13,combatant:team[2]}],team);
 }
-function legalAction(state:GymBattleState,side:'player'|'leader',rankedPolicy=false){
-  const chosen=gymChooseAiAction(state,side,rankedPolicy);
+function legalAction(state:GymBattleState,side:'player'|'leader'){
+  const chosen=gymChooseAiAction(state,side);
   expect(gymLegalTurnActions(state,side)).toContainEqual(chosen);
   return chosen;
 }
@@ -96,9 +96,9 @@ describe('GYM-02D — IA com mesma autoridade de ações 3×3',()=>{
         let state=match(gym);
         let rng=(gym*1000+seed*1701+99)>>>0;
         for(let step=0;step<GYM_MAX_TURNS+8&&state.outcome==='ongoing';step++){
-          const player=legalAction(state,'player',true);
-          const leader=legalAction(state,'leader',true);
-          expect(leader).toEqual(gymChooseAiAction(state,'leader',true));
+          const player=legalAction(state,'player');
+          const leader=legalAction(state,'leader');
+          expect(leader).toEqual(gymChooseAiAction(state,'leader'));
           const a=resolveGymTurn(state,player,leader,rng);
           const b=resolveGymTurn(state,player,leader,rng);
           expect(a).toEqual(b);
