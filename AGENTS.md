@@ -1,3 +1,7 @@
+## Diretriz permanente do proprietário — evitar voltas e atrasos (25/11/2026)
+
+**Antes de começar qualquer etapa, inclusive após um simples "pode seguir", verificar AGENTS.md, últimas seções de PROJECT_STATE.md, commits/PRs e evidências existentes.** Identificar o delta concreto que falta, verificar se já foi implementado/testado/aprovado, e selecionar a menor entrega útil que avance o objetivo atual. Não repetir auditorias, probes, testes exploratórios ou preparar mais camadas sem lacuna específica comprovada. Regressão obrigatória de código novo e correção de falha real continuam necessárias. Consolidar PRs dependentes quando seguro; não empilhar novos preflights. Se houver bloqueio externo, informar precisamente e avançar apenas no que realmente o resolve. Registrar o próximo passo e os resultados verificados. Prioridade pré-lançamento: ativação online efetiva e gates reais; não adicionar funcionalidades futuras como pré-requisito sem decisão do proprietário.
+
 ## Diretriz obrigatória de pré-lançamento — 24/11/2026
 
 - **Não existem jogadores reais, contas de jogadores ou partidas online de jogadores existentes.** Os dados atuais são somente de desenvolvimento/homologação.
