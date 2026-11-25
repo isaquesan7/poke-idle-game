@@ -149,12 +149,29 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 /* D6E: local navigation, no game-state mutation. */
 #portal-navigation{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:12px 0}
 #portal-navigation a{display:block;padding:8px;background:var(--inv-card);border:1px solid var(--inv-border);border-radius:8px;text-decoration:none;text-align:center;font-size:.78rem;overflow-wrap:anywhere}
+/* D6F: authenticated adventure uses the available viewport, not the login column. */
+.layout.portal-open{grid-template-columns:minmax(0,1fr);gap:0;align-items:start}
+.layout.portal-open>.card{min-width:0;padding:clamp(12px,3vw,30px)}
+.layout.portal-open #landing-hero{display:none}
+.layout.portal-open #online-panel{min-width:0}
+.layout.portal-open .progress-list{grid-template-columns:repeat(4,minmax(0,1fr))}
+.layout.portal-open #portal-navigation{grid-template-columns:repeat(5,minmax(0,1fr))}
+.layout.portal-open #portal-navigation a{min-height:40px;display:flex;align-items:center;justify-content:center}
+.layout.portal-open #online-new{max-width:520px;margin-inline:auto}
+.layout.portal-open #online-roster,.layout.portal-open #pokedex-grid{grid-template-columns:repeat(auto-fill,minmax(95px,1fr))}
+.layout.portal-open #inventory-bag,.layout.portal-open #inventory-equipment{grid-template-columns:repeat(auto-fill,minmax(85px,1fr))}
+.layout.portal-open #inventory-slots{grid-template-columns:repeat(9,minmax(0,1fr))}
+.layout.portal-open #inventory-bag .inv-tile,.layout.portal-open #inventory-equipment .inv-tile{max-height:125px}
+.layout.portal-open #online-refresh,.layout.portal-open #online-logout{min-height:40px}
+.layout.portal-open section[id$="-section"]{scroll-margin-top:12px}
+@media(max-width:760px){.layout.portal-open .progress-list{grid-template-columns:repeat(2,minmax(0,1fr))}.layout.portal-open #portal-navigation{grid-template-columns:repeat(2,minmax(0,1fr))}.layout.portal-open #inventory-slots{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:420px){main{padding-inline:12px}.layout.portal-open #inventory-bag,.layout.portal-open #inventory-equipment{grid-template-columns:repeat(3,minmax(0,1fr))}.layout.portal-open #online-roster,.layout.portal-open #pokedex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.layout.portal-open .team-row button{min-height:36px}nav{gap:6px;flex-wrap:wrap}.pill{padding:6px 8px}}
 [hidden]{display:none!important}@media(max-width:760px){nav{margin-bottom:32px}.layout{grid-template-columns:1fr;gap:35px}.card{padding:23px}h1{font-size:2.75rem}}
 </style>
 </head>
 <body>
 <main><nav><div class="brand">✦ <span>Poke</span> Idle Game</div><span class="pill">Kanto · Temporada 1</span></nav>
-<div class="layout"><section aria-labelledby="hero"><div class="eyebrow">Sua jornada começa aqui</div>
+<div id="portal-layout" class="layout"><section id="landing-hero" aria-labelledby="hero"><div class="eyebrow">Sua jornada começa aqui</div>
 <h1 id="hero">Um mundo inteiro <em>para explorar.</em></h1>
 <p>Descubra os 151 Pokémon de Kanto, treine sua equipe e desafie os líderes de Ginásio. Estamos preparando contas online para sua futura aventura.</p>
 <ul class="features"><li>Capture e evolua seus Pokémon</li><li>Enfrente os oito líderes de Kanto</li><li>Monte sua equipe e conquiste insígnias</li></ul>
@@ -987,7 +1004,7 @@ $('online-team-save').addEventListener('click',()=>{
   runProgressAction('/api/v1/collection/team',{teamUids:[...teamDraft]});
 });
 function clearPortal(){
- portalEpoch++;panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;gymState=null;expeditionState=null;shopState=null;moveState=null;evolutionState=null;trainingState=null;dexState=null;inventoryState=null;selectedRegionId=1;selectedExpeditionRegion=1;selectedMoveUid=null;moveDraft=[];selectedEvolutionUid=null;trainingUid=null;clearTrainingDraft();$('training-note').textContent='';$('evolution-note').textContent='';renderRegion();renderGym();renderExpedition();renderShop();renderMoves();renderEvolution();renderTraining();renderPokedex();renderInventory();$('region-note').textContent='';$('gym-note').textContent='';$('expedition-note').textContent='';$('shop-note').textContent='';
+ portalEpoch++;$('portal-layout').classList.remove('portal-open');panel.hidden=true;newAdventure.hidden=true;progress.hidden=true;serverProgress=null;teamDraft=[];regionalState=null;gymState=null;expeditionState=null;shopState=null;moveState=null;evolutionState=null;trainingState=null;dexState=null;inventoryState=null;selectedRegionId=1;selectedExpeditionRegion=1;selectedMoveUid=null;moveDraft=[];selectedEvolutionUid=null;trainingUid=null;clearTrainingDraft();$('training-note').textContent='';$('evolution-note').textContent='';renderRegion();renderGym();renderExpedition();renderShop();renderMoves();renderEvolution();renderTraining();renderPokedex();renderInventory();$('region-note').textContent='';$('gym-note').textContent='';$('expedition-note').textContent='';$('shop-note').textContent='';
  $('online-team').replaceChildren();$('collection-team-count').textContent='';$('online-stats').replaceChildren();$('online-points').textContent='';$('online-team-save').disabled=true;
  $('online-trainer').textContent='';$('online-roster').replaceChildren();
  for(const id of ['online-level','online-coins','online-badges','online-count','online-revision','online-error'])$(id).textContent='';
@@ -1037,7 +1054,7 @@ async function refreshPortal(){
   if(epoch!==portalEpoch)return false;
   if(me.status===401){render('login');return false;}
   if(me.status!==200||typeof me.data?.trainerName!=='string')throw new Error('Conta indisponível.');
-  panel.hidden=false;tabs.hidden=true;form.hidden=true;
+  panel.hidden=false;$('portal-layout').classList.add('portal-open');tabs.hidden=true;form.hidden=true;
   $('online-trainer').textContent=me.data.trainerName;
   const save=await getOnline('/api/v1/save');
   if(epoch!==portalEpoch)return false;
