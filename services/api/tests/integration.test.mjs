@@ -3262,7 +3262,7 @@ test('D6I: regional HTTP keyring binds materialization and survives rotation bef
     assert.equal((await call('settle',payout,missing)).status,'historical-key-missing');
     const paid=await call('settle',payout);
     assert.equal(paid.status,'paid');
-    const finish={expectedRevision:paid.revision,actionId:'rotation-d6i-finish-0001',choice:{kind:'skip'}};
+    const finish={expectedRevision:paid.revision,actionId:'rotation-d6i-finish-0001',choice:'skip'};
     assert.equal((await call('finish',finish,missing)).status,'historical-key-missing');
     const finished=await call('finish',finish);
     assert.equal(finished.status,'finished');
