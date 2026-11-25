@@ -100,7 +100,7 @@ export function GymScreen({game,data,busy,revision,onAction,onOpenCollection}:Pr
       if(lastSent.current===key)return;
       lastSent.current=key;
       onAction({type:'gym-turn',sessionId:session.id,
-        action:gymChooseAiAction(currentState,'player')});
+        action:gymChooseAiAction(currentState,'player',session.trainingPolicy===2)});
     },160);
     return ()=>window.clearTimeout(timer);
   },[automatic,session?.id,actionCount,busy,donePresentation,revision]);
