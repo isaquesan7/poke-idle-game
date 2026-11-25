@@ -75,7 +75,7 @@ export async function runRegionalCommand(pool,accountId,command,data,entropyKey,
     (command!=='reserve'&&(typeof data.encounterId!=='string'||!UUID.test(data.encounterId)))||
     (command!=='start'&&(typeof data.actionId!=='string'||!ACTION.test(data.actionId))))
   return {status:'invalid'};
- if(!Buffer.isBuffer(entropyKey)&&['start','turn','settle','finish'].includes(command)){
+ if(!Buffer.isBuffer(entropyKey)&&['turn','settle','finish'].includes(command)){
   const selected=await selectWildEncounterKey(pool,entropyKey,{accountId,encounterId:data.encounterId});
   if(!['new','resolved'].includes(selected.status))return {status:selected.status};
   entropyKey=selected.key;

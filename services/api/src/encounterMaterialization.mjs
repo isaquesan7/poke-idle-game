@@ -8,7 +8,7 @@
  * Expansion to other regions must reuse policy from game-core, not copy pools.
  */
 import {loadCombatAdapter} from './battlePreview.mjs';
-import {createPrivateBattleRandom,BATTLE_ENTROPY_VERSION} from './battleEntropy.mjs';
+import {createPrivateBattleRandom,createPrivateBattleKeyProof,BATTLE_ENTROPY_VERSION} from './battleEntropy.mjs';
 export const FIRST_REGION_SPECIES=Object.freeze([
   10,13,16,54,21,29,32,43,46,48,60,69,1,4,7
 ]);
@@ -17,19 +17,31 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function materializeReservedEncounter(pool,{
   accountId,encounterId,entropyKey
 }){
+  const keyed=!Buffer.isBuffer(entropyKey)&&typeof entropyKey?.resolve==='function';
   if(typeof accountId!=='string'||!UUID.test(accountId)||
       typeof encounterId!=='string'||!UUID.test(encounterId)||
-      !Buffer.isBuffer(entropyKey)||entropyKey.length<32)
+      (!keyed&&(!Buffer.isBuffer(entropyKey)||entropyKey.length<32)))
     return {status:'invalid'};
   const client=await pool.connect();
   try{
     await client.query('BEGIN');
     const rows=await client.query(
-      `SELECT region_id,status,species_id,pokemon_level,entropy_version
+      `SELECT region_id,status,species_id,pokemon_level,entropy_version,battle_turn_entropy_proof
          FROM game_encounter_reservations WHERE account_id=$1 AND id=$2 FOR UPDATE`,
       [accountId,encounterId]);
     if(!rows.rowCount){await client.query('ROLLBACK');return {status:'missing'};}
     const row=rows.rows[0];
+    // Select and bind inside the same row lock as the encounter roll.
+    // Existing unbound materialized rows predate this policy: do not pretend
+    // that their original key can be recovered or reroll their species.
+    let selectedKey=entropyKey;
+    if(keyed){
+      const chosen=entropyKey.resolve({accountId,encounterId,storedProof:row.battle_turn_entropy_proof});
+      if(!['new','resolved'].includes(chosen.status)){
+        await client.query('ROLLBACK');return {status:chosen.status};
+      }
+      selectedKey=chosen.key;
+    }
     if(row.species_id!==null){
       await client.query('ROLLBACK');
       return {status:'replay',speciesId:Number(row.species_id),
@@ -53,7 +65,7 @@ export async function materializeReservedEncounter(pool,{
     }
     // Use the canonical catalog and the actual selected leader's level.
     // Materialized historical encounters above retain their original species and level.
-    const rng=createPrivateBattleRandom(entropyKey,{
+    const rng=createPrivateBattleRandom(selectedKey,{
       accountId,encounterId,phase:'wild-encounter'
     });
     const leader=raw.roster.find(p=>p?.uid===raw.team?.[0]);
@@ -63,9 +75,11 @@ export async function materializeReservedEncounter(pool,{
     const {speciesId,level:pokemonLevel}=rolled;
     await client.query(
       `UPDATE game_encounter_reservations
-         SET species_id=$3,pokemon_level=$4,entropy_version=$5,materialized_at=now()
+         SET species_id=$3,pokemon_level=$4,entropy_version=$5,materialized_at=now(),
+             battle_turn_entropy_proof=COALESCE(battle_turn_entropy_proof,$6)
          WHERE account_id=$1 AND id=$2`,
-      [accountId,encounterId,speciesId,pokemonLevel,BATTLE_ENTROPY_VERSION]);
+      [accountId,encounterId,speciesId,pokemonLevel,BATTLE_ENTROPY_VERSION,
+        keyed?createPrivateBattleKeyProof(selectedKey,{accountId,encounterId}):null]);
     await client.query('COMMIT');
     return {status:'materialized',speciesId,level:pokemonLevel,
       entropyVersion:BATTLE_ENTROPY_VERSION};
