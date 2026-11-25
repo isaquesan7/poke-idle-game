@@ -1,3 +1,5 @@
+> **23F12B4 CANDIDATA:** #288 inclui prova diferencial de dano por turno real em Região/Gym (32 seeds cada), sem alterar motor. CI final obrigatório, confirmar rebuild API. Cadastro OFF. Próximo Pokédex.
+
 > **23F12B3 CANDIDATA:** #288 aprimoramento de ranks por UID persistente e interface CI-only; CI final e prova de dano/replay real obrigatórios; API #287 SKIPPED, confirmar rebuild. Cadastro OFF.
 
 > **23F12B2 CANDIDATA:** #287 integrada; #288 congela ranks em região/Gym, valida replay e preserva snapshots antigos. Sem writer de rank ainda, CI obrigatório. Próximo B3 writer/HTTP/UI. Cadastro OFF.
