@@ -156,3 +156,68 @@ test('23D7: CI production lockdown does not substitute reverse proxy abuse revie
   input.gates.security.productionRouteLockdownVerified=false;
   assert.equal(evaluateBetaReadiness(input,{now}).gates.security.passed,false);
 });
+
+import {evaluateReleaseReview,RELEASE_ROLES,RELEASE_REVIEW_IDS,RELEASE_ROUTE_GROUPS} from '../src/releaseReview.mjs';
+function releaseReviewFixture(){
+  const proof=()=>({commitSha:sha,passed:true,reference:'fixture-not-real-evidence',operator:'operator',reviewer:'reviewer',checkedAt});
+  const migration=()=>({...proof(),sqlSha256:'c'.repeat(64),disposablePg18Verified:true,registryChecksumReviewed:true,productionStillUnchanged:true});
+  return {headSha:sha,betaEvidence:valid(),
+    configReviews:Object.fromEntries(RELEASE_ROLES.map(role=>[role,{...proof(),report:{role,configShapeValid:true,blockers:[],publicRegistrationAuthorized:false}}])),
+    reviews:{
+      'migration-026':migration(),'migration-027':migration(),
+      'gateway-topology':{...proof(),exclusiveIngressVerified:true,directWebBypassRejected:true,crossServiceKeyMatchReviewed:true},
+      'regional-key-retention':{...proof(),restartVerified:true,historicalKeysRetained:true,concurrentRotationReviewed:true},
+      'route-status-contract':{...proof(),groups:[...RELEASE_ROUTE_GROUPS],apiAuthoritative:true,ciHarnessDenied:true,registrationClosed:true,savesClosed:true},
+      'rollback-plan':{...proof(),registrationCloseFirst:true,pendingActionsPreserved:true,noAutomaticDatabaseRollback:true}
+    }};
+}
+test('D6M complete fixture is review only, never activation',()=>{
+  const input=releaseReviewFixture(),original=structuredClone(input);
+  assert.deepEqual(evaluateReleaseReview(input,{now}),{reviewComplete:true,blockers:[],publicRegistrationAuthorized:false,publicSavesAuthorized:false});
+  assert.deepEqual(input,original);
+});
+test('D6M missing role or review blocks, including missing existing beta evidence',()=>{
+  for(const role of RELEASE_ROLES){
+    const input=releaseReviewFixture();delete input.configReviews[role];
+    assert.deepEqual(evaluateReleaseReview(input,{now}).blockers,['config-'+role]);
+  }
+  for(const id of RELEASE_REVIEW_IDS){
+    const input=releaseReviewFixture();delete input.reviews[id];
+    assert.deepEqual(evaluateReleaseReview(input,{now}).blockers,[id]);
+  }
+  const input=releaseReviewFixture();delete input.betaEvidence;
+  assert.deepEqual(evaluateReleaseReview(input,{now}).blockers,['beta-readiness']);
+});
+test('D6M refuses stale SHA, self-review, future review and malformed migration checksum',()=>{
+  const input=releaseReviewFixture();
+  input.configReviews.api.commitSha='b'.repeat(40);
+  input.reviews['gateway-topology'].reviewer=' OPERATOR ';
+  input.reviews['rollback-plan'].checkedAt='2027-01-01T00:00:00Z';
+  input.reviews['migration-026'].sqlSha256='invalid';
+  assert.deepEqual(evaluateReleaseReview(input,{now}).blockers,['config-api','migration-026','gateway-topology','rollback-plan']);
+});
+test('D6M refuses wrong role, report with activation, missing route or duplicate route group',()=>{
+  const input=releaseReviewFixture();
+  input.configReviews.web.report.role='api';
+  input.configReviews.gateway.report.publicRegistrationAuthorized=true;
+  input.reviews['route-status-contract'].groups.pop();
+  assert.deepEqual(evaluateReleaseReview(input,{now}).blockers,['config-web','config-gateway','route-status-contract']);
+  input.reviews['route-status-contract'].groups.push(RELEASE_ROUTE_GROUPS[0]);
+  assert.ok(evaluateReleaseReview(input,{now}).blockers.includes('route-status-contract'));
+});
+test('D6M never echoes reference, secret-shaped text, parser error or evidence value',()=>{
+  const input=releaseReviewFixture();
+  input.configReviews.api.report.blockers=['secret-fixture-value'];
+  input.reviews['migration-027'].reference='secret-fixture-value';
+  const report=evaluateReleaseReview(input,{now});
+  assert.equal(report.reviewComplete,false);
+  assert.equal(JSON.stringify(report).includes('secret-fixture-value'),false);
+  assert.equal(report.publicRegistrationAuthorized,false);
+  assert.equal(report.publicSavesAuthorized,false);
+});
+test('D6M empty document blocks all reviews and cannot activate',()=>{
+  const report=evaluateReleaseReview({},{now});
+  assert.deepEqual(report.blockers,['target-sha','beta-readiness',...RELEASE_ROLES.map(r=>'config-'+r),...RELEASE_REVIEW_IDS]);
+  assert.equal(report.publicRegistrationAuthorized,false);
+  assert.equal(report.publicSavesAuthorized,false);
+});
