@@ -311,7 +311,7 @@ function renderGym(){
  $('gym-info').textContent=g?'Equipe congelada durante o confronto.'+(g.leaderLevel?' · Líder Nv. '+g.leaderLevel:''):next?'Próximo líder: '+next.leader+' · Nv. '+next.leaderLevel:
   serverProgress?.state.badges.length===8?'Oito insígnias conquistadas.':'Defina três Pokémon na Coleção para desafiar o próximo líder.';
  gymOpen.hidden=!!g&&g.phase!=='reserved';
- gymOpen.disabled=onlineBusy||expeditionActive()||!gymState||!serverProgress||regionActive()||(!g&&!gymState.canReserve);
+ gymOpen.disabled=onlineBusy||!!inventoryState?.expeditionPending||!!inventoryState?.pending||expeditionActive()||!gymState||!serverProgress||regionActive()||(!g&&!gymState.canReserve);
  gymOpen.textContent=g?'Retomar confronto':next?'Desafiar '+next.leader:'Desafiar Ginásio';
  gymBattle.hidden=!g||g.phase==='reserved';
  $('gym-parties').replaceChildren();$('gym-actions').replaceChildren();$('gym-log').replaceChildren();
@@ -390,7 +390,7 @@ function expeditionTick(){
  $('expedition-cycles').textContent=cycles+' / '+expeditionState.maxCycles+' ciclos';
  $('expedition-progress').max=expeditionState.maxCycles;$('expedition-progress').value=cycles;
  $('expedition-cap').textContent=cycles>=expeditionState.maxCycles?'Limite de 8h atingido. Resgate para continuar acumulando.':'Um ciclo a cada 10 segundos.';
- $('expedition-claim').disabled=onlineBusy||cycles<1;
+ $('expedition-claim').disabled=onlineBusy||cycles<1||!!expeditionState.pendingLoot;
 }
 function renderExpedition(){
  expeditionSection.hidden=!expeditionState||!serverProgress;
@@ -408,17 +408,18 @@ function renderExpedition(){
  const leader=expeditionState.leader;
  $('expedition-leader').textContent='Expedicionário: '+speciesNames[leader.speciesId]+' · Nível '+leader.level+' (líder da equipe)';
  $('expedition-info').textContent=selected?'Faixa da região: '+selected.levelMin+'–'+selected.levelMax+' · Sem ganho de afinidade.':'';
- $('expedition-start').hidden=!!e;$('expedition-start').disabled=onlineBusy||expeditionState.busy||gymActive()||regionActive()||!selected?.unlocked;
+ $('expedition-start').hidden=!!e;$('expedition-start').disabled=onlineBusy||expeditionState.busy||gymActive()||regionActive()||!!expeditionState.pendingLoot||!!inventoryState?.pending||!selected?.unlocked;
  $('expedition-active').hidden=!e;
  if(!e)return;
  const p=e.preview;
  const drops=p?Object.entries(p.ballDrops??{}).filter(([,n])=>n>0).map(([id,n])=>({'poke-ball':'Poké Ball','great-ball':'Great Ball','ultra-ball':'Ultra Ball'}[id]??id)+': '+n):[];
- $('expedition-preview').textContent=p?p.coins+' moedas · '+p.trainerXP+' XP treinador · '+p.pokemonXP+' XP Pokémon'+(drops.length?' · '+drops.join(' · '):''):'Nenhum ciclo completo no último sincronismo.';
+ $('expedition-preview').textContent=p?p.coins+' moedas · '+p.trainerXP+' XP treinador · '+p.pokemonXP+' XP Pokémon'+(drops.length?' · '+drops.join(' · '):''):expeditionState.pendingLoot?'Resolva os itens pendentes na mochila para resgatar novamente. Você ainda pode encerrar a expedição.':'Nenhum ciclo completo no último sincronismo.';
  $('expedition-stop').disabled=onlineBusy;$('expedition-sync').disabled=onlineBusy;
  expeditionTick();
 }
 expeditionSelect.addEventListener('change',()=>{if(!onlineBusy&&!expeditionActive()){selectedExpeditionRegion=Number(expeditionSelect.value);renderExpedition();}});
 async function expeditionCommand(kind){
+ if((kind==='claim'&&expeditionState?.pendingLoot)||(kind==='start'&&(expeditionState?.pendingLoot||inventoryState?.pending)))return;
  if(onlineBusy||!available||!serverProgress||!expeditionState||progress.hidden||expeditionState.revision!==serverProgress.revision||expeditionState.busy||gymActive()||regionActive())return;
  const fields=kind==='start'?{regionId:selectedExpeditionRegion}:{};
  const expectedRevision=expeditionState.revision;
@@ -566,6 +567,19 @@ function renderInventory(){
    store.dataset.lootStore=itemId;discard.dataset.lootDiscard=itemId;row.append(label,store,discard);$('inventory-pending').append(row);
   }
  }
+ if(inventoryState.expeditionPending){
+  line('inventory-pending','Pokébolas pendentes da expedição. Resolva o lote antes do próximo resgate.');
+  for(const [itemId,quantity] of Object.entries(inventoryState.expeditionPending.quantities)){
+   const row=document.createElement('div'),label=document.createElement('span');
+   label.textContent=lootLabel({kind:'ball',itemId})+' × '+quantity+' ';
+   const args={claimAt:inventoryState.expeditionPending.claimAt,itemId};
+   const blocked=onlineBusy||!inventoryState.canResolveExpeditionLoot;
+   const store=actionButton('Guardar',()=>submitLoadout({kind:'expedition-loot-store',...args}),blocked);
+   const discard=actionButton('Descartar',()=>{if(window.confirm('Descartar estas Pokébolas definitivamente?'))submitLoadout({kind:'expedition-loot-discard',...args});},blocked);
+   store.dataset.expeditionLootStore=itemId;discard.dataset.expeditionLootDiscard=itemId;
+   row.append(label,store,discard);$('inventory-pending').append(row);
+  }
+ }
  const rarityLabels={common:'Comum',uncommon:'Incomum',rare:'Raro',epic:'Épico',legendary:'Lendário'};
  const filtered=$('inventory-filter').value==='equipped'?equipment.filter(i=>i.equipped):equipment;
  for(const item of filtered){
@@ -581,7 +595,7 @@ function renderInventory(){
  }
  for(const badge of badges)line('inventory-badges',badge.name+' · '+(badge.earned?'Conquistada':'Não conquistada')+' · '+bonusText(badge.stats));
  for(const [key,n] of Object.entries(totals))line('inventory-totals',(statLabels[key]??key)+': '+n);
- if(dialog.open&&locked){dialog.close();$('inventory-detail-action').replaceChildren();}
+ if(dialog.open&&locked&&!inventoryState.canResolveExpeditionLoot){dialog.close();$('inventory-detail-action').replaceChildren();}
 }
 function openInventoryItem(id){
  if(!inventoryState||!serverProgress||inventoryState.revision!==serverProgress.revision)return;
@@ -592,17 +606,18 @@ function openInventoryItem(id){
   $('inventory-dialog').close();submitLoadout({kind:'equipment',slot:item.slot,itemId:item.equipped?null:item.id});
  },onlineBusy||inventoryState.busy||adventureBusy()||(!item.equipped&&!item.canEquip)||(item.equipped&&inventoryState.bag.available===0));
  action.id='inventory-item-action';$('inventory-detail-action').replaceChildren(action);
- if(!item.equipped){const discard=actionButton('Descartar equipamento',()=>{if(window.confirm('Descartar definitivamente '+item.name+'?')){$('inventory-dialog').close();submitLoadout({kind:'discard-gear',itemId:item.id});}},onlineBusy||inventoryState.busy||adventureBusy());$('inventory-detail-action').append(discard);}
+ if(!item.equipped){const discard=actionButton('Descartar equipamento',()=>{if(window.confirm('Descartar definitivamente '+item.name+'?')){$('inventory-dialog').close();submitLoadout({kind:'discard-gear',itemId:item.id});}},onlineBusy||(!inventoryState.canResolveExpeditionLoot&&(inventoryState.busy||adventureBusy())));$('inventory-detail-action').append(discard);}
  $('inventory-dialog').showModal();$('inventory-close').focus();
 }
 $('inventory-close').addEventListener('click',()=>$('inventory-dialog').close());
 $('inventory-filter').addEventListener('change',renderInventory);
 async function submitLoadout(command){
- if(!inventoryState||!serverProgress||inventoryState.revision!==serverProgress.revision||inventoryState.busy||onlineBusy||adventureBusy())return;
+ const expeditionResolution=inventoryState?.canResolveExpeditionLoot&&['expedition-loot-store','expedition-loot-discard','discard-gear'].includes(command.kind);
+ if(!inventoryState||!serverProgress||inventoryState.revision!==serverProgress.revision||onlineBusy||(!expeditionResolution&&(inventoryState.busy||adventureBusy())))return;
  const args={actionId:crypto.randomUUID(),expectedRevision:inventoryState.revision,command};
  setOnlineBusy(true);let ok=false;
  try{await api('/api/v1/inventory/loadout',args);ok=true;}catch{}
- const loaded=await refreshPortal();if(loaded&&inventoryState)$('inventory-note').textContent=ok?(['loot-store','loot-discard','discard-gear'].includes(command.kind)?'Inventário atualizado.':'Equipamento ou título atualizado.'):'Ação não confirmada. Confira o inventário atualizado.';
+ const loaded=await refreshPortal();if(loaded&&inventoryState)$('inventory-note').textContent=ok?(['loot-store','loot-discard','discard-gear','expedition-loot-store','expedition-loot-discard'].includes(command.kind)?'Inventário atualizado.':'Equipamento ou título atualizado.'):'Ação não confirmada. Confira o inventário atualizado.';
 }
 const dexStatus={unknown:'Não encontrado',seen:'Visto',caught:'Capturado'};
 const dexTypes={normal:'Normal',fire:'Fogo',water:'Água',electric:'Elétrico',grass:'Planta',ice:'Gelo',fighting:'Lutador',poison:'Venenoso',ground:'Terra',flying:'Voador',psychic:'Psíquico',bug:'Inseto',rock:'Pedra',ghost:'Fantasma',dragon:'Dragão',dark:'Sombrio',steel:'Aço',fairy:'Fada'};
