@@ -4,7 +4,7 @@ import {legacyMoveRankLimits} from '../src/legacy/pokemonMoveReducer.js';
 const zero=()=>({hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0});
 const state=()=>{
  const p={uid:1,pokemonId:4,level:30,xp:0,affinity:0,manual:zero(),moveName:'scratch',equippedMoveNames:['scratch','ember','growl'],upgrades:{} as Record<string,number>};
- return {version:1,mode:'normal',name:'Rank CI',trainer:{level:1,xp:0,manual:zero()},coins:0,wins:0,losses:0,seen:[4],caughtSpecies:[4],badges:[],roster:[p,{...structuredClone(p),uid:2}],team:[1],nextUid:3,expedition:null};
+ return {version:1,mode:'normal',name:'Rank CI',trainer:{level:1,xp:0,manual:zero()},coins:0,wins:0,losses:0,seen:[4],caughtSpecies:[4],badges:[],roster:[p,{...(JSON.parse(JSON.stringify(p)) as typeof p),uid:2}],team:[1],nextUid:3,expedition:null};
 };
 describe('23F12B1 — canonical rank candidate',()=>{
  it('uses local budget and cap at all levels',()=>{
