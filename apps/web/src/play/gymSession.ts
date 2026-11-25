@@ -14,7 +14,7 @@ import {
   KANTO_GYMS, KANTO_BATTLE_SPECIES, KANTO_BATTLE_MOVES,
   KANTO_SUPPORT_MOVES, KANTO_GYM_MASTER_TITLE_STATS,
   LEGACY_ITEMS, STATS, trainerTotals, pokemonFinalStats,
-  pokemonMoveSlots, effectiveLegacyTitle, prepareGymOpponent, prepareLegacyGymOpponent,
+  pokemonMoveSlots, effectiveLegacyTitle, prepareGymOpponent,
   kantoNextGym, createGymBattleState, resolveGymAiTurn,
   applyRewardEvent, gymPsychicLevelMoves
 } from '@kanto/game-core';
@@ -28,7 +28,6 @@ const nat=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&
 const seedOk=(v:unknown):v is number=>nat(v)&&v<=0xffffffff;
 export interface GymSessionV1 {
   readonly version:1;
-  readonly trainingPolicy?:2;
   readonly id:string;
   readonly gymId:string;
   readonly uids:readonly [number,number,number];
@@ -52,7 +51,7 @@ function read(raw:string):Entry|null{
   catch{return null;}
 }
 function readSession(v:unknown):GymSessionV1|null{
-  if(!rec(v)||v.version!==1||(v.trainingPolicy!==undefined&&v.trainingPolicy!==2)||typeof v.id!=='string'
+  if(!rec(v)||v.version!==1||typeof v.id!=='string'
     ||!/^gym-v02-[1-9][0-9]*$/.test(v.id)
     ||typeof v.gymId!=='string'||!seedOk(v.seed)
     ||!Array.isArray(v.uids)||v.uids.length!==3
@@ -70,7 +69,7 @@ function readSession(v:unknown):GymSessionV1|null{
       actions.push({kind:'move',moveName:a.moveName});
     else return null;
   }
-  return {version:1,...(v.trainingPolicy===2?{trainingPolicy:2 as const}:{}),id:v.id,gymId:v.gymId,
+  return {version:1,id:v.id,gymId:v.gymId,
     uids:v.uids as [number,number,number],seed:v.seed,actions};
 }
 function buildStart(game:Entry,session:GymSessionV1):GymBattleState{
@@ -143,7 +142,7 @@ function buildStart(game:Entry,session:GymSessionV1):GymBattleState{
     };
     return {uid,combatant};
   });
-  const gymTeam=session.trainingPolicy===2?prepareGymOpponent(gym).team:prepareLegacyGymOpponent(gym);
+  const gymTeam=prepareGymOpponent(gym).team;
   return createGymBattleState(
     team as [typeof team[0],typeof team[0],typeof team[0]],gymTeam
   );
@@ -213,7 +212,7 @@ export function replayGymSessionTrace(game:Entry,session:GymSessionV1):GymReplay
   for(const action of session.actions){
     if(state.outcome!=='ongoing')
       throw new RangeError('Transcript contém ações após a conclusão.');
-    const result=resolveGymAiTurn(state,action,seed,session.trainingPolicy===2);
+    const result=resolveGymAiTurn(state,action,seed);
     if(result.status!=='applied')
       throw new RangeError('Transcript de Ginásio contém ação ilegal.');
     const before=state;
@@ -253,7 +252,7 @@ export function runGymSessionCommand(
     const gym=kantoNextGym(game.badges);
     if(!gym)return blocked('Nenhum Ginásio desbloqueado.');
     const session:GymSessionV1={
-      version:1,trainingPolicy:2,id:'gym-v02-'+nextRevision,gymId:gym.id,
+      version:1,id:'gym-v02-'+nextRevision,gymId:gym.id,
       uids:[...game.team] as [number,number,number],
       seed:action.seed,actions:[]
     };
