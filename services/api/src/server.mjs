@@ -25,6 +25,7 @@ import {trainPokemon} from './pokemonTrainingWriter.mjs';
 import {evolutionHttpEnabled,readEvolution} from './evolutionHttp.mjs';
 import {evolvePokemon} from './evolutionWriter.mjs';
 import {movesHttpEnabled,readMoves} from './movesHttp.mjs';
+import {upgradePokemonMove} from './pokemonMoveRankWriter.mjs';
 import {equipPokemonMoves} from './pokemonMoveEquipment.mjs';
 import {createFirstAdventure} from './initialAdventure.mjs';
 import {applyTrainerInvestment} from './trainerInvestment.mjs';
@@ -419,7 +420,7 @@ const server=createServer(async(req,res)=>{
       const result=await evolvePokemon(pool,{accountId:account.id,...data});
       return json(res,result.status==='evolved'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
-    if(['/api/v1/moves/current','/api/v1/moves/equip'].includes(pathname)){
+    if(['/api/v1/moves/current','/api/v1/moves/equip','/api/v1/moves/upgrade'].includes(pathname)){
       if(!enabled||!movesHttpEnabled())return json(res,503,{error:'Golpes online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
@@ -433,6 +434,11 @@ const server=createServer(async(req,res)=>{
       }
       if(!await enforceThrottle(req,res,{scope:'moves-account',identifier:account.id,limit:60}))return;
       const data=await readJson(req);
+      if(pathname.endsWith('/upgrade')){
+        if(Object.keys(data).sort().join(',')!=='actionId,expectedRevision,moveName,pokemonUid')return json(res,400,{error:'Ação inválida'});
+        const result=await upgradePokemonMove(pool,{accountId:account.id,...data});
+        return json(res,result.status==='upgraded'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
+      }
       if(Object.keys(data).sort().join(',')!=='actionId,expectedRevision,moveNames,pokemonUid')return json(res,400,{error:'Ação inválida'});
       const result=await equipPokemonMoves(pool,{accountId:account.id,...data});
       return json(res,['equipped','replay'].includes(result.status)?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
