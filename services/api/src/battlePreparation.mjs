@@ -71,7 +71,9 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
   return {
     version:equipped===undefined?1:2,regionId:encounter.regionId,opponent:{
       speciesId:encounter.speciesId,level:encounter.level
-    },trainer:{level:trainerLevel,manual:trainerManual},
+    },trainer:{level:trainerLevel,manual:trainerManual,
+      equipped:raw.trainer.equipped,title:raw.trainer.title,
+      wins:raw.wins,seen:raw.seen,badges:raw.badges,inventory:raw.inventory},
     activePokemon:{
       uid:selected.uid,speciesId:selected.pokemonId,
       level:selected.level,affinity:selected.affinity,
@@ -85,8 +87,9 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
 
 /** Only server code supplies the canonical regional validator. */
 export async function buildPersistedBattleSnapshot(save,encounter){
-  const policy=encounter.regionId===1?undefined:(await loadCombatAdapter()).serverRegionalOpponent;
-  return buildBattleSnapshot(save,encounter,policy);
+  const core=await loadCombatAdapter();
+  const snapshot=buildBattleSnapshot(save,encounter,core.serverRegionalOpponent);
+  return snapshot&&core.canonicalFrozenCombatants(snapshot)?snapshot:null;
 }
 /** All account/encounter identifiers originate from the server session/DB. */
 export async function prepareReservedBattle(pool,{accountId,encounterId}){
