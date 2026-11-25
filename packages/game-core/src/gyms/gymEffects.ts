@@ -14,6 +14,8 @@ export interface GymEffects {
   readonly defenseDrops:number;
   readonly speedDrops:number;
   readonly specialDefenseDrops:number;
+  readonly specialAttackBoosts?:number;
+  readonly specialDefenseBoosts?:number;
 }
 export const GYM_EMPTY_EFFECTS:GymEffects=Object.freeze({
   attackDrops:0,defenseDrops:0,speedDrops:0,specialDefenseDrops:0
@@ -50,6 +52,26 @@ export function gymApplyStatus(
   if(current.status!==null||!gymStatusAllowed(status,current.combatant.types))
     return state;
   return gymReplaceFighter(state,side,old=>({...old,status}));
+}
+/** Toxic occupies the ordinary poison slot but tracks its own residual counter. */
+export function gymApplyToxic(state:GymBattleState,side:GymSide):GymBattleState{
+ const poisoned=gymApplyStatus(state,side,'poison');
+ return poisoned===state?state:gymReplaceFighter(poisoned,side,old=>({...old,toxicStage:1}));
+}
+export function gymTickToxic(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>old.toxicStage===undefined?old:{...old,toxicStage:Math.min(15,old.toxicStage+1)});
+}
+/** Positive stages persist per instance, as existing Gym debuffs do. */
+export function gymCalmMind(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>{
+  const effects=old.effects??GYM_EMPTY_EFFECTS;
+  const a=effects.specialAttackBoosts??0,d=effects.specialDefenseBoosts??0;
+  return a>=6&&d>=6?old:{...old,effects:{...effects,specialAttackBoosts:Math.min(6,a+1),specialDefenseBoosts:Math.min(6,d+1)}};
+ });
+}
+export function gymSpecialStat(value:number,boosts:number,drops=0):number{
+ const stage=boosts-drops;
+ return stage>=0?Math.max(1,Math.floor(value*(2+stage)/2)):gymDamageStat(value,-stage);
 }
 export function gymDropStat(
   state:GymBattleState,side:GymSide,stage:GymStage

@@ -15,6 +15,7 @@ import type { StatValues } from '../stats/types.js';
 import { KANTO_POKEDEX } from '../catalog/kantoSpecies.js';
 import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
 import { kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect } from './kantoStatusEffects.js';
+import {GYM_NPC_SUPPORT_MOVES} from '../gyms/gymNpcSupportMoves.js';
 import {KANTO_SUPPORT_MOVES,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import {KANTO_MULTI_HIT_MOVES,kantoMoveExpectedHits,kantoRollHitCount} from './kantoMultiHit.js';
 import type { KantoBattleStatus } from './kantoStatusEffects.js';
@@ -202,7 +203,7 @@ export function kantoTypeMultiplier(moveType:string, defenderTypes:readonly stri
   ),1);
 }
 
-function validMove(m:KantoMove|undefined):boolean{
+function validMove(m:KantoMove|undefined,allowNpcSupport=false):boolean{
   if(!m||typeof m.name!=='string'||m.name.length<1||m.name.length>100
     ||!TYPES[m.type]||!Number.isFinite(m.accuracy)||m.accuracy<0||m.accuracy>100
     ||!Number.isSafeInteger(m.priority)||m.priority< -7||m.priority>7)return false;
@@ -214,7 +215,7 @@ function validMove(m:KantoMove|undefined):boolean{
       &&m.priority===KANTO_BASIC_ATTACK.priority;
   }
   if(m.category==='status'){
-    const canonical=KANTO_SUPPORT_MOVES[m.name];
+    const canonical=KANTO_SUPPORT_MOVES[m.name]??(allowNpcSupport?GYM_NPC_SUPPORT_MOVES[m.name]:undefined);
     return !!canonical&&m.power===0&&m.type===canonical.type
       &&m.accuracy===canonical.accuracy&&m.priority===canonical.priority;
   }
@@ -242,14 +243,14 @@ function validateCombatant(monster:Combatant,allowInternalBasic=false):void {
     || !Array.isArray(monster.types) || monster.types.length<1 || monster.types.length>2
     || monster.types.some(type=>!TYPES[type])
     || !Number.isSafeInteger(monster.rank) || monster.rank<0 || monster.rank>10
-    || !monster.stats || !validMove(monster.move)
+    || !monster.stats || !validMove(monster.move,allowInternalBasic)
     // Basic Attack só pode ser usado internamente na resolução do golpe.
     || (!allowInternalBasic&&monster.move.name===KANTO_BASIC_ATTACK.name)
     || (monster.moves!==undefined&&(
       !Array.isArray(monster.moves)||monster.moves.length<1||monster.moves.length>4
       ||monster.moves[0]?.name!==monster.move.name
       ||new Set(monster.moves.map(m=>m.name)).size!==monster.moves.length
-      ||!monster.moves.every(validMove)
+      ||!monster.moves.every(move=>validMove(move,allowInternalBasic))
       ||monster.moves.some(m=>m.name===KANTO_BASIC_ATTACK.name)
     ))
     || (monster.ranks!==undefined&&(

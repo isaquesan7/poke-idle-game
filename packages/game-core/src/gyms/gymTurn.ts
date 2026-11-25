@@ -9,7 +9,8 @@ import type {Combatant,KantoMove,KantoBattleVisualFrame} from '../combat/kantoBa
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
-  gymApplySleep,gymTickSleep} from './gymEffects.js';
+  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat} from './gymEffects.js';
+import {gymSignatureSupport} from './gymSignatureTms.js';
 import {gymPsychicSecondary} from './gymPsychicMoves.js';
 import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
 import {kantoRollHitCount} from '../combat/kantoMultiHit.js';
@@ -112,8 +113,8 @@ function validateAction(
     ||kantoMoveSpCost(move)>active.sp)return null;
   if(move.category==='status'){
     const support=kantoSupportEffect(move.name);
-    if(!support)return null;
-    if(support.kind==='heal'&&active.hp===active.combatant.stats.hp)return null;
+    if(!support&&!gymSignatureSupport(move.name))return null;
+    if(support?.kind==='heal'&&active.hp===active.combatant.stats.hp)return null;
   }
   return {action,move,priority:move.priority};
 }
@@ -286,6 +287,20 @@ export function resolveGymTurn(
     }
     if(move.category==='status'){
       const support=kantoSupportEffect(move.name);
+      const signature=gymSignatureSupport(move.name);
+      if(signature==='toxic'){
+        const next=gymApplyToxic(state,defendingSide);
+        const applied=next!==state;
+        state=next;
+        record(side+' usou toxic'+(applied?' e aplicou veneno crescente.':': sem efeito.'));
+        continue;
+      }
+      if(signature==='calm-mind'){
+        const capped=(active.effects?.specialAttackBoosts??0)>=6&&(active.effects?.specialDefenseBoosts??0)>=6;
+        state=gymCalmMind(state,side);
+        record(side+' usou calm-mind'+(capped?': limite de estágios atingido.':' e elevou Ataque Especial e Defesa Especial.'));
+        continue;
+      }
       if(!support)throw new RangeError('Suporte não resolvido.');
       if(support.kind==='heal'){
         const healing=Math.max(1,Math.floor(active.combatant.stats.hp*.5));
@@ -312,11 +327,12 @@ export function resolveGymTurn(
     const foeDrops=target.effects??GYM_EMPTY_EFFECTS;
     const cleanAttacker=combatantUsing(active,move);
     const attacker={...cleanAttacker,stats:{...cleanAttacker.stats,
-      attack:gymDamageStat(cleanAttacker.stats.attack,ownDrops.attackDrops)}};
+      attack:gymDamageStat(cleanAttacker.stats.attack,ownDrops.attackDrops),
+      specialAttack:gymSpecialStat(cleanAttacker.stats.specialAttack,ownDrops.specialAttackBoosts??0)}};
     const defender={...target.combatant,stats:{...target.combatant.stats,
       defense:gymDamageStat(target.combatant.stats.defense,foeDrops.defenseDrops),
-      specialDefense:gymDamageStat(target.combatant.stats.specialDefense,
-        foeDrops.specialDefenseDrops??0)}};
+      specialDefense:gymSpecialStat(target.combatant.stats.specialDefense,
+        foeDrops.specialDefenseBoosts??0,foeDrops.specialDefenseDrops??0)}};
     const hits=kantoRollHitCount(move.name,roll);
     for(let hit=1;hit<=hits;hit++){
       if(state[defendingSide].needsReplacement||state.outcome!=='ongoing')break;
@@ -390,6 +406,8 @@ export function resolveGymTurn(
     &&!state.leader.needsReplacement){
     const amount=(side:GymSide):number=>{
       const fighter=state[side].fighters[state[side].activeIndex]!;
+      if(fighter.status==='poison'&&fighter.toxicStage!==undefined)
+        return Math.max(1,Math.floor(fighter.combatant.stats.hp*fighter.toxicStage/16));
       return fighter.status==='poison'||fighter.status==='burn'
         ?Math.max(1,Math.floor(fighter.combatant.stats.hp/8)):0;
     };
@@ -400,8 +418,12 @@ export function resolveGymTurn(
         const fighter=state[side].fighters[state[side].activeIndex]!;
         return [{side,amount:Math.min(fighter.hp,amounts[side]),
           text:side+' sofreu '+Math.min(fighter.hp,amounts[side])+
-            ' dano residual ('+fighter.status+').'}];
+            ' dano residual ('+(fighter.toxicStage!==undefined?'toxic':fighter.status)+').'}];
       });
+      for(const event of residuals){
+        if(state[event.side].fighters[state[event.side].activeIndex]!.toxicStage!==undefined)
+          state=gymTickToxic(state,event.side);
+      }
       state=applyGymResidual(state,amounts);
       for(const event of residuals)
         record(event.text,{kind:'residual',

@@ -6,6 +6,7 @@
 import type {GymBattleState,GymSide} from './gymBattleState.js';
 import type {GymTurnAction,GymTurnResult} from './gymTurn.js';
 import {gymLegalTurnActions,resolveGymTurn} from './gymTurn.js';
+import {gymSpecialStat} from './gymEffects.js';
 import {gymAiDecision} from './gymTactics.js';
 import {kantoTypeMultiplier} from '../combat/kantoBattle.js';
 
@@ -56,8 +57,9 @@ export function gymChooseAiAction(
     hp:party.fighters[a.toIndex]!.hp
   }]:[]);
   const proposed=gymAiDecision({
-    actor:{...actor.combatant,moves:permittedMoves},
-    defender:enemy.combatant,actorHp:actor.hp,actorSp:actor.sp,
+    actor:{...actor.combatant,moves:permittedMoves,stats:{...actor.combatant.stats,specialAttack:gymSpecialStat(actor.combatant.stats.specialAttack,actor.effects?.specialAttackBoosts??0)}},
+    defender:{...enemy.combatant,stats:{...enemy.combatant.stats,specialDefense:gymSpecialStat(enemy.combatant.stats.specialDefense,enemy.effects?.specialDefenseBoosts??0)}},actorHp:actor.hp,actorSp:actor.sp,
+    defenderStatus:enemy.status,calmMindStage:actor.effects?.specialAttackBoosts??0,
     bench,consecutiveSwitches:bench.length?0:1,
     allowConcentrate:legal.some(a=>a.kind==='focus')
   });
