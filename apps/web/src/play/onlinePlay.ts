@@ -1,16 +1,24 @@
 import {parseLegacySave} from '../storage/legacySave';
 import type {PlayRead,PlaySnapshot,PlayAction} from './playSave';
+import type {GymTurnAction,KantoBattleVisualFrame} from '@kanto/game-core';
+export type Actor={speciesId:number;level?:number;hp:number;maxHp:number;sp:number;maxSp:number;status:string|null};
+export type Party={activeIndex:number;needsReplacement:boolean;fighters:Actor[]};
+export type Encounter={id:string;phase:'reserved'|'await-player'|'resolved'|'certified'|'paid';turn:number;outcome:string|null;log:string[];recommendedAction:GymTurnAction|null};
+export type RegionEncounter=Encounter&{regionId:number;level:number;playerLevel:number;player:Actor|null;wild:Actor|null;frames:KantoBattleVisualFrame[];captureChoices:{ballId:string;quantity:number}[]};
+export type GymEncounter=Encounter&{gymId:string;leader:string;actionNumber:number;player:Party|null;opponent:Party|null};
+export type RegionView={revision:number;encounter:RegionEncounter|null;pendingLoot:boolean;regions:{id:number;unlocked:boolean}[]};
+export type GymView={revision:number;gym:GymEncounter|null;canReserve:boolean;nextGym:{gymId:string;leader:string;leaderLevel:number;teamUids:number[]}|null};
 import {STATS,pokemonMoveSlots} from '@kanto/game-core';
 import type {onlineInventoryProjection,onlineShopProjection,onlineExpeditionProjection} from '@kanto/game-core';
 import type {PendingRegionalLoot,PendingExpeditionLoot} from '@kanto/game-core';
 export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number;pending:PendingRegionalLoot|null;expeditionPending:PendingExpeditionLoot|null;canResolveExpeditionLoot:boolean};
 export type ShopView=NonNullable<ReturnType<typeof onlineShopProjection>> & {revision:number};
 export type ExpeditionView=NonNullable<ReturnType<typeof onlineExpeditionProjection>> & {revision:number;busy:boolean};
-export interface OnlineViews {inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;clockOffset:number}
+export interface OnlineViews {inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;clockOffset:number;region:RegionView|null;gym:GymView|null}
 export async function readOnlineViews(revision:number):Promise<OnlineViews>{
  async function load<T>(path:string):Promise<T|null>{try{const r=await get(path);if(!r.ok)return null;const v=await r.json();return v?.status==='ok'&&v.revision===revision?v as T:null;}catch{return null;}}
- const [inventory,shop,expedition]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),load<ExpeditionView>('expedition/current')]);
- return {inventory,shop,expedition,clockOffset:expedition?expedition.serverNowMs-Date.now():0};
+ const [inventory,shop,expedition,region,gym]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),load<ExpeditionView>('expedition/current'),load<RegionView>('region/current'),load<GymView>('gym/current')]);
+ return {inventory,shop,expedition,region,gym,clockOffset:expedition?expedition.serverNowMs-Date.now():0};
 }
 export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>,revision:number){const r=await post(path,{...fields,actionId:crypto.randomUUID(),expectedRevision:revision});return r.ok;}
 
@@ -87,4 +95,21 @@ export async function sendOnlineAction(action:PlayAction,snapshot:PlaySnapshot){
  if(!command)return false;
  const response=await post(command.path,{...command.fields,actionId:crypto.randomUUID(),expectedRevision:snapshot.revision});
  return response.ok;
+}
+
+/** Only server-provided encounter IDs, revisions and legal decisions are sent. */
+export async function onlineBattleCommand(mode:'region'|'gym',view:RegionView|GymView,command:'open'|'turn'|'reward'|'finish',regionId:number,choice?:string){
+ const send=async(kind:string,fields:Record<string,unknown>)=>{const r=await post(mode+'/'+kind,fields);if(!r.ok)throw Error('Ação de combate recusada');return await r.json();};
+ const aid=()=>crypto.randomUUID();let rev=view.revision;
+ let e='encounter' in view?view.encounter:view.gym;
+ const key=mode==='region'?'encounterId':'gymReservationId';
+ if(command==='open'){
+  if(!e){const v=await send('reserve',{actionId:aid(),expectedRevision:rev,...(mode==='region'?{regionId}:{})});rev=v.revision;e=mode==='region'?v.encounter:{id:v.gymReservationId,phase:'reserved'};}
+  if(e?.phase==='reserved')await send('start',{[key]:e.id,expectedRevision:rev});return;
+ }
+ if(!e)throw Error('Combate indisponível');
+ if(command==='turn'){if(e.phase!=='await-player'||!e.recommendedAction)throw Error('Sem ação legal');await send('turn',{[key]:e.id,actionId:aid(),expectedRevision:rev,action:e.recommendedAction});return;}
+ if(command==='reward'){if(e.phase==='resolved'){const v=await send('certify',{[key]:e.id,actionId:aid(),expectedRevision:rev});rev=v.revision;}else if(e.phase!=='certified')throw Error('Resultado indisponível');await send('settle',{[key]:e.id,actionId:aid(),expectedRevision:rev});return;}
+ if(mode==='region'&&e.phase==='paid'&&choice)return await send('finish',{[key]:e.id,actionId:aid(),expectedRevision:rev,choice});
+ throw Error('Ação indisponível');
 }

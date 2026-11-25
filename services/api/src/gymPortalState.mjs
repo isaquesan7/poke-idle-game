@@ -41,6 +41,7 @@ export async function readCurrentGym(pool,accountId){
    actionNumber:row.history.at(-1)?.actionNumber??0,
    player:state?side(state.player):null,opponent:state?side(state.leader):null,
    actions:phase==='await-player'?core.gymLegalTurnActions(state,'player'):[],
+   recommendedAction:phase==='await-player'?core.gymChooseAiAction(state,'player'):null,
    log:row.history.flatMap(r=>Array.isArray(r.log)?r.log.filter(x=>typeof x==='string'):[])
   }};
  }

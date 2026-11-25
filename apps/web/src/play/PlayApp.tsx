@@ -21,12 +21,13 @@ import styles from './PlayApp.module.css';
 import { PokedexPanel } from './PokedexPanel';
 import { BattlePlayback } from './BattlePlayback';
 import { BattleStage } from './BattleStage';
+import {OnlineBattle} from './OnlineBattle';
 import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
 import { GymScreen } from './GymScreen';
 import { PokemonTraining } from './PokemonTraining';
 import type {OnlineViews} from './onlinePlay';
-import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand} from './onlinePlay';
+import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand,onlineBattleCommand} from './onlinePlay';
 import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
 import { formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
@@ -177,6 +178,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   const [levelUpNotice,setLevelUpNotice]=useState<{battleId:string}|null>(null);
   const [now, setNow] = useState(() => Date.now());
   const viewRevision=save.status==='ready'?save.snapshot.revision:null;
+  useEffect(()=>{if(!online)return;if(onlineViews?.region?.encounter){setRegionalArea(onlineViews.region.encounter.regionId);setTab('battle');}else if(onlineViews?.gym?.gym)setTab('gyms');},[online,onlineViews?.region?.encounter?.id,onlineViews?.gym?.gym?.id]);
   useEffect(()=>{
     if(!online||tab!=='expedition'||viewRevision===null||busy)return;
     let active=true;
@@ -277,6 +279,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     onlineLock.current=true;setBusy(true);setFeedback('');
     try{const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');}
     catch{await refreshOnline();setFeedback('Ação não confirmada. Confira o progresso.');}
+    finally{onlineLock.current=false;setBusy(false);}
+  }
+  async function runOnlineBattle(mode:'region'|'gym',command:'open'|'turn'|'reward'|'finish',choice?:string){
+    const current=mode==='region'?onlineViews?.region:onlineViews?.gym;
+    if(!online||onlineLock.current||save.status!=='ready'||!current||current.revision!==save.snapshot.revision)return false;
+    onlineLock.current=true;setBusy(true);setFeedback('');
+    try{const result=await onlineBattleCommand(mode,current,command,regionalArea,choice);await refreshOnline();if(command==='finish')setFeedback(result?.capture==='captured'?'Pokémon capturado!':result?.capture==='failed'?'A captura falhou.':'Batalha encerrada.');return true;}
+    catch{await refreshOnline();setFeedback('Ação de combate não confirmada. Confira o estado atualizado.');return false;}
     finally{onlineLock.current=false;setBusy(false);}
   }
   function newGame() {
@@ -704,9 +714,9 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         <nav className={styles.menu} aria-label="Navegação do jogo">
           {(['overview','trainer','pokemon','collection','pokedex','regions','gyms','expedition','shop'] as Tab[]).map(item => (
-            <button type="button" key={item} disabled={online&&(item==='gyms'||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition)} aria-current={tab === item ? 'page' : undefined}
+            <button type="button" key={item} disabled={online&&(item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition)} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
-              onClick={() => { if(pendingBattle){setTab('battle');setFeedback('Conclua o combate em andamento antes de navegar.');return;} if(ballGame?.gymSession&&item!=='gyms'){setTab('gyms');setFeedback('Finalize ou abandone o Ginásio antes de sair.');return;} if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
+              onClick={() => { if(online&&onlineViews?.region?.encounter){setTab('battle');return;} if(online&&onlineViews?.gym?.gym){setTab('gyms');return;} if(pendingBattle){setTab('battle');setFeedback('Conclua o combate em andamento antes de navegar.');return;} if(ballGame?.gymSession&&item!=='gyms'){setTab('gyms');setFeedback('Finalize ou abandone o Ginásio antes de sair.');return;} if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
         </nav>
         <div className={styles.sidebarFooter}>
@@ -1217,6 +1227,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 capturedIds={caughtDexIds}
                 busy={busy||battlePlaying}
                 onEnterRegion={regionId=>{
+                  if(online){setRegionalArea(regionId);setTab('battle');return;}
                   if(busy||pendingBattle)return;
                   if(lastBattlePersisted?.captureStatus==='available'){
                     setFeedback('Resolva a captura pendente antes de entrar em outra região.');
@@ -1241,7 +1252,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               />
             )}
 
-            {tab === 'battle' && (
+            {tab==='battle'&&online&&<OnlineBattle mode="region" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={battleRegion.name} busy={busy} blocked={!!onlineViews?.gym?.gym||!!expedition} onCommand={(command,choice)=>runOnlineBattle('region',command,choice)} onBack={()=>setTab('regions')}/>}
+            {tab === 'battle' && !online && (
               <>
                 <section className={styles.battleIntro}>
                   <div>
@@ -1440,7 +1452,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 </section>
               </>
             )}
-            {tab === 'gyms' && <GymScreen game={ballGame??{}} data={data}
+            {tab==='gyms'&&online&&<OnlineBattle mode="gym" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={battleRegion.name} busy={busy} blocked={!!onlineViews?.region?.encounter||!!expedition||!!inventory?.pending||!!inventory?.expeditionPending} onCommand={(command,choice)=>runOnlineBattle('gym',command,choice)} onBack={()=>setTab('collection')}/>}
+            {tab === 'gyms' && !online && <GymScreen game={ballGame??{}} data={data}
               busy={busy} revision={save.snapshot.revision} onAction={dispatch}
               onOpenCollection={()=>setTab('collection')}/>}
             {tab === 'shop' && <BallShopPreview coins={data.coins}
