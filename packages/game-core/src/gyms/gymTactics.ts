@@ -11,7 +11,11 @@ import {kantoLevelMoves} from '../catalog/kantoLevelMoves.js';
 import {kantoSupportMoves,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import {kantoSpecies} from '../catalog/kantoSpecies.js';
 import {gymPsychicLevelMoves} from './gymPsychicMoves.js';
-import {pokemonOwnStats} from '../stats/pokemon.js';
+import {pokemonFinalStats} from '../stats/pokemon.js';
+import {trainerTotals,MANUAL_TRAINER_CAP} from '../stats/trainer.js';
+import {LEGACY_ITEMS,LEGACY_TITLES} from '../legacy/catalog.js';
+import {legacyMoveRankLimits} from '../legacy/pokemonMoveReducer.js';
+import {KANTO_GYMS} from './kantoGyms.js';
 import {STATS,zeroStats} from '../stats/types.js';
 import type {Stat,StatValues} from '../stats/types.js';
 import type {KantoGymDefinition} from './kantoGyms.js';
@@ -84,24 +88,103 @@ export function gymLegalMoves(speciesId:number,level:number):readonly KantoMove[
   return options;
 }
 
+/** Integer proportional allocation with legal cap; reallocate capped excess. */
+function allocateTraining(budget:number,weights:Readonly<Partial<Record<Stat,number>>>,cap:number):StatValues{
+ const points=zeroStats();
+ for(let i=0;i<budget;i++){
+  const choices=STATS.filter(s=>points[s]<cap);
+  const stat=choices.sort((a,b)=>(weights[b]??0)/(points[b]+1)-(weights[a]??0)/(points[a]+1)||STATS.indexOf(a)-STATS.indexOf(b))[0];
+  if(!stat)throw new RangeError('Orçamento incompatível com teto.');
+  points[stat]++;
+ }
+ return points;
+}
+/** Recommendation uses species base stats AND the actual offensive categories.
+ * No special-attack investment for a physical-only loadout, and vice versa.
+ */
+export function gymPokemonTraining(speciesId:number,level:number,moves:readonly KantoMove[]):StatValues{
+ const species=kantoSpecies(speciesId);
+ if(!species||!Number.isSafeInteger(level)||level<1||level>100)throw new RangeError('Espécie/nível inválido.');
+ const b=species.base;
+ return allocateTraining(2*(level-1),{
+  hp:b.hp*1.2,defense:b.defense*1.4,specialDefense:b.specialDefense,
+  speed:b.speed*1.2,
+  attack:moves.some(m=>m.category==='physical'&&m.power>0)?b.attack*1.5:0,
+  specialAttack:moves.some(m=>m.category==='special'&&m.power>0)?b.specialAttack*1.5:0
+ },198);
+}
+/** NPC equipment is an explicit legal loadout, not a grant to the player.
+ * Early leaders have fewer slots; later leaders have more. Prior badges only,
+ * apprentice title for all (no fabricated achievement or master bonus).
+ */
+const LEADER_ITEMS:readonly (readonly string[])[]=[
+ ['cap','coat'],
+ ['gloves-tech','shoes','necklace'],
+ ['visor','gloves-tech','shoes','necklace'],
+ ['battle-jacket','gloves-tech','pants','necklace','ring-b'],
+ ['visor','coat','pants','shoes','ring-d'],
+ ['visor','gloves-tech','shoes','necklace','earrings','ring-d'],
+ ['battle-jacket','gloves','shoes','necklace','earrings','ring-a','ring-d'],
+ ['cap','coat','gloves','pants','shoes','ring-a','ring-c','earrings']
+];
+export function prepareGymLeader(gym:KantoGymDefinition){
+ const level=gym.trainerLevel;
+ if(!Number.isSafeInteger(level)||level<1||level>100||!Number.isSafeInteger(gym.order)||gym.order<1||gym.order>8)throw new RangeError('Líder inválido.');
+ // Give even low-priority attributes a weight so late leaders redistribute
+ // excess beyond 40 across all six attributes rather than lose points.
+ const weights=Object.fromEntries(STATS.map(s=>[s,(PROFILE_WEIGHTS[gym.order-1]![s]??0)+1]));
+ const manual=allocateTraining(2*(level-1),weights,MANUAL_TRAINER_CAP);
+ const equipment=LEADER_ITEMS[gym.order-1]!.map(id=>{
+  const item=LEGACY_ITEMS.find(item=>item.id===id);
+  if(!item)throw new RangeError('Equipamento inválido.');
+  return {itemId:id,slot:item.slot,stats:item.stats};
+ });
+ const title=LEGACY_TITLES.find(t=>t.id==='aprendiz')!;
+ const badges=KANTO_GYMS.slice(0,gym.order-1).map(g=>({id:g.id,stats:g.badgeStats}));
+ const totals=trainerTotals({manual,equipment,activeTitle:title.stats,badges});
+ return {level,manual,equipment,activeTitle:title.id,badges:badges.map(b=>b.id),totals,affinity:100};
+}
+/** Prioritize strong, accurate STAB attacks aligned with the species.
+ * Spend every feasible point without exceeding per-move caps.
+ * Never rank support, basic or fixed-damage attacks with zero power.
+ */
+export function gymOpponentRanks(speciesId:number,level:number,moves:readonly KantoMove[]):Record<string,number>{
+ const species=kantoSpecies(speciesId)!;
+ const limits=legacyMoveRankLimits(level);
+ const attacks=moves.filter(m=>m.category!=='status'&&m.power>0);
+ const score=(m:KantoMove)=>m.power*m.accuracy/100*
+  (species.types.includes(m.type)?1.5:1)*(m.category==='physical'?species.base.attack:species.base.specialAttack);
+ const ordered=[...attacks].sort((a,b)=>score(b)-score(a)||a.name.localeCompare(b.name));
+ const ranks:Record<string,number>=Object.fromEntries(moves.map(m=>[m.name,0]));
+ let remaining=limits.skillPoints;
+ for(const move of ordered){
+  const rank=Math.min(remaining,limits.maxRankPerMove);
+  ranks[move.name]=rank;remaining-=rank;
+ }
+ return ranks;
+}
 export interface GymPreparedOpponent {
   readonly gymId:string;
+  readonly trainer:ReturnType<typeof prepareGymLeader>;
   readonly team:readonly [Combatant,Combatant,Combatant];
 }
 export function prepareGymOpponent(gym:KantoGymDefinition):GymPreparedOpponent{
   if(!Number.isSafeInteger(gym.order)||gym.order<1||gym.order>8||gym.team.length!==3)
     throw new RangeError('Definição de ginásio inválida.');
+  const trainer=prepareGymLeader(gym);
   const team=gym.team.map(({speciesId,level})=>{
     const species=kantoSpecies(speciesId);
     if(!species)throw new RangeError('Espécie inválida.');
     const moves=gymLegalMoves(speciesId,level);
+    const manual=gymPokemonTraining(speciesId,level,moves);
+    const ranks=gymOpponentRanks(speciesId,level,moves);
     return {
       speciesId,name:species.name,level,types:species.types,
-      stats:pokemonOwnStats(species.base,level,gymTrainerPoints(gym.order,level)),
-      move:moves[0]!,moves,rank:0,ranks:{}
+      stats:pokemonFinalStats(species.base,level,manual,trainer.totals,trainer.affinity),
+      move:moves[0]!,moves,rank:ranks[moves[0]!.name]??0,ranks
     } satisfies Combatant;
   });
-  return {gymId:gym.id,team:team as unknown as [Combatant,Combatant,Combatant]};
+  return {gymId:gym.id,trainer,team:team as unknown as [Combatant,Combatant,Combatant]};
 }
 
 export type GymAiDecision=
@@ -133,7 +216,7 @@ export function gymAiDecision(args:{
   // A propriedade opcional 'moves' deve ser OMITIDA (exactOptionalPropertyTypes).
   const {moves: _loadout,...combatantWithoutSlots}=actor;
   const estimate=(move:KantoMove)=>kantoDamage(
-    {...combatantWithoutSlots,move},defender,.5,.5);
+    {...combatantWithoutSlots,move,rank:move.name===KANTO_BASIC_ATTACK.name?0:actor.ranks?.[move.name]??(move.name===actor.move.name?actor.rank:0)},defender,.5,.5);
   // Ataque básico gratuito permanece disponível mesmo com SP esgotado.
   const basicDamage=estimate(KANTO_BASIC_ATTACK).damage;
   const decisions:GymAiDecision[]=[{action:'basic',score:Math.round(
