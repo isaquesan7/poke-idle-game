@@ -11,6 +11,7 @@
 import {KANTO_GYMS,kantoNextGym} from '../gyms/kantoGyms.js';
 import {prepareGymOpponent} from '../gyms/gymTactics.js';
 import {createGymBattleState} from '../gyms/gymBattleState.js';
+import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
 import {inheritedOnlineMoves} from './serverInheritedMoves.js';
 import {gymPsychicLevelMoves} from '../gyms/gymPsychicMoves.js';
 import {LEGACY_ITEMS,LEGACY_TITLES,legacyTitleIsUnlocked}
@@ -184,11 +185,9 @@ export function canonicalOnlineGymPreparation(source:unknown):
     if(!Array.isArray(names)||names[0]!==p.moveName)return null;
     const moves=canonicalOnlineGymEquippedMoves(p.pokemonId,p.level,names,p.evolutionHistory);
     if(!moves)return null;
-    // Move-rank upgrades are NOT yet issued in the private online backend.
-    // Never accept arbitrary client-like damage bonuses from legacy raw.
-    if(p.upgrades!==undefined&&
-       (!isRecord(p.upgrades)||Object.keys(p.upgrades).length!==0))
-      return null;
+    const validated=validatedOnlineMoveRanks(p.pokemonId,p.level,p.evolutionHistory,p.upgrades);
+    if(!validated)return null;
+    const ranks=Object.keys(validated).length?equippedOnlineRanks(moves,validated):{};
     const species=KANTO_BATTLE_SPECIES[p.pokemonId];
     if(!species)return null;
     const combatant:Combatant={
@@ -196,7 +195,7 @@ export function canonicalOnlineGymPreparation(source:unknown):
       types:species.types,
       stats:pokemonFinalStats(species.base,p.level,pokemonManual,
         bonuses.totals,p.affinity),
-      move:moves[0]!,moves,rank:0,ranks:{}
+      move:moves[0]!,moves,rank:ranks[moves[0]!.name]??0,ranks
     };
     players.push({uid,combatant});
   }
