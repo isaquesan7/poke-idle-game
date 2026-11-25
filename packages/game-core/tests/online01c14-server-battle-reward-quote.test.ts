@@ -4,7 +4,7 @@ import {quoteFrozenBattleRewards,previewFrozenWildBattle} from '../src/index.js'
 const zero=()=>({hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0});
 const snapshot=(level=1,affinity=0)=>({
   version:1 as const,regionId:1 as const,
-  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:1,manual:zero()},
+  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,gear:[],extraBagSlots:0},level:1,manual:zero()},
   activePokemon:{uid:1,speciesId:4,level,affinity,manual:zero(),moveName:'scratch'},
   opponent:{speciesId:10,level:2}
 });
@@ -41,7 +41,7 @@ describe('ONLINE-01C-14 — server reward quote parity (no grants)',()=>{
     const experienced=quoteFrozenBattleRewards(snapshot(5),outcomePreview('loss'),0)!;
     expect(experienced.pokemonXp).toBe(0);
   });
-  it('blocks farming by overlevel and forbids malformed inputs',()=>{
+  it('blocks XP and coin progression by overlevel and forbids malformed inputs',()=>{
     const veteran=quoteFrozenBattleRewards(snapshot(14,5),outcomePreview('win'),3)!;
     expect(veteran.progressFactorTenths).toBe(0);
     expect([veteran.coins,veteran.trainerXp,veteran.pokemonXp,

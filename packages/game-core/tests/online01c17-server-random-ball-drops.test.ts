@@ -7,7 +7,7 @@ import {
 const blank=()=>({hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0});
 const snapshot=(level=1)=>({
   version:1 as const,regionId:1 as const,
-  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:1,manual:blank()},
+  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,gear:[],extraBagSlots:0},level:1,manual:blank()},
   activePokemon:{uid:1,speciesId:4,level,affinity:0,manual:blank(),moveName:'scratch'},
   opponent:{speciesId:10,level:2}
 });
@@ -71,8 +71,21 @@ describe('ONLINE-01C-17 — regional victory drops, canonical thresholds',()=>{
     expect(quoteFrozenBattleRewards(snapshot(),preview('draw'),0,0)!.ballDropId)
       .toBeNull();
     expect(quoteFrozenBattleRewards(snapshot(14),preview('win'),0,0)!.ballDropId)
-      .toBeNull();
+      .toBe('poke-ball');
     expect(quoteFrozenBattleRewards(snapshot(),preview('win'),0,10000)).toBeNull();
+  });
+  it('pays a farm-only victory: full item probability but zero XP, coins or progression',()=>{
+    const s={...snapshot(80),regionId:5,trainer:{...snapshot().trainer,level:40},activePokemon:{...snapshot(80).activePokemon,speciesId:25,moveName:'thunder-shock'},opponent:{speciesId:25,level:45}};
+    const p=preview('win'),q=quoteFrozenBattleRewards(s,p,0,2500)!;
+    expect(q).toMatchObject({coins:0,trainerXp:0,pokemonXp:0,wins:0,affinityDelta:0,ballDropId:'great-ball'});
+    const state=raw();state.trainer.level=40;state.roster[0]!.level=80;state.roster[0]!.pokemonId=25;
+    const result=applyFrozenBattleRewardQuote(JSON.stringify(state),s,p,q)!;
+    expect(result.paid).toMatchObject({coins:0,trainerXp:0,pokemonXp:0,ballDrop:{ballId:'great-ball',quantity:1}});
+    const after=JSON.parse(result.raw);
+    expect(after.ballPocket.quantities['great-ball']).toBe(1);
+    expect(after.coins).toBe(0);expect(after.wins).toBe(0);expect(after.regionWins[4]).toBe(0);
+    expect(after.trainer.level).toBe(40);expect(after.roster[0].level).toBe(80);
+    expect(quoteFrozenBattleRewards(s,preview('loss'),0,2500)!.ballDropId).toBeNull();
   });
   it('credits one ball with XP/coins once; rejects forgery and supports old quotes',()=>{
     const s=snapshot(),p=preview('win'),q=quoteFrozenBattleRewards(s,p,2,0)!;
@@ -96,7 +109,7 @@ describe('ONLINE-01C-17 — regional victory drops, canonical thresholds',()=>{
     expect(JSON.parse(prior.raw).ballPocket.quantities['poke-ball']).toBe(12);
     expect(prior.paid).toMatchObject({ballDrop:null});
   });
-  it('caps the awarded amount at 100,000 and stops farming at regional cap',()=>{
+  it('caps the pocket amount at 100,000 without stopping farming at regional counter cap',()=>{
     const s=snapshot(),p=preview('win'),q=quoteFrozenBattleRewards(s,p,0,0)!;
     const full=raw();full.ballPocket.quantities['poke-ball']=100000;
     const done=applyFrozenBattleRewardQuote(JSON.stringify(full),s,p,q)!;
@@ -104,7 +117,8 @@ describe('ONLINE-01C-17 — regional victory drops, canonical thresholds',()=>{
     expect(done.paid).toMatchObject({ballDrop:{ballId:'poke-ball',quantity:0}});
     const capped=raw();capped.regionWins[0]=100000;
     const stillPaid=applyFrozenBattleRewardQuote(JSON.stringify(capped),s,p,q)!;
-    expect(JSON.parse(stillPaid.raw).ballPocket.quantities['poke-ball']).toBe(12);
-    expect(stillPaid.paid).toMatchObject({ballDrop:{ballId:'poke-ball',quantity:0}});
+    expect(JSON.parse(stillPaid.raw).ballPocket.quantities['poke-ball']).toBe(13);
+    expect(stillPaid.paid).toMatchObject({ballDrop:{ballId:'poke-ball',quantity:1}});
+    expect(JSON.parse(stillPaid.raw).regionWins[0]).toBe(100000);
   });
 });

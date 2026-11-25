@@ -13,7 +13,7 @@ test('authoritative first adventure matches Kanto non-demo initial policy',()=>{
     assert.equal(state.trainer.xp,0);
     assert.ok(Object.values(state.trainer.manual).every(v=>v===0));
     assert.equal(state.coins,0);
-    assert.deepEqual(state.inventory,{version:1,ownedEquipment:{},extraBagSlots:0});
+    assert.deepEqual(state.inventory,{version:1,gear:[],extraBagSlots:0});
     assert.deepEqual(state.badges,[]);
     assert.deepEqual(state.seen,[starterId]);
     assert.deepEqual(state.caughtSpecies,[starterId]);

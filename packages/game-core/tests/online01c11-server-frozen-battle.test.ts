@@ -9,7 +9,7 @@ import type {ServerBattleSnapshotV1} from '../src/index.js';
 const blank=()=>({hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0});
 const fresh=():ServerBattleSnapshotV1=>({
   version:1,regionId:1,
-  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:1,manual:blank()},
+  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,gear:[],extraBagSlots:0},level:1,manual:blank()},
   activePokemon:{uid:1,speciesId:4,level:1,affinity:0,manual:blank(),moveName:'scratch'},
   opponent:{speciesId:10,level:2}
 });

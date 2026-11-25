@@ -5,7 +5,6 @@
 import {LEGACY_ITEMS} from '../legacy/catalog.js';
 import {kantoRegion,kantoRegionalSpeciesPool} from '../map/kantoRegions.js';
 import {kantoSpecies} from '../catalog/kantoSpecies.js';
-import {battleProgressFactor} from '../rewards/regionProgression.js';
 import {STATS} from '../stats/types.js';
 import type {Stat,StatBonus} from '../stats/types.js';
 import type {KantoEvolutionStone} from '../catalog/kantoEvolution.js';
@@ -38,7 +37,6 @@ const take=(rng:Integer,max:number)=>{
 export interface RegionalLootInput {
  readonly regionId:number;readonly speciesId:number;readonly wildLevel:number;
  readonly trainerLevel:number;readonly pokemonLevel:number;readonly won:boolean;
- readonly capped:boolean;
 }
 export interface ProceduralGearRoll {
  readonly templateId:string;readonly slot:EquipmentSlot;readonly rarity:LootRarity;
@@ -55,18 +53,18 @@ export function eligibleEvolutionStones(speciesId:number):readonly KantoEvolutio
  return [...new Set(p.types.flatMap(t=>STONE_BY_TYPE[t]?[STONE_BY_TYPE[t]!]:[]))];
 }
 export function rollRegionalLoot(input:RegionalLootInput,gearRandom:Integer,stoneRandom:Integer){
- const {regionId,speciesId,wildLevel,trainerLevel,pokemonLevel,won,capped}=input;
+ const {regionId,speciesId,wildLevel,trainerLevel,pokemonLevel,won}=input;
  const region=kantoRegion(regionId),tier=TIERS[regionId-1],policy=regionalLootPolicy(regionId);
- if(!region||!tier||!policy||typeof won!=='boolean'||typeof capped!=='boolean'||
+ if(!region||!tier||!policy||typeof won!=='boolean'||
   !Number.isSafeInteger(trainerLevel)||trainerLevel<region.trainerUnlockLevel||trainerLevel>100||
   !Number.isSafeInteger(pokemonLevel)||pokemonLevel<1||pokemonLevel>100||
   !kantoRegionalSpeciesPool(region,wildLevel).some(p=>p.speciesId===speciesId)||
   typeof gearRandom!=='function'||typeof stoneRandom!=='function')return null;
- const factor=battleProgressFactor(pokemonLevel,wildLevel);
- if(!won||capped||factor===0)return {gear:null,stone:null};
+ // Item farming is independent of XP/coin progression and saturated win counters.
+ if(!won)return {gear:null,stone:null};
  try{
   let gear:ProceduralGearRoll|null=null,stone:KantoEvolutionStone|null=null;
-  if(take(gearRandom,10000)<Math.round(tier.gearBps*factor)){
+  if(take(gearRandom,10000)<tier.gearBps){
    // Uniform slot, then uniform template within slot: two hats do not make hats more likely.
    const slot=slots[take(gearRandom,slots.length)]!;
    const models=LEGACY_ITEMS.filter(i=>i.slot===slot);
@@ -85,7 +83,7 @@ export function rollRegionalLoot(input:RegionalLootInput,gearRandom:Integer,ston
   }
   const stones=eligibleEvolutionStones(speciesId);
   // A dual type never doubles the chance; one matching stone, deduplicated.
-  if(stones.length&&take(stoneRandom,10000)<Math.round(STONE_DROP_BPS*factor))
+  if(stones.length&&take(stoneRandom,10000)<STONE_DROP_BPS)
    stone=stones[take(stoneRandom,stones.length)]!;
   return {gear,stone};
  }catch{return null;}

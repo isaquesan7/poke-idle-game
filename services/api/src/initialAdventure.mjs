@@ -18,7 +18,7 @@ export function initialAdventure({trainerName,starterId,nowMs}){
   return {
     version:1,mode:'normal',createdAt:nowMs,name:trainerName.trim(),
     trainer:{level:1,xp:0,manual:blankStats(),equipped:{},title:'aprendiz'},
-    inventory:{version:1,ownedEquipment:{},extraBagSlots:0},
+    inventory:{version:1,gear:[],extraBagSlots:0},
     coins:0,wins:0,losses:0,seen:[starterId],
     caughtSpecies:[starterId],evolutionStones:{},evolutionTestKitClaimed:false,
     badges:[],

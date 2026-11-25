@@ -1,3 +1,4 @@
+import type {OnlineInventory} from '../inventory/onlineOwnership.js';
 import {describe,expect,it} from 'vitest';
 import {
   canonicalOnlineGymTrainerBonuses,canonicalOnlineGymEquippedMoves,
@@ -16,8 +17,7 @@ interface Fixture {
     manual:Stats;moveName:string;equippedMoveNames:string[];
     upgrades:Record<string,number>}>;
   team:number[];nextUid:number;expedition:unknown;
-  inventory?:{version:number;extraBagSlots:number;
-    ownedEquipment:Record<string,number>};
+  inventory:OnlineInventory;
   gymSession?:unknown;pendingBattle?:unknown;lastBattle?:unknown;
 }
 const copy=<T>(value:T):T=>JSON.parse(JSON.stringify(value)) as T;
@@ -39,7 +39,7 @@ function fixture():Fixture{
         moveName:'thunder-shock',
         equippedMoveNames:['thunder-shock','quick-attack','growl'],upgrades:{}}
     ],
-    team:[1,2,3],nextUid:4,expedition:null
+    team:[1,2,3],nextUid:4,expedition:null,inventory:{version:1,gear:[],extraBagSlots:0}
   };
 }
 describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
@@ -79,22 +79,21 @@ describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
     expect(base.equipment).toEqual([]);
     expect(base.activeTitle).toBe('aprendiz');
     expect(base.totals).toEqual({...blank(),hp:1});
-    raw.trainer.equipped={hat:'cap',gloves:'gloves'};
+    raw.trainer.equipped={hat:'gear-cap',gloves:'gear-gloves'};
     expect(canonicalOnlineGymTrainerBonuses(raw)).toBeNull();
-    raw.inventory={version:1,extraBagSlots:0,
-      ownedEquipment:{cap:1,gloves:1}};
+    raw.inventory={version:1,extraBagSlots:0,gear:[{"id":"gear-cap","source":"drop","templateId":"cap","slot":"hat","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"hp":2}},{"id":"gear-gloves","source":"drop","templateId":"gloves","slot":"gloves","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"attack":2}}]};
     const owned=canonicalOnlineGymTrainerBonuses(raw)!;
     expect(owned.equipment).toEqual([
-      {slot:'hat',itemId:'cap'},{slot:'gloves',itemId:'gloves'}
+      {slot:'hat',itemId:'gear-cap'},{slot:'gloves',itemId:'gear-gloves'}
     ]);
     expect(owned.totals.hp).toBe(3);
-    expect(owned.totals.attack).toBe(3);
+    expect(owned.totals.attack).toBe(2);
     const copied=copy(raw);
-    copied.inventory!.ownedEquipment.cap=0;
+    copied.inventory={...copied.inventory,gear:[]};
     expect(canonicalOnlineGymTrainerBonuses(copied)).toBeNull();
-    copied.inventory!.ownedEquipment={visor:1,gloves:1};
+    copied.inventory={...copied.inventory,gear:[{"id":"gear-visor","source":"drop","templateId":"visor","slot":"hat","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"speed":2}},{"id":"gear-gloves","source":"drop","templateId":"gloves","slot":"gloves","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"attack":2}}]};
     expect(canonicalOnlineGymTrainerBonuses(copied)).toBeNull();
-    copied.inventory!.ownedEquipment={cap:1,gloves:1};
+    copied.inventory=copy(raw.inventory);
     copied.trainer.equipped={hat:'coat'};
     expect(canonicalOnlineGymTrainerBonuses(copied)).toBeNull();
     copied.trainer.equipped={hat:'not-a-real-item'};

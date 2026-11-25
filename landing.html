@@ -549,12 +549,14 @@ function renderInventory(){
  $('inventory-capacity').textContent=bag.used+' / '+bag.capacity+' espaços ocupados · '+bag.available+' livres';
  const line=(id,value)=>{const p=document.createElement('p');p.textContent=value;$(id).append(p);};
  for(const stack of bag.stacks)line('inventory-bag',stack.name+' × '+stack.quantity);
+ for(const item of equipment.filter(i=>!i.equipped))line('inventory-bag',item.name+' · '+item.rarity+' · Nv. '+item.requiredLevel);
  for(let i=bag.used;i<bag.capacity;i++)line('inventory-bag','Espaço vazio');
  for(const slot of slots)line('inventory-slots',slotLabels[slot.slot]+': '+(equipment.find(e=>e.id===slot.itemId)?.name??'Vazio'));
  $('inventory-empty').textContent=equipment.length?'Selecione um equipamento para conferir os bônus.':'Nenhum equipamento adquirido.';
+ const rarityLabels={common:'Comum',uncommon:'Incomum',rare:'Raro',epic:'Épico',legendary:'Lendário'};
  const filtered=$('inventory-filter').value==='equipped'?equipment.filter(i=>i.equipped):equipment;
  for(const item of filtered){
-  const button=actionButton(item.name+' × '+item.quantity+(item.equipped?' · Equipado':''),()=>openInventoryItem(item.id));
+  const button=actionButton(item.name+' · '+rarityLabels[item.rarity]+' · Nv. '+item.requiredLevel+(item.equipped?' · Equipado':''),()=>openInventoryItem(item.id));
   button.dataset.inventoryItem=item.id;button.setAttribute('aria-label',item.name+(item.equipped?' · Equipado':''));$('inventory-equipment').append(button);
  }
  for(const title of titles){
@@ -572,10 +574,10 @@ function openInventoryItem(id){
  if(!inventoryState||!serverProgress||inventoryState.revision!==serverProgress.revision)return;
  const item=inventoryState.equipment.find(e=>e.id===id);if(!item)return;
  $('inventory-detail-name').textContent=item.name;
- $('inventory-detail-info').textContent=slotLabels[item.slot]+' · Quantidade: '+item.quantity+' · '+bonusText(item.stats);
+ $('inventory-detail-info').textContent=slotLabels[item.slot]+' · Nível exigido: '+item.requiredLevel+' · Região '+item.regionId+' · '+bonusText(item.stats);
  const action=actionButton(item.equipped?'Desequipar':'Equipar',()=>{
   $('inventory-dialog').close();submitLoadout({kind:'equipment',slot:item.slot,itemId:item.equipped?null:item.id});
- },onlineBusy||inventoryState.busy||adventureBusy());
+ },onlineBusy||inventoryState.busy||adventureBusy()||(!item.equipped&&!item.canEquip)||(item.equipped&&inventoryState.bag.available===0));
  action.id='inventory-item-action';$('inventory-detail-action').replaceChildren(action);
  $('inventory-dialog').showModal();$('inventory-close').focus();
 }

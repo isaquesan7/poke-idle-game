@@ -1,7 +1,8 @@
 import {kantoRegion} from '../map/kantoRegions.js';
 
 /**
- * D064BJ: zero XP/recompensas quando o líder supera o adversário em 12 níveis.
+ * D064BJ: zero XP/moedas de progressão quando o líder supera o adversário em 12 níveis.
+ * D4C0: drops de itens de batalhas regionais são independentes deste fator.
  * Diferença <=2 recebe 100%; a partir de +3 perde 10% por nível excedente.
  * Avalia o nível ANTES de aplicar o resultado.
  */

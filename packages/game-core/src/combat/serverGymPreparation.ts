@@ -6,7 +6,7 @@
  * are checked using the SAME catalogs as the already shipped game.
  *
  * This does not start a Gym, issue seeds, add badges, XP or write any save.
- * Region (1v1) snapshots v1/v2 must not import this module's bonuses.
+ * Region (1v1) snapshots share the same canonical trainer bonuses.
  */
 import {KANTO_GYMS,kantoNextGym} from '../gyms/kantoGyms.js';
 import {prepareGymOpponent,prepareGymLeader} from '../gyms/gymTactics.js';
@@ -14,10 +14,9 @@ import {createGymBattleState} from '../gyms/gymBattleState.js';
 import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
 import {inheritedOnlineMoves} from './serverInheritedMoves.js';
 import {gymPsychicLevelMoves} from '../gyms/gymPsychicMoves.js';
-import {LEGACY_ITEMS,LEGACY_TITLES,legacyTitleIsUnlocked}
+import {LEGACY_TITLES,legacyTitleIsUnlocked}
   from '../legacy/catalog.js';
-import {inspectInventoryOwnership,mayEquipOwnedItem}
-  from '../inventory/ownership.js';
+import {inspectOnlineInventory,onlineGearForSlot} from '../inventory/onlineOwnership.js';
 import {KANTO_BATTLE_SPECIES} from './kantoBattle.js';
 import {kantoLevelMoves} from '../catalog/kantoLevelMoves.js';
 import {kantoSupportMoves} from '../catalog/kantoSupportMoves.js';
@@ -106,17 +105,15 @@ export function canonicalOnlineGymTrainerBonuses(source:unknown):
      Object.keys(trainer.equipped).some(slot=>
        !(SLOTS as readonly string[]).includes(slot)))
     return null;
-  const inventory=inspectInventoryOwnership(source.inventory);
-  if(inventory.status==='invalid')return null;
+  const inventory=inspectOnlineInventory(source.inventory);
+  if(!inventory)return null;
   const items:{slot:EquipmentSlot;itemId:string;stats:StatBonus}[]=[];
   for(const slot of SLOTS){
     const itemId=trainer.equipped[slot];
     if(itemId===undefined||itemId==='')continue;
     if(typeof itemId!=='string')return null;
-    const item=LEGACY_ITEMS.find(entry=>
-      entry.id===itemId&&entry.slot===slot);
-    if(!item||inventory.status!=='valid'||
-       !mayEquipOwnedItem(itemId,slot,inventory.inventory))return null;
+    const item=onlineGearForSlot(inventory,itemId,slot,trainer.level);
+    if(!item)return null;
     items.push({slot,itemId,stats:item.stats});
   }
   const badgeDefs=KANTO_GYMS.slice(0,source.badges.length);

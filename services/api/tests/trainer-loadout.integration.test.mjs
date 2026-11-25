@@ -18,27 +18,53 @@ test('23F12D1: inventory ownership, capacity, titles, atomic equipment and busy 
   assert.equal(initial.bag.capacity,10);assert.equal(initial.bag.used,1);assert.deepEqual(initial.equipment,[]);
   const raw=JSON.parse(save.journal.raw);
   // Only this disposable fixture owns equipment and stones; no production grant.
-  raw.inventory={version:1,ownedEquipment:{cap:2,visor:1,coat:1},extraBagSlots:2};
+  raw.inventory={version:1,gear:[{"id":"gear-cap","source":"drop","templateId":"cap","slot":"hat","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"hp":2}},{"id":"gear-cap-2","source":"drop","templateId":"cap","slot":"hat","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"attack":1}},{"id":"gear-visor","source":"drop","templateId":"visor","slot":"hat","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"speed":2}},{"id":"gear-coat","source":"drop","templateId":"coat","slot":"jacket","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"defense":2}}],extraBagSlots:2};
   raw.evolutionStones={'fire-stone':3};raw.wins=4;
   save.journal.raw=JSON.stringify(raw);
   await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[id,JSON.stringify(save)]);
   const read=async()=>{const row=(await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[id])).rows[0];return {revision:Number(row.revision),raw:JSON.parse(row.state.journal.raw),projection:core.onlineInventoryProjection(row.state.journal.raw)};};
   const apply=(command,expectedRevision,actionId=randomUUID())=>changeTrainerLoadout(pool,{accountId:id,actionId,expectedRevision,command});
   const equip=(slot,itemId)=>({kind:'equipment',slot,itemId});
-  const before=await read();assert.equal(before.projection.bag.capacity,12);assert.equal(before.projection.bag.used,2);assert.equal(before.projection.bag.available,10);
+  // Two copies of the same template are separate items, not a quantity stack.
+  const candidate=structuredClone(raw);
+  const project=()=>core.onlineInventoryProjection(JSON.stringify(candidate));
+  const mutate=command=>core.applyOnlineTrainerLoadout(JSON.stringify(candidate),command);
+  const same=project().equipment.filter(i=>i.templateId==='cap');
+  assert.equal(same.length,2);assert.notEqual(same[0].id,same[1].id);
+  assert.notDeepEqual(same[0].stats,same[1].stats);
+  // Full bag: equipping an item frees space, swap preserves capacity,
+  // unequip is refused when no space remains.
+  candidate.inventory.gear.push(...Array.from({length:7},(_,i)=>({...candidate.inventory.gear[0],id:'gear-extra-'+i})));
+  candidate.trainer.equipped={hat:'gear-cap'};
+  assert.equal(project().bag.used,12);assert.equal(project().bag.available,0);
+  assert.equal(mutate(equip('hat',null)).status,'bag-full');
+  const swap=mutate(equip('hat','gear-cap-2'));assert.equal(swap.status,'ok');
+  assert.equal(core.onlineInventoryProjection(swap.raw).bag.used,12);
+  assert.equal(core.onlineInventoryProjection(swap.raw).totals.attack,project().totals.attack+1);
+  const future={...candidate.inventory.gear[0],id:'gear-future',regionId:6,requiredLevel:50,rarity:'rare',stats:{hp:6,specialAttack:5}};
+  candidate.inventory.gear[1]=future;
+  assert.equal(project().equipment.find(i=>i.id==='gear-future').canEquip,false);
+  assert.equal(mutate(equip('hat','gear-future')).status,'unavailable');
+  candidate.trainer.level=50;
+  assert.equal(mutate(equip('hat','gear-future')).status,'ok');
+  const invalid=structuredClone(candidate);invalid.inventory.gear.push(invalid.inventory.gear[0]);
+  assert.equal(core.onlineInventoryProjection(JSON.stringify(invalid)),null);
+  const forgedGear=structuredClone(candidate);forgedGear.inventory.gear[0].stats.hp=999;
+  assert.equal(core.onlineInventoryProjection(JSON.stringify(forgedGear)),null);
+  const before=await read();assert.equal(before.projection.bag.capacity,12);assert.equal(before.projection.bag.used,6);assert.equal(before.projection.bag.available,6);
   assert.equal((await apply(equip('hat','gloves'),0)).status,'unavailable');
-  assert.equal((await apply(equip('jacket','cap'),0)).status,'unavailable');
+  assert.equal((await apply(equip('jacket','gear-cap'),0)).status,'unavailable');
   assert.equal((await apply({kind:'title',titleId:'mestre'},0)).status,'unavailable');
   assert.equal((await apply({kind:'title',titleId:'gym-leader'},0)).status,'invalid');
-  assert.equal((await apply({...equip('hat','cap'),stats:{hp:99}},0)).status,'invalid');
+  assert.equal((await apply({...equip('hat','gear-cap'),stats:{hp:99}},0)).status,'invalid');
   assert.deepEqual((await read()).raw,before.raw);
-  const actionId=randomUUID(),race=await Promise.all([apply(equip('hat','cap'),0,actionId),apply(equip('hat','cap'),0,actionId)]);
+  const actionId=randomUUID(),race=await Promise.all([apply(equip('hat','gear-cap'),0,actionId),apply(equip('hat','gear-cap'),0,actionId)]);
   assert.deepEqual(race.map(r=>r.status).sort(),['applied','duplicate']);
   const equipped=await read();assert.equal(equipped.projection.totals.hp,before.projection.totals.hp+2);
-  assert.equal(equipped.projection.equipment.find(i=>i.id==='cap').quantity,2);
-  assert.equal(equipped.projection.equipment.find(i=>i.id==='cap').equipped,true);
-  assert.equal((await apply(equip('hat','visor'),0)).status,'stale');
-  assert.equal((await apply(equip('hat','visor'),1)).status,'applied');
+  assert.equal(equipped.projection.equipment.find(i=>i.id==='gear-cap').quantity,1);
+  assert.equal(equipped.projection.equipment.find(i=>i.id==='gear-cap').equipped,true);
+  assert.equal((await apply(equip('hat','gear-visor'),0)).status,'stale');
+  assert.equal((await apply(equip('hat','gear-visor'),1)).status,'applied');
   const swapped=await read();assert.equal(swapped.projection.totals.hp,before.projection.totals.hp);assert.equal(swapped.projection.totals.speed,before.projection.totals.speed+2);
   assert.equal((await apply(equip('hat',null),2)).status,'applied');
   assert.equal((await apply({kind:'title',titleId:'veterano'},3)).status,'applied');
@@ -54,9 +80,9 @@ test('23F12D1: inventory ownership, capacity, titles, atomic equipment and busy 
   assert.deepEqual(final.raw.inventory,raw.inventory);assert.deepEqual(final.raw.ballPocket,raw.ballPocket);assert.deepEqual(final.raw.evolutionStones,raw.evolutionStones);
   assert.deepEqual(final.projection.totals,core.canonicalOnlineGymTrainerBonuses(final.raw).totals);
   assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:4})).status,'reserved');
-  assert.equal((await apply(equip('hat','cap'),5)).status,'busy');
+  assert.equal((await apply(equip('hat','gear-cap'),5)).status,'busy');
   const bad=structuredClone(raw);delete bad.inventory;assert.equal(core.onlineInventoryProjection(JSON.stringify(bad)),null);
-  bad.inventory={version:1,ownedEquipment:{cap:1},extraBagSlots:0};bad.trainer.equipped={hat:'visor'};
+  bad.inventory={version:1,gear:[{"id":"gear-cap","source":"drop","templateId":"cap","slot":"hat","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"hp":2}}],extraBagSlots:0};bad.trainer.equipped={hat:'gear-visor'};
   assert.equal(core.onlineInventoryProjection(JSON.stringify(bad)),null);
   const receipts=await pool.query("SELECT count(*)::int AS n FROM game_action_receipts WHERE account_id=$1 AND kind IN ('trainer-title','trainer-equipment')",[id]);assert.equal(receipts.rows[0].n,4);
  }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
