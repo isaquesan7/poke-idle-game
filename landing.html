@@ -457,6 +457,28 @@ function renderShop(){
   qty.addEventListener('input',update);button.addEventListener('click',()=>shopPurchase(item.id,Number(qty.value)));
   row.append(heading,info,label,qty,total,button);list.append(row);update();
  }
+ const gearHeading=document.createElement('h4');gearHeading.textContent='Equipamentos básicos';list.append(gearHeading);
+ for(const item of shopState.gearItems??[]){
+  const row=document.createElement('div');row.className='shop-item';row.dataset.shopGear=item.id;
+  const heading=document.createElement('strong');heading.textContent=item.name;
+  const info=document.createElement('p');info.textContent='Comum · Nv. '+item.requiredLevel+' · '+bonusText(item.stats)+' · '+item.unitPrice.toLocaleString('pt-BR')+' moedas · Possui: '+item.owned;
+  const buy=actionButton('Comprar '+item.name,()=>{if(window.confirm('Comprar '+item.name+' por '+item.unitPrice+' moedas?'))shopGearPurchase(item.id);},onlineBusy||shopState.busy||adventureBusy()||!item.canBuy);
+  buy.dataset.shopGearBuy=item.id;row.append(heading,info,buy);list.append(row);
+ }
+ if(shopState.bagExpander){
+  const row=document.createElement('div');row.className='shop-item';
+  const heading=document.createElement('strong');heading.textContent=shopState.bagExpander.name;
+  const info=document.createElement('p');info.textContent='+'+shopState.bagExpander.slots+' espaços · Em preparação; preço e moeda a definir.';
+  const button=actionButton('Em breve',()=>{},true);button.dataset.shopExpander='true';row.append(heading,info,button);list.append(row);
+ }
+}
+async function shopGearPurchase(templateId){
+ if(onlineBusy||!available||!serverProgress||!shopState||shopState.busy||adventureBusy()||progress.hidden||shopState.revision!==serverProgress.revision)return;
+ const item=shopState.gearItems.find(x=>x.id===templateId);if(!item?.canBuy)return;
+ const expectedRevision=shopState.revision;setOnlineBusy(true);let result=null;
+ try{result=await api('/api/v1/shop/purchase',{actionId:crypto.randomUUID(),expectedRevision,templateId});}catch{}
+ const loaded=await refreshPortal();
+ if(loaded&&shopState)$('shop-note').textContent=result?.purchase?'Compra concluída: '+item.name+' · '+result.purchase.cost.toLocaleString('pt-BR')+' moedas.':'Compra não confirmada. Confira o inventário atualizado.';
 }
 async function shopPurchase(ballId,quantity){
  if(onlineBusy||!available||!serverProgress||!shopState||shopState.busy||adventureBusy()||progress.hidden||shopState.revision!==serverProgress.revision)return;
@@ -601,7 +623,7 @@ function openInventoryItem(id){
  if(!inventoryState||!serverProgress||inventoryState.revision!==serverProgress.revision)return;
  const item=inventoryState.equipment.find(e=>e.id===id);if(!item)return;
  $('inventory-detail-name').textContent=item.name;
- $('inventory-detail-info').textContent=slotLabels[item.slot]+' · Nível exigido: '+item.requiredLevel+' · Região '+item.regionId+' · '+bonusText(item.stats);
+ $('inventory-detail-info').textContent=slotLabels[item.slot]+' · Nível exigido: '+item.requiredLevel+' · '+(item.source==='shop'?'Loja':('Região '+item.regionId))+' · '+bonusText(item.stats);
  const action=actionButton(item.equipped?'Desequipar':'Equipar',()=>{
   $('inventory-dialog').close();submitLoadout({kind:'equipment',slot:item.slot,itemId:item.equipped?null:item.id});
  },onlineBusy||inventoryState.busy||adventureBusy()||(!item.equipped&&!item.canEquip)||(item.equipped&&inventoryState.bag.available===0));
