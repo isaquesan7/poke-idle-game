@@ -9,7 +9,7 @@ const zero=()=>({
 });
 const snapshot=(species=4,moveName='scratch')=>({
   version:1,regionId:1,
-  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:1,manual:zero()},
+  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,gear:[],extraBagSlots:0},level:1,manual:zero()},
   activePokemon:{
     uid:17,speciesId:species,level:1,affinity:0,
     manual:zero(),moveName
