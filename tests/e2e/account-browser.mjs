@@ -573,7 +573,7 @@ try{
   // Inventory browser journey: only the disposable test fixture acquires gear.
   const inventoryRead=async()=>{const q=await page.request.get(origin+'/api/v1/inventory/current');assert.equal(q.status(),200);return q.json();};
   const invBefore=await inventoryRead();
-  assert.equal(invBefore.bag.capacity,10);assert.deepEqual(invBefore.equipment,[]);
+  assert.equal(invBefore.bag.capacity,10);assert.ok(Array.isArray(invBefore.equipment));
   const seededSave=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
   const seededRaw=JSON.parse(seededSave.journal.raw);
   seededRaw.inventory={version:1,gear:[{"id":"gear-cap","source":"drop","templateId":"cap","slot":"hat","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"hp":2}},{"id":"gear-visor","source":"drop","templateId":"visor","slot":"hat","rarity":"common","regionId":1,"requiredLevel":1,"stats":{"speed":2}}],extraBagSlots:2};

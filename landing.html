@@ -137,6 +137,7 @@ a{color:#79e7f8}a.play{display:inline-flex;margin-top:22px;padding:13px 20px;bor
 <section id="inventory-section" hidden aria-labelledby="inventory-heading">
 <h3 id="inventory-heading">Mochila e equipamentos</h3>
 <h4>Mochila</h4><p id="inventory-capacity" class="helper"></p>
+<div id="inventory-pending" role="status"></div>
 <div id="inventory-bag" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px"></div>
 <h4>Equipamentos do treinador</h4><p id="inventory-empty" class="helper"></p>
 <div id="inventory-slots"></div>
@@ -229,8 +230,8 @@ function renderRegion(){
  }));
  regionSelect.value=String(selectedRegionId);regionSelect.disabled=onlineBusy||!!e;
  $('region-heading').textContent=selected?.name??'Regiões de Kanto';
- $('region-info').textContent=selected?'Níveis '+selected.levelMin+'–'+selected.levelMax+' · Somente o líder da equipe':'';
- regionOpen.disabled=onlineBusy||expeditionActive()||gymActive()||!regionalState||!serverProgress||!selected?.unlocked;
+ $('region-info').textContent=regionalState?.pendingLoot&&!e?'Resolva os itens pendentes na mochila antes de batalhar.':selected?'Níveis '+selected.levelMin+'–'+selected.levelMax+' · Somente o líder da equipe':'';
+ regionOpen.disabled=onlineBusy||(!e&&regionalState?.pendingLoot)||expeditionActive()||gymActive()||!regionalState||!serverProgress||!selected?.unlocked;
  regionOpen.hidden=!!e&&e.phase!=='reserved';regionOpen.textContent=e?'Retomar batalha':'Batalhar '+(selectedRegionId===1?'no ':'em ')+(selected?.name??'região');
  regionBattle.hidden=!e||e.phase==='reserved';
  $('region-actions').replaceChildren();$('region-actors').replaceChildren();$('region-log').replaceChildren();
@@ -539,10 +540,11 @@ function renderEvolution(){
 $('evolution-pokemon').addEventListener('change',()=>{selectedEvolutionUid=Number($('evolution-pokemon').value);renderEvolution();renderTraining();renderPokedex();renderInventory();});
 const slotLabels={hat:'Chapéu',jacket:'Jaqueta',gloves:'Luvas',pants:'Calça',shoes:'Sapatos',necklace:'Colar',ring1:'Anel 1',ring2:'Anel 2',earrings:'Brincos'};
 const bonusText=stats=>Object.entries(stats).map(([key,n])=>(statLabels[key]??key)+' +'+n).join(' · ');
+const lootLabel=item=>item.kind==='gear'?item.gear.templateId+' · '+item.gear.rarity+' · Nv. '+item.gear.requiredLevel+' · '+bonusText(item.gear.stats):({ 'poke-ball':'Poké Ball','great-ball':'Great Ball','ultra-ball':'Ultra Ball','fire-stone':'Pedra do Fogo','water-stone':'Pedra da Água','thunder-stone':'Pedra do Trovão','leaf-stone':'Pedra da Folha','moon-stone':'Pedra da Lua'}[item.itemId]??item.itemId);
 function renderInventory(){
  const section=$('inventory-section'),dialog=$('inventory-dialog');
  section.hidden=!inventoryState||!serverProgress||inventoryState.revision!==serverProgress.revision;
- const lists=['inventory-bag','inventory-slots','inventory-equipment','inventory-titles','inventory-badges','inventory-totals'];
+ const lists=['inventory-pending','inventory-bag','inventory-slots','inventory-equipment','inventory-titles','inventory-badges','inventory-totals'];
  for(const id of lists)$(id).replaceChildren();
  if(section.hidden){if(dialog.open)dialog.close();$('inventory-detail-action').replaceChildren();$('inventory-detail-name').textContent='';$('inventory-detail-info').textContent='';$('inventory-note').textContent='';return;}
  const {bag,equipment,slots,titles,badges,totals}=inventoryState,locked=onlineBusy||inventoryState.busy||adventureBusy();
@@ -553,6 +555,17 @@ function renderInventory(){
  for(let i=bag.used;i<bag.capacity;i++)line('inventory-bag','Espaço vazio');
  for(const slot of slots)line('inventory-slots',slotLabels[slot.slot]+': '+(equipment.find(e=>e.id===slot.itemId)?.name??'Vazio'));
  $('inventory-empty').textContent=equipment.length?'Selecione um equipamento para conferir os bônus.':'Nenhum equipamento adquirido.';
+ if(inventoryState.pending){
+  line('inventory-pending','Itens pendentes: finalize a captura e resolva antes de iniciar outra batalha.');
+  for(const item of inventoryState.pending.items){
+   const itemId=item.kind==='gear'?item.gear.id:item.itemId;
+   const row=document.createElement('div'),label=document.createElement('span');label.textContent=lootLabel(item)+' ';
+   const args={encounterId:inventoryState.pending.encounterId,itemId};
+   const store=actionButton('Guardar',()=>submitLoadout({kind:'loot-store',...args}),locked);
+   const discard=actionButton('Descartar',()=>{if(window.confirm('Descartar este drop definitivamente?'))submitLoadout({kind:'loot-discard',...args});},locked);
+   store.dataset.lootStore=itemId;discard.dataset.lootDiscard=itemId;row.append(label,store,discard);$('inventory-pending').append(row);
+  }
+ }
  const rarityLabels={common:'Comum',uncommon:'Incomum',rare:'Raro',epic:'Épico',legendary:'Lendário'};
  const filtered=$('inventory-filter').value==='equipped'?equipment.filter(i=>i.equipped):equipment;
  for(const item of filtered){
@@ -579,6 +592,7 @@ function openInventoryItem(id){
   $('inventory-dialog').close();submitLoadout({kind:'equipment',slot:item.slot,itemId:item.equipped?null:item.id});
  },onlineBusy||inventoryState.busy||adventureBusy()||(!item.equipped&&!item.canEquip)||(item.equipped&&inventoryState.bag.available===0));
  action.id='inventory-item-action';$('inventory-detail-action').replaceChildren(action);
+ if(!item.equipped){const discard=actionButton('Descartar equipamento',()=>{if(window.confirm('Descartar definitivamente '+item.name+'?')){$('inventory-dialog').close();submitLoadout({kind:'discard-gear',itemId:item.id});}},onlineBusy||inventoryState.busy||adventureBusy());$('inventory-detail-action').append(discard);}
  $('inventory-dialog').showModal();$('inventory-close').focus();
 }
 $('inventory-close').addEventListener('click',()=>$('inventory-dialog').close());
@@ -588,7 +602,7 @@ async function submitLoadout(command){
  const args={actionId:crypto.randomUUID(),expectedRevision:inventoryState.revision,command};
  setOnlineBusy(true);let ok=false;
  try{await api('/api/v1/inventory/loadout',args);ok=true;}catch{}
- const loaded=await refreshPortal();if(loaded&&inventoryState)$('inventory-note').textContent=ok?'Equipamento ou título atualizado.':'Ação não confirmada. Confira o inventário atualizado.';
+ const loaded=await refreshPortal();if(loaded&&inventoryState)$('inventory-note').textContent=ok?(['loot-store','loot-discard','discard-gear'].includes(command.kind)?'Inventário atualizado.':'Equipamento ou título atualizado.'):'Ação não confirmada. Confira o inventário atualizado.';
 }
 const dexStatus={unknown:'Não encontrado',seen:'Visto',caught:'Capturado'};
 const dexTypes={normal:'Normal',fire:'Fogo',water:'Água',electric:'Elétrico',grass:'Planta',ice:'Gelo',fighting:'Lutador',poison:'Venenoso',ground:'Terra',flying:'Voador',psychic:'Psíquico',bug:'Inseto',rock:'Pedra',ghost:'Fantasma',dragon:'Dragão',dark:'Sombrio',steel:'Aço',fairy:'Fada'};

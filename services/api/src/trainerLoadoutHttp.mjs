@@ -14,5 +14,7 @@ export async function readTrainerLoadout(pool,accountId){
  if(!Number.isSafeInteger(rev)||rev<0||row.state?.schemaVersion!==2||row.state.revision!==rev||row.state.journal?.revision!==rev||typeof row.state.journal.raw!=='string')return {status:'invalid-save'};
  const projection=core.onlineInventoryProjection(row.state.journal.raw);
  if(!projection)return {status:'invalid-save'};
- return {status:'ok',revision:Number(row.revision),...projection,busy:row.busy||projection.busy};
+ const raw=JSON.parse(row.state.journal.raw),pending=raw.pendingRegionalLoot==null?null:core.inspectPendingRegionalLoot(raw.pendingRegionalLoot);
+ if(raw.pendingRegionalLoot!=null&&!pending)return {status:'invalid-save'};
+ return {status:'ok',revision:Number(row.revision),...projection,pending,busy:row.busy||projection.busy};
 }

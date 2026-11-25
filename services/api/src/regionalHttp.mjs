@@ -43,7 +43,7 @@ function actor(p){return p?{speciesId:p.speciesId,hp:p.hp,maxHp:p.maxHp,
 export async function readRegionalEncounter(pool,accountId,expanded=false){
  const result=await pool.query(
   `SELECT s.revision,s.state,e.id,e.region_id,e.species_id,e.pokemon_level,
-     e.battle_snapshot,e.battle_turn_state,e.battle_turn_certificate_action_id,e.battle_turn_payout_action_id
+     e.battle_snapshot,e.battle_turn_state,e.battle_turn_certificate_action_id,e.battle_turn_payout_action_id,e.battle_turn_payout_receipt
      FROM game_saves s LEFT JOIN game_encounter_reservations e
        ON e.account_id=s.account_id AND e.status='reserved'
      WHERE s.account_id=$1`,[accountId]);
@@ -58,9 +58,9 @@ export async function readRegionalEncounter(pool,accountId,expanded=false){
  const actions=phase==='await-player'?core.legalFrozenWildTurnActions(row.battle_snapshot,state):[];
  const captureChoices=phase==='paid'&&state?.outcome==='win'?core.serverRegionalCaptureChoices(Number(row.region_id),Number(row.species_id),state.wild.maxHp,raw.ballPocket):[];
  return {status:'ok',revision:Number(row.revision),
-  regions:expanded?regions:regions.filter(r=>r.id===1),encounter:row.id?{
+  regions:expanded?regions:regions.filter(r=>r.id===1),pendingLoot:raw.pendingRegionalLoot!=null,encounter:row.id?{
   id:row.id,regionId:Number(row.region_id),speciesId:row.species_id,level:row.pokemon_level,
-  phase,actions:actions??[],captureChoices,playerLevel:row.battle_snapshot?.activePokemon?.level??null,
+  phase,actions:actions??[],captureChoices,loot:phase==='paid'?row.battle_turn_payout_receipt?.loot??null:null,playerLevel:row.battle_snapshot?.activePokemon?.level??null,
   turn:state?.turn??0,outcome:state?.outcome??null,player:actor(state?.player),wild:actor(state?.wild),
   log:Array.isArray(state?.log)?state.log:[],frames:Array.isArray(state?.frames)?state.frames:[]
  }:null};
@@ -95,6 +95,6 @@ export async function runRegionalCommand(pool,accountId,command,data,entropyKey,
  if(!['reserved','started','applied','certified','paid','finished','replay'].includes(result.status))
    return {status:result.status};
  const current=await readRegionalEncounter(pool,accountId,expanded);
- return {status:result.status,revision:current.revision,regions:current.regions,encounter:current.encounter,
+ return {status:result.status,revision:current.revision,regions:current.regions,encounter:current.encounter,pendingLoot:current.pendingLoot,
    ...(command==='finish'?{capture:result.result?.outcome??null}: {})};
 }

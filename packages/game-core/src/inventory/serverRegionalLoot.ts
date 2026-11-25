@@ -120,3 +120,14 @@ export function resolvePendingRegionalLoot(raw:string,command:unknown){
   return projection?{status:'ok',raw:next,totals:projection.totals} as const:{status:'invalid-save'} as const;
  }catch{return {status:'invalid-save'} as const;}
 }
+
+/** Explicitly discard only an owned, unequipped instance. Never auto-delete. */
+export function discardOnlineGear(raw:string,command:unknown){
+ if(!rec(command)||Object.keys(command).sort().join(',')!=='itemId,kind'||command.kind!=='discard-gear'||typeof command.itemId!=='string')return {status:'invalid'} as const;
+ const projection=onlineInventoryProjection(raw);if(!projection)return {status:'invalid-save'} as const;
+ if(projection.busy)return {status:'busy'} as const;
+ const item=projection.equipment.find(i=>i.id===command.itemId&&!i.equipped);if(!item)return {status:'unavailable'} as const;
+ const state=JSON.parse(raw);state.inventory.gear=state.inventory.gear.filter((i:OnlineGearInstance)=>i.id!==item.id);
+ const next=JSON.stringify(state),view=onlineInventoryProjection(next);
+ return view?{status:'ok',raw:next,totals:view.totals} as const:{status:'invalid-save'} as const;
+}

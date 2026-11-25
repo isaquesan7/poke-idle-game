@@ -52,4 +52,4 @@ export {onlineInventoryProjection,applyOnlineTrainerLoadout} from '../inventory/
 export {inspectOnlineInventory,createOnlineDropGear} from '../inventory/onlineOwnership.js';
 export {rollRegionalLoot} from '../inventory/regionalLoot.js';
 
-export {placeCertifiedRegionalLoot,inspectPendingRegionalLoot,resolvePendingRegionalLoot} from '../inventory/serverRegionalLoot.js';
+export {placeCertifiedRegionalLoot,inspectPendingRegionalLoot,resolvePendingRegionalLoot,discardOnlineGear} from '../inventory/serverRegionalLoot.js';
