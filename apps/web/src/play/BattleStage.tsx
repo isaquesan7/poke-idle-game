@@ -166,7 +166,7 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLab
       {typeof sp==='number'&&Number.isSafeInteger(sp)&&maxSp!==null&&maxSp>0
         &&sp>=0&&sp<=maxSp&&(
           <SkillMeter side={side} sp={sp} max={maxSp}
-            focusRecovery={focus?(frame.spRecovery??0):0} opponentLabel={opponentLabel} vitals={vitals}/>
+            focusRecovery={focus?(frame.spRecovery??0):0} opponentLabel={opponentLabel}/>
         )}
     </div>
   );

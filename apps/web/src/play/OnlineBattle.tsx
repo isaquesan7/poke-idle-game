@@ -23,22 +23,26 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  const w=mode==='region'?region?.encounter:null;
  const [auto,setAuto]=useState(false);
  const [shown,setShown]=useState({key:'',length:0});
+ const stageRef=useRef<HTMLDivElement>(null);
+ const captureRef=useRef<HTMLDivElement>(null);
+ const startRef=useRef<HTMLButtonElement>(null);
  const [visible,setVisible]=useState(0);
  const prev=useRef({id:'',length:0});
  const sent=useRef('');
  const key=e?e.id+':'+e.log.length:'';
- const prior=prev.current.id===e?.id?Math.min(prev.current.length,e.log.length):0;
+ const prior=e&&prev.current.id===e.id?Math.min(prev.current.length,e.log.length):0;
  const playing=!!e&&e.log.length>0&&shown.key!==key;
  const onCommandRef=useRef(onCommand);onCommandRef.current=onCommand;
  useEffect(()=>{if(!e){setAuto(false);sent.current='';prev.current={id:'',length:0};return;}},[e?.id]);
  useEffect(()=>{
-  if(!e||busy||blocked||playing||!auto||!['await-player','resolved','certified'].includes(e.phase))return;
+  if(!e||busy||blocked||playing||!auto||!['await-player','resolved','certified'].includes(e.phase)||mode==='gym'&&e.phase!=='await-player')return;
   if(e.phase==='await-player'&&!e.recommendedAction){setAuto(false);return;}
   const token=e.id+':'+e.phase+':'+e.log.length;
   if(sent.current===token)return;
   const timer=window.setTimeout(()=>{sent.current=token;void onCommandRef.current(e.phase==='await-player'?'turn':'reward').then(ok=>{if(!ok)setAuto(false);});},180);
   return()=>window.clearTimeout(timer);
  },[e?.id,e?.phase,e?.log.length,auto,busy,blocked,playing]);
+ useEffect(()=>{if(busy||playing)return;const target=w?.phase==='paid'?captureRef.current:e?stageRef.current:startRef.current;target?.focus({preventScroll:true});target?.scrollIntoView({block:'nearest'});},[e?.id,e?.phase,busy,playing]);
  function launch(){sent.current='';setAuto(true);void onCommand('open').then(ok=>{if(!ok)setAuto(false);});}
  const lead=data.roster.find(p=>p.uid===data.team[0]);
  const a:Actor|null|undefined=w?w.player:g?.player?.fighters[g.player.activeIndex];
@@ -51,13 +55,13 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  <div className={mode==='gym'?gymStyles.panel:styles.battleIntro}>
  <div><div className={styles.kicker}>{mode==='gym'?'BATALHA 3 × 3':'ENCONTROS SELVAGENS'}</div><h2>{mode==='gym'?(g?g.leader+' × '+data.name:next?'Desafiar '+next.leader:'Todos os ginásios conquistados'):regionName}</h2>
  {!e&&mode==='gym'&&<><p>Equipe definida na Coleção: {data.team.length}/3.</p><div className={gymStyles.choices}>{data.team.map(uid=>{const p=data.roster.find(x=>x.uid===uid);return p?<div key={uid} className={gymStyles.choiceOn}><PokemonArt id={p.pokemonId} name={name(p.pokemonId)}/><span>{name(p.pokemonId)} · Nv. {p.level}</span></div>:null;})}</div></>}
- {!e&&<><button className={styles.secondary} type="button" onClick={onBack}>{mode==='gym'?'Abrir Coleção':'Voltar às regiões'}</button><button type="button" className={styles.primary} data-testid="online-battle-start" disabled={busy||blocked||(mode==='gym'?!gym?.canReserve:!region?.regions.some(x=>x.id===regionId&&x.unlocked)||!!region.pendingLoot)} onClick={launch}>{mode==='gym'?'Iniciar batalha':'Batalhar na região'}</button></>}
+ {!e&&<><button className={styles.secondary} type="button" onClick={onBack}>{mode==='gym'?'Abrir Coleção':'Voltar às regiões'}</button><button type="button" className={styles.primary} data-testid="online-battle-start" ref={startRef} disabled={busy||blocked||(mode==='gym'?!gym?.canReserve:!region?.regions.some(x=>x.id===regionId&&x.unlocked)||!!region.pendingLoot)} onClick={launch}>{mode==='gym'?'Iniciar batalha':'Batalhar na região'}</button></>}
  {e?.phase==='reserved'&&<button className={styles.primary} disabled={busy||blocked} onClick={launch}>Retomar batalha</button>}
  {e&&e.phase!=='reserved'&&<p>Turno {e.turn} · {playing?'Apresentando diário':e.phase==='await-player'?'Combate em andamento':e.outcome==='win'||e.outcome==='player-win'?'Vitória!':e.outcome==='draw'?'Empate':'Derrota'}</p>}
  {e?.phase==='await-player'&&<div className={gymStyles.actions}><button className={styles.primary} disabled={busy||auto||blocked} onClick={()=>{sent.current='';setAuto(true);}}>Continuar batalha automática</button><button className={styles.secondary} disabled={!auto} onClick={()=>setAuto(false)}>Pausar após a rodada</button></div>}
  </div>
- {lead&&<div className={styles.battleArenaColumn}><BattleStage player={{name:name(a?.speciesId??lead.pokemonId),level:a?.level??w?.playerLevel??lead.level,art:<PokemonArt id={a?.speciesId??lead.pokemonId} name={name(a?.speciesId??lead.pokemonId)} large/>}} wild={z?{name:name(z.speciesId),level:z.level??w?.level??1,art:<PokemonArt id={z.speciesId} name={name(z.speciesId)} large/>}:null} frame={frame} playerMaxHp={a?.maxHp??null} wildMaxHp={z?.maxHp??null} playerMaxSp={a?.maxSp??null} wildMaxSp={z?.maxSp??null} playing={playing&&!!frame} cue={key+':'+visible} {...(a&&z?{vitals:{playerHp:a.hp,wildHp:z.hp,playerSp:a.sp,wildSp:z.sp}}:{})} opponentLabel={g?'Pokémon de '+g.leader:'Pokémon selvagem'}/>
- {w?.phase==='paid'&&!playing&&<div className={styles.battleCapturePlacement}><div className={styles.captureDecision}><h3>{w.outcome==='win'?'Tentar capturar '+name(w.wild?.speciesId??0)+'?':'Encerrar batalha'}</h3>{w.captureChoices.map(ball=><button key={ball.ballId} className={styles.primary} disabled={busy||ball.quantity<1} onClick={()=>void onCommand('finish',ball.ballId)}>{balls[ball.ballId]??ball.ballId} · {ball.quantity}</button>)}<button className={styles.secondary} disabled={busy} onClick={()=>void onCommand('finish','skip')}>Seguir sem capturar</button></div></div>}
+ {lead&&<div className={styles.battleArenaColumn}><BattleStage stageRef={stageRef} player={{name:name(a?.speciesId??lead.pokemonId),level:a?.level??w?.playerLevel??lead.level,art:<PokemonArt id={a?.speciesId??lead.pokemonId} name={name(a?.speciesId??lead.pokemonId)} large/>}} wild={z?{name:name(z.speciesId),level:z.level??w?.level??1,art:<PokemonArt id={z.speciesId} name={name(z.speciesId)} large/>}:null} frame={frame} playerMaxHp={a?.maxHp??null} wildMaxHp={z?.maxHp??null} playerMaxSp={a?.maxSp??null} wildMaxSp={z?.maxSp??null} playing={playing&&!!frame} cue={key+':'+visible} {...(a&&z?{vitals:{playerHp:a.hp,wildHp:z.hp,playerSp:a.sp,wildSp:z.sp}}:{})} opponentLabel={g?'Pokémon de '+g.leader:'Pokémon selvagem'}/>
+ {w?.phase==='paid'&&!playing&&<div className={styles.battleCapturePlacement} ref={captureRef} tabIndex={-1}><div className={styles.captureDecision}><h3>{w.outcome==='win'?'Tentar capturar '+name(w.wild?.speciesId??0)+'?':'Encerrar batalha'}</h3>{w.captureChoices.map(ball=><button key={ball.ballId} className={styles.primary} disabled={busy||ball.quantity<1} onClick={()=>void onCommand('finish',ball.ballId)}>{balls[ball.ballId]??ball.ballId} · {ball.quantity}</button>)}<button className={styles.secondary} disabled={busy} onClick={()=>void onCommand('finish','skip')}>Seguir sem capturar</button></div></div>}
  </div>}
  </div>
  {g?.player&&g.opponent&&<div className={gymStyles.benchColumns}><Reserve party={g.player} label="Suas reservas"/><Reserve party={g.opponent} label={'Reservas de '+g.leader}/></div>}
