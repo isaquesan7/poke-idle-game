@@ -134,6 +134,18 @@ describe('ONLINE-01C-23B2B authoritative Kanto Gym preparation',()=>{
     expect(canonicalOnlineGymTrainerBonuses(raw)).toBeNull();
   });
 
+  it('freezes ranks independently for all three members and leaves untrained slots at zero',()=>{
+    const raw=fixture();
+    raw.roster[0]!.upgrades={scratch:3};
+    raw.roster[1]!.upgrades={'water-gun':2};
+    const prepared=canonicalOnlineGymOpeningState(raw)!;
+    expect(prepared.preparation.player[0].combatant.ranks).toEqual({scratch:3,ember:0,growl:0});
+    expect(prepared.preparation.player[1].combatant.ranks).toEqual({tackle:0,'water-gun':2,'tail-whip':0});
+    expect(prepared.battle.player.fighters[1].combatant.ranks).toEqual({tackle:0,'water-gun':2,'tail-whip':0});
+    expect(prepared.preparation.player[2].combatant.ranks).toEqual({});
+    raw.roster[0]!.upgrades={scratch:3,ember:2};
+    expect(canonicalOnlineGymPreparation(raw)).toBeNull();
+  });
   it('blocks arbitrary stats, future/TM/foreign moves, duplicate UIDs and unearned ranks',()=>{
     const raw=fixture();
     expect(canonicalOnlineGymEquippedMoves(25,20,
