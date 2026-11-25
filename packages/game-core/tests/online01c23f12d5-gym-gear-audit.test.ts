@@ -8,7 +8,8 @@ import {KANTO_REGIONS,kantoRegionalSpeciesPool} from '../src/map/kantoRegions.js
 import {kantoCaptureStartingLevel} from '../src/catalog/kantoEvolution.js';
 import {KANTO_BATTLE_SPECIES,kantoTypeMultiplier} from '../src/combat/kantoBattle.js';
 import {regionalNativeMoves} from '../src/combat/serverInheritedMoves.js';
-import {canonicalOnlineGymOpeningState} from '../src/combat/serverGymPreparation.js';
+import {canonicalOnlineGymEquippedMoves,canonicalOnlineGymOpeningState,canonicalOnlineGymTrainerBonuses} from '../src/combat/serverGymPreparation.js';
+import {validatedOnlineMoveRanks} from '../src/combat/serverMoveRanks.js';
 import {gymPokemonTraining,gymOpponentRanks,prepareGymLeader} from '../src/gyms/gymTactics.js';
 import {gymChooseAiAction,resolveGymAiTurn} from '../src/gyms/gymAiTurn.js';
 import {GYM_MAX_TURNS} from '../src/gyms/gymTurn.js';
@@ -58,13 +59,19 @@ function equipment(level:number,regionId:number,mode:Mode,seed:number){
 }
 function teams(gym:typeof KANTO_GYMS[number],level:number){
  const accessible=KANTO_REGIONS.filter(r=>r.trainerUnlockLevel<=gym.trainerLevel&&r.levelMin<=level);
+ const excludedNoSharedAttack:number[]=[];
  const candidates=accessible.flatMap(r=>r.speciesIds.filter(id=>!r.rareSpeciesIds.includes(id))).filter(id=>kantoCaptureStartingLevel(id)<=level&&!!KANTO_BATTLE_SPECIES[id]).map(id=>{
   const species=KANTO_BATTLE_SPECIES[id]!;
-  const native=[...regionalNativeMoves(id,level).values()];
+  // Region fallback moves may cease to be legal in Gym when a real
+  // Gym-only psychic attack exists. Sample only slots a player can equip
+  // online AND carry into Gym, never manufacture a TM or relax validation.
+  const native=[...regionalNativeMoves(id,level).values()].filter(m=>
+   canonicalOnlineGymEquippedMoves(id,level,[m.name])!==null);
   const attacks=native.filter(m=>m.category!=='status'&&m.power>0);
+  if(!attacks.length){excludedNoSharedAttack.push(id);return null;}
   const score=(m:typeof native[number])=>m.power*m.accuracy/100*(species.types.includes(m.type)?1.5:1)*(m.category==='physical'?species.base.attack:species.base.specialAttack);
   const moves=[...attacks.sort((a,b)=>score(b)-score(a)||a.name.localeCompare(b.name)).slice(0,3),...native.filter(m=>m.category==='status').slice(0,1)].slice(0,4);
-  if(!moves.length)return null;
+  expect(canonicalOnlineGymEquippedMoves(id,level,moves.map(m=>m.name))).not.toBeNull();
   const base=STATS.reduce((s,k)=>s+species.base[k],0);
   const coverage=gym.team.reduce((s,p)=>s+Math.max(0,...attacks.map(m=>kantoTypeMultiplier(m.type,KANTO_BATTLE_SPECIES[p.speciesId]!.types))),0);
   return {id,species,moves,base,coverage};
@@ -79,7 +86,7 @@ function teams(gym:typeof KANTO_GYMS[number],level:number){
    manual:gymPokemonTraining(p.id,level,p.moves),moveName:p.moves[0]!.name,equippedMoveNames:p.moves.map(m=>m.name),
    upgrades:Object.fromEntries(Object.entries(gymOpponentRanks(p.id,level,p.moves)).filter(([name,n])=>n>0&&regionalNativeMoves(p.id,level).has(name)))}));
  };
- return {regionId:accessible.at(-1)!.id,ordinary:choose('ordinary'),mixed:choose('mixed'),counter:choose('counter')};
+ return {excludedNoSharedAttack,regionId:accessible.at(-1)!.id,ordinary:choose('ordinary'),mixed:choose('mixed'),counter:choose('counter')};
 }
 describe('D5A paired gym balance matrix',()=>{
  for(const gym of KANTO_GYMS)it(gym.leader+' — same team/seed across four gear policies',()=>{
@@ -89,6 +96,10 @@ describe('D5A paired gym balance matrix',()=>{
   for(const strategy of ['ordinary','mixed','counter'] as const)expect(selected[strategy].every(p=>!rareIds.has(p.pokemonId))).toBe(true);
   for(const strategy of ['ordinary','mixed','counter'] as const){
    const roster=selected[strategy];
+   for(const p of roster){
+    expect(canonicalOnlineGymEquippedMoves(p.pokemonId,p.level,p.equippedMoveNames),`Gym slots ${gym.leader} ${p.pokemonId}`).not.toBeNull();
+    expect(validatedOnlineMoveRanks(p.pokemonId,p.level,undefined,p.upgrades),`Rank budget ${gym.leader} ${p.pokemonId}`).not.toBeNull();
+   }
    for(const mode of modes){
     let wins=0,draws=0,losses=0,turns=0,gearSum=0;
     for(const seed of seeds){
@@ -96,7 +107,7 @@ describe('D5A paired gym balance matrix',()=>{
      const raw={version:1,mode:'normal',trainer:{level:gym.trainerLevel,manual:prepareGymLeader(gym).manual,title:'veterano',equipped:Object.fromEntries(gear.map(i=>[i.slot,i.id]))},
       inventory:{version:1,gear,extraBagSlots:0},wins:4,seen:roster.map(p=>p.pokemonId),badges:KANTO_GYMS.slice(0,gym.order-1).map(g=>g.id),
       team:[1,2,3],roster,nextUid:4,expedition:null};
-     const opening=canonicalOnlineGymOpeningState(raw);if(!opening)throw Error('invalid audit fixture '+gym.leader+' '+strategy+' '+mode);
+     const opening=canonicalOnlineGymOpeningState(raw);if(!opening)throw Error('invalid audit fixture '+JSON.stringify({gym:gym.leader,strategy,mode,trainerValid:!!canonicalOnlineGymTrainerBonuses(raw),roster}));
      let state=opening.battle;const rng=random(seed);
      for(let step=0;state.outcome==='ongoing'&&step<GYM_MAX_TURNS+8;step++){
       const next=resolveGymAiTurn(state,gymChooseAiAction(state,'player'),rng(2**32));
@@ -109,6 +120,6 @@ describe('D5A paired gym balance matrix',()=>{
     rows.push({strategy,team:roster.map(p=>p.pokemonId),mode,wins,draws,losses,avgTurns:turns/seeds.length,avgGear:gearSum/seeds.length});
    }
   }
-  console.log('D5A_GYM_RESULT '+JSON.stringify({gym:gym.leader,level,trainerLevel:gym.trainerLevel,region:selected.regionId,seedCount:seeds.length,rows}));
+  console.log('D5A_GYM_RESULT '+JSON.stringify({gym:gym.leader,level,trainerLevel:gym.trainerLevel,region:selected.regionId,seedCount:seeds.length,excludedNoSharedAttack:selected.excludedNoSharedAttack,rows}));
  },60000);
 });
