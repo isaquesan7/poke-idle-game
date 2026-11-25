@@ -1,3 +1,12 @@
+## Diretriz obrigatória de pré-lançamento — 24/11/2026
+
+- **Não existem jogadores reais, contas de jogadores ou partidas online de jogadores existentes.** Os dados atuais são somente de desenvolvimento/homologação.
+- **Não preservar nem migrar saves locais (`/play`) para o servidor; não há obrigação de compatibilidade com saves locais, partidas ou formatos de teste antigos.** Substituir diretamente as implementações pré-lançamento por seus contratos atuais. Não criar adaptadores, flags de versão, migrações de progresso ou replays legados apenas para proteger dados de laboratório. Testes devem usar fixtures atuais, descartáveis.
+- Esta regra não autoriza apagar banco, dados ou backups automaticamente, desativar segurança, omitir validação de novos saves ou dispensar migrações estruturais necessárias ao banco. Preservar regras de negócio acordadas, segurança, integridade transacional e testes do contrato atual. Reavaliar compatibilidade quando houver jogadores reais.
+- Priorizar entrega das funcionalidades restantes, não abrir cadastro antes dos gates de lançamento. Após a primeira versão online, continuar evolução do jogo conforme roadmap; lançamento não é o fim do desenvolvimento.
+
+> **GYM03B CANDIDATA:** compatibilidade GYM03A removida por decisão expressa; preparador único, CI antes de merge, próxima Pokédex.
+
 > **GYM03A CANDIDATA:** #289 cinco CI SUCCESS no HEAD anterior; versionar sessões/IA para preservar replay pré-GYM03. Novas partidas treinadas, 32 duelos espelhados, CI final antes de merge. Cadastro OFF.
 
 > **GYM03 CANDIDATA:** líderes com nível próprio, treino Pokémon por espécie, ranks legais, equipamentos/título/insígnias, afinidade 100 e contribuição 10% canônica. CI antes de merge, validar dificuldade. #288 integrada e Web/API SUCCESS. Cadastro OFF. Próximo Pokédex.
