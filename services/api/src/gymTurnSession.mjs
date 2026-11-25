@@ -56,7 +56,7 @@ export async function startReservedGymTurnSession(pool,params){
     if(typeof core.canonicalOnlineGymOpeningState!=='function'||
        typeof core.gymLegalTurnActions!=='function')
       throw new Error('Canonical Gym turn-zero adapter unavailable');
-    const opening=core.canonicalOnlineGymOpeningState(raw);
+    const opening=core.canonicalOnlineGymOpeningState(raw,!Object.hasOwn(gym.frozen_preparation??{},'leaderTrainer'));
     if(!opening||opening.preparation.gymId!==gym.gym_id||
        !isDeepStrictEqual(opening.preparation.teamUids,gym.team_uids)||
        !isDeepStrictEqual(JSON.parse(JSON.stringify(opening.preparation)),gym.frozen_preparation)||
