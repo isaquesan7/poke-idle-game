@@ -1225,3 +1225,7 @@ Histórico de entregas. **Toda atualização futura deve acrescentar uma entrada
 
 ### GYM-03B — simplificação autorizada
 Removida integralmente a camada GYM-03A de compatibilidade pré-lançamento por determinação do proprietário. Mantido o preparador único GYM-03 e IA por rank de cada golpe, incluindo /play e servidor. Cinco workflows SUCCESS no HEAD original ae9572d45ff3e19ae1f7b6de6bc985ec7d978a95. Novo CI no HEAD final obrigatório. Próximo: integrar #289, confirmar deploy e implementar Pokédex online, equipamentos/títulos e paridade de interface. Não repetir compatibilidade de dados de laboratório. Cadastro OFF.
+
+
+## ONLINE-01C-23F12C1 — Pokédex online (candidata pura)
+- Depende #289 HEAD fdb36eb19bc969ed2f8688b822bef33f0831f9ae. Regra pré-lançamento obrigatória registrada: sem jogadores reais, sem preservação/migração de saves locais ou formatos de teste. GYM03B código idêntico ao HEAD ae9572d45ff3e19ae1f7b6de6bc985ec7d978a95 (cinco CI SUCCESS); novo CI obrigatório. Projeção canônica read-only 151 espécies: visto/capturado/desconhecido do journal próprio, contagem por espécie, histórico caughtSpecies e roster, desconhecidos retornam só ID/status; ficha descoberta usa catálogos de base, tipos, matchups do motor, golpes por nível e evolução, mascara parentes não descobertos. Sem consulta externa, grant, writer ou SQL. Testes unitários incluídos. Próxima C2: GET autenticado CI-only, integração de interface/modal e testes browser, após reconciliação #289. Cadastro OFF; nenhum dado de produção alterado.
