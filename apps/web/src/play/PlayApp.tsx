@@ -556,7 +556,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   // reaproveitado como adversário antes de iniciar um novo encontro.
   const lastBattle=tab==='battle'&&!pendingBattle
     &&arenaEncounterId!==lastBattlePersisted?.battleId?null:lastBattlePersisted;
-  const battleRegion=KANTO_REGIONS.find(region=>region.id===lastBattle?.regionId)
+  const battleRegion=KANTO_REGIONS.find(region=>region.id===(online?regionalArea:lastBattle?.regionId))
     ??KANTO_REGIONS.find(region=>region.id===regionalArea)??KANTO_REGIONS[0]!;
   const displayedBattleId=lastBattle?.battleId??'legacy-battle';
   const battlePlaying=Boolean(pendingBattle)||Boolean(battlePlayback && !battlePlayback.done && battlePlayback.id===displayedBattleId);
