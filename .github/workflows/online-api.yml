@@ -90,6 +90,8 @@ jobs:
           test "$receipts" -ge 2
           echo "ONLINE01C3_RESTORE_DRILL_OK: isolated PG18 backup/restore"
           rm -f "$RUNNER_TEMP/kanto-ci.dump"
+      - name: Candidate migration pair — isolated ledger and rollback (D6N)
+        run: node --test services/api/tests/candidate-migration-ledger.integration.test.mjs
       - name: Regional expansion candidate on disposable PG18 (unregistered SQL027)
         env:
           ONLINE_REGIONAL_EXPANSION_CI_ONLY: 'true'
