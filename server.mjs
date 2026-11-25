@@ -49,7 +49,8 @@ createServer((req, res) => {
   }
   // React /play continua disponível como ambiente de testes independente.
   // D-064AE: catálogo regional somente leitura usa o mesmo bundle React.
-  if (url.pathname === '/play' || url.pathname === '/play/'
+  if (url.pathname === '/online' || url.pathname === '/online/'
+    || url.pathname === '/play' || url.pathname === '/play/'
     || url.pathname === '/regions' || url.pathname === '/regions/') {
     const html = new URL('./apps/web/dist/index.html', import.meta.url);
     if (!existsSync(html)) {
