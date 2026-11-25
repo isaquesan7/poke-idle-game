@@ -76,7 +76,13 @@ export function onlineCommand(action:PlayAction,snapshot:PlaySnapshot):{path:str
   else return null;
   return {path:'collection/team',fields:{teamUids:team}};
  }
- case 'move':return action.operation==='upgrade'?{path:'moves/upgrade',fields:{pokemonUid:action.uid,moveName:action.moveName}}:null;
+ case 'move':{
+  if(action.operation==='upgrade')return {path:'moves/upgrade',fields:{pokemonUid:action.uid,moveName:action.moveName}};
+  const p=data.roster.find(p=>p.uid===action.uid);if(!p)return null;
+  const current=[...pokemonMoveSlots(p,typeof p.moveName==='string'?p.moveName:'tackle')];
+  const names=current.includes(action.moveName)?[action.moveName,...current.filter(n=>n!==action.moveName)]:[action.moveName,...current.slice(1)];
+  return {path:'moves/equip',fields:{pokemonUid:action.uid,moveNames:names}};
+ }
  case 'move-set':{
   const p=data.roster.find(p=>p.uid===action.uid);if(!p)return null;
   let names=[...pokemonMoveSlots(p,typeof p.moveName==='string'?p.moveName:'tackle')];

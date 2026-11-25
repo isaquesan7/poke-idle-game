@@ -205,7 +205,7 @@ try{
   const trainingAlpha=await context.newPage();
   await trainingAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
   await trainingAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Treinador',exact:true}).click();
-  await trainingAlpha.getByRole('button',{name:'Pré-visualizar +1 em Ataque',exact:true}).click();
+  await trainingAlpha.getByRole('button',{name:'Pré-visualizar +1 em ATK',exact:true}).click();
   await trainingAlpha.getByRole('button',{name:'Pré-visualizar +1 em HP',exact:true}).click();
   assert.equal(Number((await pool.query('SELECT revision FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].revision),0);
   const allocation=await responseFor(trainingAlpha,'/api/v1/trainer/invest',()=>trainingAlpha.getByRole('button',{name:'Confirmar distribuição',exact:true}).click());

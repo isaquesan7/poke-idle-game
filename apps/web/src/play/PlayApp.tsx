@@ -410,7 +410,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   const projected = data ? projectLegacyTrainer(data, BATTLE_SPECIES_CACHE, now) : null;
   const baseView = projected?.status === 'ready' ? projected.value : null;
   const inventory=onlineViews?.inventory;
-  const view=online&&baseView&&inventory?{...baseView,totals:inventory.totals}:baseView;
+  const view=online?(baseView&&inventory?{...baseView,totals:inventory.totals}:null):baseView;
   const active = data?.roster.find(p => p.uid === data.team[0]) ?? data?.roster[0];
   // Treinar uma captura NÃO altera o líder da Arena. Cada instância mantém seu UID.
   const focused = data?.roster.find(p => p.uid === selectedUid) ?? active;
@@ -736,10 +736,10 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
             <span className={styles.coins}>◈ {data?.coins ?? 0}</span>
           </div>
         </header>
-        {online&&<p className={styles.disclaimer}>Prévia da integração Alpha: telas ainda sem ligação completa permanecem bloqueadas. <a href="/">Portal técnico</a></p>}
+        {online&&(!onlineViews?.inventory||!onlineViews?.shop||!onlineViews?.expedition||!onlineViews?.region||!onlineViews?.gym)&&<p className={styles.disclaimer} role="status">Alguns dados do servidor estão indisponíveis. <button className={styles.secondary} disabled={busy} onClick={()=>void refreshOnline()}>Atualizar progresso</button></p>}
         {feedback && <div role="status" aria-live="polite" className={styles.message}>{feedback}</div>}
         {!view || !data || !active || !focused ? (
-          <section className={styles.panel}>O perfil de teste não pôde ser projetado. Nenhum dado foi modificado.</section>
+          <section className={styles.panel}>{online?'O progresso online não pôde ser carregado.':'O perfil de teste não pôde ser projetado.'} Nenhum dado foi modificado.</section>
         ) : (
           <>
             {tab === 'overview' && (
