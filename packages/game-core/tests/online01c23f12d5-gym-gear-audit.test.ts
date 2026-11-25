@@ -17,6 +17,8 @@ import {createOnlineDropGear,createOnlineShopGear} from '../src/inventory/online
 import type {OnlineGearInstance} from '../src/inventory/onlineOwnership.js';
 import {BASIC_GEAR_CATALOG} from '../src/shop/basicGearCatalog.js';
 import {STATS} from '../src/stats/types.js';
+// Node/Vitest provides console; core deliberately excludes DOM and Node globals.
+declare const console:{log(message:string):void};
 const modes=['none','shop','sampled','selected'] as const;
 type Mode=typeof modes[number];
 const seeds=Array.from({length:12},(_,i)=>(Math.imul(i+1,0x9e3779b9)^0x85ebca6b)>>>0);
