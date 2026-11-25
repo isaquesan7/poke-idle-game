@@ -12,14 +12,12 @@ import {KANTO_GYMS,kantoNextGym} from '../gyms/kantoGyms.js';
 import {prepareGymOpponent,prepareGymLeader} from '../gyms/gymTactics.js';
 import {createGymBattleState} from '../gyms/gymBattleState.js';
 import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
-import {inheritedOnlineMoves} from './serverInheritedMoves.js';
+import {inheritedOnlineMoves,regionalNativeMoves} from './serverInheritedMoves.js';
 import {gymPsychicLevelMoves} from '../gyms/gymPsychicMoves.js';
 import {LEGACY_TITLES,legacyTitleIsUnlocked}
   from '../legacy/catalog.js';
 import {inspectOnlineInventory,onlineGearForSlot} from '../inventory/onlineOwnership.js';
 import {KANTO_BATTLE_SPECIES} from './kantoBattle.js';
-import {kantoLevelMoves} from '../catalog/kantoLevelMoves.js';
-import {kantoSupportMoves} from '../catalog/kantoSupportMoves.js';
 import {trainerTotals} from '../stats/trainer.js';
 import {pokemonFinalStats} from '../stats/pokemon.js';
 import {STATS,zeroStats} from '../stats/types.js';
@@ -63,14 +61,16 @@ export function canonicalOnlineGymEquippedMoves(
      new Set(moveNames).size!==moveNames.length)return null;
   const species=KANTO_BATTLE_SPECIES[speciesId];
   if(!species)return null;
-  const all=[...kantoLevelMoves(speciesId,level),
-    ...kantoSupportMoves(speciesId,level),
-    ...gymPsychicLevelMoves(speciesId,level)].map(entry=>entry.move);
-  const hasAttack=all.some(move=>move.category!=='status');
   const inherited=inheritedOnlineMoves(speciesId,level,history);
   if(!inherited)return null;
-  const legal=new Map([...inherited,...[...all,...(!hasAttack?[species.move]:[])]
-    .map(move=>[move.name,move] as const)]);
+  // The Collection/Region contract determines fallback eligibility.
+  // Gym-only psychic effects must never suppress a legal shared attack.
+  // Preserve the existing Gym-only level-up allowance, but shared moves
+  // (including verified inherited moves) keep their canonical definitions.
+  const legal=new Map<string,KantoMove>(
+    gymPsychicLevelMoves(speciesId,level).map(entry=>[entry.move.name,entry.move]));
+  for(const [name,move] of inherited)legal.set(name,move);
+  for(const [name,move] of regionalNativeMoves(speciesId,level))legal.set(name,move);
   const result=moveNames.map(name=>legal.get(name));
   return result.every((move):move is KantoMove=>!!move)?
     result as KantoMove[]:null;
