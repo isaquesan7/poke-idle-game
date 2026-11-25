@@ -58,3 +58,42 @@ test('23E20 same-origin allowlist, token query isolation, session cookies and sa
     if(previous===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=previous;
   }
 });
+
+import {ONLINE_ROUTES} from '../services/api/src/onlineRoutePolicy.mjs';
+test('reviewed gateway gameplay opt-in forwards the catalog with session and origin, never arbitrary routes',async()=>{
+ const previous=process.env.NODE_ENV;process.env.NODE_ENV='test';
+ const seen=[],origin='https://gateway-ci.up.railway.app',cookie='__Host-kanto_session=synthetic';
+ const upstream=createServer(async(req,res)=>{
+  let body='';for await(const c of req)body+=c;
+  seen.push({path:req.url,method:req.method,headers:req.headers,body});
+  res.writeHead(200,{'Content-Type':'application/json','Set-Cookie':'forged=1','X-Internal-Secret':'fixture'});
+  res.end('{}');
+ });
+ let gateway;
+ try{
+  gateway=createAuthGateway({upstreamOrigin:await listen(upstream),clientOrigin:origin,loopbackTest:true,gameplayEnabled:true,
+   issuer:{sign(){throw Error('Gameplay does not sign auth quota proofs');}},resolveTrustedClientIp(){throw Error('Gameplay does not resolve auth subjects');}});
+  const entry=await listen(gateway);
+  for(const route of ONLINE_ROUTES.filter(r=>!r.signed&&!['/api/v1/status','/api/v1/me','/api/v1/save','/api/v1/auth/logout'].includes(r.path))){
+   const post=route.method==='POST',body=post?'{"fixture":true}':undefined;
+   const response=await fetch(entry+route.path,{method:route.method,headers:{Cookie:cookie,'X-Kanto-Proxy-Identity':'forged',...(post?{Origin:origin,'Content-Type':'application/json'}:{})},body});
+   assert.equal(response.status,200,route.path);await response.text();
+   assert.equal(response.headers.get('set-cookie'),null);
+   assert.equal(response.headers.get('x-internal-secret'),null);
+   assert.equal(response.headers.get('cache-control'),'no-store');
+   const last=seen.at(-1);
+   assert.equal(last.path,route.path);assert.equal(last.method,route.method);
+   assert.equal(last.headers.cookie,cookie);assert.equal(last.headers['x-kanto-proxy-identity'],undefined);
+   assert.equal(last.body,body??'');
+   if(post){assert.equal(last.headers.origin,origin);assert.equal(last.headers['content-type'],'application/json');}
+  }
+  const before=seen.length;
+  for(const path of ['/api/v1/admin','/api/v1/account/export','/api/v1/region/current?x=1']){
+   assert.equal((await fetch(entry+path)).status,404);
+  }
+  assert.equal((await fetch(entry+'/api/v1/shop/purchase')).status,405);
+  assert.equal((await fetch(entry+'/api/v1/shop/purchase',{method:'POST',headers:{Origin:'https://wrong.example','Content-Type':'application/json'},body:'{}'})).status,400);
+  assert.equal((await fetch(entry+'/api/v1/shop/purchase',{method:'POST',headers:{Origin:origin,'Content-Type':'text/plain'},body:'{}'})).status,400);
+  assert.equal(seen.length,before);
+ }finally{if(gateway)await close(gateway);await close(upstream);if(previous===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=previous;}
+});
