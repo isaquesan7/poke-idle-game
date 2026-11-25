@@ -3,7 +3,7 @@ FROM node:22-alpine
 ENV NODE_ENV=production
 WORKDIR /gateway
 COPY --chown=node:node scripts/run-auth-gateway.mjs scripts/gateway-ingress-adapter.mjs scripts/auth-gateway-candidate.mjs ./scripts/
-COPY --chown=node:node services/api/src/proxyIdentity.mjs services/api/src/proxyKeyring.mjs services/api/src/proxyNonceGuard.mjs ./services/api/src/
+COPY --chown=node:node services/api/src/proxyIdentity.mjs services/api/src/proxyKeyring.mjs services/api/src/proxyNonceGuard.mjs services/api/src/onlineRoutePolicy.mjs ./services/api/src/
 USER node
 EXPOSE 3000
 CMD ["node","scripts/run-auth-gateway.mjs"]
