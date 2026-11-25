@@ -6,7 +6,7 @@ import {
 const zero=()=>({hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0});
 const snapshot=(level=1,moveName='scratch')=>({
   version:1 as const,regionId:1 as const,
-  trainer:{level:1,manual:zero()},
+  trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:1,manual:zero()},
   activePokemon:{uid:101,speciesId:4,level,affinity:0,manual:zero(),moveName},
   opponent:{speciesId:10,level:2}
 });
@@ -91,7 +91,7 @@ describe('ONLINE-01C-19 — canonical wild 1v1 turn resolver',()=>{
     throw new Error('Kanto wild battle did not resolve in 30 turns');
   });
   it('ranked primary increases real turn damage without boosting other moves or basic attack',()=>{
-    const base=snapshot(30),s={...base,version:2,regionId:3,trainer:{level:12,manual:zero()},
+    const base=snapshot(30),s={...base,version:2,regionId:3,trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:12,manual:zero()},
       opponent:{speciesId:66,level:30},activePokemon:{...base.activePokemon,moveNames:['scratch','ember','growl']}};
     const ranked={...s,activePokemon:{...s.activePokemon,upgrades:{scratch:4}}};
     const turn=(input:unknown,action:unknown,seed:number)=>{

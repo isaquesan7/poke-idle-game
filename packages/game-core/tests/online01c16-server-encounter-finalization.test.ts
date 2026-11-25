@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {finalizeFrozenWildEncounter} from '../src/index.js';
 const zero=()=>({hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0});
 const snap=(speciesId:number)=>({
-  version:1 as const,regionId:1 as const,trainer:{level:1,manual:zero()},
+  version:1 as const,regionId:1 as const,trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:1,manual:zero()},
   activePokemon:{uid:1,speciesId:4,level:1,affinity:0,manual:zero(),moveName:'scratch'},
   opponent:{speciesId,level:2}
 });

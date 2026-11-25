@@ -33,7 +33,7 @@ describe('23F5 canonical regional extension (pure, not HTTP enablement)',()=>{
  });
  it('builds one-fighter sessions and legal turns in every region; binds region identity',()=>{
   for(const r of KANTO_REGIONS){
-   const snapshot={version:1,regionId:r.id,trainer:{level:r.trainerUnlockLevel,manual:zero()},
+   const snapshot={version:1,regionId:r.id,trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:r.trainerUnlockLevel,manual:zero()},
      activePokemon:{uid:1,speciesId:4,level:r.levelMin,affinity:0,manual:zero(),moveName:'scratch'},
      opponent:{speciesId:r.speciesIds[0]!,level:r.levelMin}};
    expect(canonicalFrozenCombatants(snapshot)).not.toBeNull();
@@ -43,13 +43,13 @@ describe('23F5 canonical regional extension (pure, not HTTP enablement)',()=>{
    expect(legalFrozenWildTurnActions(snapshot,{...session,regionId:r.id===1?2:1})).toBeNull();
    expect(resolveFrozenWildTurn(snapshot,session,{kind:'basic'},123)?.status).toBe('applied');
    if(r.id!==1){
-    expect(canonicalFrozenCombatants({...snapshot,trainer:{level:r.trainerUnlockLevel-1,manual:zero()}})).toBeNull();
+    expect(canonicalFrozenCombatants({...snapshot,trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:r.trainerUnlockLevel-1,manual:zero()}})).toBeNull();
     expect(canonicalFrozenCombatants({...snapshot,opponent:{speciesId:10,level:r.levelMin}})).toBeNull();
    }
   }
  });
  it('credits the matching region and requires Ultra Ball for a legendary',()=>{
-  const snapshot={version:1,regionId:10,trainer:{level:93,manual:zero()},
+  const snapshot={version:1,regionId:10,trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:93,manual:zero()},
    activePokemon:{uid:1,speciesId:4,level:91,affinity:0,manual:zero(),moveName:'scratch'},
    opponent:{speciesId:150,level:91}};
   const preview={outcome:'win',turns:1,playerRemainingHp:1,wildRemainingHp:0,log:[],frames:[]};

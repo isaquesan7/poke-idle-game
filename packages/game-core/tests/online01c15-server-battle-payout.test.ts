@@ -12,7 +12,7 @@ const source=()=>({
 });
 const snap=(affinity=0)=>({
  version:1 as const,regionId:1 as const,
- trainer:{level:1,manual:zero()},
+ trainer:{equipped:{},title:'aprendiz',wins:0,seen:[4],badges:[],inventory:{version:1 as const,ownedEquipment:{},extraBagSlots:0},level:1,manual:zero()},
  activePokemon:{uid:1,speciesId:4,level:1,affinity,manual:zero(),moveName:'scratch'},
  opponent:{speciesId:10,level:2}
 });
