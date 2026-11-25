@@ -57,7 +57,7 @@ export async function applyReservedGymTurn(pool,params){
     if(earlier.rowCount&&earlier.rows[0].kind!=='gym-turn')
       return await rollback(client,{status:'duplicate-action'});
     const selected=await client.query(
-      `SELECT status,opened_revision,turn_state,turn_entropy_proof,turn_entropy_key_id,frozen_preparation
+      `SELECT status,opened_revision,turn_state,turn_entropy_proof,turn_entropy_key_id
          FROM game_gym_reservations WHERE account_id=$1 AND id=$2 FOR UPDATE`,
       [accountId,gymReservationId]);
     if(!selected.rowCount)return await rollback(client,{status:'missing'});
@@ -107,7 +107,7 @@ export async function applyReservedGymTurn(pool,params){
     const legal=core.gymLegalTurnActions(state,'player');
     if(!Array.isArray(legal)||!legalIncludes(legal,action))
       return await rollback(client,{status:'blocked',reason:'illegal-action'});
-    const leaderAction=core.gymChooseAiAction(state,'leader',Object.hasOwn(gym.frozen_preparation??{},'leaderTrainer'));
+    const leaderAction=core.gymChooseAiAction(state,'leader');
     if(!legalIncludes(core.gymLegalTurnActions(state,'leader'),leaderAction))
       return await rollback(client,{status:'invalid-state'});
     const seed=createPrivateBattleRandom(entropyKey,{
