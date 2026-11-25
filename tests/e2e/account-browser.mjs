@@ -330,6 +330,9 @@ try{
   const replayTurn=await callRegion('turn',turnCommand);
   assert.equal(replayTurn.status,'replay');assert.equal(replayTurn.revision,battle.revision);
   const reloadState=await readRegion();assert.deepEqual(reloadState.encounter,battle.encounter);
+  for(let i=2;battle.encounter.phase==='await-player'&&i<=30;i++)
+    battle=await callRegion('turn',{encounterId,actionId:'browser-region-turn-'+String(i).padStart(2,'0'),expectedRevision:battle.revision,action:{kind:'basic'}});
+  assert.equal(battle.encounter.phase,'resolved');
   // Reproduce actual persisted impact frames in Alpha, not invented browser damage.
   const impact=battle.encounter.frames.find(f=>['attack','residual'].includes(f.kind)&&f.amount>0);
   assert.ok(impact,'strong basic-attack fixture emits a damage frame');
@@ -338,9 +341,6 @@ try{
   await effectAlpha.getByTestId('battle-impact-'+impact.target).waitFor({state:'visible'});
   assert.ok((await effectAlpha.getByTestId('battle-impact-'+impact.target).textContent()).includes('HP'));
   await effectAlpha.close();
-  for(let i=2;battle.encounter.phase==='await-player'&&i<=30;i++)
-    battle=await callRegion('turn',{encounterId,actionId:'browser-region-turn-'+String(i).padStart(2,'0'),expectedRevision:battle.revision,action:{kind:'basic'}});
-  assert.equal(battle.encounter.phase,'resolved');
   const certified=await callRegion('certify',{encounterId,actionId:'browser-region-certify-01',expectedRevision:battle.revision});
   const paid=await callRegion('settle',{encounterId,actionId:'browser-region-settle-01',expectedRevision:certified.revision});
   assert.equal(paid.encounter.phase,'paid');
@@ -826,6 +826,37 @@ try{
   assert.ok(!finalInv.titles.some(t=>t.id==='gym-leader'));
   assert.equal(finalInv.badges.length,8);
   assert.deepEqual(finalInv.bag,inv.bag);
+  checkpoint("Alpha confirmed level-up");
+  // A disposable low-level Pokémon needs only one XP to level up.
+  // A win or the existing beginner consolation reward must cross the threshold.
+  const levelFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const levelRaw=JSON.parse(levelFixture.journal.raw);
+  const beginner=levelRaw.roster.find(p=>p.uid===4);
+  assert.equal(beginner.level,1);
+  beginner.xp=86;levelRaw.team=[4];
+  levelFixture.journal.raw=JSON.stringify(levelRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(levelFixture)]);
+  const levelRegion=await readRegion();
+  const levelReserve=await callRegion('reserve',{actionId:'browser-level-reserve-01',expectedRevision:levelRegion.revision,regionId:1});
+  const levelId=levelReserve.encounter.id;
+  let levelBattle=await callRegion('start',{encounterId:levelId,expectedRevision:levelReserve.revision});
+  for(let i=1;levelBattle.encounter.phase==='await-player'&&i<=30;i++)
+    levelBattle=await callRegion('turn',{encounterId:levelId,actionId:'browser-level-turn-'+String(i).padStart(2,'0'),expectedRevision:levelBattle.revision,action:{kind:'basic'}});
+  assert.equal(levelBattle.encounter.phase,'resolved');
+  const levelAlpha=await context.newPage();
+  await levelAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  const skipLevelReplay=levelAlpha.getByRole('button',{name:'Pular apresentação',exact:true});
+  await skipLevelReplay.waitFor();
+  if(await skipLevelReplay.isEnabled())await skipLevelReplay.click();
+  await levelAlpha.getByRole('button',{name:'Receber recompensas',exact:true}).click();
+  await levelAlpha.getByTestId('battle-level-up').waitFor({state:'visible'});
+  assert.match(await levelAlpha.getByTestId('battle-fighter-player').textContent(),/Nv\. [2-9]/);
+  const newLevel=JSON.parse((await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state.journal.raw).roster.find(p=>p.uid===4).level;
+  assert.ok(newLevel>1);
+  await levelAlpha.getByRole('button',{name:'Seguir sem capturar'}).click();
+  await levelAlpha.getByRole('dialog',{name:'Resultado da batalha'}).waitFor();
+  await levelAlpha.close();
+
   checkpoint("password recovery and logout");
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();
