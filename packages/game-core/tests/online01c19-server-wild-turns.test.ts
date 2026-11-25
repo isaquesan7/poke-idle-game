@@ -99,7 +99,7 @@ describe('ONLINE-01C-19 — canonical wild 1v1 turn resolver',()=>{
     if(first.status!=='applied')throw Error('expected applied');
     expect(first.turnState.phase).toBe('await-player');
     expect(legalFrozenWildTurnActions(s,first.turnState)).not.toBeNull();
-    const tampered=structuredClone(first.turnState);
+    const tampered=JSON.parse(JSON.stringify(first.turnState)) as typeof first.turnState;
     const fighter=tampered.engine!.player.fighters[0]!;
     Object.assign(fighter.combatant,{ranks:{...fighter.combatant.ranks,ember:9}});
     expect(legalFrozenWildTurnActions(s,tampered)).toBeNull();
