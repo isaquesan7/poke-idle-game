@@ -20,34 +20,68 @@ if(process.env.NODE_ENV!=='test'||
   throw new Error('Browser auth flow MUST use disposable local CI PostgreSQL');
 
 const processes=[];
-const pool=new pg.Pool({connectionString:process.env.DATABASE_URL});
+const pool=new pg.Pool({connectionString:process.env.DATABASE_URL,
+  connectionTimeoutMillis:5000,query_timeout:15000,statement_timeout:15000,lock_timeout:5000});
 let browser,registeredId=null,tlsGateway=null;
+const sockets=new Set();
+let phase='bootstrap';
+function checkpoint(name){phase=name;console.log('[browser-ci] '+name);}
+const watchdog=setTimeout(()=>{
+  console.error('[browser-ci] global deadline reached during '+phase);
+  for(const proc of processes)proc.kill('SIGTERM');
+  for(const socket of sockets)socket.destroy();
+  process.exit(1);
+},10*60*1000);
+async function newContext(options){
+  const context=await browser.newContext(options);
+  context.setDefaultTimeout(15000);
+  context.setDefaultNavigationTimeout(20000);
+  return context;
+}
+async function bounded(label,action,ms=15000){
+  let timer;
+  try{return await Promise.race([Promise.resolve().then(action),new Promise((_,reject)=>{
+    timer=setTimeout(()=>reject(new Error('[browser-ci] '+label+' timed out during '+phase)),ms);
+  })]);}finally{clearTimeout(timer);}
+}
 function launch(command,args,env){
   const child=spawn(command,args,{cwd:repoDir,
     env:{...process.env,...env},stdio:['ignore','pipe','pipe']});
   let error='';
+  child.stdout.resume();
   child.stderr.on('data',part=>{error=(error+part.toString()).slice(-3000);});
   processes.push(child);
   return {child,get error(){return error;}};
 }
-async function ready(url,label){
+async function ready(url,label,service){
+  let last='no response';
   for(let i=0;i<160;i++){
+    if(service?.child.exitCode!==null&&service?.child.exitCode!==undefined)break;
     try{const r=await fetch(url,{signal:AbortSignal.timeout(1000)});
       if(r.status===200)return;
-    }catch{}
+      last='HTTP '+r.status;
+    }catch(e){last=e.name;}
     await new Promise(resolve=>setTimeout(resolve,100));
   }
-  throw new Error(label+' unavailable');
+  // The stderr getter must be read AFTER polling, not at call time. This
+  // harness is strictly isolated to disposable CI credentials.
+  throw new Error(label+' unavailable ('+last+', exit '+String(service?.child.exitCode??'running')+')\n'+(service?.error??''));
 }
 async function expectFeedback(page,text){
   await page.locator('#feedback').getByText(text,{exact:false}).waitFor();
 }
 async function responseFor(page,route,click){
-  const awaited=page.waitForResponse(r=>r.url().endsWith(route)&&r.request().method()==='POST');
-  await click();
-  const response=await awaited;
+  console.log('[browser-ci] POST '+route);
+  const [response]=await bounded('POST '+route+' click and headers',()=>Promise.all([
+    page.waitForResponse(r=>r.url().endsWith(route)&&r.request().method()==='POST',{timeout:15000}).then(r=>{
+      console.log('[browser-ci] response '+route+' HTTP '+r.status());return r;
+    }),
+    Promise.resolve().then(click).then(()=>console.log('[browser-ci] clicked '+route))
+  ]),20000);
   assert.ok(response.ok(),route+' failed '+response.status());
-  return response.json();
+  const receipt=await bounded('POST '+route+' response body',()=>response.json());
+  console.log('[browser-ci] received body '+route);
+  return receipt;
 }
 try{
   assert.equal(process.env.GITHUB_ACTIONS,'true');
@@ -64,8 +98,8 @@ try{
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
   });
-  await ready('http://127.0.0.1:'+apiPort+'/health','API: '+api.error);
-  await ready('http://127.0.0.1:'+webPort+'/','web: '+web.error);
+  await ready('http://127.0.0.1:'+apiPort+'/health','API',api);
+  await ready('http://127.0.0.1:'+webPort+'/','web',web);
   if(!process.env.BROWSER_TLS_CERT||!process.env.BROWSER_TLS_KEY)
     throw new Error('CI-only HTTPS certificate files required');
   tlsGateway=createTlsServer({
@@ -80,14 +114,21 @@ try{
       if(!response.headersSent){response.writeHead(502);response.end();}
       else response.destroy();
     });
+    upstream.setTimeout(15000,()=>upstream.destroy(new Error('CI upstream timeout')));
+    request.on('aborted',()=>upstream.destroy());
+    response.on('close',()=>{if(!response.writableFinished)upstream.destroy();});
     request.pipe(upstream);
   });
-  await new Promise(resolve=>tlsGateway.listen(tlsPort,'127.0.0.1',resolve));
-  await ready(closedOrigin+'/','closed web: '+closed.error);
+  tlsGateway.on('connection',socket=>{sockets.add(socket);socket.once('close',()=>sockets.delete(socket));});
+  await bounded('TLS listen',()=>new Promise((resolve,reject)=>{
+    tlsGateway.once('error',reject);tlsGateway.listen(tlsPort,'127.0.0.1',resolve);
+  }));
+  await ready(closedOrigin+'/','closed web',closed);
   browser=await chromium.launch({headless:true});
 
+  checkpoint("closed public mode");
   // Closed public-facing mode: no browser can submit registration/login.
-  const mobile=await browser.newContext({viewport:{width:390,height:844}});
+  const mobile=await newContext({viewport:{width:390,height:844}});
   const publicPage=await mobile.newPage();
   const browserErrors=[];
   publicPage.on('pageerror',err=>browserErrors.push(err.message));
@@ -106,7 +147,8 @@ try{
   assert.equal(await publicPage.locator('#online-panel').isHidden(),true);
   await mobile.close();
 
-  const context=await browser.newContext({viewport:{width:1365,height:768},
+  checkpoint("registration, verification and login");
+  const context=await newContext({viewport:{width:1365,height:768},
     ignoreHTTPSErrors:true});
   const page=await context.newPage();
   page.on('pageerror',err=>browserErrors.push(err.message));
@@ -149,6 +191,7 @@ try{
     'HTTPS must retain a Secure __Host- session cookie');
   assert.equal((await page.request.get(origin+'/api/v1/me')).status(),200);
 
+  checkpoint("starter and persisted save");
   // First adventure is a server action, never an import of the /play save.
   await page.locator('#online-new').waitFor();
   assert.equal(await page.locator('#landing-hero').isHidden(),true);
@@ -168,12 +211,29 @@ try{
   assert.equal(await page.locator('#online-new').isHidden(),true);
   assert.match(await page.locator('#online-roster').textContent(),/Charmander · Nível 1/);
   assert.equal(await page.evaluate(()=>localStorage.getItem('online-portal-ci-sentinel')),'must-not-change');
+  checkpoint("Alpha overview, collection and bag");
+  // Reuse the actual Alpha React UI against the same authenticated PostgreSQL save.
+  const alpha=await context.newPage();
+  alpha.on('pageerror',err=>browserErrors.push(err.message));
+  await alpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await alpha.getByRole('heading',{name:'Bem-vindo de volta, Treinador Browser!'}).waitFor();
+  assert.equal(await alpha.getByTestId('play-root').count(),1);
+  await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Coleção',exact:true}).click();
+  await alpha.getByTestId('pokemon-uid-1').getByText('Charmander',{exact:true}).waitFor();
+  await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Treinador',exact:true}).click();
+  await alpha.getByRole('button',{name:'Mochila',exact:true}).click();
+  await alpha.getByTestId('inventory-item-poke-ball').waitFor();
+  await alpha.reload({waitUntil:'domcontentloaded'});
+  await alpha.getByRole('heading',{name:'Bem-vindo de volta, Treinador Browser!'}).waitFor();
+  assert.equal(await alpha.evaluate(()=>localStorage.getItem('kanto-idle-play-v02')),null);
+  await alpha.close();
   const duplicate=await page.request.post(origin+'/api/v1/adventure/start',{data:{starterId:7},headers:{Origin:origin}});
   assert.equal(duplicate.status(),409);
   const persisted=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[registeredId]);
   assert.equal(persisted.rowCount,1);assert.equal(Number(persisted.rows[0].revision),0);
   assert.equal(JSON.parse(persisted.rows[0].state.journal.raw).roster[0].pokemonId,4);
 
+  checkpoint("trainer batch and team");
   // Seed a disposable account-only fixture for actions that normally require
   // earning XP and captures. No UI/API path accepts this raw state.
   const fixture=persisted.rows[0].state;
@@ -186,8 +246,27 @@ try{
   await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(fixture)]);
   await page.locator('#online-refresh').click();
   await page.getByText('Pontos disponíveis: 4',{exact:true}).waitFor();
-  await responseFor(page,'/api/v1/trainer/invest',()=>page.locator('[data-stat="attack"]').click());
-  await page.getByText('Pontos disponíveis: 3',{exact:true}).waitFor();
+  // Alpha draft confirms multiple stats in one atomic server revision.
+  const trainingAlpha=await context.newPage();
+  await trainingAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await trainingAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Treinador',exact:true}).click();
+  await trainingAlpha.getByRole('button',{name:'Pré-visualizar +1 em ATK',exact:true}).click();
+  await trainingAlpha.getByRole('button',{name:'Pré-visualizar +1 em HP',exact:true}).click();
+  assert.equal(Number((await pool.query('SELECT revision FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].revision),0);
+  const allocation=await responseFor(trainingAlpha,'/api/v1/trainer/invest',()=>trainingAlpha.getByRole('button',{name:'Confirmar distribuição',exact:true}).click());
+  assert.equal(allocation.revision,1);assert.equal(allocation.allocated.attack,1);assert.equal(allocation.allocated.hp,1);
+  checkpoint('trainer batch persisted and UI refresh');
+  const committed=await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[registeredId]);
+  assert.equal(Number(committed.rows[0].revision),1);
+  const committedTrainer=JSON.parse(committed.rows[0].state.journal.raw).trainer;
+  assert.equal(committedTrainer.manual.hp,1);assert.equal(committedTrainer.manual.attack,1);
+  await bounded('trainer UI completed',()=>trainingAlpha.getByRole('button',{name:'Confirmando…',exact:true}).waitFor({state:'hidden'}));
+  await bounded('trainer UI no pending draft',()=>trainingAlpha.getByText('ainda não aplicados.',{exact:false}).waitFor({state:'hidden'}));
+  await bounded('trainer UI remaining points',()=>trainingAlpha.getByText('Pontos disponíveis: 2',{exact:true}).waitFor());
+  await bounded('trainer tab close',()=>trainingAlpha.close());
+  checkpoint('team refresh after trainer investment');
+  await bounded('portal refresh',()=>page.locator('#online-refresh').click());
+  await page.getByText('Pontos disponíveis: 2',{exact:true}).waitFor();
   await page.locator('[data-uid="2"]').click();
   await page.locator('[data-uid="3"]').click();
   assert.equal(await page.locator('[data-uid="4"]').isDisabled(),true);
@@ -209,6 +288,7 @@ try{
   const stale=await page.request.post(origin+'/api/v1/collection/team',{data:{actionId:'stale-browser-test-01',expectedRevision:0,teamUids:[1]},headers:{Origin:origin}});
   assert.equal(stale.status(),409);
 
+  checkpoint("regional API and Alpha resume");
   // Same authenticated browser context, real Web/API/PG18; UI battle controls
   // follow after the HTTP contract. Use the account's persisted selected leader.
   const callRegion=async(command,data)=>{
@@ -228,6 +308,12 @@ try{
   const start=await callRegion('start',{encounterId,expectedRevision:reserved.revision});
   assert.equal(start.encounter.player.uid,2);assert.equal(start.encounter.player.speciesId,25);
   assert.equal(start.encounter.phase,'await-player');assert.equal(start.encounter.engine,undefined);
+  assert.ok(start.encounter.actions.some(a=>JSON.stringify(a)===JSON.stringify(start.encounter.recommendedAction)));
+  const regionalAlpha=await context.newPage();await regionalAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await regionalAlpha.getByTestId('online-region-battle').waitFor();
+  await regionalAlpha.getByTestId('battle-hp-player-value').waitFor();
+  assert.match(await regionalAlpha.getByTestId('battle-fighter-player').textContent(),/Pikachu/);
+  await regionalAlpha.close();
   const turnCommand={encounterId,actionId:'browser-region-turn-01',expectedRevision:start.revision,action:{kind:'basic'}};
   let battle=await callRegion('turn',turnCommand);
   const replayTurn=await callRegion('turn',turnCommand);
@@ -243,6 +329,7 @@ try{
   assert.equal(finish.encounter,null);assert.equal(finish.capture,'skipped');
   assert.equal((await readRegion()).encounter,null);
 
+  checkpoint("regional portal battle");
   // Actual UI journey: the previous HTTP encounter closed; a new battle
   // uses the same server-owned leader and canonical permitted actions.
   await page.locator('#online-refresh').click();
@@ -272,6 +359,7 @@ try{
   assert.equal(JSON.parse(afterCapture.rows[0].state.journal.raw).ballPocket.quantities['poke-ball'],beforeBalls-1);
   assert.equal((await readRegion()).encounter,null);
 
+  checkpoint("second region");
   // Expanded selector uses server-provided access rules. R2 stays disabled
   // until the disposable fixture reaches its existing trainer threshold.
   assert.equal(await page.locator('#region-select option[value="2"]').isDisabled(),true);
@@ -305,6 +393,7 @@ try{
   assert.equal(await page.locator('#region-select').inputValue(),'2');
   assert.equal((await readRegion()).encounter,null);
 
+  checkpoint("expedition");
   // Private expedition HTTP over the real authenticated browser proxy.
   const expeditionPath=origin+'/api/v1/expedition/';
   const expRead=async()=>{const response=await page.request.get(expeditionPath+'current');assert.equal(response.status(),200);return response.json();};
@@ -347,6 +436,7 @@ try{
   assert.equal(await page.locator('#expedition-active').isHidden(),true);
   assert.equal((await expRead()).expedition,null);
 
+  checkpoint("shop");
   // Shop checkout through the real browser. Fund only in disposable PG fixture.
   const shopFixture=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
   const shopRaw=JSON.parse(shopFixture.journal.raw);shopRaw.coins=5000;
@@ -369,6 +459,7 @@ try{
   await page.getByText('Saldo: 3.800 moedas',{exact:true}).waitFor();
   const shopAfter=await shopRead();assert.equal(shopAfter.coins,3800);assert.equal(shopAfter.items.find(i=>i.id==='poke-ball').owned,ownedBefore+2);
 
+  checkpoint("gym API and Alpha switch replay");
   // Gym portal read contract via the real authenticated Web proxy.
   const gymPath=origin+'/api/v1/gym/';
   const gymRead=async()=>{const response=await page.request.get(gymPath+'current');assert.equal(response.status(),200);return response.json();};
@@ -385,7 +476,7 @@ try{
   const gymBefore=await gymRead();
   assert.equal(gymBefore.gym,null);assert.equal(gymBefore.canReserve,true);
   assert.equal(gymBefore.nextGym.leader,'Brock');assert.deepEqual(gymBefore.nextGym.teamUids,[2,1,3]);
-  const anonymous=await browser.newContext({ignoreHTTPSErrors:true});
+  const anonymous=await newContext({ignoreHTTPSErrors:true});
   assert.equal((await anonymous.request.get(gymPath+'current')).status(),401);
   await anonymous.close();
   const gymReserved=await gymPost('reserve',{actionId:'browser-gym-reserve-01',expectedRevision:gymBefore.revision});
@@ -405,6 +496,18 @@ try{
   await gymPost('turn',{gymReservationId,actionId:'browser-gym-switch-01',expectedRevision:openedGym.revision,action:{kind:'switch',toIndex:1}});
   const switchedGym=await gymRead();assert.equal(switchedGym.gym.player.activeIndex,1);
   assert.equal(switchedGym.gym.actionNumber,1);assert.ok(switchedGym.gym.log.length>0);
+  assert.equal(switchedGym.gym.presentation.events.length,switchedGym.gym.log.length);
+  assert.equal(switchedGym.gym.presentation.before.player.activeIndex,0);
+  assert.equal(switchedGym.gym.presentation.events.at(-1).display.player.activeIndex,1);
+  assert.equal(switchedGym.gym.narration.length,switchedGym.gym.log.length);
+  const gymAlpha=await context.newPage();await gymAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await gymAlpha.getByTestId('online-gym-battle').waitFor();
+  await gymAlpha.getByTestId('battle-stage').waitFor();
+  const skipGymPresentation=gymAlpha.getByRole('button',{name:'Pular apresentação',exact:true});
+  if(await skipGymPresentation.isVisible()&&await skipGymPresentation.isEnabled())await skipGymPresentation.click();
+  await gymAlpha.getByTestId('battle-fighter-player').getByText(/Charmander · Nv\./).waitFor();
+  assert.match(await gymAlpha.getByTestId('battle-log').textContent(),/Treinador Browser substituiu Pikachu por Charmander/);
+  await gymAlpha.close();
   assert.equal(switchedGym.gym.player.fighters[0].hp,openedGym.gym.player.fighters[0].hp);
   await page.reload({waitUntil:'domcontentloaded'});
   assert.deepEqual(await gymRead(),switchedGym);
@@ -417,6 +520,7 @@ try{
   assert.equal(await page.locator('#online-team-save').isDisabled(),true);
   assert.equal(await page.locator('#expedition-start').isDisabled(),true);
   assert.equal(await page.locator('[data-shop-buy="poke-ball"]').isDisabled(),true);
+  checkpoint("gym portal battle and settlement");
   let gymNow=await gymRead();
   for(let i=0;gymNow.gym.phase==='await-player'&&i<140;i++){
     const g=gymNow.gym;
@@ -438,6 +542,7 @@ try{
   assert.equal((await gymRead()).gym,null);
   assert.match(await page.locator('#gym-note').textContent(),/Insígnia conquistada/);
 
+  checkpoint("moves");
   // Canonical FRLG learned moves through the real Collection UI.
   await page.locator('#moves-pokemon').selectOption('1');
   const moveRead=async()=>{const q=await page.request.get(origin+'/api/v1/moves/current');assert.equal(q.status(),200);return q.json();};
@@ -462,6 +567,7 @@ try{
   await page.locator('#moves-pokemon').waitFor();
   assert.deepEqual((await moveRead()).pokemon.find(p=>p.uid===1).equipped,['scratch','growl']);
 
+  checkpoint("evolution");
   // Evolution via Collection, not an injected client save. Only fixture grants level.
   const evoRead=async()=>{const q=await page.request.get(origin+'/api/v1/evolution/current');assert.equal(q.status(),200);return q.json();};
   const evoPost=(data,headers={Origin:origin})=>page.request.post(origin+'/api/v1/evolution/evolve',{data,headers});
@@ -502,6 +608,7 @@ try{
   await page.locator('#evolution-pokemon').waitFor();
   assert.equal((await evoRead()).pokemon.find(p=>p.uid===1).speciesId,5);
 
+  checkpoint("pokemon training");
   // Train the evolved UID through the actual browser; draft never mutates PG.
   const trainingRead=async()=>{const q=await page.request.get(origin+'/api/v1/pokemon-training/current');assert.equal(q.status(),200);return q.json();};
   await page.locator('#training-pokemon').selectOption('1');
@@ -549,6 +656,7 @@ try{
   assert.equal(redistributed.pokemon.find(p=>p.uid===1).remaining,30);
   assert.equal(redistributed.pokemon.find(p=>p.uid===1).spent,0);
 
+  checkpoint("rank upgrades");
   // Rank upgrades use the real evolved UID and only equipped offensive moves.
   await page.locator('#moves-pokemon').selectOption('1');
   const rankBefore=await moveRead(),rankMember=rankBefore.pokemon.find(p=>p.uid===1);
@@ -573,6 +681,7 @@ try{
   await page.locator('#moves-pokemon').selectOption('1');
   assert.equal((await moveRead()).pokemon.find(p=>p.uid===1).ranks.scratch,1);
 
+  checkpoint("pokedex");
   // Pokédex is read-only, reflects actual account discovery and evolution.
   const dexResponse=await page.request.get(origin+'/api/v1/pokedex/current');
   assert.equal(dexResponse.status(),200);
@@ -600,6 +709,7 @@ try{
   await page.locator('#pokedex-search').fill('');
   assert.equal((await moveRead()).revision,dex.revision);
 
+  checkpoint("inventory");
   // Inventory browser journey: only the disposable test fixture acquires gear.
   const inventoryRead=async()=>{const q=await page.request.get(origin+'/api/v1/inventory/current');assert.equal(q.status(),200);return q.json();};
   const invBefore=await inventoryRead();
@@ -669,6 +779,7 @@ try{
   assert.ok(!finalInv.titles.some(t=>t.id==='gym-leader'));
   assert.equal(finalInv.badges.length,8);
   assert.deepEqual(finalInv.bag,inv.bag);
+  checkpoint("password recovery and logout");
   // Recovery is requested using the actual browser form, never a real inbox.
   await page.locator('#reset-link').click();
   assert.ok(page.url().endsWith('/reset-password'));
@@ -701,9 +812,11 @@ try{
   await page.getByText('Acesso de testes habilitado.').waitFor();
   await page.locator('#email').fill(email);
   await page.locator('#password').fill(password);
-  const oldLogin=page.waitForResponse(r=>r.url().endsWith('/api/v1/auth/login'));
-  await page.locator('#submit').click();
-  assert.equal((await oldLogin).status(),401,'old password cannot log in');
+  const [oldLogin]=await Promise.all([
+    page.waitForResponse(r=>r.url().endsWith('/api/v1/auth/login'),{timeout:15000}),
+    page.locator('#submit').click()
+  ]);
+  assert.equal(oldLogin.status(),401,'old password cannot log in');
   await page.locator('#password').fill(replacement);
   await responseFor(page,'/api/v1/auth/login',()=>page.locator('#submit').click());
   assert.equal((await page.request.get(origin+'/api/v1/me')).status(),200);
@@ -715,12 +828,20 @@ try{
   assert.equal((await page.request.get(origin+'/api/v1/me')).status(),401);
   assert.deepEqual(browserErrors,[],'no uncaught browser errors');
   console.log('ONLINE-01C-23E4: browser auth, verification, reset, replay and closed mode PASS');
-  await context.close();
+  await bounded('context close',()=>context.close());
+}catch(error){
+  console.error('[browser-ci] failed during '+phase,error);
+  throw error;
 }finally{
-  if(browser)await browser.close();
-  if(tlsGateway)await new Promise(resolve=>tlsGateway.close(resolve));
+  checkpoint('cleanup');
+  const errors=[];
+  const clean=async(label,action)=>{try{await bounded(label,action,5000);}catch(error){errors.push(error);console.error(error);}};
+  // Destroy TLS connections and children even when a browser request was interrupted.
+  if(tlsGateway){for(const socket of sockets)socket.destroy();await clean('TLS close',()=>new Promise(resolve=>tlsGateway.close(resolve)));}
   for(const proc of processes)proc.kill('SIGTERM');
-  if(registeredId)await pool.query('DELETE FROM game_accounts WHERE id=$1',
-    [registeredId]);
-  await pool.end();
+  if(browser)await clean('browser close',()=>browser.close());
+  if(registeredId)await clean('delete disposable account',()=>pool.query('DELETE FROM game_accounts WHERE id=$1',[registeredId]));
+  await clean('pool end',()=>pool.end());
+  if(errors.length){clearTimeout(watchdog);process.exit(1);}
+  clearTimeout(watchdog);
 }

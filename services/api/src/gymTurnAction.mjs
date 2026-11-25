@@ -7,6 +7,7 @@ import {createHmac} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {createPrivateBattleRandom} from './battleEntropy.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
+import {gymPresentation} from './gymPresentation.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACTION=/^[A-Za-z0-9_-]{12,100}$/;
@@ -135,7 +136,7 @@ export async function applyReservedGymTurn(pool,params){
     const result={
       actionNumber:ordinal,turn:next.turn,outcome:next.outcome,
       playerAction:action,leaderAction,state:next,
-      logDelta:resolved.log,framesDelta:resolved.frames,
+      logDelta:resolved.log,framesDelta:resolved.frames,presentation:gymPresentation(state,resolved),
       nextActions
     };
     const nextRevision=revision+1;

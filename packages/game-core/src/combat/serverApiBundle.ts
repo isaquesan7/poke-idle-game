@@ -11,7 +11,7 @@ export {finalizeFrozenWildEncounter} from '../capture/serverEncounterFinalizatio
 export {createFrozenWildTurnSession,initialFrozenWildTurnActions}
   from './serverWildTurnSession.js';
 
-export {legalFrozenWildTurnActions,resolveFrozenWildTurn}
+export {legalFrozenWildTurnActions,resolveFrozenWildTurn,chooseFrozenWildPlayerAction}
   from './serverWildTurnResolver.js';
 
 // ONLINE-01C-23B2B: pure, read-only Gym bonuses and 3v3 opening preview.

@@ -405,11 +405,11 @@ const server=createServer(async(req,res)=>{
       if(!account)return json(res,401,{error:'Não autenticado'});
       if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
       const data=await readJson(req);
-      if(Object.keys(data).sort().join(',')!=='actionId,expectedRevision,stat')
+      if(!['actionId,expectedRevision,stat','actionId,expectedRevision,increments'].includes(Object.keys(data).sort().join(',')))
         return json(res,400,{error:'Ação inválida'});
       const result=await applyTrainerInvestment(pool,{
         accountId:account.id,actionId:data.actionId,
-        expectedRevision:data.expectedRevision,stat:data.stat
+        expectedRevision:data.expectedRevision,...(Object.hasOwn(data,'stat')?{stat:data.stat}:{increments:data.increments})
       });
       const status=result.status==='ok'?200:
         result.status==='missing'?404:result.status==='invalid'?400:409;

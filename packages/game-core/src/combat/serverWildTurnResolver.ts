@@ -189,3 +189,10 @@ export function resolveFrozenWildTurn(
   return {status:'applied',turnState,playerAction:action,wildAction:enemy,
     logDelta,framesDelta:applied.frames,nextActions};
 }
+
+/** Server-side deterministic recommendation; exposes only one already legal action. */
+export function chooseFrozenWildPlayerAction(snapshot:unknown,current:unknown):WildTurnPlayerAction|null{
+ const legal=legalFrozenWildTurnActions(snapshot,current);if(!legal?.length)return null;
+ const state=current as Persisted,engine=state.engine??initializeEngine(snapshot);if(!engine)return null;
+ const chosen=gymChooseAiAction(engine,'player');return legal.find(a=>equalActions(chosen,a))??null;
+}

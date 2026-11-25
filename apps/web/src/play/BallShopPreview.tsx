@@ -5,6 +5,7 @@ import {
 } from '@kanto/game-core';
 import type {KantoBallId,KantoShopBallId} from '@kanto/game-core';
 import styles from './PlayApp.module.css';
+import type {ShopView} from './onlinePlay';
 
 interface BallShopPreviewProps {
   readonly coins:number;
@@ -12,6 +13,8 @@ interface BallShopPreviewProps {
   readonly quantities:Readonly<Partial<Record<KantoBallId,number>>>;
   readonly busy:boolean;
   readonly onBuy:(ballId:KantoShopBallId,quantity:number)=>void;
+  readonly onlineShop?:ShopView;
+  readonly onBuyGear?:(id:string)=>void;
 }
 const BATCHES=[1,5,10,25,50] as const;
 
@@ -19,7 +22,7 @@ const BATCHES=[1,5,10,25,50] as const;
  * nunca confia neste campo, nem no custo do DOM ou no valor do select.
  */
 export function BallShopPreview({
-  coins,trainerLevel,quantities,busy,onBuy
+  coins,trainerLevel,quantities,busy,onBuy,onlineShop,onBuyGear
 }:BallShopPreviewProps){
   const [batches,setBatches]=useState<Record<KantoShopBallId,number>>({
     'poke-ball':1,'great-ball':1,'ultra-ball':1
@@ -44,7 +47,7 @@ export function BallShopPreview({
           const cost=unit*quantity;
           const balance=quantities[item.id]??0;
           const canBuy=unlocked&&!busy&&coins>=cost
-            &&balance+quantity<=KANTO_SHOP_BALL_POCKET_CAP;
+            &&balance+quantity<=KANTO_SHOP_BALL_POCKET_CAP&&(!onlineShop||quantity<=(onlineShop.items.find(x=>x.id===item.id)?.maxAffordable??0));
           return <article className={styles.shopItem} key={item.id}
             data-testid={'shop-item-'+item.id}>
             <div className={styles.shopIcon} aria-hidden="true">
@@ -80,6 +83,7 @@ export function BallShopPreview({
           </article>;
         })}
       </div>
+      {onlineShop&&<><h2>Equipamentos</h2><div className={styles.shopItems}>{onlineShop.gearItems.map(item=><article key={item.id} className={styles.shopItem}><div className={styles.shopIcon}><i className="fa-solid fa-shield"/></div><div><h3>{item.name}</h3><p>Comum · Nv. {item.requiredLevel} · Possui {item.owned}</p><button type="button" className={styles.primary} disabled={busy||!item.canBuy} onClick={()=>onBuyGear?.(item.id)}>Comprar {item.name}</button></div><div className={styles.shopPriceGroup}><strong>{item.unitPrice.toLocaleString('pt-BR')} moedas</strong></div></article>)}</div><p>Expansão da mochila: em preparação.</p></>}
       <section className={styles.shopOdds} aria-label="Chances de encontrar Pokébolas">
         <h3>Chances de encontrar Pokébolas</h3>
         <p>Após cada vitória com recompensa válida, você pode encontrar

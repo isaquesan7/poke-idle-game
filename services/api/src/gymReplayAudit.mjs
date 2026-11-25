@@ -6,6 +6,7 @@ import {createHmac} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {createPrivateBattleRandom} from './battleEntropy.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
+import {gymPresentation} from './gymPresentation.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const encoded=x=>JSON.parse(JSON.stringify(x));
@@ -94,6 +95,7 @@ export async function replayGymHistoryInTransaction(client,params){
         actionNumber:ordinal,turn:result.state.turn,
         outcome:result.state.outcome,playerAction:action,leaderAction:ai,
         state:result.state,logDelta:result.log,framesDelta:result.frames,
+        ...(Object.hasOwn(receipt.turn_result,'presentation')?{presentation:gymPresentation(state,result)}:{}),
         nextActions:result.state.outcome==='ongoing'?
           core.gymLegalTurnActions(result.state,'player'):[]
       };

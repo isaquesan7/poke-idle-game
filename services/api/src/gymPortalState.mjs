@@ -4,15 +4,9 @@
  */
 import {loadCombatAdapter} from './battlePreview.mjs';
 import {ciOnlineFeatureEnabled} from './onlineFeatureGate.mjs';
+import {gymPublicSide as side} from './gymPresentation.mjs';
 export function gymPortalEnabled(env=process.env){
  return ciOnlineFeatureEnabled('ONLINE_GYM_PORTAL_CI_ONLY',env);
-}
-function side(p){
- return {activeIndex:p.activeIndex,needsReplacement:p.needsReplacement,
-  voluntarySwitchesUsed:p.voluntarySwitchesUsed,
-  fighters:p.fighters.map(f=>({uid:f.uid,speciesId:f.combatant.speciesId,
-   level:f.combatant.level,hp:f.hp,maxHp:f.combatant.stats.hp,
-   sp:f.sp,maxSp:f.maxSp,status:f.status,retreatRecoveriesUsed:f.retreatRecoveriesUsed}))};
 }
 export async function readCurrentGym(pool,accountId){
  const q=await pool.query(
@@ -22,7 +16,7 @@ export async function readCurrentGym(pool,accountId){
     EXISTS(SELECT 1 FROM game_encounter_reservations e
       WHERE e.account_id=s.account_id AND e.status='reserved') AS regional_busy,
     COALESCE((SELECT jsonb_agg(jsonb_build_object('actionNumber',r.action_number,
-      'log',r.turn_result->'logDelta') ORDER BY r.action_number)
+      'log',r.turn_result->'logDelta','presentation',r.turn_result->'presentation') ORDER BY r.action_number)
       FROM game_gym_turn_receipts r WHERE r.account_id=s.account_id
       AND r.gym_reservation_id=g.id),'[]'::jsonb) AS history
    FROM game_saves s LEFT JOIN game_gym_reservations g
@@ -35,13 +29,29 @@ export async function readCurrentGym(pool,accountId){
   const state=row.turn_state;
   const phase=row.certificate_action_id?'certified':!state?'reserved':
     state.outcome==='ongoing'?'await-player':'resolved';
+  const latest=row.history.at(-1);
+  const log=row.history.flatMap(r=>Array.isArray(r.log)?r.log.filter(x=>typeof x==='string'):[]);
+  const presentation=latest?.presentation&&latest.presentation.events?.length===latest.log?.length?{...latest.presentation,logOffset:log.length-latest.log.length}:null;
+  // Compact historical actor identity; only the latest round needs full visual state.
+  const narration=row.history.flatMap(r=>{
+   const p=r.presentation,lines=Array.isArray(r.log)?r.log:[];
+   return lines.flatMap((line,i)=>{
+    if(typeof line!=='string')return [];
+    const match=/^(player|leader)\s+(.+)$/.exec(line),after=p?.events?.[i]?.display,before=i===0?p?.before:p?.events?.[i-1]?.display;
+    if(!match||!before||!after)return [null];
+    const side=match[1]==='player'?'player':'opponent',other=side==='player'?'opponent':'player';
+    const id=(d,k)=>d[k].fighters[d[k].activeIndex].speciesId;
+    return [{turn:p.turn,side,actor:id(before,side),foe:id(before,other),entered:id(after,side)}];
+   });
+  });
   return {status:'ok',revision,nextGym:null,canReserve:false,gym:{
    id:row.id,gymId:row.gym_id,leader:row.leader,leaderLevel:row.leader_level??null,teamUids:row.team_uids,
    phase,turn:state?.turn??0,outcome:state?.outcome??null,
    actionNumber:row.history.at(-1)?.actionNumber??0,
    player:state?side(state.player):null,opponent:state?side(state.leader):null,
    actions:phase==='await-player'?core.gymLegalTurnActions(state,'player'):[],
-   log:row.history.flatMap(r=>Array.isArray(r.log)?r.log.filter(x=>typeof x==='string'):[])
+   recommendedAction:phase==='await-player'?core.gymChooseAiAction(state,'player'):null,
+   log,presentation,narration
   }};
  }
  let raw;

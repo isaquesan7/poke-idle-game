@@ -9,7 +9,7 @@ import {onlineRoute} from '../services/api/src/onlineRoutePolicy.mjs';
 const paths=new Set(['/api/v1/auth/register','/api/v1/auth/verify',
   '/api/v1/auth/login','/api/v1/auth/request-reset','/api/v1/auth/confirm-reset']);
 const apiReads=new Set(['/api/v1/status','/api/v1/me','/api/v1/save']);
-const pages=new Set(['/','/verify-email','/reset-password','/play','/play/','/regions','/regions/']);
+const pages=new Set(['/','/verify-email','/reset-password','/play','/play/','/regions','/regions/','/online','/online/']);
 const logout='/api/v1/auth/logout';
 const responseAllow=new Set(['content-type','retry-after']);
 function routeFor(raw,gameplayEnabled){

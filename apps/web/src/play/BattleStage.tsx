@@ -25,6 +25,7 @@ interface BattleStageProps {
   readonly levelUp?:boolean;
   /** Rótulo contextual: selvagem na região, adversário oficial no Ginásio. */
   readonly opponentLabel?:string;
+  readonly vitals?:{playerHp:number;wildHp:number;playerSp:number;wildSp:number};
 }
 type Side='player'|'wild';
 
@@ -88,12 +89,13 @@ function SkillMeter({side,sp,max,focusRecovery,opponentLabel}:{
 }
 
 /** Somente as alterações já reveladas pelo log acionam efeito visual. */
-function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLabel}:{
+function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLabel,vitals}:{
   readonly side:Side;readonly fighter:FighterPanel;
   readonly frame:KantoBattleVisualFrame|null;
   readonly maxHp:number|null;readonly maxSp:number|null;
   readonly cue:string;readonly playing:boolean;readonly levelUp:boolean;
-  readonly opponentLabel:string
+  readonly opponentLabel:string;
+  readonly vitals?:{playerHp:number;wildHp:number;playerSp:number;wildSp:number}|undefined;
 }) {
   const targeted=playing&&frame?.target===side;
   const hit=targeted&&(frame.kind==='attack'||frame.kind==='residual')&&frame.amount>0;
@@ -114,9 +116,9 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLab
         :effective<1?'RESISTIDO':'';
   // Somente o HP do frame já exibido determina o desmaio.
   // Sem frame válido não inventar KO para saves antigos.
-  const knockedOut=frame!==null
-    &&(side==='player'?frame.playerHp===0:frame.wildHp===0);
-  const sp=side==='player'?frame?.playerSp:frame?.wildSp;
+  const hp=side==='player'?(frame?.playerHp??vitals?.playerHp):(frame?.wildHp??vitals?.wildHp);
+  const knockedOut=hp===0;
+  const sp=side==='player'?(frame?.playerSp??vitals?.playerSp):(frame?.wildSp??vitals?.wildSp);
   const animatedSprite=useRef<HTMLDivElement|null>(null);
 
   useLayoutEffect(()=>{
@@ -158,8 +160,8 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLab
       </div>
       <strong>{fighter.name} · Nv. {fighter.level}</strong>
       <small>{side==='player'?'Seu parceiro':opponentLabel}</small>
-      {frame&&maxHp!==null&&maxHp>0&&(
-        <HealthMeter side={side} hp={side==='player'?frame.playerHp:frame.wildHp} max={maxHp} opponentLabel={opponentLabel} />
+      {hp!==undefined&&maxHp!==null&&maxHp>0&&(
+        <HealthMeter side={side} hp={hp} max={maxHp} opponentLabel={opponentLabel} />
       )}
       {typeof sp==='number'&&Number.isSafeInteger(sp)&&maxSp!==null&&maxSp>0
         &&sp>=0&&sp<=maxSp&&(
@@ -176,20 +178,20 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLab
  */
 export function BattleStage({player,wild,frame,playerMaxHp,wildMaxHp,
   playerMaxSp,wildMaxSp,cue,playing,stageRef,levelUp=false,
-  opponentLabel='Pokémon selvagem'}:BattleStageProps) {
+  opponentLabel='Pokémon selvagem',vitals}:BattleStageProps) {
   return (
     <div className={styles.battleScene} data-testid="battle-stage"
       ref={stageRef} tabIndex={-1} role="region" aria-label="Área do combate">
       <Fighter side="player" fighter={player} frame={frame} maxHp={playerMaxHp}
-        maxSp={playerMaxSp} cue={cue} playing={playing} levelUp={levelUp} opponentLabel={opponentLabel}/>
+        maxSp={playerMaxSp} cue={cue} playing={playing} levelUp={levelUp} opponentLabel={opponentLabel} vitals={vitals}/>
       <span className={styles.vs}>VS</span>
       {wild&&<Fighter side="wild" fighter={wild} frame={frame} maxHp={wildMaxHp}
-        maxSp={wildMaxSp} cue={cue} playing={playing} levelUp={false} opponentLabel={opponentLabel}/>}
+        maxSp={wildMaxSp} cue={cue} playing={playing} levelUp={false} opponentLabel={opponentLabel} vitals={vitals}/>}
       {!wild&&<div className={styles.battleFighter}>
         <span className={styles.unknownEnemy}>?</span>
         <strong>Encontro surpresa</strong><small>Pokémon selvagem</small>
       </div>}
-      {wild&&!frame&&(
+      {wild&&!frame&&!vitals&&(
         <p className={styles.battleOldReplayNote}>
           Este combate anterior não possui trilha de HP por evento; o diário continua disponível.
         </p>

@@ -1054,6 +1054,9 @@ async function refreshPortal(){
   if(epoch!==portalEpoch)return false;
   if(me.status===401){render('login');return false;}
   if(me.status!==200||typeof me.data?.trainerName!=='string')throw new Error('Conta indisponível.');
+  // The actual Alpha game owns the authenticated private journey. Keep the
+  // technical harness only in CI/closed rollout, not as the owner's game.
+  if(privateHomologation){window.location.replace('/online');return true;}
   panel.hidden=false;$('portal-layout').classList.add('portal-open');tabs.hidden=true;form.hidden=true;
   $('online-trainer').textContent=me.data.trainerName;
   const save=await getOnline('/api/v1/save');

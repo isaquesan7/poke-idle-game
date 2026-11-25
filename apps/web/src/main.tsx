@@ -9,7 +9,9 @@ const target = document.getElementById('root');
 if (!target) throw new Error('Raiz React indisponível');
 createRoot(target).render(
   <React.StrictMode>
-    {window.location.pathname === '/regions' || window.location.pathname === '/regions/'
+    {window.location.pathname === '/online' || window.location.pathname === '/online/'
+      ? <PlayApp online />
+      : window.location.pathname === '/regions' || window.location.pathname === '/regions/'
       ? <PlayApp initialTab="regions" />
       : window.location.pathname === '/play' || window.location.pathname === '/play/'
         ? <PlayApp /> : <App />}

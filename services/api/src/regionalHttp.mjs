@@ -64,7 +64,7 @@ export async function readRegionalEncounter(pool,accountId,expanded=false){
  return {status:'ok',revision:Number(row.revision),
   regions:expanded?regions:regions.filter(r=>r.id===1),pendingLoot:raw.pendingRegionalLoot!=null||raw.pendingExpeditionLoot!=null,encounter:row.id?{
   id:row.id,regionId:Number(row.region_id),speciesId:row.species_id,level:row.pokemon_level,
-  phase,actions:actions??[],captureChoices,loot:phase==='paid'?row.battle_turn_payout_receipt?.loot??null:null,playerLevel:row.battle_snapshot?.activePokemon?.level??null,
+  phase,actions:actions??[],recommendedAction:phase==='await-player'?core.chooseFrozenWildPlayerAction(row.battle_snapshot,state):null,captureChoices,loot:phase==='paid'?row.battle_turn_payout_receipt?.loot??null:null,playerLevel:row.battle_snapshot?.activePokemon?.level??null,
   turn:state?.turn??0,outcome:state?.outcome??null,player:actor(state?.player),wild:actor(state?.wild),
   log:Array.isArray(state?.log)?state.log:[],frames:Array.isArray(state?.frames)?state.frames:[]
  }:null};
