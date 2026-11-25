@@ -1,3 +1,5 @@
+> **23F12B2 CANDIDATA:** #287 integrada; #288 congela ranks em região/Gym, valida replay e preserva snapshots antigos. Sem writer de rank ainda, CI obrigatório. Próximo B3 writer/HTTP/UI. Cadastro OFF.
+
 > **23F12B1 CANDIDATA PURA:** depende #287 D064BT, ranks por UID/slot com reducer legado; sem writer ou aplicação em combate, CI e reconciliação obrigatórios. Próximo B2 snapshots/replay Gym e região. Cadastro OFF.
 
 > **D064BT CANDIDATA:** #286 integrada seis CI SUCCESS; corrigir encontros selvagens por piso evolutivo no catálogo compartilhado, oito espécies realocadas, Primeape R3 Nv28–30, sem mudar captura D064BF. CI antes de merge. Próximo ranks 23F12B. Cadastro OFF.
