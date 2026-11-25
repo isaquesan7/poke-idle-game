@@ -72,6 +72,25 @@ describe('ONLINE-01C-11 — canonical frozen PvE adapter (no grants)',()=>{
    expect(previewFrozenWildBattle(fresh(),-1)).toBeNull();
    expect(previewFrozenWildBattle(fresh(),2**32)).toBeNull();
  });
+ it('freezes per-slot ranks with zero fallback and rejects forged budgets',()=>{
+   const input={...fresh(),version:2,activePokemon:{...fresh().activePokemon,level:30,
+     moveNames:['scratch','ember','growl'],upgrades:{scratch:4,ember:2}}};
+   const pair=canonicalFrozenCombatants(input)!;
+   expect(pair.player.rank).toBe(4);
+   expect(pair.player.ranks).toEqual({scratch:4,ember:2,growl:0});
+   expect(pair.wild.rank).toBe(0);
+   const bad=(upgrades:unknown)=>canonicalFrozenCombatants({...input,activePokemon:{...input.activePokemon,upgrades}});
+   expect(bad({scratch:5})).toBeNull();
+   expect(bad({scratch:4,ember:3})).toBeNull();
+   expect(bad({growl:1})).toBeNull();
+   expect(bad({'hyper-beam':1})).toBeNull();
+   expect(canonicalFrozenCombatants({...fresh(),activePokemon:{...fresh().activePokemon,upgrades:{scratch:1}}})).toBeNull();
+   const primaryOnly=canonicalFrozenCombatants({...input,activePokemon:{...input.activePokemon,upgrades:{scratch:4}}})!;
+   expect(primaryOnly.player.ranks).toEqual({scratch:4,ember:0,growl:0});
+   const legacy=canonicalFrozenCombatants({...input,activePokemon:{...input.activePokemon,upgrades:undefined}})!;
+   expect(legacy.player.rank).toBe(0);
+   expect(legacy.player.ranks).toBeUndefined();
+ });
  it('accepts legal FRLG learned attacks and computes player investment bonuses',()=>{
    const input={...fresh(),trainer:{level:2,manual:{...blank(),hp:1}},
      activePokemon:{...fresh().activePokemon,level:7,moveName:'ember'}};
