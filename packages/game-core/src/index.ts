@@ -143,7 +143,7 @@ export {KANTO_GYMS,KANTO_GYM_MASTER_TITLE_STATS,kantoNextGym,kantoGymCatalogInva
 export type {KantoGymId,KantoGymPokemon,KantoGymDefinition} from './gyms/kantoGyms.js';
 
 // GYM-02A: seleção/treino/IA tática apenas, sem resolução de combate ou rewards.
-export {selectGymTeam,gymTrainerPoints,gymLegalMoves,prepareGymOpponent,prepareLegacyGymOpponent,gymAiDecision}
+export {selectGymTeam,gymTrainerPoints,gymLegalMoves,prepareGymOpponent,gymAiDecision}
   from './gyms/gymTactics.js';
 export type {GymTeamSlot,GymAiDecision,GymPreparedOpponent} from './gyms/gymTactics.js';
 
