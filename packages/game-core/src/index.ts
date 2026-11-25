@@ -200,3 +200,8 @@ export {createFrozenWildTurnSession,initialFrozenWildTurnActions}
 // ONLINE-01C-19 — one canonical Gym-engine round for server wild battles.
 export {legalFrozenWildTurnActions,resolveFrozenWildTurn}
   from './combat/serverWildTurnResolver.js';
+
+// Shared read-only presentation contracts for the authenticated Alpha UI.
+export {onlineInventoryProjection} from './inventory/serverInventory.js';
+export {onlineShopProjection} from './combat/serverShop.js';
+export {onlineExpeditionProjection} from './combat/serverExpedition.js';

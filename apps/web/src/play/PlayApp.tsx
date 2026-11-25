@@ -25,7 +25,8 @@ import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
 import { GymScreen } from './GymScreen';
 import { PokemonTraining } from './PokemonTraining';
-import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction} from './onlinePlay';
+import type {OnlineViews} from './onlinePlay';
+import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand} from './onlinePlay';
 import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
 import { formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
@@ -137,9 +138,10 @@ function sectionName(tab: Tab): string {
 export function PlayApp({initialTab='overview',online=false}:{readonly initialTab?:'overview'|'regions';readonly online?:boolean}={}) {
   const [save, setSave] = useState<PlayRead>(()=>online?{status:'unavailable'}:readSafe());
   const onlineLock=useRef(false);
+  const [onlineViews,setOnlineViews]=useState<OnlineViews|null>(null);
   const [onlineLoading,setOnlineLoading]=useState(online);
   async function refreshOnline():Promise<PlayRead>{
-    try{const account=await readOnlineAccount();setName(account.name);setSave(account.save);return account.save;}
+    try{const account=await readOnlineAccount();const views=account.save.status==='ready'?await readOnlineViews(account.save.snapshot.revision):null;setOnlineViews(views);setName(account.name);setSave(account.save);return account.save;}
     catch{const unavailable:PlayRead={status:'unavailable'};setSave(unavailable);return unavailable;}
     finally{setOnlineLoading(false);}
   }
@@ -263,6 +265,13 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     }catch{await refreshOnline();setFeedback('Não foi possível confirmar a ação no servidor.');return null;}
     finally{onlineLock.current=false;setBusy(false);}
   }
+  async function onlineExtra(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>){
+    if(!online||onlineLock.current||save.status!=='ready')return;
+    onlineLock.current=true;setBusy(true);setFeedback('');
+    try{const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');}
+    catch{await refreshOnline();setFeedback('Ação não confirmada. Confira o progresso.');}
+    finally{onlineLock.current=false;setBusy(false);}
+  }
   function newGame() {
     if(online){
       if(onlineLock.current||save.status!=='absent')return;
@@ -382,7 +391,9 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   const parsed = save.status === 'ready' ? parseLegacySave(save.snapshot.journal.raw) : null;
   const data = parsed?.status === 'valid' ? parsed.save : null;
   const projected = data ? projectLegacyTrainer(data, BATTLE_SPECIES_CACHE, now) : null;
-  const view = projected?.status === 'ready' ? projected.value : null;
+  const baseView = projected?.status === 'ready' ? projected.value : null;
+  const inventory=onlineViews?.inventory;
+  const view=online&&baseView&&inventory?{...baseView,totals:inventory.totals}:baseView;
   const active = data?.roster.find(p => p.uid === data.team[0]) ?? data?.roster[0];
   // Treinar uma captura NÃO altera o líder da Arena. Cada instância mantém seu UID.
   const focused = data?.roster.find(p => p.uid === selectedUid) ?? active;
@@ -686,7 +697,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         <nav className={styles.menu} aria-label="Navegação do jogo">
           {(['overview','trainer','pokemon','collection','pokedex','regions','gyms','expedition','shop'] as Tab[]).map(item => (
-            <button type="button" key={item} disabled={online&&['trainer','gyms','expedition','shop'].includes(item)} aria-current={tab === item ? 'page' : undefined}
+            <button type="button" key={item} disabled={online&&(item==='gyms'||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition)} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
               onClick={() => { if(pendingBattle){setTab('battle');setFeedback('Conclua o combate em andamento antes de navegar.');return;} if(ballGame?.gymSession&&item!=='gyms'){setTab('gyms');setFeedback('Finalize ou abandone o Ginásio antes de sair.');return;} if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
@@ -722,9 +733,9 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                     <h2>Bem-vindo de volta, {view.name}!</h2>
                     <p>Seu parceiro está pronto. Continue sua jornada, distribua pontos e receba recompensas idle.</p>
                     <div className={styles.heroActions}>
-                      <button type="button" className={styles.primary} disabled={online} onClick={() => setTab('expedition')}>
+                      <button type="button" className={styles.primary} disabled={online&&!onlineViews?.expedition} onClick={() => setTab('expedition')}>
                         {expedition ? 'Ver expedição ativa' : 'Iniciar expedição'}</button>
-                      <button type="button" className={styles.secondary} disabled={online} onClick={() => setTab('trainer')}>Meu treinador</button>
+                      <button type="button" className={styles.secondary} disabled={online&&!inventory} onClick={() => setTab('trainer')}>Meu treinador</button>
                       <button type="button" className={styles.secondary} onClick={() => setTab('regions')}>Explorar regiões</button>
                       <button type="button" className={styles.secondary} onClick={() => setTab('pokedex')}>Abrir Pokédex</button>
                     </div>
@@ -759,13 +770,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                     <p>{expedition
                       ? 'Explorando Kanto · ' + (pending?.cycles ?? 0) + ' ciclos disponíveis para resgate'
                       : 'Envie seu parceiro em expedição para receber moedas e XP.'}</p>
-                    <button type="button" className={styles.secondary} disabled={online} onClick={() => setTab('expedition')}>Abrir expedição</button>
+                    <button type="button" className={styles.secondary} disabled={online&&!onlineViews?.expedition} onClick={() => setTab('expedition')}>Abrir expedição</button>
                   </section>
                 </div>
               </>
             )}
             {tab === 'trainer' && <TrainerScreen view={view} data={data}
-              revision={save.snapshot.revision} busy={busy}
+              revision={save.snapshot.revision} busy={busy||!!inventory?.busy}
+              {...(inventory?{onlineInventory:inventory,onDiscardGear:(id:string)=>void onlineExtra('inventory/loadout',{command:{kind:'discard-gear',itemId:id}})}:{})}
               onInvest={investTrainerBatch}
               onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
@@ -1426,7 +1438,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               onOpenCollection={()=>setTab('collection')}/>}
             {tab === 'shop' && <BallShopPreview coins={data.coins}
               trainerLevel={view.level} quantities={ballQuantities}
-              busy={busy} onBuy={(ballId,quantity)=>void buyBall(ballId,quantity)}/>} 
+              busy={busy||!!onlineViews?.shop?.busy} onBuy={(ballId,quantity)=>void buyBall(ballId,quantity)}
+              {...(onlineViews?.shop?{onlineShop:onlineViews.shop,onBuyGear:(id:string)=>void onlineExtra('shop/purchase',{templateId:id})}:{})}/>} 
             {tab === 'expedition' && (
               <ExpeditionScreen
                 expedition={expedition??null}
@@ -1440,14 +1453,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 leaderName={view.active.name}
                 leaderLevel={active.level}
                 leaderArt={<PokemonArt id={active.pokemonId} name={view.active.name} />}
-                pending={pendingClaim??null}
+                pending={online?(onlineViews?.expedition?.expedition?.preview?{cycles:onlineViews.expedition.expedition.preview.cycles,coins:onlineViews.expedition.expedition.preview.coins,trainerXp:onlineViews.expedition.expedition.preview.trainerXP,pokemonXpPerMember:onlineViews.expedition.expedition.preview.pokemonXP}:null):pendingClaim??null}
                 ballStockCapped={pendingStockLimitReached}
                 ballProgress={expProgress}
                 activePokemonLevel={expeditionMembers[0]?.level??active.level}
-                nowMs={now}
-                busy={busy}
+                nowMs={now+(onlineViews?.clockOffset??0)}
+                busy={busy||!!onlineViews?.expedition?.busy}
                 onStart={()=>dispatch({type:'start-expedition',regionId:expeditionArea,nowMs:Date.now()})}
-                onClaim={()=>dispatch({type:'claim-expedition',nowMs:Date.now()})}
+                onClaim={()=>{if(onlineViews?.expedition?.pendingLoot){setFeedback('Resolva os itens pendentes na mochila antes de resgatar novamente.');return;}dispatch({type:'claim-expedition',nowMs:Date.now()});}}
                 onStop={()=>dispatch({type:'stop-expedition',nowMs:Date.now()})}
               />
             )}

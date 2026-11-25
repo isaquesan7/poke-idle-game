@@ -1,6 +1,18 @@
 import {parseLegacySave} from '../storage/legacySave';
 import type {PlayRead,PlaySnapshot,PlayAction} from './playSave';
 import {STATS,pokemonMoveSlots} from '@kanto/game-core';
+import type {onlineInventoryProjection,onlineShopProjection,onlineExpeditionProjection} from '@kanto/game-core';
+export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number};
+export type ShopView=NonNullable<ReturnType<typeof onlineShopProjection>> & {revision:number};
+export type ExpeditionView=NonNullable<ReturnType<typeof onlineExpeditionProjection>> & {revision:number;busy:boolean};
+export interface OnlineViews {inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;clockOffset:number}
+export async function readOnlineViews(revision:number):Promise<OnlineViews>{
+ async function load<T>(path:string):Promise<T|null>{try{const r=await get(path);if(!r.ok)return null;const v=await r.json();return v?.status==='ok'&&v.revision===revision?v as T:null;}catch{return null;}}
+ const [inventory,shop,expedition]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),load<ExpeditionView>('expedition/current')]);
+ return {inventory,shop,expedition,clockOffset:expedition?expedition.serverNowMs-Date.now():0};
+}
+export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>,revision:number){const r=await post(path,{...fields,actionId:crypto.randomUUID(),expectedRevision:revision});return r.ok;}
+
 type Account={name:string;save:PlayRead};
 const get=(path:string)=>fetch('/api/v1/'+path,{credentials:'same-origin',cache:'no-store'});
 const post=(path:string,body:unknown)=>fetch('/api/v1/'+path,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -45,7 +57,7 @@ export function onlineCommand(action:PlayAction,snapshot:PlaySnapshot):{path:str
   const entries=STATS.filter(k=>(action.increments[k]??0)>0);
   return entries.length===1&&action.increments[entries[0]!]===1?{path:'trainer/invest',fields:{stat:entries[0]}}:null;
  }
- case 'trainer':return action.value.type==='title'?{path:'inventory/loadout',fields:{command:{kind:'title',titleId:action.value.titleId}}}:null;
+ case 'trainer':return action.value.type==='title'?{path:'inventory/loadout',fields:{command:{kind:'title',titleId:action.value.titleId}}}:action.value.type==='equip'?{path:'inventory/loadout',fields:{command:{kind:'equipment',slot:action.value.slot,itemId:action.value.itemId||null}}}:null;
  case 'pokemon':{
   const a=action.value;
   if(a.type==='reset-pokemon')return {path:'pokemon-training/train',fields:{pokemonUid:a.uid,increments:{},reset:true}};

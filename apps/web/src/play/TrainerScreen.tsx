@@ -15,6 +15,7 @@ import styles from './TrainerScreen.module.css';
 import {InventoryGrid,InventoryDialog} from './InventoryGrid';
 import {TitlePicker} from './TitlePicker';
 import type {InventorySlotItem} from './InventoryGrid';
+import type {InventoryView} from './onlinePlay';
 
 type Section='profile'|'equipment'|'bag';
 type Draft=Partial<Record<Stat,number>>;
@@ -39,8 +40,10 @@ export interface TrainerScreenProps{
   onInvest:(increments:Draft,revision:number)=>Promise<boolean>;
   onEquip:(slot:EquipmentSlot,itemId:string)=>void;
   onTitle:(titleId:string)=>void;
+  onlineInventory?:InventoryView;
+  onDiscardGear?:(id:string)=>void;
 }
-export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}:TrainerScreenProps){
+export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,onlineInventory,onDiscardGear}:TrainerScreenProps){
   const [section,setSection]=useState<Section>('profile');
   const [selectedEquipment,setSelectedEquipment]=useState<string|null>(null);
   const [equipmentFilter,setEquipmentFilter]=useState<'all'|'equipped'>('all');
@@ -60,10 +63,10 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
   const equippedIds=new Set(Object.values(equipped).filter(Boolean));
   const ownership=inspectInventoryOwnership(data.inventory);
   const legacyCatalog=ownership.status==='legacy-untracked';
-  const bagCapacity=ownership.status==='valid'?BASE_BAG_SLOTS+ownership.inventory.extraBagSlots:BASE_BAG_SLOTS;
+  const bagCapacity=onlineInventory?.bag.capacity??(ownership.status==='valid'?BASE_BAG_SLOTS+ownership.inventory.extraBagSlots:BASE_BAG_SLOTS);
   // O catálogo legado ainda NÃO é inventário de propriedade; os equipamentos
   // seguem selecionáveis no laboratório, sem alegar que foram conquistados.
-  const equipmentEntries:InventorySlotItem[]=LEGACY_ITEMS
+  const equipmentEntries:InventorySlotItem[]=onlineInventory?onlineInventory.equipment.map(item=>({id:item.id,name:item.name,description:item.rarity+' · Nv. '+item.requiredLevel,icon:SLOT_ICONS[item.slot],quantity:1,detail:bonusLabel(item.stats),status:item.equipped?'Equipado':'Não equipado'})):LEGACY_ITEMS
     .filter(item=>legacyCatalog||ownership.status==='valid'&&(ownership.inventory.ownedEquipment[item.id]??0)>0)
     .map(item=>({
     id:item.id,name:item.name,description:'Equipamento de '+SLOT_NAMES[item.slot]+' do catálogo de testes.',
@@ -74,10 +77,10 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
   const visibleEquipment=equipmentFilter==='equipped'
     ? equipmentEntries.filter(item=>equippedIds.has(item.id)):equipmentEntries;
   const equipmentChoice=selectedEquipment
-    ? LEGACY_ITEMS.find(item=>item.id===selectedEquipment):undefined;
+    ? (onlineInventory?onlineInventory.equipment.find(item=>item.id===selectedEquipment):LEGACY_ITEMS.find(item=>item.id===selectedEquipment)):undefined;
   const equipmentEquipped=equipmentChoice!==undefined&&equipped[equipmentChoice.slot]===equipmentChoice.id;
   // Apenas stones no save. Cada stack ocupa um espaço, sem concessão.
-  const bagEntries:InventorySlotItem[]=Object.entries(stoneStock)
+  const bagEntries:InventorySlotItem[]=onlineInventory?[...onlineInventory.bag.stacks.map(item=>({id:item.id,name:item.name,quantity:item.quantity,description:item.kind==='ball'?'Pokébola':'Pedra de evolução',icon:item.kind==='ball'?'fa-circle':'fa-gem'})),...equipmentEntries.filter(item=>item.status!=='Equipado')]:Object.entries(stoneStock)
     .filter(([,qty])=>Number.isSafeInteger(qty)&&qty>0)
     .sort(([a],[b])=>a.localeCompare(b))
     .map(([name,quantity])=>({
@@ -87,7 +90,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
 
 
   function stage(stat:Stat){
-    if(busy||submitting||remaining<=0||view.manual[stat]+(pending[stat]??0)>=40)return;
+    if(busy||submitting||(onlineInventory&&pendingCount>=1)||remaining<=0||view.manual[stat]+(pending[stat]??0)>=40)return;
     setDraftRevision(revision);
     setDraft({...pending,[stat]:(pending[stat]??0)+1});
   }
@@ -153,11 +156,11 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
                   aria-label="Arte original do treinador pendente de inclusão no repositório">♙</div>}
             <div className={styles.gearLeft}>
               {LEGACY_EQUIPMENT_SLOTS.slice(0,5).map(slot=>
-                <GearCard key={slot} slot={slot} selected={equipped[slot]}/>)}
+                <GearCard key={slot} slot={slot} selected={equipped[slot]} onlineItem={onlineInventory?.equipment.find(item=>item.id===equipped[slot])}/>)}
             </div>
             <div className={styles.gearRight}>
               {LEGACY_EQUIPMENT_SLOTS.slice(5).map(slot=>
-                <GearCard key={slot} slot={slot} selected={equipped[slot]}/>)}
+                <GearCard key={slot} slot={slot} selected={equipped[slot]} onlineItem={onlineInventory?.equipment.find(item=>item.id===equipped[slot])}/>)}
             </div>
           </div>
           <p className={styles.hint}>Passe o mouse, toque ou navegue com Tab para ver os detalhes dos equipamentos. Para trocar, abra Equipamentos.</p>
@@ -182,14 +185,14 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
                   {(pending[stat]??0)>0&&<button type="button" className={styles.undoPoint}
                     disabled={busy||submitting} onClick={()=>unstage(stat)}
                     aria-label={'Retirar um ponto da prévia de '+STAT_LABELS[stat]}>−</button>}
-                  <button type="button" disabled={busy||submitting||remaining<1||view.manual[stat]+(pending[stat]??0)>=40}
+                  <button type="button" disabled={busy||submitting||(!!onlineInventory&&pendingCount>=1)||remaining<1||view.manual[stat]+(pending[stat]??0)>=40}
                     onClick={()=>stage(stat)} aria-label={'Pré-visualizar +1 em '+STAT_LABELS[stat]}>+1</button>
                 </div>
               </div>;
             })}
           </div>
           <div className={styles.points}><span>Pontos disponíveis: <strong>{remaining}</strong></span>
-            <small>Máximo manual: 40 por atributo</small></div>
+            <small>Máximo manual: 40 por atributo{onlineInventory?' · confirmação de um ponto por vez':''}</small></div>
           {hasStaleDraft&&<p className={styles.staleNotice} role="alert">Seu progresso mudou em outra ação. Refaça a distribuição para manter os valores corretos.</p>}
           {pendingCount>0&&<div className={styles.confirm}>
             <p role="status">Prévia: <strong>{pendingCount} ponto(s)</strong> ainda não aplicados.</p>
@@ -234,8 +237,8 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
         <span className={styles.smallTag}>{equippedIds.size} equipados</span>
       </div>
       <p className={styles.hint}>Clique ou toque em um cubo para conferir atributos e equipar/remover.
-        {legacyCatalog?' No save atual, o catálogo permanece disponível como laboratório até a migração de propriedade.':' Exibindo somente os equipamentos registrados no inventário versionado.'}</p>
-      {ownership.status==='invalid'&&<p className={styles.staleNotice} role="alert">Dados de propriedade inválidos. Equipamentos bloqueados por segurança.</p>}
+        {onlineInventory?' Equipamentos individuais do servidor.':legacyCatalog?' No save atual, o catálogo permanece disponível como laboratório até a migração de propriedade.':' Exibindo somente os equipamentos registrados no inventário versionado.'}</p>
+      {!onlineInventory&&ownership.status==='invalid'&&<p className={styles.staleNotice} role="alert">Dados de propriedade inválidos. Equipamentos bloqueados por segurança.</p>}
       <div className={styles.inventoryFilters} role="group" aria-label="Filtrar equipamentos">
         <button type="button" className={equipmentFilter==='all'?styles.filterActive:styles.filter}
           aria-pressed={equipmentFilter==='all'} onClick={()=>setEquipmentFilter('all')}>
@@ -254,7 +257,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
         <div className={styles.detailItem}>
           <span className={styles.detailIcon}><Fa name={SLOT_ICONS[equipmentChoice.slot]}/></span>
           <div><strong>{SLOT_NAMES[equipmentChoice.slot]}</strong>
-            <p>{'Equipamento de '+SLOT_NAMES[equipmentChoice.slot]+' do catálogo de testes.'}</p></div>
+            <p>{onlineInventory?'Equipamento individual do servidor.':'Equipamento de '+SLOT_NAMES[equipmentChoice.slot]+' do catálogo de testes.'}</p></div>
         </div>
         <div className={styles.detailStats}>
           <strong>Atributos</strong><p>{bonusLabel(equipmentChoice.stats)||'Sem bônus adicional'}</p>
@@ -262,7 +265,8 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
         </div>
         <div className={styles.detailActions}>
           <button type="button" className={styles.cancel} onClick={()=>setSelectedEquipment(null)}>Cancelar</button>
-          <button type="button" className={styles.confirmButton} disabled={busy}
+          {onlineInventory&&!equipmentEquipped&&onDiscardGear&&<button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar definitivamente este equipamento?')){onDiscardGear(equipmentChoice.id);setSelectedEquipment(null);}}}>Descartar</button>}
+          <button type="button" className={styles.confirmButton} disabled={busy||!!onlineInventory&&(!equipmentEquipped&&!onlineInventory.equipment.find(item=>item.id===equipmentChoice.id)?.canEquip||equipmentEquipped&&onlineInventory.bag.available===0)}
             onClick={()=>{
               onEquip(equipmentChoice.slot,equipmentEquipped?'':equipmentChoice.id);
               setSelectedEquipment(null);
@@ -279,14 +283,14 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle}
       <p className={styles.hint}>Cada tipo de item empilhado ocupa um cubo, independentemente da quantidade.
         Passe o mouse ou use o foco do teclado para ver detalhes. No celular, toque no cubo.</p>
       <InventoryGrid title="Mochila" items={bagEntries} capacity={bagCapacity}/>
-      <p className={styles.hint}>A expansão da mochila será desbloqueada por um item futuro.
+      <p className={styles.hint}>{onlineInventory?'Capacidade e propriedade confirmadas pelo servidor.':'A expansão da mochila será desbloqueada por um item futuro.'}{!onlineInventory&&<>
         A capacidade é informativa até ser ligada às regras de aquisição e ao writer de itens.
-        Pokébolas, cura e TMs aparecerão apenas quando forem adquiridos.</p>
+        Pokébolas, cura e TMs aparecerão apenas quando forem adquiridos.</>}</p>
     </section>}
   </section>;
 }
-function GearCard({slot,selected}:{slot:EquipmentSlot;selected:string|undefined}){
-  const item=LEGACY_ITEMS.find(x=>x.slot===slot&&x.id===selected);
+function GearCard({slot,selected,onlineItem}:{slot:EquipmentSlot;selected:string|undefined;onlineItem?:InventoryView['equipment'][number]|undefined}){
+  const item=onlineItem??LEGACY_ITEMS.find(x=>x.slot===slot&&x.id===selected);
   const description=item?item.name+' · '+bonusLabel(item.stats):SLOT_NAMES[slot]+' · Vazio';
   return <button type="button" className={styles.gear} title={description}
     aria-label={description}>
