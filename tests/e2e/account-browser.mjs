@@ -94,7 +94,8 @@ try{
   await publicPage.goto(closedOrigin+'/',{waitUntil:'domcontentloaded'});
   await publicPage.getByText('Cadastro e login online em preparação.',{exact:false}).waitFor();
   assert.equal(await publicPage.locator('#submit').isDisabled(),true);
-  await publicPage.locator('#tab-register').click();
+  assert.equal(await publicPage.locator('#tab-register').isDisabled(),true,
+    'closed registration must not allow switching to account creation');
   assert.equal(await publicPage.locator('#submit').isDisabled(),true);
   assert.equal((await publicPage.request.get(closedOrigin+'/api/v1/status')).status(),503);
   assert.equal((await publicPage.request.get(closedOrigin+'/play')).status(),200);
