@@ -30,7 +30,7 @@ export async function replayGymHistoryInTransaction(client,params){
   if(!validAuditParams(params))return {status:'invalid'};
   const {accountId,gymReservationId,entropyKey}=params;
     const found=await client.query(
-      `SELECT status,team_uids,frozen_battle,turn_state,
+      `SELECT status,team_uids,frozen_battle,turn_state,frozen_preparation,
               turn_entropy_proof
          FROM game_gym_reservations
         WHERE account_id=$1 AND id=$2`,[accountId,gymReservationId]);
@@ -77,7 +77,7 @@ export async function replayGymHistoryInTransaction(client,params){
         
         return {status:'invalid-history',actionNumber:ordinal};
       }
-      const ai=core.gymChooseAiAction(state,'leader');
+      const ai=core.gymChooseAiAction(state,'leader',Object.hasOwn(row.frozen_preparation??{},'leaderTrainer'));
       if(!equal(ai,receipt.leader_action)){
         
         return {status:'invalid-history',actionNumber:ordinal};
