@@ -27,7 +27,8 @@ test('23E3: password confirmation is required on account creation and reset',()=
 test('23E3: email and password recovery token use remains fail-closed',()=>{
   assert.match(script,/history\.replaceState\(null,'',location\.pathname\)/);
   assert.match(script,/\^\[A-Za-z0-9_-\]\{43\}\$/);
-  assert.match(script,/if\(!available\)return/);
+  assert.match(script,/if\(!available\|\|\(view==='register'&&!registrationAvailable\)\)return/);
+  assert.match(script,/\$\('tab-register'\)\.disabled=!registrationAvailable/);
   assert.match(script,/submit\.disabled=!available/);
   assert.match(script,/credentials:'same-origin'/);
   assert.match(script,/\/api\/v1\/auth\/confirm-reset/);
