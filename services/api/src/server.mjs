@@ -4,6 +4,8 @@
  */
 import {createServer} from 'node:http';
 import {createProxyReceiver} from './proxyKeyring.mjs';
+import {productionReleaseState} from './releaseActivation.mjs';
+import {loadWildEntropyKeyringFromEnv} from './wildEntropyKeyring.mjs';
 import {createHash} from 'node:crypto';
 import {enqueueAccountMail,mailKeyring} from './accountMailOutbox.mjs';
 import pg from 'pg';
@@ -52,10 +54,14 @@ const pool=new pg.Pool({connectionString,max:12,connectionTimeoutMillis:5000,
 // Registration is intentionally a CI-only harness until email verification,
 // distributed rate limiting, anti-abuse and game-authoritative saves land.
 // Misconfiguring one Railway env variable cannot open public accounts.
-const enabled=process.env.NODE_ENV==='test' &&
+const ciEnabled=process.env.NODE_ENV==='test' &&
   process.env.ONLINE_REGISTRATION_ENABLED==='true';
+const release=await productionReleaseState(pool);
+const enabled=ciEnabled||release.savesEnabled;
+const registrationEnabled=ciEnabled||release.registrationEnabled;
+const productionWildKeyring=release.savesEnabled?loadWildEntropyKeyringFromEnv():null;
 // Test-only signed quota mode; never enabled by a production environment variable.
-const signedQuotaTest=enabled&&process.env.ONLINE_SIGNED_QUOTA_TEST_ONLY==='true';
+const signedQuotaTest=ciEnabled&&process.env.ONLINE_SIGNED_QUOTA_TEST_ONLY==='true';
 let signedQuotaReceiver;
 if(signedQuotaTest){
   const db=new URL(connectionString);
@@ -88,7 +94,7 @@ const isSecure=true;
 const mailMode=process.env.ACCOUNT_MAIL_MODE??'off';
 if(!['off','resend','outbox'].includes(mailMode))
   throw new Error('ACCOUNT_MAIL_MODE inválido');
-if(mailMode==='outbox'&&!enabled)
+if(mailMode==='outbox'&&!ciEnabled)
   throw new Error('Outbox de contas só pode ser usado no harness de teste');
 const outboxKeyring=mailMode==='outbox'?mailKeyring({
   activeId:process.env.ACCOUNT_MAIL_ACTIVE_KEY_ID,
@@ -172,14 +178,14 @@ const server=createServer(async(req,res)=>{
       await pool.query('SELECT 1');return json(res,200,{ok:true});
     }
     if(pathname==='/api/v1/status'&&req.method==='GET')
-      return json(res,200,{stage:'foundation',registrationEnabled:enabled,
-        savesEnabled:false});
+      return json(res,200,{stage:release.savesEnabled?'online':'foundation',registrationEnabled,
+        savesEnabled:release.savesEnabled});
     if(pathname==='/api/v1/me'&&req.method==='GET'){
       const account=await accountForSession(req);
       return account?json(res,200,{id:account.id,email:account.email,
         trainerName:account.trainer_name}):json(res,401,{error:'Não autenticado'});
     }
-    if(!enabled&&pathname.startsWith('/api/v1/auth/'))
+    if((!enabled||(!registrationEnabled&&pathname==='/api/v1/auth/register'))&&pathname.startsWith('/api/v1/auth/'))
       return json(res,503,{error:'Cadastro e login em preparação'});
     if(signedQuotaReceiver&&req.method==='POST'&&signedOnlineRoute(pathname)){
       requireSameOrigin(req);
@@ -238,7 +244,7 @@ const server=createServer(async(req,res)=>{
       const mailed=outboxKeyring?true:await deliver({to:cleanEmail,
         purpose:'verify',token:verification,idempotencyKey:'verify/'+userId});
       return json(res,201,{id:userId,trainerName:cleanName,
-        ...(mailed?{}:{verificationToken:verification})});
+        ...(!mailed&&ciEnabled?{verificationToken:verification}:{})});
     }
     if(pathname==='/api/v1/auth/verify'&&req.method==='POST'){
       requireSameOrigin(req);
@@ -387,7 +393,7 @@ const server=createServer(async(req,res)=>{
       return json(res,status,result.status==='ok'?result:{error:result.status});
     }
     if(onlineRouteGroup(pathname,'pokemon-training')){
-      if(!enabled||!pokemonTrainingHttpEnabled())return json(res,503,{error:'Treinamento Pokémon online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!pokemonTrainingHttpEnabled()))return json(res,503,{error:'Treinamento Pokémon online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       if(!read)requireSameOrigin(req);
@@ -405,7 +411,7 @@ const server=createServer(async(req,res)=>{
       return json(res,result.status==='trained'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(onlineRouteGroup(pathname,'evolution')){
-      if(!enabled||!evolutionHttpEnabled())return json(res,503,{error:'Evoluções online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!evolutionHttpEnabled()))return json(res,503,{error:'Evoluções online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       if(!read)requireSameOrigin(req);
@@ -423,7 +429,7 @@ const server=createServer(async(req,res)=>{
       return json(res,result.status==='evolved'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(onlineRouteGroup(pathname,'inventory')){
-      if(!enabled||!trainerLoadoutHttpEnabled())return json(res,503,{error:'Inventário online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!trainerLoadoutHttpEnabled()))return json(res,503,{error:'Inventário online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       if(!read)requireSameOrigin(req);
@@ -441,7 +447,7 @@ const server=createServer(async(req,res)=>{
       return json(res,result.status==='applied'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(pathname==='/api/v1/pokedex/current'){
-      if(!enabled||!pokedexHttpEnabled())return json(res,503,{error:'Pokédex online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!pokedexHttpEnabled()))return json(res,503,{error:'Pokédex online em preparação'});
       if(req.method!=='GET'||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       const account=await accountForSession(req);
       if(!account)return json(res,401,{error:'Não autenticado'});
@@ -450,7 +456,7 @@ const server=createServer(async(req,res)=>{
       return json(res,result.status==='ok'?200:result.status==='missing-save'?404:409,result);
     }
     if(onlineRouteGroup(pathname,'moves')){
-      if(!enabled||!movesHttpEnabled())return json(res,503,{error:'Golpes online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!movesHttpEnabled()))return json(res,503,{error:'Golpes online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       if(!read)requireSameOrigin(req);
@@ -473,7 +479,7 @@ const server=createServer(async(req,res)=>{
       return json(res,['equipped','replay'].includes(result.status)?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(onlineRouteGroup(pathname,'shop')){
-      if(!enabled||!shopHttpEnabled())return json(res,503,{error:'Loja online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!shopHttpEnabled()))return json(res,503,{error:'Loja online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       if(!read)requireSameOrigin(req);
@@ -492,7 +498,7 @@ const server=createServer(async(req,res)=>{
       return json(res,result.status==='purchased'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(onlineRouteGroup(pathname,'expedition')){
-      if(!enabled||!expeditionHttpEnabled())return json(res,503,{error:'Expedições online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!expeditionHttpEnabled()))return json(res,503,{error:'Expedições online em preparação'});
       const kind=pathname.split('/').at(-1),read=kind==='current';
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       if(!read)requireSameOrigin(req);
@@ -519,7 +525,7 @@ const server=createServer(async(req,res)=>{
       if(!account)return json(res,401,{error:'Não autenticado'});
       if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
       let key,expanded;
-      try{key=loadRegionalTestKeyring();expanded=regionalExpansionEnabled();}catch{return json(res,503,{error:'Regiões online em preparação'});}
+      try{key=productionWildKeyring??loadRegionalTestKeyring();expanded=release.savesEnabled||regionalExpansionEnabled();}catch{return json(res,503,{error:'Regiões online em preparação'});}
       if(read){
         const current=await readRegionalEncounter(pool,account.id,expanded);
         return json(res,current.status==='ok'?200:404,current);
@@ -557,7 +563,7 @@ const server=createServer(async(req,res)=>{
       return json(res,status,ok?result:{error:result.status});
     }
     if(pathname==='/api/v1/gym/current'){
-      if(!enabled||!gymPortalEnabled())return json(res,503,{error:'Ginásios online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!gymPortalEnabled()))return json(res,503,{error:'Ginásios online em preparação'});
       if(req.method!=='GET'||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       const account=await accountForSession(req);
       if(!account)return json(res,401,{error:'Não autenticado'});
@@ -688,5 +694,5 @@ server.headersTimeout=12000;
 const bindHost=process.env.NODE_ENV==='test'&&
   process.env.ACCOUNT_DRILL_LOOPBACK_ONLY==='true'?'127.0.0.1':'0.0.0.0';
 server.listen(port,bindHost,()=>{
-  console.log('ONLINE-01 API na porta '+server.address().port+'; registro '+(enabled?'habilitado':'desabilitado'));
+  console.log('ONLINE-01 API na porta '+server.address().port+'; registro '+(registrationEnabled?'habilitado':'desabilitado'));
 });
