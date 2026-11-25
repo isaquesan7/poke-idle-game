@@ -40,6 +40,6 @@ describe('23F12B1 — canonical rank candidate',()=>{
   const h=[{from:4,to:5,level:16,moves:['scratch','growl']}];
   expect(validatedOnlineMoveRanks(5,16,h,{scratch:1})).toEqual({scratch:1});
   expect(validatedOnlineMoveRanks(5,16,[{...h[0],level:1}],{scratch:1})).toBeNull();
-  expect(validatedOnlineMoveRanks(5,16,h,{hyper-beam:1})).toBeNull();
+  expect(validatedOnlineMoveRanks(5,16,h,{'hyper-beam':1})).toBeNull();
  });
 });
