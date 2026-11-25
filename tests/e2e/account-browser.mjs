@@ -516,13 +516,9 @@ try{
   assert.equal(await page.locator('#pokemon-xp-bar').evaluate(el=>el.value),trainedBefore.xp);
   await page.locator('#portal-navigation a[href="#collection-section"]').click();
   assert.equal(await page.evaluate(()=>document.activeElement.id),'collection-heading');
-  assert.equal(await page.locator('#portal-motion').isChecked(),true);
-  await page.locator('#portal-motion').uncheck();
-  assert.equal(await page.locator('#online-panel img[data-pokemon-sprite]').count(),0);
-  await page.locator('#pokemon-profile canvas[data-static-ready="true"]').waitFor();
+  assert.equal(await page.locator('#portal-motion').count(),0);
+  assert.equal(await page.locator('#pokemon-profile img').getAttribute('src'),'/assets/pokemon-gifs/poke_5.gif');
   assert.equal((await trainingRead()).revision,trainBefore.revision);
-  await page.locator('#portal-motion').check();
-  assert.ok(await page.locator('#online-panel img[data-pokemon-sprite]').count()>0);
   await page.locator('[data-training-plus="attack"]').click();
   await page.locator('[data-training-plus="hp"]').click();
   assert.equal(await page.locator('#training-stats [data-preview="true"]').count(),2);
