@@ -150,6 +150,8 @@ try{
 
   // First adventure is a server action, never an import of the /play save.
   await page.locator('#online-new').waitFor();
+  assert.equal(await page.locator('#landing-hero').isHidden(),true);
+  assert.ok(await page.locator('#online-panel').evaluate(el=>el.clientWidth>=700));
   assert.equal(await page.locator('#online-start').isDisabled(),true);
   await page.evaluate(()=>localStorage.setItem('online-portal-ci-sentinel','must-not-change'));
   await page.locator('[data-starter="4"]').click();
@@ -620,6 +622,13 @@ try{
   await page.keyboard.press('Escape');
   await page.locator('#inventory-dialog').waitFor({state:'hidden'});
   const stack=inv.bag.stacks[0];if(stack){await page.locator('[data-bag-stack="'+stack.id+'"]').click();await page.locator('#inventory-dialog[open]').waitFor();assert.match(await page.locator('#inventory-detail-info').textContent(),/Quantidade:/);await page.locator('#inventory-close').click();}
+  for(const width of [320,390,768,1365]){
+    await page.setViewportSize({width,height:844});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'page overflow at '+width);
+    for(const selector of ['#portal-navigation','#online-roster','#pokedex-grid','#inventory-slots','#training-stats','#moves-learned']){
+      assert.ok(await page.locator(selector).evaluate(el=>el.scrollWidth<=el.clientWidth+1),selector+' overflow at '+width);
+    }
+  }
   await page.setViewportSize({width:390,height:844});
   assert.ok(await page.locator('#inventory-bag').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
   assert.ok(await page.locator('#inventory-slots').evaluate(el=>el.scrollWidth<=el.clientWidth+1));
