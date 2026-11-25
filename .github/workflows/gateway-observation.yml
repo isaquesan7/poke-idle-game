@@ -8,6 +8,7 @@ on:
       - 'scripts/run-auth-gateway.mjs'
       - 'scripts/gateway-ingress-adapter.mjs'
       - 'scripts/auth-gateway-candidate.mjs'
+      - 'services/api/src/onlineRoutePolicy.mjs'
       - 'services/api/src/proxyKeyring.mjs'
       - 'services/api/src/proxyNonceGuard.mjs'
       - 'tests/auth-gateway-runtime.test.mjs'
@@ -57,7 +58,7 @@ jobs:
         run: |
           set -eu
           docker build -f Dockerfile.auth-gateway -t kanto-auth-gateway-ci .
-          docker run --rm --entrypoint sh kanto-auth-gateway-ci -c 'test "$(id -un)" = node && test "$(find /gateway -type f | wc -l)" = 6 && test ! -e /gateway/server.mjs'
+          docker run --rm --entrypoint sh kanto-auth-gateway-ci -c 'test "$(id -un)" = node && test "$(find /gateway -type f | wc -l)" = 7 && test -f /gateway/services/api/src/onlineRoutePolicy.mjs && test ! -e /gateway/server.mjs'
           if docker run --rm kanto-auth-gateway-ci; then exit 1; fi
           node --test tests/auth-gateway-runtime.test.mjs tests/gateway-ingress-adapter.test.mjs
       - name: Exercise actual standalone image and reviewed Web transport

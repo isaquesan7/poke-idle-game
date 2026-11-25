@@ -4,6 +4,7 @@
  */
 import {createServer,request as httpRequest} from 'node:http';
 import {request as httpsRequest} from 'node:https';
+import {onlineRoute} from '../services/api/src/onlineRoutePolicy.mjs';
 
 const paths=new Set(['/api/v1/auth/register','/api/v1/auth/verify',
   '/api/v1/auth/login','/api/v1/auth/request-reset','/api/v1/auth/confirm-reset']);
@@ -11,12 +12,15 @@ const apiReads=new Set(['/api/v1/status','/api/v1/me','/api/v1/save']);
 const pages=new Set(['/','/verify-email','/reset-password','/play','/play/','/regions','/regions/']);
 const logout='/api/v1/auth/logout';
 const responseAllow=new Set(['content-type','retry-after']);
-function routeFor(raw){
+function routeFor(raw,gameplayEnabled){
   if(typeof raw!=='string'||raw.length>2048||!raw.startsWith('/')||raw.startsWith('//')||
      raw.includes('\\')||raw.includes('#'))return null;
   if(paths.has(raw))return {path:raw,kind:'signed'};
   if(apiReads.has(raw))return {path:raw,kind:'read'};
   if(raw===logout)return {path:raw,kind:'logout'};
+  // Only the shared allowlist; the API still authenticates and owns every action.
+  const gameRoute=gameplayEnabled?onlineRoute(raw):null;
+  if(gameRoute&&!gameRoute.signed)return {path:raw,kind:gameRoute.method==='POST'?'game-write':'game-read'};
   // Verification/reset landing is static. Never forward bearer query values
   // into upstream URL/logs; browser retains its own URL for existing JS.
   const question=raw.indexOf('?');
@@ -52,25 +56,25 @@ function deny(res,status){
     'X-Content-Type-Options':'nosniff','X-Frame-Options':'DENY','Referrer-Policy':'no-referrer'});
   res.end(JSON.stringify({error:'Requisição de contas indisponível'}));
 }
-export function createAuthGateway({upstreamOrigin,clientOrigin,issuer,resolveTrustedClientIp,loopbackTest=false}){
+export function createAuthGateway({upstreamOrigin,clientOrigin,issuer,resolveTrustedClientIp,loopbackTest=false,gameplayEnabled=false}){
   if(loopbackTest&&process.env.NODE_ENV!=='test')throw new Error('Loopback is test-only');
   const upstream=exactOrigin(upstreamOrigin,{loopback:loopbackTest});
   const browser=exactOrigin(clientOrigin,{loopback:loopbackTest});
   if(upstream.origin===browser.origin||typeof issuer?.sign!=='function'||
       typeof resolveTrustedClientIp!=='function')throw new TypeError('Invalid isolated gateway configuration');
   const server=createServer(async(req,res)=>{
-    const route=routeFor(req.url);
+    const route=routeFor(req.url,gameplayEnabled===true);
     if(!route){deny(res,404);req.resume();return;}
-    const signed=route.kind==='signed',writing=signed||route.kind==='logout';
-    const session=route.kind==='logout'||route.path==='/api/v1/me'||route.path==='/api/v1/save';
-    const allowed=writing?['POST']:route.kind==='read'?['GET']:['GET','HEAD'];
+    const signed=route.kind==='signed',gameWrite=route.kind==='game-write',writing=signed||gameWrite||route.kind==='logout';
+    const session=gameWrite||route.kind==='game-read'||route.kind==='logout'||route.path==='/api/v1/me'||route.path==='/api/v1/save';
+    const allowed=writing?['POST']:['read','game-read'].includes(route.kind)?['GET']:['GET','HEAD'];
     if(!allowed.includes(req.method)){res.setHeader('Allow',allowed.join(', '));deny(res,405);req.resume();return;}
     const nominated=connectionTokens(req.headers.connection);
     if(writing&&(rawValues(req,'origin').length!==1||req.headers.origin!==browser.origin||
        nominated.includes('origin')||nominated.includes('content-type'))){
       deny(res,400);req.resume();return;
     }
-    if(signed&&(rawValues(req,'content-type').length!==1||
+    if((signed||gameWrite)&&(rawValues(req,'content-type').length!==1||
        !/^application\/json(?:\s*;|$)/i.test(req.headers['content-type']??''))){
       deny(res,400);req.resume();return;
     }
@@ -105,7 +109,7 @@ export function createAuthGateway({upstreamOrigin,clientOrigin,issuer,resolveTru
       if(writing){
         outbound.origin=browser.origin;
         outbound['content-length']=String(body.length);
-        if(signed)outbound['content-type']=req.headers['content-type'];
+        if(signed||gameWrite)outbound['content-type']=req.headers['content-type'];
       }
       if(session&&typeof req.headers.cookie==='string')outbound.cookie=req.headers.cookie;
       if(signed){

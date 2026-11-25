@@ -14,6 +14,13 @@ if(mode==='receiver'){
     let code=404,data={ok:false};
     if(req.url==='/api/v1/status'&&req.method==='GET'){
       code=200;data={registrationEnabled:false,savesEnabled:false};
+    }else if(req.url==='/api/v1/inventory/current'&&req.method==='GET'){
+      code=req.headers.cookie==='__Host-kanto_session=synthetic'&&!req.headers['x-kanto-proxy-identity']?200:401;
+      data={syntheticInventory:code===200};
+    }else if(req.url==='/api/v1/shop/purchase'&&req.method==='POST'){
+      let body='';for await(const chunk of req)body+=chunk;
+      code=req.headers.cookie==='__Host-kanto_session=synthetic'&&req.headers.origin==='https://gateway-ci.up.railway.app'&&req.headers['content-type']==='application/json'&&body==='{"synthetic":true}'&&!req.headers['x-kanto-proxy-identity']?200:403;
+      data={syntheticPurchase:code===200};
     }else if(req.url==='/api/v1/auth/login'&&req.method==='POST'){
       const chunks=[];let n=0;
       for await(const c of req){n+=c.length;if(n>16384){res.writeHead(413);res.end();return;}chunks.push(c);}
@@ -49,5 +56,13 @@ if(mode==='receiver'){
   assert.equal((await call(gateway,{})).status,403);
   const r=await call(gateway,{'X-Real-IP':'8.8.8.8','X-Kanto-Proxy-Identity':'forged'});
   assert.equal(r.status,200);assert.deepEqual(await r.json(),{syntheticVerified:true,registrationEnabled:false});
+  const cookie='__Host-kanto_session=synthetic';
+  const bag=await fetch(gateway+'/api/v1/inventory/current',{headers:{Cookie:cookie,'X-Kanto-Proxy-Identity':'forged'}});
+  assert.equal(bag.status,200);assert.deepEqual(await bag.json(),{syntheticInventory:true});
+  assert.equal((await fetch(gateway+'/api/v1/inventory/current')).status,401);
+  const purchase=await fetch(gateway+'/api/v1/shop/purchase',{method:'POST',headers:{Cookie:cookie,Origin:'https://gateway-ci.up.railway.app','Content-Type':'application/json','X-Kanto-Proxy-Identity':'forged'},body:'{"synthetic":true}'});
+  assert.equal(purchase.status,200);assert.deepEqual(await purchase.json(),{syntheticPurchase:true});
+  assert.equal((await fetch(gateway+'/api/v1/shop/purchase',{method:'POST',headers:{Cookie:cookie,Origin:'https://wrong.example','Content-Type':'application/json'},body:'{}'})).status,400);
+  assert.equal((await fetch(gateway+'/api/v1/admin')).status,404);
   console.log('RUNTIME_TRANSPORT_SMOKE_OK (synthetic receiver, no registration)');
 }else throw new Error('Unknown fixture mode');

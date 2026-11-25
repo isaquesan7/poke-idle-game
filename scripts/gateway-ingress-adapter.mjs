@@ -70,11 +70,11 @@ export function createIngressResolver({review,loopbackTest=false,testRuntime}={}
 /** Compose canonical gateway + issuer + strict ingress resolver. Still a candidate:
  * no production launcher, no automatic infrastructure discovery, no new secret.
  */
-export function createReviewedAuthGateway({upstreamOrigin,clientOrigin,issuerConfig,ingressConfig,loopbackTest=false}){
+export function createReviewedAuthGateway({upstreamOrigin,clientOrigin,issuerConfig,ingressConfig,loopbackTest=false,gameplayEnabled=false}){
   if(loopbackTest&&process.env.NODE_ENV!=='test')throw new Error('Loopback is test-only');
   const resolver=createIngressResolver({...ingressConfig,loopbackTest});
   if(clientOrigin!=='https://'+ingressConfig.review.publicDomain)
     throw new Error('Client origin differs from reviewed domain');
   const issuer=createProxyIssuer(issuerConfig);
-  return createAuthGateway({upstreamOrigin,clientOrigin,issuer,resolveTrustedClientIp:resolver,loopbackTest});
+  return createAuthGateway({upstreamOrigin,clientOrigin,issuer,resolveTrustedClientIp:resolver,loopbackTest,gameplayEnabled});
 }

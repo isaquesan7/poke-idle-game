@@ -29,7 +29,8 @@ export function createGatewayRuntime(){
     upstreamOrigin:record.upstreamOrigin,clientOrigin:'https://'+record.ingress?.publicDomain,
     issuerConfig:{activeHex:env.GATEWAY_SIGNING_HEX,subjectHex:env.GATEWAY_SUBJECT_HEX,
       subjectPolicy:env.GATEWAY_SUBJECT_POLICY},
-    ingressConfig:{review:record.ingress}});
+    ingressConfig:{review:record.ingress},
+    gameplayEnabled:env.ONLINE_RELEASE_MODE==='reviewed'&&env.ONLINE_PUBLIC_SAVES_ENABLED==='true'});
   return {server,port:Number(rawPort)};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
