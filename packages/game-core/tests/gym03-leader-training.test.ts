@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {KANTO_GYMS} from '../src/gyms/kantoGyms.js';
-import {prepareGymOpponent,prepareGymLeader,gymPokemonTraining,gymOpponentRanks} from '../src/gyms/gymTactics.js';
+import {prepareGymOpponent,prepareGymLeader,gymPokemonTraining,gymOpponentRanks,GYM_LEADER_TITLE} from '../src/gyms/gymTactics.js';
 import {kantoSpecies} from '../src/catalog/kantoSpecies.js';
 import {kantoLevelMoves} from '../src/catalog/kantoLevelMoves.js';
 import {kantoSupportMoves} from '../src/catalog/kantoSupportMoves.js';
@@ -10,6 +10,7 @@ import {pokemonOwnStats,pokemonFinalStats} from '../src/stats/pokemon.js';
 import {trainerTotals} from '../src/stats/trainer.js';
 import {trainerContribution} from '../src/affinity/affinity.js';
 import {LEGACY_ITEMS,LEGACY_TITLES} from '../src/legacy/catalog.js';
+import {gymSignatureTm} from '../src/gyms/gymSignatureTms.js';
 import {STATS} from '../src/stats/types.js';
 describe('GYM03: eight leaders and 24 trained Pokemon on equal legal budgets',()=>{
  it('uses exact trainer budgets, real unique equipment, previous badges and 100 affinity',()=>{
@@ -22,8 +23,11 @@ describe('GYM03: eight leaders and 24 trained Pokemon on equal legal budgets',()
    expect(t.equipment.every(e=>LEGACY_ITEMS.some(i=>i.id===e.itemId&&i.slot===e.slot))).toBe(true);
    expect(t.badges).toEqual(KANTO_GYMS.slice(0,gym.order-1).map(g=>g.id));
    expect(t.affinity).toBe(100);
+   expect(t.activeTitle).toBe('gym-leader');
+   expect(Object.values(GYM_LEADER_TITLE.stats)).toEqual([6,6,6,6,6,6]);
+   expect(LEGACY_TITLES.some(x=>x.id===t.activeTitle)).toBe(false);
    expect(t.totals).toEqual(trainerTotals({manual:t.manual,equipment:t.equipment,
-    activeTitle:LEGACY_TITLES.find(x=>x.id===t.activeTitle)!.stats,
+    activeTitle:GYM_LEADER_TITLE.stats,
     badges:KANTO_GYMS.slice(0,gym.order-1).map(g=>({id:g.id,stats:g.badgeStats}))}));
   }
  });
@@ -39,7 +43,9 @@ describe('GYM03: eight leaders and 24 trained Pokemon on equal legal budgets',()
     const own=pokemonOwnStats(species.base,mon.level,manual);
     expect(mon.stats).toEqual(pokemonFinalStats(species.base,mon.level,manual,p.trainer.totals,100));
     for(const stat of STATS)expect(mon.stats[stat]-own[stat]).toBe(trainerContribution(p.trainer.totals[stat],100));
-    const legal=[...kantoLevelMoves(mon.speciesId,mon.level),...kantoSupportMoves(mon.speciesId,mon.level),...gymPsychicLevelMoves(mon.speciesId,mon.level)];
+    const signature=gymSignatureTm(gym.id,mon.speciesId);
+    if(signature)expect(moves[0]).toEqual(signature.move);
+    const legal=[...(signature?[{move:signature.move,learnedAt:0}]:[]),...kantoLevelMoves(mon.speciesId,mon.level),...kantoSupportMoves(mon.speciesId,mon.level),...gymPsychicLevelMoves(mon.speciesId,mon.level)];
     expect(moves.every(m=>legal.some(x=>x.move.name===m.name))).toBe(true);
     const rankable=moves.filter(m=>m.category!=='status'&&m.power>0);
     const available=new Set(legal.filter(x=>x.move.category!=='status'&&x.move.power>0).map(x=>x.move.name));
