@@ -26,7 +26,7 @@ function isLegal(action:GymTurnAction,legal:readonly GymTurnAction[]):boolean{
  * Reserva conserva HP/SP individual de antes do KO.
  */
 export function gymChooseAiAction(
-  state:GymBattleState,side:GymSide='leader'
+  state:GymBattleState,side:GymSide='leader',rankedPolicy=false
 ):GymTurnAction{
   const legal=gymLegalTurnActions(state,side);
   if(!legal.length)throw new RangeError('Sem ação legal para este confronto.');
@@ -59,6 +59,7 @@ export function gymChooseAiAction(
     actor:{...actor.combatant,moves:permittedMoves},
     defender:enemy.combatant,actorHp:actor.hp,actorSp:actor.sp,
     bench,consecutiveSwitches:bench.length?0:1,
+    rankedPolicy,
     allowConcentrate:legal.some(a=>a.kind==='focus')
   });
   // Troca defensiva: quando o ativo corre risco de KO, avalia reserva
@@ -95,9 +96,9 @@ export function gymChooseAiAction(
  * antes de resolver a rodada com seed explícita.
  */
 export function resolveGymAiTurn(
-  state:GymBattleState,playerAction:GymTurnAction,seed:number
+  state:GymBattleState,playerAction:GymTurnAction,seed:number,rankedPolicy=false
 ):GymTurnResult{
   if(state.outcome!=='ongoing')
     return {status:'blocked',state,reason:'Confronto concluído.'};
-  return resolveGymTurn(state,playerAction,gymChooseAiAction(state,'leader'),seed);
+  return resolveGymTurn(state,playerAction,gymChooseAiAction(state,'leader',rankedPolicy),seed);
 }
