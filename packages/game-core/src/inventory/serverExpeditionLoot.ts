@@ -32,11 +32,11 @@ export function placeExpeditionLoot(raw:string,paidRaw:string,nowMs:number){
   if(!reward.cycles)return paidRaw;
   if(after.lastClaim?.cycles!==reward.cycles||after.lastClaim.coins!==reward.coins||after.lastClaim.trainerXP!==reward.trainerXp||after.lastClaim.pokemonXP!==reward.pokemonXpPerMember)return null;
   const pending={...prior?.quantities},stored:Partial<Record<ExpeditionBallKind,number>>={};
-  after.ballPocket=structuredClone(before.ballPocket);
+  after.ballPocket=JSON.parse(JSON.stringify(before.ballPocket));
   for(const kind of kinds){
    const earned=reward.ballDrops?.[kind]??0,old=after.ballPocket.quantities[kind]??0;
    const view=onlineInventoryProjection(JSON.stringify(after));if(!view)return null;
-   const amount=old>0||view.bag.available>0?Math.min(earned,100000-old):0;
+   const amount=old>0||(view.bag.available??0)>0?Math.min(earned,100000-old):0;
    if(amount>0)after.ballPocket.quantities[kind]=old+amount;
    stored[kind]=amount;
    if(earned>amount)pending[kind]=(pending[kind]??0)+earned-amount;
@@ -62,7 +62,7 @@ export function resolvePendingExpeditionLoot(raw:string,command:unknown){
   if(!p||p.claimAt!==command.claimAt||!n)return {status:'unavailable'} as const;
   const remaining={...p.quantities};
   if(command.kind==='expedition-loot-store'){
-   const old=state.ballPocket.quantities[id]??0,amount=old>0||view.bag.available>0?Math.min(n,100000-old):0;
+   const old=state.ballPocket.quantities[id]??0,amount=old>0||(view.bag.available??0)>0?Math.min(n,100000-old):0;
    if(!amount)return {status:'bag-full'} as const;
    state.ballPocket.quantities[id]=old+amount;
    if(amount<n)remaining[id]=n-amount;else delete remaining[id];
