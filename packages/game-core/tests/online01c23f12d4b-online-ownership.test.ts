@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {createOnlineDropGear,inspectOnlineGear,inspectOnlineInventory,onlineGearForSlot} from '../src/inventory/onlineOwnership.js';
+import {createOnlineDropGear,createOnlineShopGear,inspectOnlineGear,inspectOnlineInventory,onlineGearForSlot} from '../src/inventory/onlineOwnership.js';
 import type {ProceduralGearRoll} from '../src/inventory/regionalLoot.js';
 const roll:ProceduralGearRoll={templateId:'cap',slot:'hat',rarity:'rare',regionId:6,requiredLevel:50,stats:{hp:6,specialAttack:5}};
 const id='00000000-0000-4000-8000-000000000001';
@@ -24,5 +24,15 @@ describe('D4B individual online gear contract',()=>{
    {stats:{hp:99,specialAttack:5}},{stats:{hp:6}},{stats:{hp:6,specialAttack:5,speed:5}},
    {slot:'jacket'},{source:'shop'},{quantity:2},{stats:{hp:6,unknown:5}}])
     expect(inspectOnlineGear({...gear,...patch})).toBeNull();
+ });
+});
+
+describe('D4D shop source cannot impersonate procedural loot',()=>{
+ it('only canonical fixed common +1 model and shop UUID are accepted',()=>{
+  const gear=createOnlineShopGear(id,'cap')!;
+  expect(gear).toMatchObject({source:'shop',id:'gear-shop-'+id,stats:{hp:1},rarity:'common',requiredLevel:1});
+  expect(inspectOnlineGear(gear)).toEqual(gear);
+  for(const patch of [{stats:{hp:2}},{stats:{attack:1}},{source:'drop'},{rarity:'rare'},{regionId:2},{requiredLevel:2},{id:'gear-invalid'}])expect(inspectOnlineGear({...gear,...patch})).toBeNull();
+  expect(createOnlineShopGear(id,'bag-expander')).toBeNull();
  });
 });
