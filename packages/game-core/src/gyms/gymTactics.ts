@@ -13,7 +13,8 @@ import {kantoSpecies} from '../catalog/kantoSpecies.js';
 import {gymPsychicLevelMoves} from './gymPsychicMoves.js';
 import {pokemonFinalStats} from '../stats/pokemon.js';
 import {trainerTotals,MANUAL_TRAINER_CAP} from '../stats/trainer.js';
-import {LEGACY_ITEMS,LEGACY_TITLES} from '../legacy/catalog.js';
+import {gymSignatureTm} from './gymSignatureTms.js';
+import {LEGACY_ITEMS} from '../legacy/catalog.js';
 import {legacyMoveRankLimits} from '../legacy/pokemonMoveReducer.js';
 import {KANTO_GYMS} from './kantoGyms.js';
 import {STATS,zeroStats} from '../stats/types.js';
@@ -115,7 +116,7 @@ export function gymPokemonTraining(speciesId:number,level:number,moves:readonly 
 }
 /** NPC equipment is an explicit legal loadout, not a grant to the player.
  * Early leaders have fewer slots; later leaders have more. Prior badges only,
- * apprentice title for all (no fabricated achievement or master bonus).
+ * exclusive NPC title, never exposed in player catalogue.
  */
 const LEADER_ITEMS:readonly (readonly string[])[]=[
  ['cap','coat'],
@@ -127,6 +128,7 @@ const LEADER_ITEMS:readonly (readonly string[])[]=[
  ['battle-jacket','gloves','shoes','necklace','earrings','ring-a','ring-d'],
  ['cap','coat','gloves','pants','shoes','ring-a','ring-c','earrings']
 ];
+export const GYM_LEADER_TITLE=Object.freeze({id:'gym-leader',name:'Líder de Ginásio',stats:Object.freeze({hp:6,attack:6,defense:6,specialAttack:6,specialDefense:6,speed:6})});
 export function prepareGymLeader(gym:KantoGymDefinition){
  const level=gym.trainerLevel;
  if(!Number.isSafeInteger(level)||level<1||level>100||!Number.isSafeInteger(gym.order)||gym.order<1||gym.order>8)throw new RangeError('Líder inválido.');
@@ -139,7 +141,7 @@ export function prepareGymLeader(gym:KantoGymDefinition){
   if(!item)throw new RangeError('Equipamento inválido.');
   return {itemId:id,slot:item.slot,stats:item.stats};
  });
- const title=LEGACY_TITLES.find(t=>t.id==='aprendiz')!;
+ const title=GYM_LEADER_TITLE;
  const badges=KANTO_GYMS.slice(0,gym.order-1).map(g=>({id:g.id,stats:g.badgeStats}));
  const totals=trainerTotals({manual,equipment,activeTitle:title.stats,badges});
  return {level,manual,equipment,activeTitle:title.id,badges:badges.map(b=>b.id),totals,affinity:100};
@@ -166,8 +168,9 @@ export function gymOpponentRanks(speciesId:number,level:number,moves:readonly Ka
 /** Preserve the normal loadout unless more legal attacks are needed to spend
  * the rank budget. Replace the least recent support first, never invent TM.
  */
-export function gymTrainedMoves(speciesId:number,level:number):readonly KantoMove[]{
- const moves=[...gymLegalMoves(speciesId,level)];
+export function gymTrainedMoves(speciesId:number,level:number,gymId?:string):readonly KantoMove[]{
+ const signature=gymId?gymSignatureTm(gymId,speciesId)?.move:undefined;
+ const moves=[...(signature?[signature]:[]),...gymLegalMoves(speciesId,level).filter(m=>m.name!==signature?.name)].slice(0,4);
  const {skillPoints,maxRankPerMove}=legacyMoveRankLimits(level);
  const offensive=(m:KantoMove)=>m.category!=='status'&&m.power>0;
  const required=Math.min(4,Math.max(1,Math.ceil(skillPoints/maxRankPerMove)));
@@ -198,7 +201,7 @@ export function prepareGymOpponent(gym:KantoGymDefinition):GymPreparedOpponent{
   const team=gym.team.map(({speciesId,level})=>{
     const species=kantoSpecies(speciesId);
     if(!species)throw new RangeError('Espécie inválida.');
-    const moves=gymTrainedMoves(speciesId,level);
+    const moves=gymTrainedMoves(speciesId,level,gym.id);
     const manual=gymPokemonTraining(speciesId,level,moves);
     const ranks=gymOpponentRanks(speciesId,level,moves);
     return {

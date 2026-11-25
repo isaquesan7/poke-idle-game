@@ -370,7 +370,7 @@ export function resolveGymTurn(
         state=gymDropStat(state,defendingSide,'speedDrops');
         record(defendingSide+' perdeu velocidade.');
       }
-      const psychic=gymPsychicSecondary(move.name);
+      const psychic=move.name==='water-pulse'?{kind:'confusion' as const,chance:20}:gymPsychicSecondary(move.name);
       if(psychic&&roll()*100<psychic.chance){
         if(psychic.kind==='confusion'){
           const duration=2+Math.floor(roll()*4);
