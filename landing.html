@@ -146,6 +146,20 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 #moves-learned .team-row progress{width:100%;height:7px;accent-color:var(--inv-accent)}
 #training-stats .team-row span{overflow-wrap:anywhere;font-size:.85rem}
 #evolution-options .team-row img{width:48px;height:48px;object-fit:contain}
+/* D6E: local navigation and motion preference, no game-state mutation. */
+#portal-navigation{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:12px 0}
+#portal-navigation a{display:block;padding:8px;background:var(--inv-card);border:1px solid var(--inv-border);border-radius:8px;text-decoration:none;text-align:center;font-size:.78rem;overflow-wrap:anywhere}
+#portal-motion-label{display:flex;gap:8px;align-items:center;margin:8px 0}
+#portal-motion-label input{width:18px;height:18px;accent-color:var(--inv-accent)}
+[data-pokemon-sprite]{object-fit:contain;image-rendering:pixelated;max-width:100%}
+.starter canvas{display:block;width:72px;height:72px;margin:0 auto 4px}
+.team-row canvas{width:38px;height:38px}
+.region-actor canvas{width:72px;height:72px}
+.gym-party .region-actor canvas{width:54px;height:54px}
+.collection-card canvas,.dex-card canvas{width:64px;height:64px}
+.pokemon-profile canvas{width:72px;height:72px}
+#evolution-options .team-row canvas{width:48px;height:48px}
+[data-motion="false"] *,[data-motion="false"] *::before,[data-motion="false"] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 [hidden]{display:none!important}@media(max-width:760px){nav{margin-bottom:32px}.layout{grid-template-columns:1fr;gap:35px}.card{padding:23px}h1{font-size:2.75rem}}
 </style>
 </head>
@@ -171,7 +185,7 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 <button class="primary" id="submit" type="submit" disabled>Disponível em breve</button>
 </form>
 <section id="online-panel" hidden aria-label="Aventura online">
-<h3 id="online-trainer"></h3><p class="helper">Progresso do servidor · ambiente de testes</p>
+<h3 id="online-trainer"></h3><p class="helper">Progresso do servidor · ambiente de testes</p><label id="portal-motion-label"><input id="portal-motion" type="checkbox" checked>Exibir animações</label>
 <div id="online-new" hidden><p>Escolha seu Pokémon inicial. Sua aventura começa no nível 1.</p>
 <div class="starter-list" role="group" aria-label="Pokémon inicial">
 <button class="starter" type="button" data-starter="1" aria-pressed="false"><img src="/assets/pokemon-gifs/poke_1.gif" alt="">Bulbasaur</button>
@@ -179,6 +193,7 @@ button.inv-tile:hover,button.inv-tile:focus-visible{border-color:var(--inv-accen
 <button class="starter" type="button" data-starter="7" aria-pressed="false"><img src="/assets/pokemon-gifs/poke_7.gif" alt="">Squirtle</button></div>
 <button id="online-start" class="primary" type="button" disabled>Iniciar aventura</button></div>
 <div id="online-progress" hidden><dl class="progress-list"><div><dt>Nível do treinador</dt><dd id="online-level"></dd></div><div><dt>Moedas</dt><dd id="online-coins"></dd></div><div><dt>Insígnias</dt><dd id="online-badges"></dd></div><div><dt>Pokémon na coleção</dt><dd id="online-count"></dd></div></dl>
+<div id="portal-navigation" role="navigation" aria-label="Telas do jogo"><a href="#collection-section">Coleção</a><a href="#training-section">Perfil Pokémon</a><a href="#moves-section">Golpes</a><a href="#evolution-section">Evolução</a><a href="#inventory-section">Mochila e equipamentos</a><a href="#pokedex-section">Pokédex</a><a href="#region-section">Regiões</a><a href="#gym-section">Ginásios</a><a href="#expedition-section">Expedição</a><a href="#shop-section">Loja</a></div>
 <section id="region-section" hidden aria-labelledby="region-heading">
 <h3 id="region-heading">Regiões de Kanto</h3><label for="region-select">Escolha a região</label>
 <select id="region-select" style="width:100%;padding:10px;background:#182d40;color:white;border:1px solid #557086;border-radius:8px"></select>
@@ -275,6 +290,51 @@ let available=false,view='login',token='',onlineBusy=false,selectedStarter=null,
 const panel=$('online-panel'),newAdventure=$('online-new'),progress=$('online-progress');
 const starterButtons=[...panel.querySelectorAll('[data-starter]')];
 const starterNames={1:'Bulbasaur',4:'Charmander',7:'Squirtle'};
+let portalMotion=true;
+try{portalMotion=localStorage.getItem('kanto.portal.motion')!=='off';}catch{}
+$('portal-motion').checked=portalMotion;panel.dataset.motion=String(portalMotion);
+function portalSprite(id,lazy=true){
+ const path='/assets/pokemon-gifs/poke_'+id+'.gif';
+ let el;
+ if(portalMotion){
+  el=document.createElement('img');el.alt='';el.width=64;el.height=64;if(lazy)el.loading='lazy';el.src=path;
+ }else{
+  el=document.createElement('canvas');el.width=96;el.height=96;el.setAttribute('aria-hidden','true');
+  const context=el.getContext('2d');
+  if(context){
+   context.fillStyle='#b1cadb';context.textAlign='center';context.font='24px sans-serif';context.fillText('#'+id,48,55);
+   const still=new Image();still.onload=()=>{
+    if(!still.naturalWidth||!still.naturalHeight)return;
+    const scale=Math.min(96/still.naturalWidth,96/still.naturalHeight),w=still.naturalWidth*scale,h=still.naturalHeight*scale;
+    context.clearRect(0,0,96,96);context.imageSmoothingEnabled=false;context.drawImage(still,(96-w)/2,(96-h)/2,w,h);el.dataset.staticReady='true';
+   };still.src=path;
+  }
+ }
+ el.dataset.pokemonSprite=String(id);el.dataset.lazySprite=String(lazy);return el;
+}
+function refreshPortalSprites(){
+ for(const old of panel.querySelectorAll('[data-pokemon-sprite]')){
+  const next=portalSprite(Number(old.dataset.pokemonSprite),old.dataset.lazySprite==='true');
+  next.className=old.className;old.replaceWith(next);
+ }
+}
+for(const button of starterButtons){button.querySelector('img').replaceWith(portalSprite(Number(button.dataset.starter),false));}
+$('portal-motion').addEventListener('change',()=>{
+ portalMotion=$('portal-motion').checked;panel.dataset.motion=String(portalMotion);
+ try{localStorage.setItem('kanto.portal.motion',portalMotion?'on':'off');}catch{}
+ refreshPortalSprites();
+});
+function syncPortalNavigation(){
+ for(const link of $('portal-navigation').querySelectorAll('a')){
+  const target=$(link.getAttribute('href').slice(1));link.hidden=!target||target.hidden;
+ }
+}
+$('portal-navigation').addEventListener('click',event=>{
+ const link=event.target.closest('a');if(!link)return;
+ const target=$(link.getAttribute('href').slice(1));if(!target||target.hidden)return;
+ event.preventDefault();target.scrollIntoView({block:'start'});
+ const heading=target.querySelector('h3');if(heading){heading.tabIndex=-1;heading.focus({preventScroll:true});}
+});
 const speciesNames=["","Bulbasaur","Ivysaur","Venusaur","Charmander","Charmeleon","Charizard","Squirtle","Wartortle","Blastoise","Caterpie","Metapod","Butterfree","Weedle","Kakuna","Beedrill","Pidgey","Pidgeotto","Pidgeot","Rattata","Raticate","Spearow","Fearow","Ekans","Arbok","Pikachu","Raichu","Sandshrew","Sandslash","Nidoran♀","Nidorina","Nidoqueen","Nidoran♂","Nidorino","Nidoking","Clefairy","Clefable","Vulpix","Ninetales","Jigglypuff","Wigglytuff","Zubat","Golbat","Oddish","Gloom","Vileplume","Paras","Parasect","Venonat","Venomoth","Diglett","Dugtrio","Meowth","Persian","Psyduck","Golduck","Mankey","Primeape","Growlithe","Arcanine","Poliwag","Poliwhirl","Poliwrath","Abra","Kadabra","Alakazam","Machop","Machoke","Machamp","Bellsprout","Weepinbell","Victreebel","Tentacool","Tentacruel","Geodude","Graveler","Golem","Ponyta","Rapidash","Slowpoke","Slowbro","Magnemite","Magneton","Farfetch'd","Doduo","Dodrio","Seel","Dewgong","Grimer","Muk","Shellder","Cloyster","Gastly","Haunter","Gengar","Onix","Drowzee","Hypno","Krabby","Kingler","Voltorb","Electrode","Exeggcute","Exeggutor","Cubone","Marowak","Hitmonlee","Hitmonchan","Lickitung","Koffing","Weezing","Rhyhorn","Rhydon","Chansey","Tangela","Kangaskhan","Horsea","Seadra","Goldeen","Seaking","Staryu","Starmie","Mr. Mime","Scyther","Jynx","Electabuzz","Magmar","Pinsir","Tauros","Magikarp","Gyarados","Lapras","Ditto","Eevee","Vaporeon","Jolteon","Flareon","Porygon","Omanyte","Omastar","Kabuto","Kabutops","Aerodactyl","Snorlax","Articuno","Zapdos","Moltres","Dratini","Dragonair","Dragonite","Mewtwo","Mew"];
 const statLabels={hp:'HP',attack:'Ataque',defense:'Defesa',specialAttack:'Ataque especial',specialDefense:'Defesa especial',speed:'Velocidade'};
 let serverProgress=null,teamDraft=[],regionalState=null,gymState=null,expeditionState=null,shopState=null,moveState=null,evolutionState=null,trainingState=null,dexState=null,inventoryState=null,selectedRegionId=1;
@@ -285,7 +345,7 @@ regionSelect.addEventListener('change',()=>{if(!onlineBusy&&!regionActive()){sel
 function actorCard(actor,level,title){
  const box=document.createElement('div');box.className='region-actor';
  const heading=document.createElement('strong');heading.textContent=title;
- const img=document.createElement('img');img.src='/assets/pokemon-gifs/poke_'+actor.speciesId+'.gif';img.alt='';
+ const img=portalSprite(actor.speciesId,false);
  const name=document.createElement('p');name.textContent=speciesNames[actor.speciesId]+' · Nível '+level;
  box.append(heading,img,name);
  for(const [key,max,label] of [['hp','maxHp','HP'],['sp','maxSp','SP']]){
@@ -582,7 +642,12 @@ function renderPokemonProfile(chosen){
  const info=document.createElement('div'),name=document.createElement('h4');
  name.textContent=speciesNames[chosen.speciesId]+' · Nv. '+chosen.level;
  const line=(text)=>{const p=document.createElement('p');p.textContent=text;info.append(p);};
- info.append(name);line('XP acumulado neste nível: '+member.xp);
+ info.append(name);
+ if(chosen.level===100)line('XP · Nível máximo');
+ else if(Number.isSafeInteger(chosen.xpToNext)&&chosen.xpToNext>0&&Number.isSafeInteger(chosen.xp)){
+  line('XP: '+chosen.xp+' / '+chosen.xpToNext);
+  const xp=document.createElement('progress');xp.id='pokemon-xp-bar';xp.max=chosen.xpToNext;xp.value=chosen.xp;xp.setAttribute('aria-label','Experiência até o próximo nível');info.append(xp);
+ }else line('XP acumulado neste nível: '+member.xp);
  line('Afinidade: '+member.affinity+'%');
  const affinity=document.createElement('progress');affinity.max=100;affinity.value=member.affinity;affinity.setAttribute('aria-label','Afinidade');info.append(affinity);
  const record=member.battleRecord??{};
@@ -807,7 +872,7 @@ async function submitLoadout(command){
  const loaded=await refreshPortal();if(loaded&&inventoryState)$('inventory-note').textContent=ok?(['loot-store','loot-discard','discard-gear','expedition-loot-store','expedition-loot-discard'].includes(command.kind)?'Inventário atualizado.':'Equipamento ou título atualizado.'):'Ação não confirmada. Confira o inventário atualizado.';
 }
 function collectionSprite(id,lazy=true){
- const img=document.createElement('img');img.src='/assets/pokemon-gifs/poke_'+id+'.gif';img.alt='';img.width=64;img.height=64;if(lazy)img.loading='lazy';return img;
+ return portalSprite(id,lazy);
 }
 function collectionText(className,value){const span=document.createElement('span');span.className=className;span.textContent=value;return span;}
 const dexStatus={unknown:'Não encontrado',seen:'Visto',caught:'Capturado'};
@@ -978,7 +1043,7 @@ function setOnlineBusy(busy){
  $('online-start').disabled=busy||selectedStarter===null;
  $('online-refresh').disabled=busy;$('online-logout').disabled=busy;
  $('reset-link').disabled=busy;
- if(serverProgress){renderTeam();renderStats();}renderRegion();renderGym();renderExpedition();renderShop();renderMoves();renderEvolution();renderTraining();renderPokedex();renderInventory();
+ if(serverProgress){renderTeam();renderStats();}renderRegion();renderGym();renderExpedition();renderShop();renderMoves();renderEvolution();renderTraining();renderPokedex();renderInventory();syncPortalNavigation();
 }
 async function getOnline(path){
  const r=await fetch(path,{credentials:'same-origin',cache:'no-store',redirect:'error'});

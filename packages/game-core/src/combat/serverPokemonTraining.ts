@@ -1,4 +1,5 @@
 /** 23F12A — pure manual investment, same D-056 reducer as /play. */
+import {xpThreshold} from '../progression/xp.js';
 import {STATS} from '../stats/types.js';
 import {zeroStats} from '../stats/types.js';
 import type {Stat} from '../stats/types.js';
@@ -48,13 +49,13 @@ export function onlinePokemonTrainingProjection(raw:string){
  const state=JSON.parse(raw);
  if(state.mode!=='normal')return null;
  const busy=state.expedition!==null||state.pendingBattle!=null||state.gymSession!=null||state.lastBattle?.captureStatus==='available';
- const pokemon=state.roster.map((p:{uid:number,pokemonId:number,level:number,manual:Record<Stat,number>})=>{
+ const pokemon=state.roster.map((p:{uid:number,pokemonId:number,level:number,xp:number,manual:Record<Stat,number>})=>{
   const budget=legacyPokemonManualBudget(p.level);
   if(!p.manual||typeof p.manual!=='object'||Array.isArray(p.manual)||Object.keys(p.manual).length!==STATS.length||
    !STATS.every(s=>Number.isSafeInteger(p.manual[s])&&p.manual[s]>=0&&p.manual[s]<=budget))return null;
   const spent=STATS.reduce((sum,s)=>sum+p.manual[s],0);
   if(spent>budget)return null;
-  return {uid:p.uid,speciesId:p.pokemonId,level:p.level,budget,spent,remaining:budget-spent,manual:{...zeroStats(),...p.manual}};
+  return {uid:p.uid,speciesId:p.pokemonId,level:p.level,xp:p.xp,xpToNext:p.level===100?null:xpThreshold('pokemon',p.level),budget,spent,remaining:budget-spent,manual:{...zeroStats(),...p.manual}};
  });
  if(pokemon.some((p:unknown)=>p===null))return null;
  return {busy,pokemon};
