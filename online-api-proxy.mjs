@@ -44,7 +44,7 @@ if(process.env.NODE_ENV==='test'&&process.env.ONLINE_SHOP_CI_ONLY==='true'){
   for(const command of ['current','purchase'])allowed.add('/api/v1/shop/'+command);
 }
 if(process.env.NODE_ENV==='test'&&process.env.ONLINE_MOVES_CI_ONLY==='true'){
-  for(const command of ['current','equip'])allowed.add('/api/v1/moves/'+command);
+  for(const command of ['current','equip','upgrade'])allowed.add('/api/v1/moves/'+command);
 }
 if(process.env.NODE_ENV==='test'&&process.env.ONLINE_EVOLUTION_CI_ONLY==='true'){
   for(const command of ['current','evolve'])allowed.add('/api/v1/evolution/'+command);
