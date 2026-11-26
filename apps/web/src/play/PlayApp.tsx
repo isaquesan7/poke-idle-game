@@ -1,3 +1,4 @@
+import {PokeballSymbol,PokeballArt} from './PokeballArt';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   expeditionRewards, LEGACY_EQUIPMENT_SLOTS,
@@ -676,7 +677,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   if (save.status !== 'ready') {
     return (
       <main className={styles.setupShell} data-testid="play-root">
-        <header className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>v0.2 ALPHA</span></header>
+        <header className={styles.brand}><PokeballSymbol className={styles.brandBall}/>KANTO <strong>IDLE</strong><span className={styles.alpha}>v0.2 ALPHA</span></header>
         <section className={styles.welcome}>
           <div className={styles.kicker}>UMA NOVA JORNADA EM KANTO</div>
           <h1>O começo da sua aventura.</h1>
@@ -730,7 +731,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   return (
     <div className={styles.appShell} data-testid="play-root" data-motion="full" data-theme="kanto-adventure">
       <aside className={styles.sidebar}>
-        <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
+        <div className={styles.brand}><PokeballSymbol className={styles.brandBall}/>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
         {online?<OnlineNavigation tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
           disabled={item=>item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition}
@@ -796,7 +797,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 </div>
                 <div className={styles.twoColumn}>
                   <section className={styles.panel} data-tone="pokemon">
-                    <h2><i className="fa-solid fa-circle-dot" aria-hidden="true"/> Seu parceiro</h2>
+                    <h2><PokeballSymbol/> Seu parceiro</h2>
                     <div className={styles.partner}>
                       <PokemonArt id={active.pokemonId} name={view.active.name} />
                       <div><strong>{view.active.name}</strong><p>UID #{active.uid} · Afinidade {active.affinity}%</p>
@@ -858,7 +859,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 <section className={styles.pokemonHero}>
                   <div className={styles.pokemonShowcase}>
                     <div className={styles.pokemonArtStage}>
-                      <span className={styles.pokemonArtHalo} aria-hidden="true"/>
+                      <PokeballSymbol className={styles.pokemonArtHalo}/>
                       <PokemonArt id={focused.pokemonId} name={speciesName(focused.pokemonId)} large />
                       <span className={styles.pokemonArtRing} aria-hidden="true"/>
                     </div>
@@ -1397,7 +1398,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                             disabled={busy||!captureBall||(ballQuantities[captureBall]??0)<1
                               ||battleRegion.rareSpeciesIds.includes(lastBattle.wildSpeciesId)
                                 &&captureBall!=='ultra-ball'}
-                            onClick={()=>captureAfterBattle(captureBall)}>
+                            onClick={()=>captureAfterBattle(captureBall)}>{captureBall&&<PokeballArt id={captureBall}/>}
                             <i className="fa-solid fa-bullseye" aria-hidden="true"/> Tentar capturar (1 tentativa)
                           </button>
                           <button type="button" className={styles.secondary}

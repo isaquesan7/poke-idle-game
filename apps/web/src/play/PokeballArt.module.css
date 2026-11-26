@@ -1,0 +1,2 @@
+.ball,.symbol{display:inline-block;flex:none;width:1.35em;height:1.35em;vertical-align:middle;object-fit:contain}
+.symbol{background:var(--color-white);mask:var(--image-pokeball-symbol) center / contain no-repeat;-webkit-mask:var(--image-pokeball-symbol) center / contain no-repeat}
