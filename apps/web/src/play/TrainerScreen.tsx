@@ -1,3 +1,4 @@
+import {GearArt} from './GearArt';
 import {BadgeArt} from './BadgeArt';
 import {PokeballArt} from './PokeballArt';
 /**
@@ -71,10 +72,10 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
   const bagCapacity=onlineInventory?.bag.capacity??(ownership.status==='valid'?BASE_BAG_SLOTS+ownership.inventory.extraBagSlots:BASE_BAG_SLOTS);
   // O catálogo legado ainda NÃO é inventário de propriedade; os equipamentos
   // seguem selecionáveis no laboratório, sem alegar que foram conquistados.
-  const equipmentEntries:InventorySlotItem[]=onlineInventory?onlineInventory.equipment.map(item=>({id:item.id,name:item.name,description:item.rarity+' · Nv. '+item.requiredLevel,icon:SLOT_ICONS[item.slot],quantity:1,detail:bonusLabel(item.stats),status:item.equipped?'Equipado':'Não equipado'})):LEGACY_ITEMS
+  const equipmentEntries:InventorySlotItem[]=onlineInventory?onlineInventory.equipment.map(item=>({id:item.id,gearTemplateId:item.templateId,rarity:item.rarity,name:item.name,description:item.rarity+' · Nv. '+item.requiredLevel,icon:SLOT_ICONS[item.slot],quantity:1,detail:bonusLabel(item.stats),status:item.equipped?'Equipado':'Não equipado'})):LEGACY_ITEMS
     .filter(item=>legacyCatalog||ownership.status==='valid'&&(ownership.inventory.ownedEquipment[item.id]??0)>0)
     .map(item=>({
-    id:item.id,name:item.name,description:'Equipamento de '+SLOT_NAMES[item.slot]+' do catálogo de testes.',
+    id:item.id,gearTemplateId:item.id,name:item.name,description:'Equipamento de '+SLOT_NAMES[item.slot]+' do catálogo de testes.',
     icon:SLOT_ICONS[item.slot],quantity:ownership.status==='valid'?ownership.inventory.ownedEquipment[item.id]??1:1,
     detail:bonusLabel(item.stats)||'Sem bônus',
     status:equippedIds.has(item.id)?'Equipado':'Não equipado'
@@ -260,7 +261,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
       {equipmentChoice&&<InventoryDialog title={equipmentChoice.name}
         onClose={()=>setSelectedEquipment(null)}>
         <div className={styles.detailItem}>
-          <span className={styles.detailIcon}><Fa name={SLOT_ICONS[equipmentChoice.slot]}/></span>
+          <span className={styles.detailIcon}><GearArt id={'templateId' in equipmentChoice?equipmentChoice.templateId:equipmentChoice.id} rarity={'rarity' in equipmentChoice?equipmentChoice.rarity:undefined} fallback={SLOT_ICONS[equipmentChoice.slot]}/></span>
           <div><strong>{SLOT_NAMES[equipmentChoice.slot]}</strong>
             <p>{onlineInventory?'Equipamento individual do servidor.':'Equipamento de '+SLOT_NAMES[equipmentChoice.slot]+' do catálogo de testes.'}</p></div>
         </div>
@@ -288,7 +289,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
       <p className={styles.hint}>Cada tipo de item empilhado ocupa um cubo, independentemente da quantidade.
         Passe o mouse ou use o foco do teclado para ver detalhes. No celular, toque no cubo.</p>
       {onlineInventory&&onLoot&&<>
-        {onlineInventory.pending&&<section className={styles.panel}><h3>Recompensas regionais pendentes</h3>{onlineInventory.pending.items.map(item=>{const itemId=item.kind==='gear'?item.gear.id:item.itemId;const name=item.kind==='gear'?(LEGACY_ITEMS.find(m=>m.id===item.gear.templateId)?.name??itemId):itemId;const fields={encounterId:onlineInventory.pending!.encounterId,itemId};return <div key={itemId} className={styles.detailActions}><strong>{item.kind==='ball'&&<PokeballArt id={itemId}/>} {name}</strong><button type="button" className={styles.confirmButton} disabled={busy} onClick={()=>onLoot({kind:'loot-store',...fields})}>Guardar</button><button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar este drop definitivamente?'))onLoot({kind:'loot-discard',...fields});}}>Descartar</button></div>;})}</section>}
+        {onlineInventory.pending&&<section className={styles.panel}><h3>Recompensas regionais pendentes</h3>{onlineInventory.pending.items.map(item=>{const itemId=item.kind==='gear'?item.gear.id:item.itemId;const name=item.kind==='gear'?(LEGACY_ITEMS.find(m=>m.id===item.gear.templateId)?.name??itemId):itemId;const fields={encounterId:onlineInventory.pending!.encounterId,itemId};return <div key={itemId} className={styles.detailActions}><strong>{item.kind==='ball'?<PokeballArt id={itemId}/>:item.kind==='gear'?<GearArt id={item.gear.templateId} rarity={item.gear.rarity} fallback="fa-shield-halved"/>:null} {name}</strong><button type="button" className={styles.confirmButton} disabled={busy} onClick={()=>onLoot({kind:'loot-store',...fields})}>Guardar</button><button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar este drop definitivamente?'))onLoot({kind:'loot-discard',...fields});}}>Descartar</button></div>;})}</section>}
         {onlineInventory.expeditionPending&&<section className={styles.panel}><h3>Recompensas da expedição pendentes</h3>{Object.entries(onlineInventory.expeditionPending.quantities).filter(([,n])=>Number(n)>0).map(([itemId,n])=>{const fields={claimAt:onlineInventory.expeditionPending!.claimAt,itemId};const blocked=lootBusy||!onlineInventory.canResolveExpeditionLoot;return <div key={itemId} className={styles.detailActions}><strong><PokeballArt id={itemId}/> {itemId} × {n}</strong><button type="button" className={styles.confirmButton} disabled={blocked} onClick={()=>onLoot({kind:'expedition-loot-store',...fields})}>Guardar</button><button type="button" className={styles.cancel} disabled={blocked} onClick={()=>{if(window.confirm('Descartar estas Pokébolas definitivamente?'))onLoot({kind:'expedition-loot-discard',...fields});}}>Descartar</button></div>;})}</section>}
       </>}
       <InventoryGrid title="Mochila" items={bagEntries} capacity={bagCapacity}/>
@@ -303,7 +304,7 @@ function GearCard({slot,selected,onlineItem}:{slot:EquipmentSlot;selected:string
   const description=item?item.name+' · '+bonusLabel(item.stats):SLOT_NAMES[slot]+' · Vazio';
   return <button type="button" className={styles.gear} title={description}
     aria-label={description}>
-    <span className={styles.gearIcon}><Fa name={SLOT_ICONS[slot]}/></span>
+    <span className={styles.gearIcon}>{item?<GearArt id={onlineItem?.templateId??item.id} rarity={onlineItem?.rarity} fallback={SLOT_ICONS[slot]}/>:<Fa name={SLOT_ICONS[slot]}/>}</span>
     <span className={styles.gearName}>{item?.name??SLOT_NAMES[slot]}</span>
     <span className={styles.tooltip} aria-hidden="true">{item?bonusLabel(item.stats):'Sem equipamento'}</span>
   </button>;

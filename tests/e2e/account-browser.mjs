@@ -556,6 +556,12 @@ try{
   await cartAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Loja',exact:true}).click();
   await cartAlpha.getByTestId('shop-buy-poke-ball').click();
   await cartAlpha.getByRole('button',{name:'Equipamentos',exact:true}).click();
+  for(const id of ['cap','visor','coat','battle-jacket','gloves','gloves-tech','pants','shoes','necklace','ring-a','ring-b','ring-c','ring-d','earrings']){
+    const art=cartAlpha.getByTestId('shop-item-'+id).locator('img');
+    await art.waitFor();
+    assert.equal(await art.getAttribute('src'),'/assets/gear-'+id+'.webp');
+    await art.evaluate(el=>el.decode());
+  }
   await cartAlpha.getByTestId('shop-buy-cap').click();
   const openCart=cartAlpha.getByRole('button',{name:/Abrir carrinho/});
   assert.equal(await cartAlpha.getByRole('dialog',{name:'Carrinho de compras'}).count(),0);
@@ -572,6 +578,7 @@ try{
   if(cartViewport)await cartAlpha.setViewportSize(cartViewport);
   assert.match(await cart.textContent(),/Poké Ball × 1/);
   assert.match(await cart.textContent(),/Boné de Kanto × 1/);
+  assert.equal(await cart.locator('img[src="/assets/gear-cap.webp"]').count(),1);
   assert.match(await cart.textContent(),/Total: 1\.800 moedas/);
   const cartPaid=await responseFor(cartAlpha,'/api/v1/shop/purchase',()=>cart.getByRole('button',{name:'Finalizar compra'}).click());
   assert.equal(cartPaid.purchase.cost,1800);assert.equal(cartPaid.purchase.items.length,2);
