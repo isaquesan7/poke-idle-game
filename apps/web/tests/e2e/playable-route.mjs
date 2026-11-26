@@ -921,8 +921,18 @@ async function exercise(browser, label, viewport) {
   await page.getByTestId('pokemon-uid-'+firstUid).getByRole('button',{name:'Treinar UID '+firstUid}).click();
   await page.getByRole('navigation',{name:'Seções do Pokémon'}).getByRole('button',{name:'Evolução'}).click();
   await page.getByRole('heading',{name:'Evolução'}).waitFor();
-  page.once('dialog',dialog=>void dialog.accept());
-  await page.getByRole('button',{name:'Evoluir para Pidgeotto'}).click();
+  const evolveButton=page.getByRole('button',{name:'Evoluir para Pidgeotto'});
+  const evolutionDialog=page.getByRole('dialog',{name:'Confirmar evolução'});
+  const beforeConfirmation=await page.evaluate(key=>localStorage.getItem(key),SAVE);
+  await evolveButton.click();
+  await evolutionDialog.waitFor();
+  await evolutionDialog.getByText('Pidgeotto',{exact:true}).waitFor();
+  await evolutionDialog.getByRole('button',{name:'Cancelar',exact:true}).click();
+  await evolutionDialog.waitFor({state:'hidden'});
+  assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeConfirmation,'Cancelar evolução não pode alterar o save');
+  await evolveButton.click();
+  await evolutionDialog.getByRole('button',{name:'Confirmar evolução',exact:true}).click();
+  await evolutionDialog.waitFor({state:'hidden'});
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
     {key:SAVE,revision:14+secondBattleOffset});
