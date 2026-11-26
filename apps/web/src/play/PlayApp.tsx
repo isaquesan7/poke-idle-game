@@ -26,6 +26,8 @@ import { BattleStage } from './BattleStage';
 import {OnlineBattle} from './OnlineBattle';
 import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
+import {MasteryScreen} from './MasteryScreen';
+import {pokemonMasteryStats,kantoMasteryFamily} from '@kanto/game-core';
 import {OnlineNavigation} from './OnlineNavigation';
 import {AdventureOverview,AdventureTopbar} from './AdventureOverview';
 import {kantoSpecies} from '@kanto/game-core';
@@ -285,10 +287,10 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     }catch{await refreshOnline();setFeedback('Não foi possível confirmar a ação no servidor.');return null;}
     finally{onlineLock.current=false;setBusy(false);}
   }
-  async function onlineExtra(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>){
+  async function onlineExtra(path:'inventory/loadout'|'shop/purchase'|'mastery/research',fields:Record<string,unknown>,expectedRevision?:number){
     if(!online||onlineLock.current||save.status!=='ready')return false;
     onlineLock.current=true;setBusy(true);setFeedback('');
-    try{const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');return ok;}
+    try{if(expectedRevision!==undefined&&expectedRevision!==save.snapshot.revision){setFeedback('O progresso mudou. Atualize e confirme novamente.');return false;}const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');return ok;}
     catch{await refreshOnline();setFeedback('Ação não confirmada. Confira o progresso.');return false;}
     finally{onlineLock.current=false;setBusy(false);}
   }
@@ -464,13 +466,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
       &&Number.isSafeInteger(id)&&id>=1&&id<=151):[];
   const caughtDexIds=[...new Set([...caughtHistory,...(data?.roster.map(p=>p.pokemonId)??[])])];
   const caughtSpeciesCount=caughtDexIds.length;
+  const masteryStatPercent=(speciesId:number)=>online?onlineViews?.mastery?.families.find(f=>f.id===kantoMasteryFamily(speciesId)?.id)?.current.statPercent??0:0;
   const focusedStats = focused && focusedSpecies && view
-    ? pokemonFinalStats(
+    ? pokemonMasteryStats(pokemonFinalStats(
         focusedSpecies.base, focused.level, pokemonManual, view.totals, focused.affinity
-      ) : null;
+      ),masteryStatPercent(focused.pokemonId)) : null;
   const activeManual = manualValues(active?.manual);
   const activeSpecies=active?KANTO_BATTLE_SPECIES[active.pokemonId]:null;
-  const activeStats=active&&activeSpecies&&view?pokemonFinalStats(activeSpecies.base,active.level,activeManual,view.totals,active.affinity):null;
+  const activeStats=active&&activeSpecies&&view?pokemonMasteryStats(pokemonFinalStats(activeSpecies.base,active.level,activeManual,view.totals,active.affinity),masteryStatPercent(active.pokemonId)):null;
   const activeRemaining = active
     ? legacyPokemonManualBudget(active.level) -
       STATS.reduce((total,stat)=>total+activeManual[stat],0)
@@ -735,7 +738,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
       <aside className={styles.sidebar}>
         <div className={styles.brand}><PokeballSymbol className={styles.brandBall}/>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
-        {online?<OnlineNavigation tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
+        {online?<OnlineNavigation masteryAvailable={!!onlineViews?.mastery||trainerSection==='mastery'} tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
           disabled={item=>item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition}
           onNavigate={item=>{if(onlineViews?.region?.encounter){setTab('battle');return;}if(onlineViews?.gym?.gym){setTab('gyms');return;}if(item.tab==='trainer')setTrainerSection(item.trainerSection??'profile');if(item.tab==='pokemon')setPokemonSection(item.pokemonSection??'profile');setTab(item.tab);setFeedback('');setBattlePlayback(null);}}/>:<nav className={styles.menu} aria-label="Navegação do jogo">
           {(['overview','trainer','pokemon','collection','pokedex','regions','gyms','expedition','shop'] as Tab[]).map(item => (
@@ -755,7 +758,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
           <AdventureTopbar online={serverOnline} level={view?.level??'?'} name={view?.name??data?.name??'Treinador'} coins={data?.coins??0} now={now} busy={busy} onLogout={restart}/>
           {tab!=='overview'&&<div className={styles.onlinePageHeading}>
             <div className={styles.kicker}>REGIÃO DE KANTO · SEASON 1</div>
-            <h1>{tab==='battle'?battleRegion.name:tab==='trainer'?({profile:'Meu perfil',equipment:'Equipamentos',bag:'Mochila'}[trainerSection]):tab==='pokemon'?({profile:'Perfil do Pokémon',evolution:'Evolução',moves:'Golpes'}[pokemonSection]):sectionName(tab)}</h1>
+            <h1>{tab==='battle'?battleRegion.name:tab==='trainer'?({profile:'Meu perfil',equipment:'Equipamentos',bag:'Mochila',mastery:'Centro de Pesquisa'}[trainerSection]):tab==='pokemon'?({profile:'Perfil do Pokémon',evolution:'Evolução',moves:'Golpes'}[pokemonSection]):sectionName(tab)}</h1>
           </div>}
         </>:<header className={styles.topbar}>
           <div>
@@ -830,7 +833,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 </div>
               </>
             )}
-            {tab === 'trainer' && <TrainerScreen view={view} data={data} {...(online?{controlledSection:trainerSection}:{})}
+            {tab==='trainer'&&online&&trainerSection==='mastery'&&(onlineViews?.mastery?<MasteryScreen key={onlineViews.mastery.revision} view={onlineViews.mastery} busy={busy} onCommand={(command,revision)=>onlineExtra('mastery/research',{command},revision)}/>:<section className={styles.panel}>Centro de Pesquisa indisponível. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button></section>)}
+            {tab === 'trainer' && trainerSection!=='mastery' && <TrainerScreen view={view} data={data} {...(online?{controlledSection:trainerSection}:{})}
               revision={save.snapshot.revision} busy={busy||!!inventory?.busy}
               {...(inventory?{onlineInventory:inventory,onDiscardGear:(id:string)=>void onlineExtra('inventory/loadout',{command:{kind:'discard-gear',itemId:id}}),onLoot:(command:Record<string,unknown>)=>void onlineExtra('inventory/loadout',{command}),lootBusy:busy}:{})}
               onInvest={investTrainerBatch}
@@ -933,7 +937,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                     if(!focusedSpecies||!view)return null;
                     const previewManual={...pokemonManual};
                     for(const stat of STATS)previewManual[stat]+=(increments[stat]??0);
-                    return pokemonFinalStats(focusedSpecies.base,focused.level,previewManual,view.totals,focused.affinity);
+                    return pokemonMasteryStats(pokemonFinalStats(focusedSpecies.base,focused.level,previewManual,view.totals,focused.affinity),masteryStatPercent(focused.pokemonId));
                   }}
                   onConfirm={investPokemonBatch}
                   onReset={()=>{

@@ -47,7 +47,7 @@ export function onlineMasteryProjection(raw:string){
  for(const p of snapshot.roster)counts.set(p.pokemonId,(counts.get(p.pokemonId)??0)+1);
  const discovered=new Set<number>([...snapshot.roster.map(p=>kantoMasteryFamily(p.pokemonId)!.id),...Object.keys(data.points).map(Number)]);
  return {busy:snapshot.busy,totalSent:data.totalSent,totalFamilies:KANTO_MASTERY_FAMILIES.length,mastered:Object.values(data.points).filter(n=>n===100).length,
-  families:KANTO_MASTERY_FAMILIES.filter(f=>discovered.has(f.id)).map(f=>({...f,...kantoMasteryRank(data.points[String(f.id)]??0)})),
+  families:KANTO_MASTERY_FAMILIES.filter(f=>discovered.has(f.id)).map(f=>({...f,...kantoMasteryRank(data.points[String(f.id)]??0)!})),
   pokemon:state.roster.map((p:{uid:number;pokemonId:number;level:number})=>{
    const familyId=kantoMasteryFamily(p.pokemonId)!.id;
    const favorite=data.favorites.includes(p.uid),inTeam=snapshot.team.includes(p.uid);

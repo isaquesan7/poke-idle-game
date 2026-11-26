@@ -89,11 +89,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -217,6 +217,16 @@ try{
   alpha.on('pageerror',err=>browserErrors.push(err.message));
   await alpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
   await alpha.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  await alphaNav.getByRole('button',{name:'Centro de Pesquisa',exact:true}).click();
+  await alpha.getByRole('heading',{name:'Centro de Pesquisa',exact:true,level:1}).waitFor();
+  await assertAccountBar(alpha);
+  await alpha.getByTestId('mastery-pokemon-1').waitFor();
+  assert.equal(await alpha.getByRole('checkbox',{name:'Selecionar Pokémon 1'}).isDisabled(),true);
+  assert.equal(await alpha.getByRole('button',{name:'Enviar para pesquisa',exact:true}).isDisabled(),true);
+  await alpha.getByRole('textbox',{name:'Buscar família ou espécie'}).fill('zz-no-result');
+  await alpha.getByText('Nenhuma família encontrada.',{exact:true}).waitFor();
+  await alpha.getByRole('textbox',{name:'Buscar família ou espécie'}).fill('');
+  await alpha.getByTestId('mastery-pokemon-1').waitFor();
   assert.equal(await alpha.getByTestId('play-root').count(),1);
   assert.equal(await alpha.getByTestId('play-root').getAttribute('data-theme'),'kanto-adventure');
   const theme=await alpha.evaluate(()=>{const s=getComputedStyle(document.documentElement);return Object.fromEntries(['--color-bg','--color-primary','--color-secondary','--color-success','--color-gold','--color-affinity'].map(k=>[k,s.getPropertyValue(k).trim()]));});
