@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import {KANTO_POKEDEX} from '../src/catalog/kantoSpecies.js';
-import {KANTO_MASTERY_FAMILIES,kantoMasteryFamily,kantoMasteryRank,kantoResearchValue,quoteKantoResearch} from '../src/progression/kantoMastery.js';
+import {KANTO_MASTERY_FAMILIES,kantoMasteryFamily,kantoMasteryRank,kantoResearchValue,quoteKantoResearch,masteryAchievements} from '../src/progression/kantoMastery.js';
 import type {ResearchSnapshot} from '../src/progression/kantoMastery.js';
 const fixture=():ResearchSnapshot=>({roster:[{uid:1,pokemonId:25},{uid:2,pokemonId:25},{uid:3,pokemonId:25},{uid:4,pokemonId:26},{uid:5,pokemonId:26},{uid:6,pokemonId:19}],team:[1],favorites:[3],points:{'25':14},busy:false});
 describe('Kanto mastery policy',()=>{
@@ -47,4 +47,12 @@ describe('Kanto mastery policy',()=>{
   expect(quoteKantoResearch(s,[4,2]).status).toBe('mastered');
   expect(quoteKantoResearch({...s,points:{'25':100}},[2]).status).toBe('mastered');
  });
+});
+
+it('research titles unlock only at completed family milestones',()=>{
+ const points=Object.fromEntries(KANTO_MASTERY_FAMILIES.slice(0,5).map(f=>[String(f.id),100]));
+ expect(masteryAchievements(points).map(a=>a.unlocked)).toEqual([true,false,false,false]);
+ expect(masteryAchievements(Object.fromEntries(KANTO_MASTERY_FAMILIES.map(f=>[String(f.id),99]))).every(a=>!a.unlocked)).toBe(true);
+ const all=masteryAchievements(Object.fromEntries(KANTO_MASTERY_FAMILIES.map(f=>[String(f.id),100])));
+ expect(all.every(a=>a.unlocked)).toBe(true);expect(all[3]?.target).toBe(KANTO_MASTERY_FAMILIES.length);
 });

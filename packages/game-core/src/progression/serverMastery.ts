@@ -1,7 +1,7 @@
 /** Server-only research transition. The caller locks the authoritative save
  * and commits the returned JSON plus action receipt in one transaction. */
 import {prepareRewardJournal} from '../legacy/rewardEvents.js';
-import {KANTO_MASTERY_FAMILIES,KANTO_MASTERY_CAP,kantoMasteryFamily,kantoMasteryRank,kantoResearchValue,quoteKantoResearch} from './kantoMastery.js';
+import {KANTO_MASTERY_FAMILIES,KANTO_MASTERY_CAP,kantoMasteryFamily,kantoMasteryRank,kantoResearchValue,quoteKantoResearch,masteryAchievements} from './kantoMastery.js';
 import type {ResearchSnapshot} from './kantoMastery.js';
 const record=(v:unknown):v is Record<string,unknown>=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const positive=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>0;
@@ -46,9 +46,9 @@ export function onlineMasteryProjection(raw:string){
  const counts=new Map<number,number>();
  for(const p of snapshot.roster)counts.set(p.pokemonId,(counts.get(p.pokemonId)??0)+1);
  const discovered=new Set<number>([...snapshot.roster.map(p=>kantoMasteryFamily(p.pokemonId)!.id),...Object.keys(data.points).map(Number)]);
- return {busy:snapshot.busy,totalSent:data.totalSent,totalFamilies:KANTO_MASTERY_FAMILIES.length,mastered:Object.values(data.points).filter(n=>n===100).length,
+ return {busy:snapshot.busy,totalSent:data.totalSent,totalFamilies:KANTO_MASTERY_FAMILIES.length,mastered:Object.values(data.points).filter(n=>n===100).length,achievements:masteryAchievements(data.points),
   families:KANTO_MASTERY_FAMILIES.filter(f=>discovered.has(f.id)).map(f=>({...f,...kantoMasteryRank(data.points[String(f.id)]??0)!})),
-  pokemon:state.roster.map((p:{uid:number;pokemonId:number;level:number})=>{
+  pokemon:(state.roster as {uid:number;pokemonId:number;level:number}[]).map(p=>{
    const familyId=kantoMasteryFamily(p.pokemonId)!.id;
    const favorite=data.favorites.includes(p.uid),inTeam=snapshot.team.includes(p.uid);
    const blocked=inTeam?'team':favorite?'favorite':(counts.get(p.pokemonId)??0)<2?'last-specimen':(data.points[String(familyId)]??0)>=100?'mastered':null;

@@ -1259,3 +1259,13 @@
 .masteryCheckout{margin-top:var(--space-3);padding:var(--space-3);border-top:1px solid var(--color-border)}
 @media(max-width:1000px){.masteryColumns{grid-template-columns:minmax(0,1fr)}.masteryRanks{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.masterySummary{grid-template-columns:minmax(0,1fr)}.masteryList>.masteryPokemon{grid-template-columns:40px minmax(0,1fr) auto}.masterySelect{grid-column:2/-1;display:flex;align-items:center;justify-content:flex-end}.masteryFilters{grid-template-columns:minmax(0,1fr)}}
+
+.masteryAchievements{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.masteryAchievements article{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:var(--space-3);padding:var(--space-4);background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:var(--radius-control)}
+.masteryAchievements article>div{display:grid;gap:var(--space-2);min-width:0}
+.masteryAchievements article[data-unlocked="true"]{border-color:var(--color-gold)}
+.masteryAchievements article[data-unlocked="true"]>i,.masteryEmblem{color:var(--color-gold)}
+.masteryAchievements progress{width:100%;accent-color:var(--color-gold)}
+.masteryEmblem{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:.75rem;font-weight:800;border:1px solid var(--color-gold);border-radius:var(--radius-control);padding:4px 8px;max-width:100%;text-align:center}
+.masteryMasterCard{outline:1px solid var(--color-gold);outline-offset:-1px}
+@media(max-width:690px){.masteryAchievements{grid-template-columns:minmax(0,1fr)}}

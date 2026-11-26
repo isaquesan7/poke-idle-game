@@ -127,3 +127,14 @@ export function masteryPokemonXp(base:number,percent:number){
  if(!Number.isSafeInteger(base)||base<0||![0,2,5,10].includes(percent))throw new RangeError('Invalid mastery XP');
  return Math.floor(base*(100+percent)/100);
 }
+
+/** Cosmetic research titles: permanent milestones, independent of equipped combat titles. */
+export function masteryAchievements(points:Readonly<Record<string,number>>){
+ const mastered=KANTO_MASTERY_FAMILIES.filter(f=>points[String(f.id)]===KANTO_MASTERY_CAP).length;
+ return [
+  {id:'researcher-kanto',name:'Pesquisador de Kanto',target:5},
+  {id:'pokemon-specialist',name:'Especialista Pokémon',target:15},
+  {id:'pokemon-professor',name:'Professor Pokémon',target:30},
+  {id:'species-master',name:'Mestre das Espécies',target:KANTO_MASTERY_FAMILIES.length}
+ ].map(a=>({...a,progress:Math.min(mastered,a.target),unlocked:mastered>=a.target}));
+}

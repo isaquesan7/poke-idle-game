@@ -466,7 +466,9 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
       &&Number.isSafeInteger(id)&&id>=1&&id<=151):[];
   const caughtDexIds=[...new Set([...caughtHistory,...(data?.roster.map(p=>p.pokemonId)??[])])];
   const caughtSpeciesCount=caughtDexIds.length;
-  const masteryStatPercent=(speciesId:number)=>online?onlineViews?.mastery?.families.find(f=>f.id===kantoMasteryFamily(speciesId)?.id)?.current.statPercent??0:0;
+  const masteryFor=(speciesId:number)=>online?onlineViews?.mastery?.families.find(f=>f.id===kantoMasteryFamily(speciesId)?.id):undefined;
+  const masteryStatPercent=(speciesId:number)=>masteryFor(speciesId)?.current.statPercent??0;
+  const masteredSpecies=onlineViews?.mastery?.families.filter(f=>f.current.rank===5).flatMap(f=>f.speciesIds)??[];
   const focusedStats = focused && focusedSpecies && view
     ? pokemonMasteryStats(pokemonFinalStats(
         focusedSpecies.base, focused.level, pokemonManual, view.totals, focused.affinity
@@ -878,6 +880,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                     <div className={styles.pokemonIdentity}>
                       <span className={styles.pokemonSpeciesNumber}># {String(focused.pokemonId).padStart(3,'0')} · UID {focused.uid}</span>
                       <h2>{speciesName(focused.pokemonId)}</h2>
+                      {masteryFor(focused.pokemonId)?.current.rank===5&&<span className={styles.masteryEmblem} data-testid="mastery-profile-emblem"><i className="fa-solid fa-award" aria-hidden="true"/> Maestria V · Mestre</span>}
                       <div className={styles.pokemonExperience} data-testid="pokemon-xp">
                         <div className={styles.pokemonExperienceHeader}>
                           <strong><i className="fa-solid fa-bolt" aria-hidden="true"/> EXP · Nível {focused.level}</strong>
@@ -1206,7 +1209,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                       const dex=speciesName(pokemon.pokemonId);
                       return (
                         <article key={pokemon.uid} data-testid={'pokemon-uid-'+pokemon.uid}
-                          className={leader?styles.collectionCardLeader:styles.collectionCard}>
+                          className={(leader?styles.collectionCardLeader:styles.collectionCard)+(masteryFor(pokemon.pokemonId)?.current.rank===5?' '+styles.masteryMasterCard:'')}>
                           <div className={styles.collectionCardTop}>
                             <span>#{String(pokemon.pokemonId).padStart(3,'0')} · UID {pokemon.uid}</span>
                             <span className={styles.collectionCardStatus}>
@@ -1215,6 +1218,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                           </div>
                           <div className={styles.collectionCardArt}><PokemonArt id={pokemon.pokemonId} name={dex} /></div>
                           <strong>{dex}</strong>
+                          {masteryFor(pokemon.pokemonId)?.current.rank===5&&<span className={styles.masteryEmblem}><i className="fa-solid fa-award" aria-hidden="true"/> Maestria V</span>}
                           <div className={styles.collectionAttributes}>
                             <span><i className="fa-solid fa-star" aria-hidden="true"/> Nv. {pokemon.level}</span>
                             <span><i className="fa-solid fa-heart" aria-hidden="true"/> {pokemon.affinity}% afinidade</span>
@@ -1306,7 +1310,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               />
             )}
 
-            {tab==='battle'&&online&&<OnlineBattle mode="region" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={KANTO_REGIONS.find(r=>r.id===regionalArea)?.name??battleRegion.name} reward={regionalReward} levelUpEncounterId={levelUpNotice?.battleId??null} onDismissReward={()=>setRegionalReward(null)} busy={busy} blocked={!!onlineViews?.gym?.gym||!!expedition} onCommand={(command,choice)=>runOnlineBattle('region',command,choice)} onBack={()=>setTab('regions')}/>}
+            {tab==='battle'&&online&&<OnlineBattle masteredSpecies={masteredSpecies} mode="region" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={KANTO_REGIONS.find(r=>r.id===regionalArea)?.name??battleRegion.name} reward={regionalReward} levelUpEncounterId={levelUpNotice?.battleId??null} onDismissReward={()=>setRegionalReward(null)} busy={busy} blocked={!!onlineViews?.gym?.gym||!!expedition} onCommand={(command,choice)=>runOnlineBattle('region',command,choice)} onBack={()=>setTab('regions')}/>}
             {tab === 'battle' && !online && (
               <>
                 <section className={styles.battleIntro}>
@@ -1506,7 +1510,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 </section>
               </>
             )}
-            {tab==='gyms'&&online&&<OnlineBattle mode="gym" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={battleRegion.name} busy={busy} blocked={!!onlineViews?.region?.encounter||!!expedition||!!inventory?.pending||!!inventory?.expeditionPending} onCommand={(command,choice)=>runOnlineBattle('gym',command,choice)} onBack={()=>setTab('collection')}/>}
+            {tab==='gyms'&&online&&<OnlineBattle masteredSpecies={masteredSpecies} mode="gym" region={onlineViews?.region??null} gym={onlineViews?.gym??null} data={data} regionId={regionalArea} regionName={battleRegion.name} busy={busy} blocked={!!onlineViews?.region?.encounter||!!expedition||!!inventory?.pending||!!inventory?.expeditionPending} onCommand={(command,choice)=>runOnlineBattle('gym',command,choice)} onBack={()=>setTab('collection')}/>}
             {tab === 'gyms' && !online && <GymScreen game={ballGame??{}} data={data}
               busy={busy} revision={save.snapshot.revision} onAction={dispatch}
               onOpenCollection={()=>setTab('collection')}/>}
