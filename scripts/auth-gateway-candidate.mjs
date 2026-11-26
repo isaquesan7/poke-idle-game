@@ -19,7 +19,8 @@ function routeFor(raw,gameplayEnabled){
   if(apiReads.has(raw))return {path:raw,kind:'read'};
   if(raw===logout)return {path:raw,kind:'logout'};
   // Only the shared allowlist; the API still authenticates and owns every action.
-  const gameRoute=gameplayEnabled?onlineRoute(raw):null;
+  const candidate=gameplayEnabled?onlineRoute(raw):null;
+  const gameRoute=candidate?.group==='mastery'?null:candidate;
   if(gameRoute&&!gameRoute.signed)return {path:raw,kind:gameRoute.method==='POST'?'game-write':'game-read'};
   // Verification/reset landing is static. Never forward bearer query values
   // into upstream URL/logs; browser retains its own URL for existing JS.

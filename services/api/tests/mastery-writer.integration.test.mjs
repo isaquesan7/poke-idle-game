@@ -16,6 +16,7 @@ test('Mastery: protected atomic sends, persistent favorites, revision and retry'
   id=(await pool.query("INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id",['mastery-'+randomUUID()+'@example.test','x'.repeat(48)])).rows[0].id;
   const save=firstSave('Mastery CI',4,1740000000000),raw=JSON.parse(save.journal.raw);
   for(let uid=2;uid<=5;uid++)raw.roster.push({...structuredClone(raw.roster[0]),uid});
+  raw.roster[0].level=2;
   raw.nextUid=6;save.journal.raw=JSON.stringify(raw);
   await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[id,JSON.stringify(save)]);
   const write=(command,expectedRevision,actionId=randomUUID())=>writeMastery(pool,{accountId:id,actionId,expectedRevision,command});
