@@ -2502,3 +2502,7 @@ Removida integralmente a camada GYM-03A de compatibilidade pré-lançamento por 
 ## Adventure — imagens dos equipamentos (candidata)
 - #325 quatro CI SUCCESS, squash main a353567; deploy de homologação acionado com revisão Gateway atualizada. Não afirmar sucesso runtime sem consulta.
 - Proprietário forneceu 14 imagens. GearArt usa templateId (não UID de instância), fallback de ícone, bordas por raridade; loja/carrinho, mochila, grid de equipamentos, modal, perfil e drops. Sem alteração de preço, atributos, raridades, chance ou API/DB. Browser verifica os 14 arquivos reais e carrinho. Assets gear-{cap,visor,coat,battle-jacket,gloves,gloves-tech,pants,shoes,necklace,ring-a,ring-b,ring-c,ring-d,earrings}.webp devem estar na branch em apps/web/public/assets antes do CI final. Não publicar sem assets e testes.
+
+
+## Adventure — cabeçalho global online (candidata)
+- #326 integrada em 806a57b, quatro CI SUCCESS, proprietário aprovou visual de equipamentos. Pedido seguinte: corrigir topo antigo nas outras páginas. AdventureTopbar agora único para todas as páginas autenticadas, acima do título da seção (overview conserva hero); relógio local, status, saldo e menu de conta existentes, mobile preservado. Laboratório /play mantém cabeçalho próprio. Browser valida navegação, status, saldo, relógio e menu em outras telas e largura 390px. Sem mudança de mecânica, API ou DB. CI antes de publicação. Ideia de utilidade para Pokémon duplicados ainda em discussão, não implementar sem aprovação de regras.

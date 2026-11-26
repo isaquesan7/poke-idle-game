@@ -751,10 +751,16 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
         </div>
       </aside>
       <div className={styles.content}>
-        {online&&tab==='overview'?<AdventureTopbar online={serverOnline} level={view?.level??'?'} name={view?.name??data?.name??'Treinador'} coins={data?.coins??0} now={now} busy={busy} onLogout={restart}/>:<header className={styles.topbar}>
+        {online?<>
+          <AdventureTopbar online={serverOnline} level={view?.level??'?'} name={view?.name??data?.name??'Treinador'} coins={data?.coins??0} now={now} busy={busy} onLogout={restart}/>
+          {tab!=='overview'&&<div className={styles.onlinePageHeading}>
+            <div className={styles.kicker}>REGIÃO DE KANTO · SEASON 1</div>
+            <h1>{tab==='battle'?battleRegion.name:tab==='trainer'?({profile:'Meu perfil',equipment:'Equipamentos',bag:'Mochila'}[trainerSection]):tab==='pokemon'?({profile:'Perfil do Pokémon',evolution:'Evolução',moves:'Golpes'}[pokemonSection]):sectionName(tab)}</h1>
+          </div>}
+        </>:<header className={styles.topbar}>
           <div>
             <div className={styles.kicker}>REGIÃO DE KANTO · SEASON 1</div>
-            <h1>{tab==='battle'?battleRegion.name:online&&tab==='trainer'?({profile:'Meu perfil',equipment:'Equipamentos',bag:'Mochila'}[trainerSection]):online&&tab==='pokemon'?({profile:'Perfil do Pokémon',evolution:'Evolução',moves:'Golpes'}[pokemonSection]):sectionName(tab)}</h1>
+            <h1>{tab==='battle'?battleRegion.name:sectionName(tab)}</h1>
           </div>
           <div className={styles.trainerChip}><span className={serverOnline===true?styles.serverOnline:styles.serverOffline} role="status">{serverOnline===null?'Verificando servidor':serverOnline?'● Servidor Online':'● Servidor indisponível'}</span><span className={styles.avatar}>★</span>
             <span><strong>{view?.name ?? data?.name}</strong><small>Nível {view?.level ?? '?'}</small></span>

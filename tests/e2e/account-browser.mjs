@@ -228,6 +228,17 @@ try{
   assert.equal(await overview.locator('[data-stat]').count(),6);
   assert.ok(await overview.locator('[data-tone="collection"] > span').first().evaluate(el=>el.getBoundingClientRect().width>=40));
   await overview.getByRole('heading',{name:'Charmander'}).waitFor();
+  const assertAccountBar=async(page)=>{
+    const bar=page.getByRole('banner',{name:'Resumo da conta'});
+    await bar.waitFor();
+    assert.equal(await bar.count(),1);
+    await bar.getByRole('button',{name:/Treinador Nv\./}).waitFor();
+    await bar.getByLabel(/^Moedas: /).waitFor();
+    assert.match(await bar.getByLabel('Horário local',{exact:true}).textContent(),/\d{2}:\d{2}:\d{2}/);
+    await bar.getByRole('status').waitFor();
+    assert.equal(await page.getByText('● Servidor Online',{exact:true}).count(),0);
+  };
+  await assertAccountBar(alpha);
   const accountButton=alpha.getByRole('button',{name:/Treinador Nv\./});
   await accountButton.click();
   await alpha.getByRole('banner',{name:'Resumo da conta'}).getByRole('button',{name:'Sair da conta'}).waitFor();
@@ -237,6 +248,7 @@ try{
   assert.equal(await overview.getByRole('button',{name:'Encerrar',exact:true}).isDisabled(),true);
   await overview.getByRole('button',{name:'Abrir expedição'}).click();
   await alpha.getByRole('heading',{name:'Expedição de Kanto'}).waitFor();
+  await assertAccountBar(alpha);
   const alphaNav=alpha.getByRole('navigation',{name:'Navegação do jogo'});
   await alphaNav.getByRole('button',{name:'Visão geral',exact:true}).click();
   const expand=async(page,group)=>{const btn=page.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:group,exact:true});if(await btn.getAttribute('aria-expanded')!=='true')await btn.click();};
@@ -245,12 +257,15 @@ try{
   await alpha.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
   await alphaNav.getByRole('button',{name:'Coleção',exact:true}).click();
   await alpha.getByTestId('pokemon-uid-1').getByText('Charmander',{exact:true}).waitFor();
+  await assertAccountBar(alpha);
   await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Pokédex',exact:true}).click();
   assert.equal(await alpha.getByTestId('pokedex-grid').evaluate(el=>getComputedStyle(el).overflowY),'auto');
+  await assertAccountBar(alpha);
   await expand(alpha,'Abrir mapa');
   assert.equal(await alphaNav.getByRole('button',{name:'Treinador',exact:true}).getAttribute('aria-expanded'),'false');
   await alphaNav.getByRole('button',{name:'Regiões',exact:true}).click();
   assert.equal(await alpha.getByLabel('Seu estoque para capturar depois do combate').locator('img').count(),3);
+  await assertAccountBar(alpha);
   await alpha.getByRole('button',{name:/ÁREA 09/}).click();
   const lockedDialog=alpha.getByRole('dialog',{name:'Detalhes da região'});
   assert.equal(await lockedDialog.getByRole('button',{name:/Entrar na região/}).isDisabled(),true);
@@ -258,17 +273,26 @@ try{
   await alpha.getByRole('button',{name:/ÁREA 01/}).click();
   await alpha.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:/Entrar na região/}).click();
   await alpha.getByRole('progressbar',{name:'XP do Pokémon líder'}).waitFor();
+  await assertAccountBar(alpha);
   await alpha.getByRole('button',{name:'Voltar às regiões'}).click();
   await expand(alpha,'Treinador');
   await alphaNav.getByRole('button',{name:'Equipamentos',exact:true}).click();
   await alpha.getByRole('heading',{name:'Equipamentos',exact:true,level:1}).waitFor();
+  await assertAccountBar(alpha);
+  await accountButton.click();
+  await alpha.getByRole('banner',{name:'Resumo da conta'}).getByRole('button',{name:'Sair da conta'}).waitFor();
+  await alpha.keyboard.press('Escape');
+  assert.equal(await accountButton.getAttribute('aria-expanded'),'false');
   await alphaNav.getByRole('button',{name:'Mochila',exact:true}).click();
   await alpha.getByTestId('inventory-item-poke-ball').waitFor();
+  await assertAccountBar(alpha);
   assert.equal(await alpha.getByTestId('inventory-item-poke-ball').locator('img').getAttribute('src'),'/assets/poke-ball.webp');
   assert.equal(await alphaNav.getByRole('button',{name:'Mochila',exact:true}).getAttribute('aria-current'),'page');
   assert.equal(await alpha.getByRole('navigation',{name:'Seções do treinador'}).count(),0);
   const originalViewport=alpha.viewportSize();
   await alpha.setViewportSize({width:390,height:844});
+  await assertAccountBar(alpha);
+  assert.ok(await alpha.getByRole('banner',{name:'Resumo da conta'}).evaluate(el=>el.scrollWidth<=el.clientWidth+1));
   const mobileMenu=alpha.getByRole('button',{name:'Abrir menu',exact:true});
   await mobileMenu.waitFor();
   await alphaNav.waitFor({state:'hidden'});
@@ -282,6 +306,7 @@ try{
   await alpha.getByRole('heading',{name:'Mochila',exact:true,level:1}).waitFor();
   await alphaNav.getByRole('button',{name:'Perfil',exact:true}).click();
   await alpha.getByRole('heading',{name:'Perfil do Pokémon',exact:true,level:1}).waitFor();
+  await assertAccountBar(alpha);
   assert.equal(await alpha.getByRole('navigation',{name:'Seções do Pokémon'}).count(),0);
   await alphaNav.waitFor({state:'hidden'});
   await mobileMenu.click();
@@ -554,6 +579,7 @@ try{
   const cartAlpha=await context.newPage();
   await cartAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
   await cartAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Loja',exact:true}).click();
+  await assertAccountBar(cartAlpha);
   await cartAlpha.getByTestId('shop-buy-poke-ball').click();
   await cartAlpha.getByRole('button',{name:'Equipamentos',exact:true}).click();
   for(const id of ['cap','visor','coat','battle-jacket','gloves','gloves-tech','pants','shoes','necklace','ring-a','ring-b','ring-c','ring-d','earrings']){
@@ -593,6 +619,7 @@ try{
   await expand(cartAlpha,'Abrir mapa');
   await cartAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Ginásios',exact:true}).click();
   await cartAlpha.getByTestId('online-battle-start').waitFor();
+  await assertAccountBar(cartAlpha);
   assert.equal(await cartAlpha.getByTestId('battle-stage').count(),0);
   await cartAlpha.close();
 
