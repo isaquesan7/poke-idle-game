@@ -261,6 +261,7 @@ try{
   await alpha.getByRole('heading',{name:'Equipamentos',exact:true,level:1}).waitFor();
   await alphaNav.getByRole('button',{name:'Mochila',exact:true}).click();
   await alpha.getByTestId('inventory-item-poke-ball').waitFor();
+  assert.equal(await alpha.getByTestId('inventory-item-poke-ball').locator('img').getAttribute('src'),'/assets/poke-ball.webp');
   assert.equal(await alphaNav.getByRole('button',{name:'Mochila',exact:true}).getAttribute('aria-current'),'page');
   assert.equal(await alpha.getByRole('navigation',{name:'Seções do treinador'}).count(),0);
   const originalViewport=alpha.viewportSize();
@@ -283,7 +284,8 @@ try{
   await mobileMenu.click();
   assert.equal(await alphaNav.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);
   assert.equal(await alphaNav.getByRole('button',{name:'Perfil',exact:true}).getAttribute('aria-current'),'page');
-  await alpha.getByRole('heading',{name:'Perfil do Pokémon',exact:true,level:1}).click();
+  // Tap the brand area above the disclosure, not the heading covered by the menu.
+  await alpha.mouse.click(8,8);
   await alphaNav.waitFor({state:'hidden'});
   if(originalViewport)await alpha.setViewportSize(originalViewport);
   await alpha.reload({waitUntil:'domcontentloaded'});

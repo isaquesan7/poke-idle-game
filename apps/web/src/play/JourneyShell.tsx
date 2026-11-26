@@ -1,3 +1,4 @@
+import {PokeballSymbol} from './PokeballArt';
 import type {ReactNode} from 'react';
 import styles from './PlayApp.module.css';
 
@@ -51,7 +52,7 @@ interface ShellProps {
 export function JourneyShell({tab,title,name,level,coins,revision,serverOnline,online=false,tabs,onNavigate,onExit,feedback,children}:ShellProps){
  return <div className={styles.appShell} data-testid="play-root" data-motion="full">
  <aside className={styles.sidebar}>
-  <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
+  <div className={styles.brand}><PokeballSymbol className={styles.brandBall}/>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
   <div className={styles.sidebarCaption}>SUA JORNADA</div>
   <nav className={styles.menu} aria-label="Navegação do jogo">
    {(['overview','trainer','pokemon','collection','pokedex','regions','gyms','expedition','shop'] as Tab[]).map(item=>

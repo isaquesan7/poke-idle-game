@@ -48,6 +48,7 @@
   --color-hero-horizon: #163b57;
   --color-hero-night: #091228;
   /* Overview supplied landscape assets; fallback gradients remain readable without files. */
+  --image-pokeball-symbol: url('/assets/pokeball-symbol.webp');
   --image-overview-hero: url('/assets/overview-kanto.webp');
   --image-overview-expedition: url('/assets/overview-expedition.webp');
   --color-overview-hero-shade: rgba(9,18,40,.97);

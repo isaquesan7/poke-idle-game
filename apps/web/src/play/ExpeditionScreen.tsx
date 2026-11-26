@@ -1,3 +1,4 @@
+import {PokeballArt,PokeballSymbol} from './PokeballArt';
 import {useEffect,useRef} from 'react';
 import type {ReactNode} from 'react';
 import {EXPEDITION_CYCLE_MS,EXPEDITION_BALL_PERIODS,expeditionRegionRates,expeditionProgressFactor,scaledRegionalReward} from '@kanto/game-core';
@@ -173,11 +174,11 @@ export function ExpeditionScreen({
         </div>)}
       </div>
       <div className={styles.expeditionBalls} aria-label="Pokébolas da expedição">
-        <strong><i className="fa-solid fa-circle-dot" aria-hidden="true"/> Pokébolas acumuladas</strong>
+        <strong><PokeballSymbol/> Pokébolas acumuladas</strong>
         <div className={styles.ballPills}>
-          <span>Poké Ball <b>+{pending?.ballDrops?.['poke-ball']??0}</b></span>
-          {effectiveRegion>=5&&<span>Great Ball <b>+{pending?.ballDrops?.['great-ball']??0}</b></span>}
-          {effectiveRegion>=9&&<span>Ultra Ball <b>+{pending?.ballDrops?.['ultra-ball']??0}</b></span>}
+          <span><PokeballArt id="poke-ball"/> Poké Ball <b>+{pending?.ballDrops?.['poke-ball']??0}</b></span>
+          {effectiveRegion>=5&&<span><PokeballArt id="great-ball"/> Great Ball <b>+{pending?.ballDrops?.['great-ball']??0}</b></span>}
+          {effectiveRegion>=9&&<span><PokeballArt id="ultra-ball"/> Ultra Ball <b>+{pending?.ballDrops?.['ultra-ball']??0}</b></span>}
         </div>
         {ballStockCapped&&<small className={styles.warning} role="status"
           data-testid="expedition-ball-cap-warning">
@@ -190,7 +191,7 @@ export function ExpeditionScreen({
           <div className={styles.ballPills}>
             {availableBallKinds.map(kind=>{
               const next=nextBallCycles(kind);
-              return next===null?null:<span key={kind}>{ballLabels[kind]}: <b>{next} {next===1?'ciclo':'ciclos'}</b></span>;
+              return next===null?null:<span key={kind}><PokeballArt id={kind}/> {ballLabels[kind]}: <b>{next} {next===1?'ciclo':'ciclos'}</b></span>;
             })}
           </div>
         </div>}

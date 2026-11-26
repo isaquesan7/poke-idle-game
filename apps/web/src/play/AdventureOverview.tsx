@@ -1,3 +1,4 @@
+import {PokeballSymbol} from './PokeballArt';
 import {useEffect,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
 import type {StatValues} from '@kanto/game-core';
@@ -50,14 +51,14 @@ export function AdventureOverview({view,leader,speciesCount,individualCount,expe
   </section>
   <section className={styles.summary} aria-label="Resumo da jornada">
    <article className={styles.metric} data-tone="trainer"><Fa name="fa-user"/><div><small>Treinador</small><strong>Nv. {view.level}</strong><span>{view.title.name}</span></div><span className={styles.watermark}><Fa name="fa-award"/></span></article>
-   <article className={styles.metric} data-tone="collection"><Fa name="fa-circle-dot"/><div><small>Espécies capturadas</small><strong>{speciesCount}<small> /151</small></strong><span>{individualCount} {individualCount===1?'indivíduo':'indivíduos'}</span></div><span className={styles.watermark}><Fa name="fa-circle-dot"/></span></article>
+   <article className={styles.metric} data-tone="collection"><PokeballSymbol className={styles.metricBall}/><div><small>Espécies capturadas</small><strong>{speciesCount}<small> /151</small></strong><span>{individualCount} {individualCount===1?'indivíduo':'indivíduos'}</span></div><span className={styles.watermark}><PokeballSymbol/></span></article>
    <article className={styles.metric} data-tone="gold"><Fa name="fa-medal"/><div><small>Vitórias</small><strong>{view.wins}</strong><span>{view.badges.length}/8 insígnias</span></div><span className={styles.watermark}><Fa name="fa-trophy"/></span></article>
   </section>
   <div className={styles.columns}>
    <section className={styles.pokemonPanel} aria-labelledby="overview-leader">
-    <header><Fa name="fa-circle-dot"/><h2 id="overview-leader">Pokémon principal</h2></header>
+    <header><PokeballSymbol className={styles.headingBall}/><h2 id="overview-leader">Pokémon principal</h2></header>
     <div className={styles.leader}>
-     <div className={styles.artStage}><span className={styles.artHalo}><Fa name="fa-circle-dot"/></span>{leader.art}<span className={styles.artRing}/></div>
+     <div className={styles.artStage}><span className={styles.artHalo}><PokeballSymbol/></span>{leader.art}<span className={styles.artRing}/></div>
      <div className={styles.identity}><span>#{String(leader.id).padStart(3,'0')}</span><h3>{leader.name}</h3>
       <div className={styles.types}>{leader.types.map(type=><span key={type} data-type={type}>{TYPE_LABELS[type]??type}</span>)}</div>
       <p>Nível <b>{leader.level}</b> <span className={styles.affinity}><Fa name="fa-heart"/> Afinidade {leader.affinity}%</span></p>

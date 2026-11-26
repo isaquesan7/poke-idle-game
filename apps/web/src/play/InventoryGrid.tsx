@@ -1,3 +1,4 @@
+import {PokeballArt,isBallArtId} from './PokeballArt';
 /**
  * D-052 · Cubos reutilizáveis do inventário de interface.
  * Um stack (itemId + quantidade) ocupa UM cubo; não altera o domínio/save.
@@ -51,7 +52,7 @@ export function InventoryGrid({title,items,capacity,onSelect,actionLabel,emptyLa
           className={selected===item.id?styles.slotSelected:styles.slotFilled}
           aria-label={actionLabel? actionLabel(item):item.name+', quantidade '+item.quantity+', '+item.description}
           title={item.name}>
-            <span className={styles.itemIcon}><i className={'fa-solid '+item.icon} aria-hidden="true"/></span>
+            <span className={styles.itemIcon}>{isBallArtId(item.id)?<PokeballArt id={item.id}/>:<i className={'fa-solid '+item.icon} aria-hidden="true"/>}</span>
             {item.status==='Equipado'&&<span className={styles.equippedMarker} aria-hidden="true"><i className="fa-solid fa-circle-check"/></span>}
             <span className={styles.tooltip} aria-hidden="true">
               <strong>{item.name}</strong><small>Quantidade: {item.quantity}</small>
