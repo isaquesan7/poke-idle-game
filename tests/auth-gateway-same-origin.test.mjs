@@ -77,7 +77,6 @@ test('reviewed gateway gameplay opt-in forwards the catalog with session and ori
   for(const route of ONLINE_ROUTES.filter(r=>!r.signed&&!['/api/v1/status','/api/v1/me','/api/v1/save','/api/v1/auth/logout'].includes(r.path))){
    const post=route.method==='POST',body=post?'{"fixture":true}':undefined;
    const response=await fetch(entry+route.path,{method:route.method,headers:{Cookie:cookie,'X-Kanto-Proxy-Identity':'forged',...(post?{Origin:origin,'Content-Type':'application/json'}:{})},body});
-   if(route.group==='mastery'){assert.equal(response.status,404,route.path);await response.text();continue;}
    assert.equal(response.status,200,route.path);await response.text();
    assert.equal(response.headers.get('set-cookie'),null);
    assert.equal(response.headers.get('x-internal-secret'),null);
@@ -95,6 +94,8 @@ test('reviewed gateway gameplay opt-in forwards the catalog with session and ori
   assert.equal((await fetch(entry+'/api/v1/shop/purchase')).status,405);
   assert.equal((await fetch(entry+'/api/v1/shop/purchase',{method:'POST',headers:{Origin:'https://wrong.example','Content-Type':'application/json'},body:'{}'})).status,400);
   assert.equal((await fetch(entry+'/api/v1/shop/purchase',{method:'POST',headers:{Origin:origin,'Content-Type':'text/plain'},body:'{}'})).status,400);
+  assert.equal((await fetch(entry+'/api/v1/mastery/research')).status,405);
+  assert.equal((await fetch(entry+'/api/v1/mastery/research',{method:'POST',headers:{Origin:'https://wrong.example','Content-Type':'application/json'},body:'{}'})).status,400);
   assert.equal(seen.length,before);
  }finally{if(gateway)await close(gateway);await close(upstream);if(previous===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=previous;}
 });

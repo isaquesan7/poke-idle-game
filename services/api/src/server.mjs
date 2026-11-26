@@ -418,7 +418,7 @@ const server=createServer(async(req,res)=>{
       return json(res,status,result.status==='ok'?result:{error:result.status});
     }
     if(onlineRouteGroup(pathname,'mastery')){
-      if(!enabled||!masteryHttpEnabled())return json(res,503,{error:'Maestria online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!masteryHttpEnabled()))return json(res,503,{error:'Maestria online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       if(!read)requireSameOrigin(req);

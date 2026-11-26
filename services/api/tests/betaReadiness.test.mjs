@@ -254,7 +254,7 @@ test('release activation rejects stale evidence, unsafe environment and unapplie
 test('release Web allows all reviewed game routes only with production opt-in',()=>{
  const env={NODE_ENV:'production',ONLINE_RELEASE_MODE:'reviewed',ONLINE_PUBLIC_SAVES_ENABLED:'true',ONLINE_GATEWAY_FORWARD_MODE:'reviewed'};
  for(const route of ONLINE_ROUTES){
-  assert.equal(webOnlineRoute(route.path,env),route.group==='mastery'?null:route);
+  assert.equal(webOnlineRoute(route.path,env),route);
   if(route.group!=='base'){
    for(const key of ['ONLINE_RELEASE_MODE','ONLINE_PUBLIC_SAVES_ENABLED','ONLINE_GATEWAY_FORWARD_MODE'])
     assert.equal(webOnlineRoute(route.path,{...env,[key]:undefined}),null);
@@ -286,6 +286,10 @@ test('private Web and gateway use scoped switches, production does not inherit t
  const env={NODE_ENV:'production',RAILWAY_ENVIRONMENT_NAME:'homologacao',ONLINE_PUBLIC_SAVES_ENABLED:'false',ONLINE_HOMOLOGATION_ENABLED:'true',ONLINE_GATEWAY_FORWARD_MODE:'reviewed',
  RAILWAY_PROJECT_ID:'5e70b6da-2aaa-4d6b-add7-3c69ac44b986',RAILWAY_ENVIRONMENT_ID:'41df5039-d980-437a-ab9c-66b827695c67',RAILWAY_SERVICE_ID:'53c40d91-e1b5-453f-8950-c43efdac694c'};
  assert.ok(webOnlineRoute('/api/v1/inventory/current',env));
+ for(const path of ['/api/v1/mastery/current','/api/v1/mastery/research']){
+  assert.ok(webOnlineRoute(path,env));
+  for(const patch of [{RAILWAY_ENVIRONMENT_NAME:'production'},{RAILWAY_SERVICE_ID:'other'},{ONLINE_HOMOLOGATION_ENABLED:'false'},{ONLINE_REGISTRATION_ENABLED:'true'},{ONLINE_GATEWAY_FORWARD_MODE:undefined}])assert.equal(webOnlineRoute(path,{...env,...patch}),null);
+ }
  assert.equal(webOnlineRoute('/api/v1/inventory/current',{...env,RAILWAY_ENVIRONMENT_NAME:'production'}),null);
  assert.equal(webOnlineRoute('/api/v1/account/export',env),null);
  assert.equal(privateHomologationRole('gateway',env),false);
