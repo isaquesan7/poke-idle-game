@@ -207,3 +207,7 @@ export {onlineShopProjection} from './combat/serverShop.js';
 export {onlineExpeditionProjection} from './combat/serverExpedition.js';
 export type {PendingRegionalLoot} from './inventory/serverRegionalLoot.js';
 export type {PendingExpeditionLoot} from './inventory/serverExpeditionLoot.js';
+
+export {KANTO_MASTERY_RANKS,quoteKantoResearch,kantoMasteryFamily} from './progression/kantoMastery.js';
+export {pokemonMasteryStats} from './stats/pokemon.js';
+export type {onlineMasteryProjection} from './progression/serverMastery.js';

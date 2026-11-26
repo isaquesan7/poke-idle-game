@@ -103,3 +103,12 @@ describe('ONLINE-01C-11 — canonical frozen PvE adapter (no grants)',()=>{
    expect(previewFrozenWildBattle(input,148)).not.toBeNull();
  });
 });
+
+it('mastery only scales the final six player stats, never the wild opponent',()=>{
+ const f=fresh(),input={...f,activePokemon:{...f.activePokemon,level:100}};
+ const plain=canonicalFrozenCombatants(input)!;
+ const master=canonicalFrozenCombatants({...input,masteryPoints:{'4':100}})!;
+ expect(master.player.stats).toEqual(Object.fromEntries(Object.entries(plain.player.stats).map(([k,v])=>[k,Math.floor(v*103/100)])));
+ expect(master.wild).toEqual(plain.wild);
+ expect(canonicalFrozenCombatants({...input,masteryPoints:{'4':101}})).toBeNull();
+});

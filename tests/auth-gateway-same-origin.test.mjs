@@ -94,6 +94,8 @@ test('reviewed gateway gameplay opt-in forwards the catalog with session and ori
   assert.equal((await fetch(entry+'/api/v1/shop/purchase')).status,405);
   assert.equal((await fetch(entry+'/api/v1/shop/purchase',{method:'POST',headers:{Origin:'https://wrong.example','Content-Type':'application/json'},body:'{}'})).status,400);
   assert.equal((await fetch(entry+'/api/v1/shop/purchase',{method:'POST',headers:{Origin:origin,'Content-Type':'text/plain'},body:'{}'})).status,400);
+  assert.equal((await fetch(entry+'/api/v1/mastery/research')).status,405);
+  assert.equal((await fetch(entry+'/api/v1/mastery/research',{method:'POST',headers:{Origin:'https://wrong.example','Content-Type':'application/json'},body:'{}'})).status,400);
   assert.equal(seen.length,before);
  }finally{if(gateway)await close(gateway);await close(upstream);if(previous===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=previous;}
 });

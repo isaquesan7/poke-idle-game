@@ -26,18 +26,21 @@ import type {PendingRegionalLoot,PendingExpeditionLoot} from '@kanto/game-core';
 export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number;pending:PendingRegionalLoot|null;expeditionPending:PendingExpeditionLoot|null;canResolveExpeditionLoot:boolean};
 export type ShopView=NonNullable<ReturnType<typeof onlineShopProjection>> & {revision:number};
 export type ExpeditionView=NonNullable<ReturnType<typeof onlineExpeditionProjection>> & {revision:number;busy:boolean};
-export interface OnlineViews {inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;expeditionClock:ServerClockSample|null;region:RegionView|null;gym:GymView|null}
+import type {onlineMasteryProjection} from '@kanto/game-core';
+export type MasteryView=NonNullable<ReturnType<typeof onlineMasteryProjection>> & {revision:number};
+export interface OnlineViews {mastery?:MasteryView|null;inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;expeditionClock:ServerClockSample|null;region:RegionView|null;gym:GymView|null}
 export async function readOnlineViews(revision:number):Promise<OnlineViews>{
  async function load<T>(path:string):Promise<T|null>{try{const r=await get(path);if(!r.ok)return null;const v=await r.json();return v?.status==='ok'&&v.revision===revision?v as T:null;}catch{return null;}}
  const expeditionRequest=load<ExpeditionView>('expedition/current').then(expedition=>({expedition,expeditionClock:expedition?{serverNowMs:expedition.serverNowMs,receivedAt:performance.now()}:null}));
- const [inventory,shop,expeditionResult,region,gym]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),expeditionRequest,load<RegionView>('region/current'),load<GymView>('gym/current')]);
- return {inventory,shop,...expeditionResult,region,gym};
+ const [inventory,shop,expeditionResult,region,gym,mastery]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),expeditionRequest,load<RegionView>('region/current'),load<GymView>('gym/current'),load<MasteryView>('mastery/current')]);
+ return {inventory,shop,...expeditionResult,region,gym,mastery};
 }
-export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>,revision:number){
+export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase'|'mastery/research',fields:Record<string,unknown>,revision:number){
  const r=await post(path,{...fields,actionId:crypto.randomUUID(),expectedRevision:revision});
  // Consume the complete server receipt before triggering a new refresh.
  const receipt=await r.json();
  if(!r.ok)return false;
+ if(path==='mastery/research')return receipt?.status==='applied'&&receipt.revision===revision+1;
  if(path==='shop/purchase'&&Array.isArray(fields.items))return receipt?.status==='purchased'&&receipt.revision===revision+1&&Array.isArray(receipt.purchase?.items)&&receipt.purchase.items.length>0;
  return true;
 }

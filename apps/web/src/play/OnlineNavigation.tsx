@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react';
 import styles from './PlayApp.module.css';
 import type {Tab} from './JourneyShell';
 
-export type TrainerSection='profile'|'equipment'|'bag';
+export type TrainerSection='profile'|'equipment'|'bag'|'mastery';
 export type PokemonSection='profile'|'evolution'|'moves';
 type Destination={tab:Tab;trainerSection?:TrainerSection;pokemonSection?:PokemonSection;label:string;icon:string};
 type Group='trainer'|'pokemon'|'map';
@@ -11,6 +11,7 @@ const groups:readonly {id:Group;label:string;icon:string;links:readonly Destinat
   {tab:'trainer',trainerSection:'profile',label:'Meu perfil',icon:'fa-id-card'},
   {tab:'trainer',trainerSection:'equipment',label:'Equipamentos',icon:'fa-shield-halved'},
   {tab:'trainer',trainerSection:'bag',label:'Mochila',icon:'fa-bag-shopping'},
+  {tab:'trainer',trainerSection:'mastery',label:'Centro de Pesquisa',icon:'fa-flask'},
   {tab:'collection',label:'Coleção',icon:'fa-layer-group'},
   {tab:'pokedex',label:'Pokédex',icon:'fa-book-open'}]},
  {id:'pokemon',label:'Pokémon',icon:'fa-dragon',links:[
@@ -25,8 +26,8 @@ const groups:readonly {id:Group;label:string;icon:string;links:readonly Destinat
 function activeGroup(tab:Tab):Group|null{
  return tab==='battle'?'map':groups.find(g=>g.links.some(x=>x.tab===tab))?.id??null;
 }
-interface Props{tab:Tab;trainerSection:TrainerSection;pokemonSection:PokemonSection;disabled:(tab:Tab)=>boolean;onNavigate:(destination:Destination)=>void}
-export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onNavigate}:Props){
+interface Props{masteryAvailable?:boolean;tab:Tab;trainerSection:TrainerSection;pokemonSection:PokemonSection;disabled:(tab:Tab)=>boolean;onNavigate:(destination:Destination)=>void}
+export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onNavigate,masteryAvailable=false}:Props){
  const current=activeGroup(tab);
  const [open,setOpen]=useState<Group|null>(current);
  const [mobileOpen,setMobileOpen]=useState(false);
@@ -65,7 +66,7 @@ export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onN
       aria-expanded={open===group.id} aria-controls={'nav-'+group.id} onClick={()=>setOpen(old=>old===group.id?null:group.id)}>
       <i className={'fa-solid '+group.icon} aria-hidden="true"/><span>{group.label}</span><i className={'fa-solid '+(open===group.id?'fa-chevron-up':'fa-chevron-down')} aria-hidden="true"/>
     </button>
-    <div id={'nav-'+group.id} hidden={open!==group.id} className={styles.menuChildren}>{group.links.map(item=>link(item,true))}</div>
+    <div id={'nav-'+group.id} hidden={open!==group.id} className={styles.menuChildren}>{group.links.filter(item=>item.trainerSection!=='mastery'||masteryAvailable).map(item=>link(item,true))}</div>
   </div>)}
   {link({tab:'shop',label:'Loja',icon:'fa-store'})}
  </nav>

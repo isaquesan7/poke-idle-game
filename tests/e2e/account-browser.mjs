@@ -89,11 +89,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -255,6 +255,18 @@ try{
   assert.equal(await alphaNav.getByRole('button').count(),5);
   await expand(alpha,'Treinador');
   await alpha.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  await alphaNav.getByRole('button',{name:'Centro de Pesquisa',exact:true}).click();
+  await alpha.getByRole('heading',{name:'Centro de Pesquisa',exact:true,level:1}).waitFor();
+  await assertAccountBar(alpha);
+  await alpha.getByTestId('mastery-pokemon-1').waitFor();
+  assert.equal(await alpha.getByRole('checkbox',{name:'Selecionar Pokémon 1'}).isDisabled(),true);
+  assert.equal(await alpha.getByRole('button',{name:'Enviar para pesquisa',exact:true}).isDisabled(),true);
+  await alpha.getByRole('textbox',{name:'Buscar família ou espécie'}).fill('zz-no-result');
+  await alpha.getByText('Nenhuma família encontrada.',{exact:true}).waitFor();
+  await alpha.getByRole('textbox',{name:'Buscar família ou espécie'}).fill('');
+  await alpha.getByTestId('mastery-pokemon-1').waitFor();
+  await alpha.getByRole('heading',{name:'Conquistas de pesquisa'}).waitFor();
+  await alpha.getByText('Pesquisador de Kanto',{exact:true}).waitFor();
   await alphaNav.getByRole('button',{name:'Coleção',exact:true}).click();
   await alpha.getByTestId('pokemon-uid-1').getByText('Charmander',{exact:true}).waitFor();
   await assertAccountBar(alpha);
@@ -1003,6 +1015,51 @@ try{
   await levelAlpha.getByRole('button',{name:'Seguir sem capturar'}).click();
   await levelAlpha.getByRole('dialog',{name:'Resultado da batalha'}).waitFor();
   await levelAlpha.close();
+
+  checkpoint("Mastery transfer through Alpha");
+  // Dedicated disposable fixture after the battle journey. Resolve fixture-only
+  // pending loot before this unrelated research scenario.
+  const researchSave=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const researchRaw=JSON.parse(researchSave.journal.raw);
+  delete researchRaw.pendingRegionalLoot;delete researchRaw.pendingExpeditionLoot;
+  const researchLeader=researchRaw.roster.find(p=>p.uid===researchRaw.team[0]);
+  const duplicateUid=researchRaw.nextUid++;
+  researchRaw.roster.push({...structuredClone(researchLeader),uid:duplicateUid});
+  researchSave.journal.raw=JSON.stringify(researchRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(researchSave)]);
+  const researchPage=await context.newPage();
+  await researchPage.setViewportSize({width:1365,height:768});
+  await researchPage.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await researchPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  await expand(researchPage,'Treinador');
+  await researchPage.getByRole('button',{name:'Centro de Pesquisa',exact:true}).click();
+  const selection=researchPage.getByRole('checkbox',{name:'Selecionar Pokémon '+duplicateUid,exact:true});
+  await selection.waitFor();
+  const researchRead=async()=>{const q=await researchPage.request.get(origin+'/api/v1/mastery/current');assert.equal(q.status(),200);return q.json();};
+  const researchBefore=await researchRead();
+  assert.equal(researchBefore.busy,false);
+  await responseFor(researchPage,'/api/v1/mastery/research',()=>researchPage.getByRole('button',{name:'Favoritar '+duplicateUid,exact:true}).click());
+  await researchPage.getByRole('button',{name:'Remover favorito '+duplicateUid,exact:true}).waitFor();
+  assert.equal(await selection.isDisabled(),true);
+  await responseFor(researchPage,'/api/v1/mastery/research',()=>researchPage.getByRole('button',{name:'Remover favorito '+duplicateUid,exact:true}).click());
+  await researchPage.getByRole('button',{name:'Favoritar '+duplicateUid,exact:true}).waitFor();
+  await selection.check();
+  const send=researchPage.getByRole('button',{name:'Enviar para pesquisa',exact:true});
+  await send.click();
+  const confirmResearch=researchPage.getByRole('dialog',{name:'Confirmar envio para pesquisa'});
+  await confirmResearch.getByRole('button',{name:'Cancelar',exact:true}).click();
+  assert.equal((await researchRead()).revision,researchBefore.revision+2);
+  await send.click();
+  const sent=await responseFor(researchPage,'/api/v1/mastery/research',()=>confirmResearch.getByRole('button',{name:'Confirmar envio',exact:true}).click());
+  assert.equal(sent.status,'applied');assert.equal(sent.revision,researchBefore.revision+3);
+  await researchPage.getByTestId('mastery-pokemon-'+duplicateUid).waitFor({state:'detached'});
+  const researchAfter=await researchRead();
+  assert.equal(researchAfter.totalSent,researchBefore.totalSent+1);
+  assert.ok(researchAfter.pokemon.some(p=>p.uid===researchLeader.uid));
+  assert.equal(researchAfter.history[0].items[0].uid,duplicateUid);
+  await researchPage.setViewportSize({width:390,height:844});
+  assert.ok(await researchPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
+  await researchPage.close();
 
   checkpoint("password recovery and logout");
   // Recovery is requested using the actual browser form, never a real inbox.

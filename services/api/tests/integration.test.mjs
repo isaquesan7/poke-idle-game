@@ -21,7 +21,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
     env:{...process.env,PORT:'23142',APP_ORIGIN:origin,
-      ONLINE_REGISTRATION_ENABLED:'true',NODE_ENV:'test'},
+      ONLINE_REGISTRATION_ENABLED:'true',NODE_ENV:'test',ONLINE_MASTERY_CI_ONLY:'true'},
     stdio:['ignore','pipe','pipe']
   });
   let stderr='';
@@ -90,6 +90,19 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {starterId:4},{Cookie:sessionCookie});
     assert.equal(started.status,201);
     assert.deepEqual(started.data,{created:true,revision:0,starterId:4});
+    const masteryPath='/api/v1/mastery/current',researchPath='/api/v1/mastery/research';
+    assert.equal((await json(origin,masteryPath)).status,401);
+    const mastery=await json(origin,masteryPath,'GET',undefined,{Cookie:sessionCookie});
+    assert.equal(mastery.status,200);
+    assert.equal(mastery.data.revision,0);assert.equal(mastery.data.totalSent,0);
+    assert.equal(mastery.data.pokemon[0].blocked,'team');
+    const attempt={actionId:'mastery-http-protected-001',expectedRevision:0,command:{kind:'send',uids:[1]}};
+    assert.equal((await json(origin,researchPath,'POST',attempt)).status,401);
+    assert.equal((await json(origin,researchPath,'POST',attempt,{Cookie:sessionCookie,Origin:'https://example.org'})).status,400);
+    assert.equal((await json(origin,researchPath,'POST',{...attempt,accountId:register.data.id},{Cookie:sessionCookie})).status,400);
+    const protectedResearch=await json(origin,researchPath,'POST',attempt,{Cookie:sessionCookie});
+    assert.equal(protectedResearch.status,409);assert.equal(protectedResearch.data.status,'protected');
+    assert.equal((await json(origin,masteryPath,'GET',undefined,{Cookie:sessionCookie})).data.revision,0);
     assert.equal((await json(origin,'/api/v1/adventure/start','POST',
       {starterId:1},{Cookie:sessionCookie})).status,409,
       'duplicate and concurrent starts may not mint another initial reward');

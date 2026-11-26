@@ -31,3 +31,14 @@ describe('D064BS — XP da expedição exclusivo do líder',()=>{
     expect(rewards.pokemonXpByMember).toEqual([0,0]);
   });
 });
+
+it('mastery credits fractional XP deterministically across claim boundaries, never after overlevel',()=>{
+ const ctx={regionId:1,pokemon:[{level:2,xp:0}],masteryXpPercent:10};
+ const one=expeditionRewards(EXPEDITION_CYCLE_MS,ctx);
+ expect(one.pokemonXpPerMember).toBe(5);expect(one.masteryXpRemainder).toBe(50);
+ const two=expeditionRewards(EXPEDITION_CYCLE_MS,{...ctx,pokemon:[{level:2,xp:5}],masteryXpRemainder:one.masteryXpRemainder!});
+ expect(two.pokemonXpPerMember).toBe(6);
+ expect(expeditionRewards(2*EXPEDITION_CYCLE_MS,ctx).pokemonXpPerMember).toBe(11);
+ expect(expeditionRewards(100*EXPEDITION_CYCLE_MS,{...ctx,pokemon:[{level:100,xp:0}]}).pokemonXpPerMember).toBe(0);
+ expect(expeditionRewards(100*EXPEDITION_CYCLE_MS,{...ctx,pokemon:[{level:22,xp:0}]}).pokemonXpPerMember).toBe(0);
+});

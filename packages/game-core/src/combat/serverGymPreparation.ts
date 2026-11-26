@@ -19,7 +19,8 @@ import {LEGACY_TITLES,legacyTitleIsUnlocked}
 import {inspectOnlineInventory,onlineGearForSlot} from '../inventory/onlineOwnership.js';
 import {KANTO_BATTLE_SPECIES} from './kantoBattle.js';
 import {trainerTotals} from '../stats/trainer.js';
-import {pokemonFinalStats} from '../stats/pokemon.js';
+import {masteryBonusFromSave} from '../progression/kantoMastery.js';
+import {pokemonMasteryStats,pokemonFinalStats} from '../stats/pokemon.js';
 import {STATS,zeroStats} from '../stats/types.js';
 import type {StatValues,StatBonus} from '../stats/types.js';
 import type {KantoMove,Combatant} from './kantoBattle.js';
@@ -188,11 +189,13 @@ export function canonicalOnlineGymPreparation(source:unknown):
     const ranks=Object.keys(validated).length?equippedOnlineRanks(moves,validated):{};
     const species=KANTO_BATTLE_SPECIES[p.pokemonId];
     if(!species)return null;
+    const mastery=masteryBonusFromSave(source.research,p.pokemonId);
+    if(!mastery)return null;
     const combatant:Combatant={
       speciesId:species.id,name:species.name,level:p.level,
       types:species.types,
-      stats:pokemonFinalStats(species.base,p.level,pokemonManual,
-        bonuses.totals,p.affinity),
+      stats:pokemonMasteryStats(pokemonFinalStats(species.base,p.level,pokemonManual,
+        bonuses.totals,p.affinity),mastery.statPercent),
       move:moves[0]!,moves,rank:ranks[moves[0]!.name]??0,ranks
     };
     players.push({uid,combatant});

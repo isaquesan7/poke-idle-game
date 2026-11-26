@@ -1236,3 +1236,36 @@
 .onlinePageHeading{min-width:0;margin-bottom:var(--space-7);padding-bottom:var(--space-5);border-bottom:1px solid var(--trainer-card-border)}
 .onlinePageHeading h1{margin:var(--space-2) 0 0;font-size:clamp(1.6rem,3vw,2rem);letter-spacing:-.03em;text-shadow:0 2px 12px var(--trainer-shadow-depth)}
 @media(max-width:690px){.onlinePageHeading{margin-bottom:var(--space-4);padding-bottom:var(--space-3)}}
+
+/* Research center — shared Adventure tokens, responsive, bounded lists. */
+.masteryWorkspace,.masteryColumns,.masteryList,.masteryCheckout{display:grid;gap:var(--space-4);min-width:0}
+.masteryColumns{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+.masterySummary,.masteryRanks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
+.masteryRanks{grid-template-columns:repeat(5,minmax(0,1fr))}
+.masterySummary>div,.masteryRanks>div,.masteryFamily,.masteryPokemon,.masteryList>article{border:1px solid var(--color-border);background:var(--color-surface-raised);border-radius:var(--radius-control);padding:var(--space-3);min-width:0}
+.masterySummary>div,.masteryRanks>div,.masteryFamily>div,.masteryPokemon>div,.masteryList>article{display:grid;gap:var(--space-2);overflow-wrap:anywhere}
+.masterySummary strong{font-size:1.6rem;color:var(--color-gold)}
+.masteryList small,.masteryRanks small,.masterySummary small{font-size:.8rem}
+.masteryList{max-height:560px;overflow:auto;overscroll-behavior:contain}
+.masteryList>.masteryFamily,.masteryList>.masteryPokemon{display:grid;grid-template-columns:60px minmax(0,1fr);align-items:center}
+.masteryList>.masteryPokemon{grid-template-columns:52px minmax(0,1fr) auto auto}
+.masteryFamily img,.masteryPokemon img{width:100%;height:52px;object-fit:contain}
+.masteryFamily progress{width:100%;height:10px;accent-color:var(--color-gold)}
+.masteryFilters{display:grid;gap:var(--space-2);grid-template-columns:minmax(0,1fr) minmax(0,120px);margin-bottom:var(--space-3)}
+.masteryFilters label{display:grid;gap:var(--space-2);min-width:0;font-size:.85rem}
+.masteryFilters input,.masteryFilters select{min-width:0;width:100%;box-sizing:border-box;color:var(--color-text);background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-control);padding:var(--space-2)}
+.masterySelect{display:grid;justify-items:center;gap:4px;font-size:.75rem}
+.masterySelect input{width:20px;height:20px;accent-color:var(--color-gold)}
+.masteryCheckout{margin-top:var(--space-3);padding:var(--space-3);border-top:1px solid var(--color-border)}
+@media(max-width:1000px){.masteryColumns{grid-template-columns:minmax(0,1fr)}.masteryRanks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.masterySummary{grid-template-columns:minmax(0,1fr)}.masteryList>.masteryPokemon{grid-template-columns:40px minmax(0,1fr) auto}.masterySelect{grid-column:2/-1;display:flex;align-items:center;justify-content:flex-end}.masteryFilters{grid-template-columns:minmax(0,1fr)}}
+
+.masteryAchievements{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.masteryAchievements article{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:var(--space-3);padding:var(--space-4);background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:var(--radius-control)}
+.masteryAchievements article>div{display:grid;gap:var(--space-2);min-width:0}
+.masteryAchievements article[data-unlocked="true"]{border-color:var(--color-gold)}
+.masteryAchievements article[data-unlocked="true"]>i,.masteryEmblem{color:var(--color-gold)}
+.masteryAchievements progress{width:100%;accent-color:var(--color-gold)}
+.masteryEmblem{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:.75rem;font-weight:800;border:1px solid var(--color-gold);border-radius:var(--radius-control);padding:4px 8px;max-width:100%;text-align:center}
+.masteryMasterCard{outline:1px solid var(--color-gold);outline-offset:-1px}
+@media(max-width:690px){.masteryAchievements{grid-template-columns:minmax(0,1fr)}}

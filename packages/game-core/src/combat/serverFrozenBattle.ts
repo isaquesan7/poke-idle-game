@@ -6,11 +6,12 @@
  */
 import {KANTO_BATTLE_SPECIES,simulateKantoBattle} from '../combat/kantoBattle.js';
 import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
+import {masteryBonusFromPoints} from '../progression/kantoMastery.js';
 import {serverRegionalOpponent} from './serverRegionalPolicy.js';
 import {inheritedOnlineMoves,regionalNativeMoves} from './serverInheritedMoves.js';
 import type {OnlineEvolutionStep} from './serverInheritedMoves.js';
 import {kantoWildMoveLoadout} from '../catalog/kantoWildMoves.js';
-import {pokemonFinalStats,pokemonOwnStats} from '../stats/pokemon.js';
+import {pokemonMasteryStats,pokemonFinalStats,pokemonOwnStats} from '../stats/pokemon.js';
 import {canonicalOnlineGymTrainerBonuses} from './serverGymPreparation.js';
 import {inspectOnlineInventory} from '../inventory/onlineOwnership.js';
 import type {OnlineInventory} from '../inventory/onlineOwnership.js';
@@ -22,6 +23,7 @@ import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
 export interface ServerBattleSnapshotV1 {
   readonly version:1;
   readonly regionId:number;
+  readonly masteryPoints?:Readonly<Record<string,number>>;
   readonly opponent:{readonly speciesId:number;readonly level:number};
   readonly trainer:{readonly level:number;readonly manual:Readonly<StatValues>;
     readonly equipped:Readonly<Partial<Record<EquipmentSlot,string>>>;
@@ -128,10 +130,12 @@ export function canonicalFrozenCombatants(snapshot:unknown):
     wins:trainer.wins,seen:trainer.seen,badges:trainer.badges,inventory:trainer.inventory});
   if(!bonuses)return null;
   const trainerStats=bonuses.totals;
+  const mastery=masteryBonusFromPoints(s.masteryPoints,player.speciesId);
+  if(!mastery)return null;
   const playerCombatant:Combatant={
     speciesId:own.id,name:own.name,types:own.types,level:player.level,
-    stats:pokemonFinalStats(own.base,player.level,player.manual,
-      trainerStats,player.affinity),
+    stats:pokemonMasteryStats(pokemonFinalStats(own.base,player.level,player.manual,
+      trainerStats,player.affinity),mastery.statPercent),
     move:selected,moves:equipped,rank:equippedRanks[selected.name]??0,
     ...(Object.keys(ranks).length?{ranks:equippedRanks}:{})
   };

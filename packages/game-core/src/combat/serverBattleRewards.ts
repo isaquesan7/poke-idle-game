@@ -3,6 +3,7 @@
  * A future settlement writer must check actual roster/level, caps, receipts,
  * captured state and all other concurrent server actions before crediting.
  */
+import {masteryBonusFromPoints,masteryPokemonXp} from '../progression/kantoMastery.js';
 import {battleProgressFactor,scaledRegionalReward} from '../rewards/regionProgression.js';
 import {battleTrainerXp,beginnerBattleXp} from '../progression/xp.js';
 import {AFFINITY_LOSS_ON_DEFEAT,AFFINITY_LOSS_ON_DRAW}
@@ -24,11 +25,15 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
      !Number.isSafeInteger(v.wildRemainingHp)||
      !Array.isArray(v.log)||!Array.isArray(v.frames)||
      v.log.length!==v.frames.length)return null;
-  const s=snapshot as {activePokemon:{uid:number;affinity:number};regionId:number};
+  const s=snapshot as {activePokemon:{uid:number;affinity:number};regionId:number;masteryPoints?:unknown};
   const {player,wild}=pair;
   const outcome=v.outcome as 'win'|'loss'|'draw';
   const factor=battleProgressFactor(player.level,wild.level);
   const win=outcome==='win';
+  const mastery=masteryBonusFromPoints(s.masteryPoints,player.speciesId);
+  if(!mastery)return null;
+  const basePokemonXp=win?scaledRegionalReward(20+wild.level*6,factor):
+      outcome==='loss'?Math.floor(scaledRegionalReward(20+wild.level*6,factor)/2):beginnerBattleXp(player.level,outcome);
   const affinityBase=win?2+affinityRoll:0;
   const drop=d064BattleBallDropFromRoll(s.regionId,ballRoll);
   if(!drop)return null;
@@ -48,8 +53,7 @@ export function quoteFrozenBattleRewards(snapshot:unknown,preview:unknown,
     coins:win?scaledRegionalReward(25+wild.level*3,factor):0,
     trainerXp:win?scaledRegionalReward(battleTrainerXp(wild.level),factor):
       outcome==='loss'?Math.floor(scaledRegionalReward(battleTrainerXp(wild.level),factor)/2):0,
-    pokemonXp:win?scaledRegionalReward(20+wild.level*6,factor):
-      outcome==='loss'?Math.floor(scaledRegionalReward(20+wild.level*6,factor)/2):beginnerBattleXp(player.level,outcome),
+    pokemonXp:masteryPokemonXp(basePokemonXp,factor>0?mastery.xpPercent:0),
     affinityDelta,ballDropId,
     // Legacy rewardEvents.ts increments losses on either loss or draw,
     // tracks draws separately, and gates battle records by progress factor.
