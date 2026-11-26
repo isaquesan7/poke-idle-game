@@ -55,3 +55,5 @@ export {rollRegionalLoot} from '../inventory/regionalLoot.js';
 export {placeCertifiedRegionalLoot,inspectPendingRegionalLoot,resolvePendingRegionalLoot,discardOnlineGear} from '../inventory/serverRegionalLoot.js';
 
 export {inspectPendingExpeditionLoot,resolvePendingExpeditionLoot} from '../inventory/serverExpeditionLoot.js';
+
+export {onlineMasteryProjection,applyOnlineResearch} from '../progression/serverMastery.js';
