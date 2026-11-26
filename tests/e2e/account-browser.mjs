@@ -225,6 +225,8 @@ try{
   const overview=alpha.getByTestId('adventure-overview');
   assert.equal(await overview.getByRole('region',{name:'Resumo da jornada'}).locator('article').count(),3);
   await overview.getByRole('heading',{name:'Pokémon principal'}).waitFor();
+  assert.equal(await overview.locator('[data-stat]').count(),6);
+  assert.ok(await overview.locator('[data-tone="collection"] > span').first().evaluate(el=>el.getBoundingClientRect().width>=40));
   await overview.getByRole('heading',{name:'Charmander'}).waitFor();
   const accountButton=alpha.getByRole('button',{name:/Treinador Nv\./});
   await accountButton.click();
@@ -248,6 +250,7 @@ try{
   await expand(alpha,'Abrir mapa');
   assert.equal(await alphaNav.getByRole('button',{name:'Treinador',exact:true}).getAttribute('aria-expanded'),'false');
   await alphaNav.getByRole('button',{name:'Regiões',exact:true}).click();
+  assert.equal(await alpha.getByLabel('Seu estoque para capturar depois do combate').locator('img').count(),3);
   await alpha.getByRole('button',{name:/ÁREA 09/}).click();
   const lockedDialog=alpha.getByRole('dialog',{name:'Detalhes da região'});
   assert.equal(await lockedDialog.getByRole('button',{name:/Entrar na região/}).isDisabled(),true);

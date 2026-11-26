@@ -84,3 +84,6 @@
 .regionActive{border-color:var(--color-secondary);background:var(--color-panel-collection)}
 .modal{background:var(--color-modal-background-1);border-color:var(--color-modal-border-1);box-shadow:var(--shadow-modal)}
 .modal::backdrop{background:var(--color-modalbg-background-1)}
+
+.ballStockItem img{width:25px;height:25px;object-fit:contain}
+.modal[data-size='compact']{width:min(500px,calc(100% - 24px))}

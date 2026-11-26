@@ -1,3 +1,4 @@
+import {PokeballArt,PokeballSymbol} from '../play/PokeballArt';
 import {useState} from 'react';
 import {RegionDialog} from './RegionDialog';
 import {KANTO_REGIONS,KANTO_BATTLE_SPECIES} from '@kanto/game-core';
@@ -64,10 +65,10 @@ export function RegionsScreen({
           </div>
         </div>
         <div className={styles.ballStock} aria-label="Seu estoque para capturar depois do combate">
-          <strong><i className="fa-solid fa-baseball" aria-hidden="true"/> Pokébolas disponíveis</strong>
+          <strong><PokeballSymbol/> Pokébolas disponíveis</strong>
           <div className={styles.ballStockItems}>
             {ballLabels.map(ball=><span key={ball.id} className={styles.ballStockItem}>
-              <i className="fa-solid fa-circle-dot" aria-hidden="true"/>
+              <PokeballArt id={ball.id}/>
               {ball.name} <b>{balls[ball.id]??0}</b>
             </span>)}
           </div>
