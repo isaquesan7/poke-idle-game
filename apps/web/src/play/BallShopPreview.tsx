@@ -3,6 +3,7 @@ import {KANTO_BALL_SHOP_CATALOG,KANTO_BALL_SHOP_PRICE_POLICY,KANTO_SHOP_BALL_POC
 import type {KantoBallId,KantoShopBallId} from '@kanto/game-core';
 import styles from './PlayApp.module.css';
 import type {ShopView} from './onlinePlay';
+import {RegionDialog} from '../regions/RegionDialog';
 
 interface BallShopPreviewProps {
  readonly coins:number;readonly trainerLevel:number;
@@ -20,6 +21,7 @@ export function BallShopPreview({coins,trainerLevel,quantities,busy,onBuy,online
  const [batches,setBatches]=useState<Record<KantoShopBallId,number>>({'poke-ball':1,'great-ball':1,'ultra-ball':1});
  const [cart,setCart]=useState<Record<string,number>>({});
  const [checking,setChecking]=useState(false);
+ const [cartOpen,setCartOpen]=useState(false);
  const offers:Offer[]=[...Object.values(KANTO_BALL_SHOP_CATALOG).map(item=>{
    const remote=onlineShop?.items.find(x=>x.id===item.id);
    const price=remote?.unitPrice??KANTO_BALL_SHOP_PRICE_POLICY.unitPrices[item.id];
@@ -36,7 +38,7 @@ export function BallShopPreview({coins,trainerLevel,quantities,busy,onBuy,online
  async function checkout(){if(!onCheckout||locked||!valid)return;setChecking(true);try{if(await onCheckout(lines.map(({offer,quantity})=>({itemId:offer.id,quantity}))))setCart({});}finally{setChecking(false);}}
  return <section className={styles.panel+' '+styles.shopPreview} aria-label="Loja Pokémon" data-testid="shop-preview">
   <div className={styles.kicker}>LOJA POKÉMON · PREÇOS BETA</div><h2>Pokébolas e suprimentos</h2>
-  <div className={styles.shopSummary}><div><small>Saldo disponível</small><strong data-testid="shop-coins">{coins.toLocaleString('pt-BR')} moedas</strong></div><div><small><i className="fa-solid fa-cart-shopping" aria-hidden="true"/> Carrinho</small><strong>{lines.reduce((n,x)=>n+x.quantity,0)} itens</strong></div></div>
+  <div className={styles.shopSummary}><div><small>Saldo disponível</small><strong data-testid="shop-coins">{coins.toLocaleString('pt-BR')} moedas</strong></div>{onCheckout&&<div className={styles.shopCartSummary}><small>Carrinho de compras</small><button type="button" className={styles.primary} aria-haspopup="dialog" onClick={()=>setCartOpen(true)}><i className="fa-solid fa-cart-shopping" aria-hidden="true"/> Abrir carrinho <span className={styles.cartCount}>{lines.reduce((n,x)=>n+x.quantity,0)}</span></button><strong>{total.toLocaleString('pt-BR')} moedas</strong></div>}</div>
   <div className={styles.shopCategories} role="group" aria-label="Categorias da loja">{categories.map(c=><button type="button" key={c.id} className={category===c.id?styles.primary:styles.secondary} aria-pressed={category===c.id} onClick={()=>setCategory(c.id)}><i className={'fa-solid '+c.icon} aria-hidden="true"/> {c.name}</button>)}</div>
   <div className={styles.shopItems}>{offers.filter(o=>o.category===category).map(item=>{
    const ball=item.category==='balls'?item.id as KantoShopBallId:null;
@@ -46,6 +48,6 @@ export function BallShopPreview({coins,trainerLevel,quantities,busy,onBuy,online
    <div className={styles.shopPurchaseControls}>{ball&&<><label htmlFor={'shop-batch-'+ball}>Quantidade</label><select id={'shop-batch-'+ball} aria-label={'Quantidade de '+item.name} value={quantity} disabled={locked||item.max===0} onChange={event=>setBatches(old=>({...old,[ball]:Number(event.target.value)}))}>{BATCHES.filter(n=>n<=KANTO_BALL_SHOP_CATALOG[ball].maxPerPurchase).map(n=><option key={n} value={n}>{n}</option>)}</select></>}
    <button type="button" className={styles.primary} data-testid={'shop-buy-'+item.id} disabled={!canBuy} onClick={()=>onCheckout?add(item,quantity):ball&&onBuy(ball,quantity)}>{onCheckout?'Adicionar ao carrinho':'Comprar '+item.name}</button></div></article>;
   })}{category==='expanders'&&<article className={styles.shopItem}><div className={styles.shopIcon}><i className="fa-solid fa-bag-shopping" aria-hidden="true"/></div><h3>Expansor de mochila</h3><p>+{onlineShop?.bagExpander.slots??5} espaços</p><button type="button" className={styles.secondary} disabled>Em preparação</button></article>}</div>
-  {onCheckout&&<section className={styles.shopCart} aria-label="Carrinho de compras"><h3><i className="fa-solid fa-cart-shopping" aria-hidden="true"/> Carrinho de compras</h3>{!lines.length?<p>Adicione itens para comprar de uma vez.</p>:lines.map(({offer,quantity})=><div key={offer.id} className={styles.shopCartLine}><span>{offer.name} × {quantity}</span><strong>{(offer.price*quantity).toLocaleString('pt-BR')} moedas</strong><button type="button" className={styles.secondary} disabled={locked} aria-label={'Remover '+offer.name+' do carrinho'} onClick={()=>setCart(old=>{const next={...old};delete next[offer.id];return next;})}>Remover</button></div>)}<strong>Total: {total.toLocaleString('pt-BR')} moedas</strong><button type="button" className={styles.primary} disabled={locked||!valid} onClick={()=>void checkout()}>{checking?'Confirmando…':'Finalizar compra'}</button><small>Compra única: se faltar saldo, espaço ou nível, nenhum item será comprado.</small></section>}
+  {onCheckout&&cartOpen&&<RegionDialog title="Carrinho de compras" onClose={()=>{if(!checking)setCartOpen(false);}}><section className={styles.shopCart} aria-label="Itens do carrinho">{!lines.length?<p>Adicione itens para comprar de uma vez.</p>:lines.map(({offer,quantity})=><div key={offer.id} className={styles.shopCartLine}><span>{offer.name} × {quantity}</span><strong>{(offer.price*quantity).toLocaleString('pt-BR')} moedas</strong><button type="button" className={styles.secondary} disabled={locked} aria-label={'Remover '+offer.name+' do carrinho'} onClick={()=>setCart(old=>{const next={...old};delete next[offer.id];return next;})}>Remover</button></div>)}<strong>Total: {total.toLocaleString('pt-BR')} moedas</strong><button type="button" className={styles.primary} disabled={locked||!valid} onClick={()=>void checkout()}>{checking?'Confirmando…':'Finalizar compra'}</button><small>Compra única: se faltar saldo, espaço ou nível, nenhum item será comprado.</small><button type="button" className={styles.secondary} disabled={checking} onClick={()=>setCartOpen(false)}>Continuar comprando</button></section></RegionDialog>}
  </section>;
 }

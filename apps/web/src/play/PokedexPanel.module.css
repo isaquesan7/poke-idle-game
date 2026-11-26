@@ -1,4 +1,4 @@
-/* Pokédex Kanto: todos os estados reaproveitam tokens globais Kanto Dark. */
+/* Pokédex Kanto: todos os estados reaproveitam tokens globais Kanto Adventure. */
 .shell{display:grid;gap:var(--space-5);min-width:0;}
 .header{
   display:grid;grid-template-columns:minmax(0,1fr) 225px;align-items:center;
@@ -167,3 +167,7 @@
 @media(prefers-reduced-motion:reduce){.tileSeen,.tileCaught,.tileUnknown{transition:none}}
 
 .grid{max-height:clamp(280px,60dvh,680px);overflow-y:auto;overscroll-behavior:contain;align-content:start;scrollbar-gutter:stable;padding-right:var(--space-2)}
+
+.header{background:linear-gradient(120deg,var(--color-panel-collection),var(--color-surface));border-color:var(--color-panel-collection-border)}
+.kicker,.progressBox strong{color:var(--color-secondary)}
+.progressTrack span{background:var(--color-secondary)}

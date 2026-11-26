@@ -1,45 +1,66 @@
 /**
- * Design tokens — Kanto Dark.
+ * Design tokens — Kanto Adventure.
  * Fonte única para valores visuais; não usar hexadecimais soltos em app.css.
- * Os tons específicos mantêm exatamente a aparência do protótipo existente.
+ * Identidade azul-marinho, vermelho Pokémon e acentos temáticos da Adventure.
  */
 :root {
   color-scheme: dark;
   /* Tipografia principal. */
   --font-body: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
   /* Paleta semântica e cor neutra reutilizável. */
-  --color-bg: #0c111b;
-  --color-surface: #151c29;
-  --color-surface-raised: #1c2635;
-  --color-border: #2a3648;
-  --color-text: #f2f5fa;
-  --color-text-muted: #9baec6;
-  --color-primary: #69d6e5;
+  --color-bg: #091228;
+  --color-surface: #0d1830;
+  --color-surface-raised: #162442;
+  --color-border: #344b70;
+  --color-text: #f5f7ff;
+  --color-text-muted: #a8bcdb;
+  --color-primary: #ff476c;
   /* D-062: scrollbar compartilhada por /play e pelo protótipo legado /. */
   --scrollbar-track: var(--color-bg);
   --scrollbar-thumb: var(--color-border);
   --scrollbar-thumb-hover: var(--color-primary);
   --scrollbar-thumb-active: var(--color-success);
   --scrollbar-width: 10px;
-  --color-success: #55d5a8;
-  --color-gold: #f2c36e;
-  --color-danger: #fc7c86;
-  --color-affinity: #b49aff;
+  --color-success: #15e3ad;
+  --color-gold: #ffc94d;
+  --color-danger: #ff6b81;
+  --color-affinity: #a875ff;
   --color-white: #ffffff;
+  --color-secondary: #43d5ff;
+  /* Adventure — thematic panels, accents and glows. */
+  --color-panel-trainer: #2b2254;
+  --color-panel-pokemon: #161e3a;
+  --color-panel-collection: #123657;
+  --color-panel-victories: #493c29;
+  --color-panel-expedition: #0e3046;
+  --color-panel-trainer-border: #8862cf;
+  --color-panel-pokemon-border: #745084;
+  --color-panel-collection-border: #268bb7;
+  --color-panel-victories-border: #bd9147;
+  --color-panel-expedition-border: #258c9b;
+  --glow-primary: rgba(255,71,108,.35);
+  --glow-primary-soft: rgba(255,71,108,.15);
+  --glow-cyan: rgba(67,213,255,.25);
+  --glow-violet: rgba(168,117,255,.30);
+  --glow-success: rgba(21,227,173,.25);
+  --glow-gold: rgba(255,201,77,.25);
+  --color-hero-sky: #124d7e;
+  --color-hero-horizon: #163b57;
+  --color-hero-night: #091228;
   /* D-051: iluminação do perfil inspirada no mockup, derivada da paleta Kanto. */
-  --trainer-glow-cyan: rgba(105,214,229,.35);
-  --trainer-glow-cyan-soft: rgba(105,214,229,.15);
-  --trainer-glow-violet: rgba(180,154,255,.30);
-  --trainer-glow-violet-soft: rgba(180,154,255,.12);
-  --trainer-glow-deep-blue: rgba(56,112,192,.27);
-  --trainer-stage-surface: rgba(18,31,58,.88);
-  --trainer-stage-grid: rgba(105,214,229,.08);
+  --trainer-glow-cyan: rgba(67,213,255,.35);
+  --trainer-glow-cyan-soft: rgba(67,213,255,.12);
+  --trainer-glow-violet: rgba(168,117,255,.30);
+  --trainer-glow-violet-soft: rgba(168,117,255,.12);
+  --trainer-glow-deep-blue: rgba(38,112,199,.27);
+  --trainer-stage-surface: rgba(22,31,65,.94);
+  --trainer-stage-grid: rgba(67,213,255,.08);
   --trainer-card-border: rgba(117,162,231,.46);
-  --trainer-card-highlight: rgba(105,214,229,.20);
-  --trainer-card-bottom: rgba(180,154,255,.11);
+  --trainer-card-highlight: rgba(67,213,255,.18);
+  --trainer-card-bottom: rgba(168,117,255,.13);
   --trainer-shadow-depth: rgba(4,8,23,.62);
-  --trainer-shadow-cyan: 0 0 22px rgba(105,214,229,.15);
-  --trainer-shadow-pink: 0 0 28px rgba(180,154,255,.18);
+  --trainer-shadow-cyan: 0 0 22px rgba(67,213,255,.12);
+  --trainer-shadow-pink: 0 0 28px rgba(255,71,108,.18);
   /* D-053: camadas globais. Modais são portais no body, acima do app. */
   --z-modal-overlay: 2147483000;
   --z-tooltip-inventory: 30;
@@ -73,56 +94,56 @@
   --duration-battle-float: .42s;
   --layout-max-width: 1440px;
   /* Cores específicas agrupadas por seletor; editar aqui, não nas classes. */
-  --color-body-background-1: #162c3b; /* body · background */
-  --color-body-background-2: #2a2036; /* body · background */
-  --color-ball-background-1: #f46f7c; /* .ball · background */
-  --color-ball-background-2: #19212f; /* .ball · background */
-  --color-ball-background-3: #f0f6ff; /* .ball · background */
-  --color-pill-background-1: #1c2938; /* .pill · background */
-  --color-pill-border-1: #344356; /* .pill · border */
-  --color-pill-text-1: #c9d6e5; /* .pill · color */
+  --color-body-background-1: #123657; /* body · background */
+  --color-body-background-2: #2b2254; /* body · background */
+  --color-ball-background-1: var(--color-primary); /* .ball · background */
+  --color-ball-background-2: var(--color-bg); /* .ball · background */
+  --color-ball-background-3: var(--color-text); /* .ball · background */
+  --color-pill-background-1: var(--color-surface-raised); /* .pill · background */
+  --color-pill-border-1: var(--color-border); /* .pill · border */
+  --color-pill-text-1: var(--color-text-muted); /* .pill · color */
   --color-pill-text-1-2: #fff; /* .pill b · color */
-  --color-pill-online-border-1: #3c896f; /* .pill.online · border-color */
-  --color-pill-online-text-1: #84e5c3; /* .pill.online · color */
-  --color-pill-warn-border-1: #866c43; /* .pill.warn · border-color */
-  --color-pill-warn-text-1: #f5d393; /* .pill.warn · color */
-  --color-navbtn-text-1: #b8c9da; /* .navbtn · color */
-  --color-navbtn-background-1: #1d2a39; /* .navbtn:hover · background */
-  --color-navbtn-active-background-1: #203f4a; /* .navbtn.active · background */
-  --color-navbtn-active-background-2: #182a3a; /* .navbtn.active · background */
-  --color-navbtn-active-border-1: #366374; /* .navbtn.active · border-color */
-  --color-navbtn-active-text-1: #a9f3ec; /* .navbtn.active · color */
-  --color-side-note-text-1: #dce9f6; /* .side-note strong · color */
-  --color-panel-gradient-1: rgba(28,38,53,.95); /* .panel · background */
-  --color-panel-gradient-2: rgba(19,27,40,.98); /* .panel · background */
-  --color-btn-border-1: #3e5366; /* .btn · border */
-  --color-btn-background-1: #26384b; /* .btn · background */
-  --color-btn-text-1: #eef7ff; /* .btn · color */
-  --color-btn-background-1-2: #32506a; /* .btn:hover:not(:disabled) · background */
-  --color-btn-primary-background-1: #63cdbc; /* .btn.primary · background */
-  --color-btn-primary-background-2: #47aeb6; /* .btn.primary · background */
-  --color-btn-primary-text-1: #0e2832; /* .btn.primary · color */
-  --color-btn-primary-background-1-2: #7ee6cc; /* .btn.primary:hover:not(:disabled) · background */
-  --color-btn-gold-background-1: #e6b65a; /* .btn.gold · background */
-  --color-btn-gold-background-2: #f0d48b; /* .btn.gold · background */
-  --color-btn-gold-text-1: #302210; /* .btn.gold · color */
-  --color-btn-danger-background-1: #442b36; /* .btn.danger · background */
-  --color-btn-danger-border-1: #824653; /* .btn.danger · border-color */
-  --color-btn-danger-text-1: #ffb4b9; /* .btn.danger · color */
-  --color-btn-ghost-border-1: #35465b; /* .btn.ghost · border-color */
-  --color-progress-background-1: #2c3a4b; /* .progress · background */
-  --color-progress-heart-background-1: #fb8387; /* .progress.heart>i · background */
-  --color-progress-heart-background-2: #fbabcc; /* .progress.heart>i · background */
-  --color-progress-hp-background-1: #4fcda7; /* .progress.hp>i · background */
-  --color-progress-hp-background-2: #a5ef9d; /* .progress.hp>i · background */
-  --color-notice-border-1: #3b5a63; /* .notice · border */
-  --color-notice-background-1: #152b37; /* .notice · background */
-  --color-notice-text-1: #c2e4e9; /* .notice · color */
-  --color-notice-warn-border-1: #6a5439; /* .notice.warn · border-color */
-  --color-notice-warn-background-1: #322819; /* .notice.warn · background */
-  --color-notice-warn-text-1: #efd9ad; /* .notice.warn · color */
-  --color-tag-background-1: #31445a; /* .tag · background */
-  --color-tag-text-1: #c7e8ef; /* .tag · color */
+  --color-pill-online-border-1: #187c68; /* .pill.online · border-color */
+  --color-pill-online-text-1: var(--color-success); /* .pill.online · color */
+  --color-pill-warn-border-1: #997238; /* .pill.warn · border-color */
+  --color-pill-warn-text-1: var(--color-gold); /* .pill.warn · color */
+  --color-navbtn-text-1: var(--color-text-muted); /* .navbtn · color */
+  --color-navbtn-background-1: #202c4a; /* .navbtn:hover · background */
+  --color-navbtn-active-background-1: #51263e; /* .navbtn.active · background */
+  --color-navbtn-active-background-2: #301b32; /* .navbtn.active · background */
+  --color-navbtn-active-border-1: var(--color-primary); /* .navbtn.active · border-color */
+  --color-navbtn-active-text-1: #ffd4dd; /* .navbtn.active · color */
+  --color-side-note-text-1: var(--color-text); /* .side-note strong · color */
+  --color-panel-gradient-1: rgba(22,36,66,.97); /* .panel · background */
+  --color-panel-gradient-2: rgba(13,24,48,.99); /* .panel · background */
+  --color-btn-border-1: var(--color-border); /* .btn · border */
+  --color-btn-background-1: #233452; /* .btn · background */
+  --color-btn-text-1: var(--color-text); /* .btn · color */
+  --color-btn-background-1-2: #314969; /* .btn:hover:not(:disabled) · background */
+  --color-btn-primary-background-1: #ff6b88; /* .btn.primary · background */
+  --color-btn-primary-background-2: #e4385f; /* .btn.primary · background */
+  --color-btn-primary-text-1: var(--color-bg); /* .btn.primary · color */
+  --color-btn-primary-background-1-2: #ff8199; /* .btn.primary:hover:not(:disabled) · background */
+  --color-btn-gold-background-1: #e8b348; /* .btn.gold · background */
+  --color-btn-gold-background-2: #ffdb81; /* .btn.gold · background */
+  --color-btn-gold-text-1: #211707; /* .btn.gold · color */
+  --color-btn-danger-background-1: #47243a; /* .btn.danger · background */
+  --color-btn-danger-border-1: #a34560; /* .btn.danger · border-color */
+  --color-btn-danger-text-1: #ffd4dd; /* .btn.danger · color */
+  --color-btn-ghost-border-1: var(--color-border); /* .btn.ghost · border-color */
+  --color-progress-background-1: #263653; /* .progress · background */
+  --color-progress-heart-background-1: var(--color-primary); /* .progress.heart>i · background */
+  --color-progress-heart-background-2: #ff9db4; /* .progress.heart>i · background */
+  --color-progress-hp-background-1: #0ebd91; /* .progress.hp>i · background */
+  --color-progress-hp-background-2: var(--color-success); /* .progress.hp>i · background */
+  --color-notice-border-1: #266888; /* .notice · border */
+  --color-notice-background-1: #112c46; /* .notice · background */
+  --color-notice-text-1: #bdeaff; /* .notice · color */
+  --color-notice-warn-border-1: #967039; /* .notice.warn · border-color */
+  --color-notice-warn-background-1: #3c3020; /* .notice.warn · background */
+  --color-notice-warn-text-1: #ffe6a9; /* .notice.warn · color */
+  --color-tag-background-1: #233b5a; /* .tag · background */
+  --color-tag-text-1: #c1edff; /* .tag · color */
   --color-tag-fire-background-1: #57312c; /* .tag.fire · background */
   --color-tag-fire-text-1: #ffbeaa; /* .tag.fire · color */
   --color-tag-water-background-1: #233e6b; /* .tag.water · background */
@@ -135,50 +156,50 @@
   --color-tag-poison-text-1: #dfbff5; /* .tag.poison · color */
   --color-tag-psychic-background-1: #60334d; /* .tag.psychic · background */
   --color-tag-psychic-text-1: #f5b6d5; /* .tag.psychic · color */
-  --color-card-art-background-1: #39596d33; /* .card-art · background */
+  --color-card-art-background-1: #43d5ff1a; /* .card-art · background */
   --color-statrow-border-1: #2a36484f; /* .statrow · border-bottom */
-  --color-badgeitem-background-1: #202e40; /* .badgeitem · background */
-  --color-badgeitem-border-1: #37475c; /* .badgeitem · border */
+  --color-badgeitem-background-1: #26314b; /* .badgeitem · background */
+  --color-badgeitem-border-1: var(--color-border); /* .badgeitem · border */
   --color-itemrow-border-1: #34435466; /* .itemrow · border-bottom */
-  --color-itemrow-text-1: #c8d9e7; /* .itemrow label · color */
-  --color-itemrow-background-1: #111b29; /* .itemrow select,select,input[type=text],input[type=search] · background */
-  --color-itemrow-text-1-2: #e9f5ff; /* .itemrow select,select,input[type=text],input[type=search] · color */
-  --color-itemrow-border-1-2: #3b5064; /* .itemrow select,select,input[type=text],input[type=search] · border */
-  --color-trainer-avatar-border-1: #4c5362; /* .trainer-avatar · border */
-  --color-trainer-avatar-background-1: #334350; /* .trainer-avatar · background */
-  --color-trainer-avatar-background-2: #253144; /* .trainer-avatar · background */
-  --color-poke-card-border-1: #354255; /* .poke-card · border */
-  --color-poke-card-background-1: #1b2838; /* .poke-card · background */
-  --color-poke-card-border-1-2: #7bcbd2; /* .poke-card:hover,.poke-card.selected · border-color */
-  --color-poke-card-text-1: #ffb1bb; /* .poke-card .aff · color */
-  --color-poke-card-text-1-2: #9cd8d9; /* .poke-card .mini · color */
-  --color-team-slot-background-1: #203144; /* .team-slot · background */
-  --color-team-slot-border-1: #4a6479; /* .team-slot · border */
+  --color-itemrow-text-1: var(--color-text-muted); /* .itemrow label · color */
+  --color-itemrow-background-1: #0c172d; /* .itemrow select,select,input[type=text],input[type=search] · background */
+  --color-itemrow-text-1-2: var(--color-text); /* .itemrow select,select,input[type=text],input[type=search] · color */
+  --color-itemrow-border-1-2: var(--color-border); /* .itemrow select,select,input[type=text],input[type=search] · border */
+  --color-trainer-avatar-border-1: #7657b5; /* .trainer-avatar · border */
+  --color-trainer-avatar-background-1: #332958; /* .trainer-avatar · background */
+  --color-trainer-avatar-background-2: #17203e; /* .trainer-avatar · background */
+  --color-poke-card-border-1: var(--color-border); /* .poke-card · border */
+  --color-poke-card-background-1: #172442; /* .poke-card · background */
+  --color-poke-card-border-1-2: var(--color-secondary); /* .poke-card:hover,.poke-card.selected · border-color */
+  --color-poke-card-text-1: #ff9eb4; /* .poke-card .aff · color */
+  --color-poke-card-text-1-2: #83e2ff; /* .poke-card .mini · color */
+  --color-team-slot-background-1: #1b3352; /* .team-slot · background */
+  --color-team-slot-border-1: #41638e; /* .team-slot · border */
   --color-stats-table-border-1: #34435480; /* .stats-table th,.stats-table td · border-bottom */
-  --color-dexentry-background-1: #1b2a3a; /* .dexentry · background */
-  --color-dexentry-border-1: #37465b; /* .dexentry · border */
-  --color-dexentry-text-1: #dbe6f2; /* .dexentry · color */
-  --color-dexentry-caught-border-1: #2e8b78; /* .dexentry.caught · border-color */
-  --color-dexentry-seen-border-1: #7c6b46; /* .dexentry.seen:not(.caught) · border-color */
-  --color-dexentry-background-1-2: #2d4154; /* .dexentry:hover · background */
-  --color-fightlog-background-1: #0e1824; /* .fightlog · background */
-  --color-fightlog-border-1: #2e4052; /* .fightlog · border */
-  --color-fightlog-text-1: #91e6bd; /* .fightlog p.good · color */
-  --color-fightlog-text-1-2: #ffb6a9; /* .fightlog p.bad · color */
-  --color-hero-background-1: #173c47; /* .hero · background */
-  --color-hero-background-2: #222c41; /* .hero · background */
-  --color-hero-border-1: #3b6978; /* .hero · border */
-  --color-toast-background-1: #233c49; /* .toast · background */
-  --color-toast-border-1: #6ba2a7; /* .toast · border */
-  --color-modalbg-background-1: #050b11e8; /* .modalbg · background */
-  --color-modal-background-1: #172336; /* .modal · background */
-  --color-modal-border-1: #3e5b73; /* .modal · border */
-  --color-starter-background-1: #263448; /* .starter · background */
-  --color-starter-border-1: #42576a; /* .starter · border */
-  --color-starter-text-1: #eaf3fc; /* .starter · color */
-  --color-help-border-1: #557a93; /* .help · border-bottom */
+  --color-dexentry-background-1: #152c4b; /* .dexentry · background */
+  --color-dexentry-border-1: var(--color-border); /* .dexentry · border */
+  --color-dexentry-text-1: var(--color-text); /* .dexentry · color */
+  --color-dexentry-caught-border-1: #208d77; /* .dexentry.caught · border-color */
+  --color-dexentry-seen-border-1: #9b7946; /* .dexentry.seen:not(.caught) · border-color */
+  --color-dexentry-background-1-2: #224163; /* .dexentry:hover · background */
+  --color-fightlog-background-1: #0a142a; /* .fightlog · background */
+  --color-fightlog-border-1: var(--color-border); /* .fightlog · border */
+  --color-fightlog-text-1: #8cf2cf; /* .fightlog p.good · color */
+  --color-fightlog-text-1-2: #ffb2c1; /* .fightlog p.bad · color */
+  --color-hero-background-1: #123657; /* .hero · background */
+  --color-hero-background-2: #192343; /* .hero · background */
+  --color-hero-border-1: #2e6088; /* .hero · border */
+  --color-toast-background-1: #19334e; /* .toast · background */
+  --color-toast-border-1: #4086aa; /* .toast · border */
+  --color-modalbg-background-1: #050a19e8; /* .modalbg · background */
+  --color-modal-background-1: #13213d; /* .modal · background */
+  --color-modal-border-1: #405b86; /* .modal · border */
+  --color-starter-background-1: var(--color-surface-raised); /* .starter · background */
+  --color-starter-border-1: var(--color-border); /* .starter · border */
+  --color-starter-text-1: var(--color-text); /* .starter · color */
+  --color-help-border-1: #4b78a3; /* .help · border-bottom */
   /* Sombras e elevação usadas pelos elementos visuais. */
-  --shadow-brand-ball: 0 10px 40px #ed5c6d30;
+  --shadow-brand-ball: 0 10px 40px rgba(255,71,108,.23);
   --shadow-pokemon-art: drop-shadow(0 10px 10px #0006);
   --shadow-pokemon-selected: 0 0 0 1px #2e8183;
   --shadow-fighter: drop-shadow(0 18px 10px #0005);

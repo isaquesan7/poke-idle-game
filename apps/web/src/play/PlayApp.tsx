@@ -24,6 +24,8 @@ import { BattleStage } from './BattleStage';
 import {OnlineBattle} from './OnlineBattle';
 import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
+import {OnlineNavigation} from './OnlineNavigation';
+import type {TrainerSection} from './OnlineNavigation';
 import { GymScreen } from './GymScreen';
 import { PokemonTraining } from './PokemonTraining';
 import type {OnlineViews,RegionalReward} from './onlinePlay';
@@ -160,6 +162,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   const [selectedUid, setSelectedUid] = useState<number | null>(null);
   /** Apenas navegação local: não grava no save nem altera o Pokémon ativo. */
   const [pokemonSection,setPokemonSection]=useState<PokemonSection>('profile');
+  const [trainerSection,setTrainerSection]=useState<TrainerSection>('profile');
   const [collectionQuery, setCollectionQuery] = useState('');
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>('all');
   const [collectionSort, setCollectionSort] = useState<CollectionSort>('recent');
@@ -719,17 +722,19 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   }
 
   return (
-    <div className={styles.appShell} data-testid="play-root" data-motion="full">
+    <div className={styles.appShell} data-testid="play-root" data-motion="full" data-theme="kanto-adventure">
       <aside className={styles.sidebar}>
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
-        <nav className={styles.menu} aria-label="Navegação do jogo">
+        {online?<OnlineNavigation tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
+          disabled={item=>item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition}
+          onNavigate={item=>{if(onlineViews?.region?.encounter){setTab('battle');return;}if(onlineViews?.gym?.gym){setTab('gyms');return;}if(item.tab==='trainer')setTrainerSection(item.trainerSection??'profile');if(item.tab==='pokemon')setPokemonSection(item.pokemonSection??'profile');setTab(item.tab);setFeedback('');setBattlePlayback(null);}}/>:<nav className={styles.menu} aria-label="Navegação do jogo">
           {(['overview','trainer','pokemon','collection','pokedex','regions','gyms','expedition','shop'] as Tab[]).map(item => (
             <button type="button" key={item} disabled={online&&(item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition)} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
               onClick={() => { if(online&&onlineViews?.region?.encounter){setTab('battle');return;} if(online&&onlineViews?.gym?.gym){setTab('gyms');return;} if(pendingBattle){setTab('battle');setFeedback('Conclua o combate em andamento antes de navegar.');return;} if(ballGame?.gymSession&&item!=='gyms'){setTab('gyms');setFeedback('Finalize ou abandone o Ginásio antes de sair.');return;} if(item==='pokemon')setPokemonSection('profile'); setTab(item); setFeedback(''); if(item!=='battle')setBattlePlayback(null); }}><i className={'fa-solid '+NAV_ICONS[item]} aria-hidden="true"/>{sectionName(item)}</button>
           ))}
-        </nav>
+        </nav>}
         <div className={styles.sidebarFooter}>
           <p>Pré-lançamento v0.2</p>
           <p>{online?'Progresso online':'Progresso local'} · {save.snapshot.revision} alterações</p>
@@ -740,7 +745,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
         <header className={styles.topbar}>
           <div>
             <div className={styles.kicker}>REGIÃO DE KANTO · SEASON 1</div>
-            <h1>{tab==='battle'?battleRegion.name:sectionName(tab)}</h1>
+            <h1>{tab==='battle'?battleRegion.name:online&&tab==='trainer'?({profile:'Meu perfil',equipment:'Equipamentos',bag:'Mochila'}[trainerSection]):online&&tab==='pokemon'?({profile:'Perfil do Pokémon',evolution:'Evolução',moves:'Golpes'}[pokemonSection]):sectionName(tab)}</h1>
           </div>
           <div className={styles.trainerChip}><span className={serverOnline===true?styles.serverOnline:styles.serverOffline} role="status">{serverOnline===null?'Verificando servidor':serverOnline?'● Servidor Online':'● Servidor indisponível'}</span><span className={styles.avatar}>★</span>
             <span><strong>{view?.name ?? data?.name}</strong><small>Nível {view?.level ?? '?'}</small></span>
@@ -763,7 +768,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                     <div className={styles.heroActions}>
                       <button type="button" className={styles.primary} disabled={online&&!onlineViews?.expedition} onClick={() => setTab('expedition')}>
                         {expedition ? 'Ver expedição ativa' : 'Iniciar expedição'}</button>
-                      <button type="button" className={styles.secondary} disabled={online&&!inventory} onClick={() => setTab('trainer')}>Meu treinador</button>
+                      <button type="button" className={styles.secondary} disabled={online&&!inventory} onClick={() => {setTrainerSection('profile');setTab('trainer');}}>Meu treinador</button>
                       <button type="button" className={styles.secondary} onClick={() => setTab('regions')}>Explorar regiões</button>
                       <button type="button" className={styles.secondary} onClick={() => setTab('pokedex')}>Abrir Pokédex</button>
                     </div>
@@ -771,14 +776,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                   <PokemonArt id={active.pokemonId} name={view.active.name} large />
                 </section>
                 <div className={styles.metrics}>
-                  <article className={styles.metric}><small>Treinador</small><strong>Lv. {view.level}</strong><span>{view.xpNext === null ? 'Nível máximo' : view.xp + ' / ' + view.xpNext + ' XP'}</span></article>
-                  <article className={styles.metric}><small>Parceiro</small><strong>Lv. {active.level}</strong><span>{view.active.name}</span></article>
-                  <article className={styles.metric}><small>Moedas</small><strong>{data.coins}</strong><span>Saldo da jornada</span></article>
-                  <article className={styles.metric}><small>Pokédex de Kanto</small><strong>{caughtSpeciesCount}/151</strong><span>{data.roster.length} indivíduos · {view.seenSpecies} vistos</span></article>
+                  <article className={styles.metric} data-tone="trainer"><small><i className="fa-solid fa-user" aria-hidden="true"/> Treinador</small><strong>Lv. {view.level}</strong><span>{view.xpNext === null ? 'Nível máximo' : view.xp + ' / ' + view.xpNext + ' XP'}</span></article>
+                  <article className={styles.metric} data-tone="pokemon"><small><i className="fa-solid fa-dragon" aria-hidden="true"/> Parceiro</small><strong>Lv. {active.level}</strong><span>{view.active.name}</span></article>
+                  <article className={styles.metric} data-tone="gold"><small><i className="fa-solid fa-coins" aria-hidden="true"/> Moedas</small><strong>{data.coins}</strong><span>Saldo da jornada</span></article>
+                  <article className={styles.metric} data-tone="collection"><small><i className="fa-solid fa-book-open" aria-hidden="true"/> Pokédex de Kanto</small><strong>{caughtSpeciesCount}/151</strong><span>{data.roster.length} indivíduos · {view.seenSpecies} vistos</span></article>
                 </div>
                 <div className={styles.twoColumn}>
-                  <section className={styles.panel}>
-                    <h2>Seu parceiro</h2>
+                  <section className={styles.panel} data-tone="pokemon">
+                    <h2><i className="fa-solid fa-circle-dot" aria-hidden="true"/> Seu parceiro</h2>
                     <div className={styles.partner}>
                       <PokemonArt id={active.pokemonId} name={view.active.name} />
                       <div><strong>{view.active.name}</strong><p>UID #{active.uid} · Afinidade {active.affinity}%</p>
@@ -787,14 +792,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                         onClick={() => openPokemon(active.uid)}>Treinar Pokémon</button></div>
                     </div>
                   </section>
-                  <section className={styles.panel}>
-                    <h2>Coleção e equipe</h2>
+                  <section className={styles.panel} data-tone="collection">
+                    <h2><i className="fa-solid fa-layer-group" aria-hidden="true"/> Coleção e equipe</h2>
                     <p>{data.roster.length} Pokémon capturado(s) · {data.team.length}/3 na equipe</p>
                     <p>Organize seus parceiros e escolha quem lidera as batalhas nas regiões.</p>
                     <button type="button" className={styles.secondary} onClick={() => setTab('collection')}>Abrir coleção</button>
                   </section>
-                  <section className={styles.panel}>
-                    <h2>Expedição idle</h2>
+                  <section className={styles.panel} data-tone="expedition">
+                    <h2><i className="fa-solid fa-mountain" aria-hidden="true"/> Expedição idle</h2>
                     <p>{expedition
                       ? 'Explorando Kanto · ' + (pending?.cycles ?? 0) + ' ciclos disponíveis para resgate'
                       : 'Envie seu parceiro em expedição para receber moedas e XP.'}</p>
@@ -803,7 +808,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 </div>
               </>
             )}
-            {tab === 'trainer' && <TrainerScreen view={view} data={data}
+            {tab === 'trainer' && <TrainerScreen view={view} data={data} {...(online?{controlledSection:trainerSection}:{})}
               revision={save.snapshot.revision} busy={busy||!!inventory?.busy}
               {...(inventory?{onlineInventory:inventory,onDiscardGear:(id:string)=>void onlineExtra('inventory/loadout',{command:{kind:'discard-gear',itemId:id}}),onLoot:(command:Record<string,unknown>)=>void onlineExtra('inventory/loadout',{command}),lootBusy:busy}:{})}
               onInvest={investTrainerBatch}
@@ -822,7 +827,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                   <button type="button" className={styles.secondary} onClick={()=>setTab('collection')}>
                     <i className="fa-solid fa-layer-group" aria-hidden="true"/> Ver coleção</button>
                 </header>
-                <nav className={styles.pokemonQuickNav} aria-label="Seções do Pokémon">
+                {!online&&<nav className={styles.pokemonQuickNav} aria-label="Seções do Pokémon">
                   {([
                     ['profile','Perfil','fa-chart-simple'],
                     ['evolution','Evolução','fa-dna'],
@@ -834,7 +839,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                       onClick={()=>setPokemonSection(section)}>
                       <i className={'fa-solid '+icon} aria-hidden="true"/> {label}
                     </button>)}
-                </nav>
+                </nav>}
                 <div className={styles.pokemonGrid+(pokemonSection==='profile'?' '+styles.pokemonProfileGrid:'')}>
                 {pokemonSection==='profile'&&<>
                 <section className={styles.pokemonHero}>

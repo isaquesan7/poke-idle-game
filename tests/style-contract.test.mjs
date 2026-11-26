@@ -25,7 +25,16 @@ test('toda variável referenciada no CSS possui definição em :root', () => {
 test('CSS visual não usa cores hardcoded fora dos tokens', () => {
   assert.doesNotMatch(app, /#[a-f\d]{3,8}\b/i);
   assert.doesNotMatch(app, /rgba?\(/i);
-  assert.match(tokens, /--color-primary:\s*#69d6e5/i);
+  const palette = {
+    'color-bg':'#091228','color-surface':'#0d1830','color-surface-raised':'#162442',
+    'color-border':'#344b70','color-text':'#f5f7ff','color-text-muted':'#a8bcdb',
+    'color-primary':'#ff476c','color-secondary':'#43d5ff','color-success':'#15e3ad',
+    'color-gold':'#ffc94d','color-danger':'#ff6b81','color-affinity':'#a875ff',
+    'color-white':'#ffffff'
+  };
+  for(const [name,value] of Object.entries(palette)){
+    assert.match(tokens,new RegExp('--'+name+':\\s*'+value+'\\s*;','i'),'Kanto Adventure: '+name);
+  }
 });
 
 test('cada classe principal permanece documentada', () => {
