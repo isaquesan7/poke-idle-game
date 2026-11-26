@@ -1199,3 +1199,21 @@
 .shopPreview .kicker{color:var(--color-secondary)}
 .shopPreview .shopIcon{color:var(--color-secondary);border-color:var(--color-panel-collection-border)}
 .shopCartSummary .primary{box-shadow:0 0 16px var(--glow-primary-soft)}
+
+/* Mobile navigation: compact disclosure overlay, no layout shift or duplicate links. */
+.navigationShell{min-width:0}
+.mobileMenuToggle{display:none}
+@media(max-width:690px){
+ .navigationShell{position:relative;margin-top:var(--space-3)}
+ .mobileMenuToggle{width:100%;display:flex;align-items:center;gap:var(--space-3);min-height:46px;padding:var(--space-3) var(--space-4);background:var(--color-surface-raised);border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-text);font-weight:800;cursor:pointer;text-align:left}
+ .mobileMenuToggle>i:first-child{color:var(--color-primary);font-size:1.25rem}
+ .mobileMenuToggle>small{margin-left:auto;color:var(--color-text-muted);font-size:.78rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .mobileMenuToggle>i:last-child{color:var(--color-text-muted);font-size:.8rem}
+ .navigationShell[data-mobile-open='true'] .mobileMenuToggle{border-color:var(--color-primary)}
+ .navigationShell .groupedMenu{display:none}
+ .navigationShell[data-mobile-open='true'] .groupedMenu{display:grid;position:absolute;top:calc(100% + var(--space-2));left:0;right:0;z-index:50;margin:0;padding:var(--space-3);grid-template-columns:minmax(0,1fr);gap:var(--space-2);max-height:min(65dvh,520px);overflow:auto;overscroll-behavior:contain;border:1px solid var(--color-border);border-radius:var(--radius-panel);background:var(--color-surface);box-shadow:var(--shadow-modal)}
+ .navigationShell .menuGroup[data-expanded='true']{grid-column:auto}
+ .navigationShell .menuChildren{grid-template-columns:minmax(0,1fr);margin-left:var(--space-4)}
+ .navigationShell .menuItem,.navigationShell .menuActive{min-height:44px;padding:var(--space-3);width:100%;white-space:normal}
+ .navigationShell .menuChild{min-height:42px;padding:var(--space-2) var(--space-3)}
+}

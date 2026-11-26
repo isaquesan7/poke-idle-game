@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import styles from './PlayApp.module.css';
 import type {Tab} from './JourneyShell';
 
@@ -29,6 +29,20 @@ interface Props{tab:Tab;trainerSection:TrainerSection;pokemonSection:PokemonSect
 export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onNavigate}:Props){
  const current=activeGroup(tab);
  const [open,setOpen]=useState<Group|null>(current);
+ const [mobileOpen,setMobileOpen]=useState(false);
+ const shell=useRef<HTMLDivElement>(null);
+ const toggle=useRef<HTMLButtonElement>(null);
+ function closeMobile(restoreFocus=false){setMobileOpen(false);if(restoreFocus&&window.matchMedia('(max-width:690px)').matches)toggle.current?.focus();}
+ useEffect(()=>{
+  if(!mobileOpen)return;
+  const media=window.matchMedia('(max-width:690px)');
+  function resize(){if(!media.matches)setMobileOpen(false)}
+  function outside(event:PointerEvent){if(event.target instanceof Node&&!shell.current?.contains(event.target))setMobileOpen(false)}
+  function key(event:KeyboardEvent){if(event.key==='Escape'){setMobileOpen(false);toggle.current?.focus()}}
+  document.addEventListener('pointerdown',outside);document.addEventListener('keydown',key);media.addEventListener('change',resize);
+  return()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',key);media.removeEventListener('change',resize)};
+ },[mobileOpen]);
+ useEffect(()=>{setMobileOpen(false)},[tab,trainerSection,pokemonSection]);
  // Collection shortcuts and resumed battles also reveal their active group.
  useEffect(()=>{setOpen(current)},[current]);
  function link(item:Destination,child=false){
@@ -36,10 +50,15 @@ export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onN
    (item.trainerSection===undefined||item.trainerSection===trainerSection)&&
    (item.pokemonSection===undefined||item.pokemonSection===pokemonSection);
   return <button type="button" key={item.label} className={(active?styles.menuActive:styles.menuItem)+(child?' '+styles.menuChild:'')}
-    aria-current={active?'page':undefined} disabled={disabled(item.tab)} onClick={()=>onNavigate(item)}>
+    aria-current={active?'page':undefined} disabled={disabled(item.tab)} onClick={()=>{closeMobile(mobileOpen);onNavigate(item)}}>
     <i className={'fa-solid '+item.icon} aria-hidden="true"/><span>{item.label}</span></button>;
  }
- return <nav className={styles.menu+' '+styles.groupedMenu} aria-label="Navegação do jogo">
+ const activeLabel=tab==='battle'?'Batalha regional':tab==='overview'?'Visão geral':tab==='shop'?'Loja':groups.flatMap(g=>g.links).find(item=>item.tab===tab&&(item.trainerSection===undefined||item.trainerSection===trainerSection)&&(item.pokemonSection===undefined||item.pokemonSection===pokemonSection))?.label??'Menu';
+ return <div ref={shell} className={styles.navigationShell} data-mobile-open={mobileOpen}>
+  <button type="button" ref={toggle} className={styles.mobileMenuToggle} aria-label={mobileOpen?'Fechar menu':'Abrir menu'} aria-expanded={mobileOpen} aria-controls="online-game-navigation" onClick={()=>{if(!mobileOpen)setOpen(current);setMobileOpen(v=>!v)}}>
+   <i className={'fa-solid '+(mobileOpen?'fa-xmark':'fa-bars')} aria-hidden="true"/><span>Menu</span><small>{activeLabel}</small><i className={'fa-solid '+(mobileOpen?'fa-chevron-up':'fa-chevron-down')} aria-hidden="true"/>
+  </button>
+  <nav id="online-game-navigation" className={styles.menu+' '+styles.groupedMenu} aria-label="Navegação do jogo">
   {link({tab:'overview',label:'Visão geral',icon:'fa-house'})}
   {groups.map(group=><div className={styles.menuGroup} key={group.id} data-expanded={open===group.id}>
     <button type="button" className={(current===group.id?styles.menuActive:styles.menuItem)+' '+styles.menuGroupToggle}
@@ -49,5 +68,6 @@ export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onN
     <div id={'nav-'+group.id} hidden={open!==group.id} className={styles.menuChildren}>{group.links.map(item=>link(item,true))}</div>
   </div>)}
   {link({tab:'shop',label:'Loja',icon:'fa-store'})}
- </nav>;
+ </nav>
+ </div>;
 }
