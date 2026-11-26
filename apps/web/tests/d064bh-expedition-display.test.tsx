@@ -1,7 +1,7 @@
 import {describe,expect,it} from 'vitest';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {ExpeditionScreen} from '../src/play/ExpeditionScreen';
-import {expeditionElapsedMs,formatExpeditionDuration,timeUntilAffinityLoss} from '../src/play/expeditionDisplay';
+import {estimatedServerNow,expeditionElapsedMs,formatExpeditionDuration,timeUntilAffinityLoss} from '../src/play/expeditionDisplay';
 
 const started=1_800_000_000_000;
 const base={
@@ -17,6 +17,20 @@ const base={
 } as const;
 
 describe('D064BH — cronômetro de expedição',()=>{
+  it('extrapola amostra oficial com contador monotônico e ignora o relógio civil local',()=>{
+    const sample={serverNowMs:started,receivedAt:100};
+    expect(estimatedServerNow(sample,5100)).toBe(started+5000);
+    expect(estimatedServerNow(sample,50)).toBe(started);
+    expect(estimatedServerNow(null,5100)).toBeNull();
+    expect(estimatedServerNow({serverNowMs:NaN,receivedAt:100},5100)).toBeNull();
+  });
+  it('distingue aviso online autoritativo do laboratório local',()=>{
+    const html=renderToStaticMarkup(<ExpeditionScreen {...base} serverControlled/>);
+    expect(html).toContain('Tempo e recompensas validados pelo servidor');
+    expect(html).not.toContain('não possui proteção contra alterações locais');
+    expect(renderToStaticMarkup(<ExpeditionScreen {...base} serverControlled clockAvailable={false} busy/>)).toContain('Sincronização com o servidor indisponível');
+    expect(renderToStaticMarkup(<ExpeditionScreen {...base}/>)).toContain('não possui proteção contra alterações locais');
+  });
   it('formata duração cumulativa acima de 24h, sem 24h rollover',()=>{
     expect(formatExpeditionDuration(0)).toBe('00:00:00');
     expect(formatExpeditionDuration(999)).toBe('00:00:00');

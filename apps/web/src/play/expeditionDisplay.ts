@@ -29,3 +29,11 @@ export function timeUntilAffinityLoss(lastUsedAt:number,nowMs:number,daysApplied
   const next=lastUsedAt+(daysApplied+2)*day;
   return Math.max(0,next-nowMs);
 }
+
+/** Display only: advance a server sample with monotonic elapsed time, not Date.now(). */
+export interface ServerClockSample {readonly serverNowMs:number;readonly receivedAt:number}
+export function estimatedServerNow(sample:ServerClockSample|null|undefined,monotonicNow:number):number|null{
+ if(!sample||!Number.isSafeInteger(sample.serverNowMs)||sample.serverNowMs<0||
+    !Number.isFinite(sample.receivedAt)||sample.receivedAt<0||!Number.isFinite(monotonicNow))return null;
+ return sample.serverNowMs+Math.floor(Math.max(0,monotonicNow-sample.receivedAt));
+}

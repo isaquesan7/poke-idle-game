@@ -47,6 +47,13 @@
   --color-hero-sky: #124d7e;
   --color-hero-horizon: #163b57;
   --color-hero-night: #091228;
+  /* Overview supplied landscape assets; fallback gradients remain readable without files. */
+  --image-overview-hero: url('/assets/overview-kanto.webp');
+  --image-overview-expedition: url('/assets/overview-expedition.webp');
+  --color-overview-hero-shade: rgba(9,18,40,.97);
+  --color-overview-hero-mid: rgba(9,18,40,.60);
+  --color-overview-expedition-shade: rgba(14,48,70,.75);
+  --color-overview-chip: rgba(13,24,48,.94);
   /* D-051: iluminação do perfil inspirada no mockup, derivada da paleta Kanto. */
   --trainer-glow-cyan: rgba(67,213,255,.35);
   --trainer-glow-cyan-soft: rgba(67,213,255,.12);

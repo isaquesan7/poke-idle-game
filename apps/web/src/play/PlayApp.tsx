@@ -25,6 +25,8 @@ import {OnlineBattle} from './OnlineBattle';
 import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
 import {OnlineNavigation} from './OnlineNavigation';
+import {AdventureOverview,AdventureTopbar} from './AdventureOverview';
+import {kantoSpecies} from '@kanto/game-core';
 import type {TrainerSection} from './OnlineNavigation';
 import { GymScreen } from './GymScreen';
 import { PokemonTraining } from './PokemonTraining';
@@ -32,7 +34,7 @@ import type {OnlineViews,RegionalReward} from './onlinePlay';
 import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand,onlineBattleCommand,onlineMoveSlots} from './onlinePlay';
 import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
-import { formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
+import { estimatedServerNow,formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'gyms' | 'expedition' | 'shop';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -181,17 +183,19 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   /** Apenas efeito temporário da subida de nível já confirmada pelo writer. */
   const [levelUpNotice,setLevelUpNotice]=useState<{battleId:string}|null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [monotonicNow,setMonotonicNow]=useState(()=>performance.now());
+  const expeditionNow=online?estimatedServerNow(onlineViews?.expeditionClock,monotonicNow):now;
   const viewRevision=save.status==='ready'?save.snapshot.revision:null;
   useEffect(()=>{if(!online)return;if(onlineViews?.region?.encounter){setRegionalArea(onlineViews.region.encounter.regionId);setTab('battle');}else if(onlineViews?.gym?.gym)setTab('gyms');},[online,onlineViews?.region?.encounter?.id,onlineViews?.gym?.gym?.id]);
   useEffect(()=>{
-    if(!online||tab!=='expedition'||viewRevision===null||busy)return;
+    if(!online||(tab!=='expedition'&&tab!=='overview')||viewRevision===null||busy)return;
     let active=true;
     const timer=window.setInterval(()=>{void readOnlineViews(viewRevision).then(v=>{if(active&&!onlineLock.current)setOnlineViews(v);});},10000);
     return()=>{active=false;window.clearInterval(timer);};
   },[online,tab,viewRevision,busy]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const timer = window.setInterval(() => {setNow(Date.now());setMonotonicNow(performance.now());}, 1000);
     const refresh = (event: StorageEvent) => {
       if (event.key === PLAY_SAVE_KEY || event.key === null) setSave(readSafe());
     };
@@ -462,6 +466,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
         focusedSpecies.base, focused.level, pokemonManual, view.totals, focused.affinity
       ) : null;
   const activeManual = manualValues(active?.manual);
+  const activeSpecies=active?KANTO_BATTLE_SPECIES[active.pokemonId]:null;
+  const activeStats=active&&activeSpecies&&view?pokemonFinalStats(activeSpecies.base,active.level,activeManual,view.totals,active.affinity):null;
   const activeRemaining = active
     ? legacyPokemonManualBudget(active.level) -
       STATS.reduce((total,stat)=>total+activeManual[stat],0)
@@ -496,7 +502,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     ?expBallProgress as Record<'poke-ball'|'great-ball'|'ultra-ball',number>:undefined;
   const expeditionMembers=expedition?.teamUids?.map(uid=>data?.roster.find(p=>p.uid===uid))
     .filter((p):p is NonNullable<typeof p>=>Boolean(p))??[];
-  const pending=expedition?(()=>{
+  const pending=!online&&expedition?(()=>{
     try{
       return expeditionRewards(Math.max(0,now-expedition.lastClaimAt),
         expedition.regionId&&expeditionMembers.length>0
@@ -742,7 +748,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
         </div>
       </aside>
       <div className={styles.content}>
-        <header className={styles.topbar}>
+        {online&&tab==='overview'?<AdventureTopbar online={serverOnline} level={view?.level??'?'} name={view?.name??data?.name??'Treinador'} coins={data?.coins??0} now={now} busy={busy} onLogout={restart}/>:<header className={styles.topbar}>
           <div>
             <div className={styles.kicker}>REGIÃO DE KANTO · SEASON 1</div>
             <h1>{tab==='battle'?battleRegion.name:online&&tab==='trainer'?({profile:'Meu perfil',equipment:'Equipamentos',bag:'Mochila'}[trainerSection]):online&&tab==='pokemon'?({profile:'Perfil do Pokémon',evolution:'Evolução',moves:'Golpes'}[pokemonSection]):sectionName(tab)}</h1>
@@ -751,14 +757,21 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
             <span><strong>{view?.name ?? data?.name}</strong><small>Nível {view?.level ?? '?'}</small></span>
             <span className={styles.coins}>◈ {data?.coins ?? 0}</span>
           </div>
-        </header>
+        </header>}
         {online&&(!onlineViews?.inventory||!onlineViews?.shop||!onlineViews?.expedition||!onlineViews?.region||!onlineViews?.gym)&&<p className={styles.disclaimer} role="status">Alguns dados do servidor estão indisponíveis. <button className={styles.secondary} disabled={busy} onClick={()=>void refreshOnline()}>Atualizar progresso</button></p>}
         {feedback && <div role="status" aria-live="polite" className={styles.message}>{feedback}</div>}
         {!view || !data || !active || !focused ? (
           <section className={styles.panel}>{online?'O progresso online não pôde ser carregado.':'O perfil de teste não pôde ser projetado.'} Nenhum dado foi modificado.</section>
         ) : (
           <>
-            {tab === 'overview' && (
+            {tab==='overview'&&online&&<AdventureOverview view={view} speciesCount={caughtSpeciesCount} individualCount={data.roster.length}
+              leader={{id:active.pokemonId,name:speciesName(active.pokemonId),level:active.level,affinity:active.affinity,types:kantoSpecies(active.pokemonId)?.types??[],stats:activeStats,art:<PokemonArt id={active.pokemonId} name={speciesName(active.pokemonId)} large/>}}
+              expedition={onlineViews?.expedition?.expedition?{startedAt:onlineViews.expedition.expedition.startedAt,regionName:expeditionRegion?.name??'Kanto',cycles:onlineViews.expedition.expedition.preview?.cycles??0}:null}
+              serverNow={expeditionNow} expeditionAvailable={!!onlineViews?.expedition} busy={busy||!!onlineViews?.expedition?.busy} pendingLoot={!!onlineViews?.expedition?.pendingLoot}
+              onTrain={()=>openPokemon(active.uid)} onExpedition={()=>setTab('expedition')}
+              onClaim={()=>{if(onlineViews?.expedition?.pendingLoot||!onlineViews?.expedition?.expedition?.preview?.cycles||expeditionNow===null)return;dispatch({type:'claim-expedition',nowMs:Date.now()});}}
+              onStop={()=>{if(onlineViews?.expedition?.expedition&&expeditionNow!==null)dispatch({type:'stop-expedition',nowMs:Date.now()});}}/>}
+            {tab === 'overview' && !online && (
               <>
                 <section className={styles.hero}>
                   <div>
@@ -801,7 +814,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                   <section className={styles.panel} data-tone="expedition">
                     <h2><i className="fa-solid fa-mountain" aria-hidden="true"/> Expedição idle</h2>
                     <p>{expedition
-                      ? 'Explorando Kanto · ' + (pending?.cycles ?? 0) + ' ciclos disponíveis para resgate'
+                      ? 'Explorando Kanto · ' + ((online?onlineViews?.expedition?.expedition?.preview?.cycles:pending?.cycles) ?? 0) + ' ciclos disponíveis para resgate'
                       : 'Envie seu parceiro em expedição para receber moedas e XP.'}</p>
                     <button type="button" className={styles.secondary} disabled={online&&!onlineViews?.expedition} onClick={() => setTab('expedition')}>Abrir expedição</button>
                   </section>
@@ -1493,8 +1506,10 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 ballStockCapped={pendingStockLimitReached}
                 ballProgress={expProgress}
                 activePokemonLevel={expeditionMembers[0]?.level??active.level}
-                nowMs={now+(onlineViews?.clockOffset??0)}
-                busy={busy||!!onlineViews?.expedition?.busy}
+                nowMs={expeditionNow??expedition?.lastClaimAt??0}
+                serverControlled={online}
+                clockAvailable={expeditionNow!==null}
+                busy={busy||!!onlineViews?.expedition?.busy||online&&(!onlineViews?.expedition||expeditionNow===null)}
                 onStart={()=>{if(online&&(inventory?.pending||inventory?.expeditionPending)){setFeedback('Resolva os itens pendentes na mochila.');return;}dispatch({type:'start-expedition',regionId:expeditionArea,nowMs:Date.now()});}}
                 onClaim={()=>{if(onlineViews?.expedition?.pendingLoot){setFeedback('Resolva os itens pendentes na mochila antes de resgatar novamente.');return;}dispatch({type:'claim-expedition',nowMs:Date.now()});}}
                 onStop={()=>dispatch({type:'stop-expedition',nowMs:Date.now()})}
