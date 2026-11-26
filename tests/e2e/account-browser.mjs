@@ -218,11 +218,18 @@ try{
   await alpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
   await alpha.getByRole('heading',{name:'Bem-vindo de volta, Treinador Browser!'}).waitFor();
   assert.equal(await alpha.getByTestId('play-root').count(),1);
-  await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Coleção',exact:true}).click();
+  const alphaNav=alpha.getByRole('navigation',{name:'Navegação do jogo'});
+  const expand=async(page,group)=>{const btn=page.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:group,exact:true});if(await btn.getAttribute('aria-expanded')!=='true')await btn.click();};
+  assert.equal(await alphaNav.getByRole('button').count(),5);
+  await expand(alpha,'Treinador');
+  await alpha.getByRole('heading',{name:'Bem-vindo de volta, Treinador Browser!'}).waitFor();
+  await alphaNav.getByRole('button',{name:'Coleção',exact:true}).click();
   await alpha.getByTestId('pokemon-uid-1').getByText('Charmander',{exact:true}).waitFor();
   await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Pokédex',exact:true}).click();
   assert.equal(await alpha.getByTestId('pokedex-grid').evaluate(el=>getComputedStyle(el).overflowY),'auto');
-  await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Regiões',exact:true}).click();
+  await expand(alpha,'Abrir mapa');
+  assert.equal(await alphaNav.getByRole('button',{name:'Treinador',exact:true}).getAttribute('aria-expanded'),'false');
+  await alphaNav.getByRole('button',{name:'Regiões',exact:true}).click();
   await alpha.getByRole('button',{name:/ÁREA 09/}).click();
   const lockedDialog=alpha.getByRole('dialog',{name:'Detalhes da região'});
   assert.equal(await lockedDialog.getByRole('button',{name:/Entrar na região/}).isDisabled(),true);
@@ -231,8 +238,10 @@ try{
   await alpha.getByRole('dialog',{name:'Detalhes da região'}).getByRole('button',{name:/Entrar na região/}).click();
   await alpha.getByRole('progressbar',{name:'XP do Pokémon líder'}).waitFor();
   await alpha.getByRole('button',{name:'Voltar às regiões'}).click();
-  await alpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Treinador',exact:true}).click();
-  await alpha.getByRole('button',{name:'Mochila',exact:true}).click();
+  await expand(alpha,'Treinador');
+  await alphaNav.getByRole('button',{name:'Equipamentos',exact:true}).click();
+  await alpha.getByRole('heading',{name:'Equipamentos',exact:true,level:1}).waitFor();
+  await alphaNav.getByRole('button',{name:'Mochila',exact:true}).click();
   await alpha.getByTestId('inventory-item-poke-ball').waitFor();
   await alpha.reload({waitUntil:'domcontentloaded'});
   await alpha.getByRole('heading',{name:'Bem-vindo de volta, Treinador Browser!'}).waitFor();
@@ -260,7 +269,8 @@ try{
   // Alpha draft confirms multiple stats in one atomic server revision.
   const trainingAlpha=await context.newPage();
   await trainingAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
-  await trainingAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Treinador',exact:true}).click();
+  await expand(trainingAlpha,'Treinador');
+  await trainingAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Meu perfil',exact:true}).click();
   await trainingAlpha.getByRole('button',{name:'Pré-visualizar +1 em ATK',exact:true}).click();
   await trainingAlpha.getByRole('button',{name:'Pré-visualizar +1 em HP',exact:true}).click();
   assert.equal(Number((await pool.query('SELECT revision FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].revision),0);
@@ -499,7 +509,14 @@ try{
   await cartAlpha.getByTestId('shop-buy-poke-ball').click();
   await cartAlpha.getByRole('button',{name:'Equipamentos',exact:true}).click();
   await cartAlpha.getByTestId('shop-buy-cap').click();
-  const cart=cartAlpha.getByRole('region',{name:'Carrinho de compras'});
+  const openCart=cartAlpha.getByRole('button',{name:/Abrir carrinho/});
+  assert.equal(await cartAlpha.getByRole('dialog',{name:'Carrinho de compras'}).count(),0);
+  await openCart.click();
+  const cart=cartAlpha.getByRole('dialog',{name:'Carrinho de compras'});
+  await cart.waitFor();
+  await cartAlpha.keyboard.press('Escape');
+  await cart.waitFor({state:'hidden'});
+  await openCart.click();
   assert.match(await cart.textContent(),/Poké Ball × 1/);
   assert.match(await cart.textContent(),/Boné de Kanto × 1/);
   assert.match(await cart.textContent(),/Total: 1\.800 moedas/);
@@ -508,9 +525,12 @@ try{
   assert.equal(cartPaid.revision,shopAfter.revision+1);
   await cartAlpha.getByText('Adicione itens para comprar de uma vez.').waitFor();
   assert.equal((await shopRead()).coins,2000);
+  await cart.getByRole('button',{name:'Continuar comprando'}).click();
+  await cart.waitFor({state:'hidden'});
   await cartAlpha.getByRole('button',{name:'Expansores',exact:true}).click();
   await cartAlpha.getByRole('heading',{name:'Expansor de mochila'}).waitFor();
   assert.equal(await cartAlpha.getByRole('heading',{name:'Chances de encontrar Pokébolas'}).count(),0);
+  await expand(cartAlpha,'Abrir mapa');
   await cartAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Ginásios',exact:true}).click();
   await cartAlpha.getByTestId('online-battle-start').waitFor();
   assert.equal(await cartAlpha.getByTestId('battle-stage').count(),0);
@@ -639,10 +659,14 @@ try{
   // The React Alpha must show the exact server loadout and preserve offensive moves.
   const moveAlpha=await context.newPage();
   await moveAlpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await expand(moveAlpha,'Treinador');
   await moveAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Coleção',exact:true}).click();
   const teamTrain=moveAlpha.getByRole('button',{name:'Treinar UID 1 pelo slot da equipe'});
   if(await teamTrain.count())await teamTrain.click();else await moveAlpha.getByTestId('pokemon-uid-1').getByRole('button',{name:/Treinar/}).click();
-  await moveAlpha.getByRole('button',{name:'Golpes',exact:true}).click();
+  await expand(moveAlpha,'Pokémon');
+  await moveAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Evolução',exact:true}).click();
+  await moveAlpha.getByRole('heading',{name:'Evoluções disponíveis'}).waitFor();
+  await moveAlpha.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:'Golpes',exact:true}).click();
   await moveAlpha.getByTestId('equipped-moves').getByText('growl',{exact:true}).waitFor();
   await responseFor(moveAlpha,'/api/v1/moves/equip',()=>moveAlpha.getByRole('button',{name:'Retirar golpe growl'}).click());
   await moveAlpha.getByRole('button',{name:'Adicionar golpe growl'}).waitFor();

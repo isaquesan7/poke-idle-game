@@ -44,9 +44,11 @@ export interface TrainerScreenProps{
   onDiscardGear?:(id:string)=>void;
   onLoot?:(command:Record<string,unknown>)=>void;
   lootBusy?:boolean;
+  controlledSection?:Section;
 }
-export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,onlineInventory,onDiscardGear,onLoot,lootBusy=false}:TrainerScreenProps){
-  const [section,setSection]=useState<Section>('profile');
+export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,onlineInventory,onDiscardGear,onLoot,lootBusy=false,controlledSection}:TrainerScreenProps){
+  const [localSection,setSection]=useState<Section>('profile');
+  const section=controlledSection??localSection;
   const [selectedEquipment,setSelectedEquipment]=useState<string|null>(null);
   const [equipmentFilter,setEquipmentFilter]=useState<'all'|'equipped'>('all');
   const [draft,setDraft]=useState<Draft>({});
@@ -121,7 +123,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
         <p>Equipe-se, distribua atributos e acompanhe suas conquistas.</p>
       </div>
     </div>
-    <nav className={styles.tabs} aria-label="Seções do treinador">
+    {controlledSection===undefined&&<nav className={styles.tabs} aria-label="Seções do treinador">
       {([
         ['profile','fa-user','Perfil'],['equipment','fa-layer-group','Equipamentos'],['bag','fa-bag-shopping','Mochila']
       ] as const).map(([key,icon,label])=>
@@ -131,7 +133,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
           <Fa name={icon}/>{label}
         </button>
       )}
-    </nav>
+    </nav>}
 
     {section==='profile'&&<div className={styles.columns}>
       <div className={styles.column}>

@@ -1158,3 +1158,19 @@
 @keyframes battleKoImpact{0%{filter:brightness(1.4);opacity:1;transform:translateX(0)}28%{transform:translateX(-7px)}55%{transform:translateX(5px)}100%{filter:grayscale(1) brightness(.57);opacity:.48;transform:translateY(9px) scale(.96)}}
 @media(prefers-reduced-motion:reduce){.battleSpriteKoImpact{animation:none}}
 .appShell[data-motion='full'] .battleSpriteKoImpact{animation:battleKoImpact var(--duration-battle-impact) ease-out both}
+
+/* Compact sidebar: the group header only expands; destinations remain explicit. */
+.groupedMenu{display:grid;grid-template-columns:minmax(0,1fr);overflow:visible;gap:var(--space-2)}
+.menuGroup{display:grid;min-width:0;gap:var(--space-1)}
+.menuGroupToggle{width:100%;display:flex;align-items:center;text-align:left}
+.menuGroupToggle>span{flex:1}
+.menuGroupToggle>i:last-child{font-size:.75rem;width:auto}
+.menuChildren{display:grid;min-width:0;gap:var(--space-1);margin-left:20px;padding-left:var(--space-2);border-left:1px solid var(--color-border)}
+.menuChildren[hidden]{display:none}
+.menuChild{min-height:38px;font-size:.87rem;padding:var(--space-2) var(--space-3);width:100%}
+.menuChild>i{font-size:.9rem}
+.shopCartSummary button{display:flex;align-items:center;justify-content:center;gap:var(--space-2);width:100%}
+.cartCount{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border:1px solid currentColor;border-radius:var(--radius-pill);font-size:.8rem}
+.shopCart{margin-top:0;border:0;padding:var(--space-2) 0;background:transparent}
+.shopCartLine>span{flex:1;min-width:120px}
+@media(max-width:690px){.groupedMenu{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:var(--space-3);overflow:visible}.menuGroup[data-expanded='true']{grid-column:1/-1}.menuChildren{grid-template-columns:repeat(2,minmax(0,1fr));margin-left:8px}.groupedMenu button{white-space:normal;min-width:0}.menuChild{padding:var(--space-2)}}
