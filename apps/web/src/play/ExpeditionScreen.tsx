@@ -42,6 +42,8 @@ interface Props {
   readonly ballProgress?:BallProgress|undefined;
   readonly activePokemonLevel:number;
   readonly nowMs:number;
+  readonly serverControlled?:boolean;
+  readonly clockAvailable?:boolean;
   readonly busy:boolean;
   readonly onStart:()=>void;
   readonly onClaim:()=>void;
@@ -56,7 +58,7 @@ const rewards=[
 
 export function ExpeditionScreen({
   expedition,regionName,options,selectedRegionId,onSelectRegion,
-  leaderName,leaderLevel,leaderArt,pending,ballStockCapped=false,ballProgress,activePokemonLevel,nowMs,busy,onStart,onClaim,onStop
+  leaderName,leaderLevel,leaderArt,pending,ballStockCapped=false,ballProgress,activePokemonLevel,nowMs,serverControlled=false,clockAvailable=true,busy,onStart,onClaim,onStop
 }:Props){
   const active=Boolean(expedition);
   // Ao trocar de fase, manter o foco na ação útil; não roubar foco na
@@ -211,7 +213,7 @@ export function ExpeditionScreen({
           </>
           :<p><i className="fa-solid fa-circle-info" aria-hidden="true"/> Comece uma expedição para acumular recompensas.</p>}
       </div>
-      <p className={styles.disclaimer}><i className="fa-solid fa-shield-halved" aria-hidden="true"/> O relógio usa o horário deste dispositivo. Esta versão alfa não possui proteção contra alterações locais.</p>
+      <p className={styles.disclaimer}><i className="fa-solid fa-shield-halved" aria-hidden="true"/> {serverControlled?(clockAvailable?'Tempo e recompensas validados pelo servidor. O relógio do dispositivo não altera a expedição.':'Sincronização com o servidor indisponível. Aguarde a reconexão para iniciar, resgatar ou encerrar.'):'O relógio usa o horário deste dispositivo. Esta versão alfa não possui proteção contra alterações locais.'}</p>
     </section>
   </div>;
 }

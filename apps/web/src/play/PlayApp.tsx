@@ -32,7 +32,7 @@ import type {OnlineViews,RegionalReward} from './onlinePlay';
 import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand,onlineBattleCommand,onlineMoveSlots} from './onlinePlay';
 import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
-import { formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
+import { estimatedServerNow,formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
 
 type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'gyms' | 'expedition' | 'shop';
 type CollectionFilter = 'all' | 'team' | 'reserve';
@@ -181,10 +181,11 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   /** Apenas efeito temporário da subida de nível já confirmada pelo writer. */
   const [levelUpNotice,setLevelUpNotice]=useState<{battleId:string}|null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const expeditionNow=online?estimatedServerNow(onlineViews?.expeditionClock,performance.now()):now;
   const viewRevision=save.status==='ready'?save.snapshot.revision:null;
   useEffect(()=>{if(!online)return;if(onlineViews?.region?.encounter){setRegionalArea(onlineViews.region.encounter.regionId);setTab('battle');}else if(onlineViews?.gym?.gym)setTab('gyms');},[online,onlineViews?.region?.encounter?.id,onlineViews?.gym?.gym?.id]);
   useEffect(()=>{
-    if(!online||tab!=='expedition'||viewRevision===null||busy)return;
+    if(!online||(tab!=='expedition'&&tab!=='overview')||viewRevision===null||busy)return;
     let active=true;
     const timer=window.setInterval(()=>{void readOnlineViews(viewRevision).then(v=>{if(active&&!onlineLock.current)setOnlineViews(v);});},10000);
     return()=>{active=false;window.clearInterval(timer);};
@@ -496,7 +497,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     ?expBallProgress as Record<'poke-ball'|'great-ball'|'ultra-ball',number>:undefined;
   const expeditionMembers=expedition?.teamUids?.map(uid=>data?.roster.find(p=>p.uid===uid))
     .filter((p):p is NonNullable<typeof p>=>Boolean(p))??[];
-  const pending=expedition?(()=>{
+  const pending=!online&&expedition?(()=>{
     try{
       return expeditionRewards(Math.max(0,now-expedition.lastClaimAt),
         expedition.regionId&&expeditionMembers.length>0
@@ -801,7 +802,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                   <section className={styles.panel} data-tone="expedition">
                     <h2><i className="fa-solid fa-mountain" aria-hidden="true"/> Expedição idle</h2>
                     <p>{expedition
-                      ? 'Explorando Kanto · ' + (pending?.cycles ?? 0) + ' ciclos disponíveis para resgate'
+                      ? 'Explorando Kanto · ' + ((online?onlineViews?.expedition?.expedition?.preview?.cycles:pending?.cycles) ?? 0) + ' ciclos disponíveis para resgate'
                       : 'Envie seu parceiro em expedição para receber moedas e XP.'}</p>
                     <button type="button" className={styles.secondary} disabled={online&&!onlineViews?.expedition} onClick={() => setTab('expedition')}>Abrir expedição</button>
                   </section>
@@ -1493,8 +1494,10 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 ballStockCapped={pendingStockLimitReached}
                 ballProgress={expProgress}
                 activePokemonLevel={expeditionMembers[0]?.level??active.level}
-                nowMs={now+(onlineViews?.clockOffset??0)}
-                busy={busy||!!onlineViews?.expedition?.busy}
+                nowMs={expeditionNow??expedition?.lastClaimAt??0}
+                serverControlled={online}
+                clockAvailable={expeditionNow!==null}
+                busy={busy||!!onlineViews?.expedition?.busy||online&&(!onlineViews?.expedition||expeditionNow===null)}
                 onStart={()=>{if(online&&(inventory?.pending||inventory?.expeditionPending)){setFeedback('Resolva os itens pendentes na mochila.');return;}dispatch({type:'start-expedition',regionId:expeditionArea,nowMs:Date.now()});}}
                 onClaim={()=>{if(onlineViews?.expedition?.pendingLoot){setFeedback('Resolva os itens pendentes na mochila antes de resgatar novamente.');return;}dispatch({type:'claim-expedition',nowMs:Date.now()});}}
                 onStop={()=>dispatch({type:'stop-expedition',nowMs:Date.now()})}

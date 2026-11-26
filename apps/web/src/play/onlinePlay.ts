@@ -1,3 +1,4 @@
+import type {ServerClockSample} from './expeditionDisplay';
 import {parseLegacySave} from '../storage/legacySave';
 import type {PlayRead,PlaySnapshot,PlayAction} from './playSave';
 import type {GymTurnAction,KantoBattleVisualFrame} from '@kanto/game-core';
@@ -25,11 +26,12 @@ import type {PendingRegionalLoot,PendingExpeditionLoot} from '@kanto/game-core';
 export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number;pending:PendingRegionalLoot|null;expeditionPending:PendingExpeditionLoot|null;canResolveExpeditionLoot:boolean};
 export type ShopView=NonNullable<ReturnType<typeof onlineShopProjection>> & {revision:number};
 export type ExpeditionView=NonNullable<ReturnType<typeof onlineExpeditionProjection>> & {revision:number;busy:boolean};
-export interface OnlineViews {inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;clockOffset:number;region:RegionView|null;gym:GymView|null}
+export interface OnlineViews {inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;expeditionClock:ServerClockSample|null;region:RegionView|null;gym:GymView|null}
 export async function readOnlineViews(revision:number):Promise<OnlineViews>{
  async function load<T>(path:string):Promise<T|null>{try{const r=await get(path);if(!r.ok)return null;const v=await r.json();return v?.status==='ok'&&v.revision===revision?v as T:null;}catch{return null;}}
- const [inventory,shop,expedition,region,gym]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),load<ExpeditionView>('expedition/current'),load<RegionView>('region/current'),load<GymView>('gym/current')]);
- return {inventory,shop,expedition,region,gym,clockOffset:expedition?expedition.serverNowMs-Date.now():0};
+ const expeditionRequest=load<ExpeditionView>('expedition/current').then(expedition=>({expedition,expeditionClock:expedition?{serverNowMs:expedition.serverNowMs,receivedAt:performance.now()}:null}));
+ const [inventory,shop,expeditionResult,region,gym]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),expeditionRequest,load<RegionView>('region/current'),load<GymView>('gym/current')]);
+ return {inventory,shop,...expeditionResult,region,gym};
 }
 export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase',fields:Record<string,unknown>,revision:number){
  const r=await post(path,{...fields,actionId:crypto.randomUUID(),expectedRevision:revision});
