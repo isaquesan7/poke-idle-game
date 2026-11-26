@@ -24,6 +24,8 @@ export interface ExpeditionContext {
   readonly regionId:number;
   readonly pokemon:readonly LevelProgress[];
   readonly ballProgress?:Readonly<Partial<ExpeditionBallProgress>>;
+  readonly masteryXpPercent?:number;
+  readonly masteryXpRemainder?:number;
 }
 export interface ExpeditionRewards {
   readonly cycles:number;
@@ -36,6 +38,7 @@ export interface ExpeditionRewards {
   readonly ballProgress?:Readonly<ExpeditionBallProgress>;
   /** Mantido somente para ler caller antigo; sempre zero nesta versão. */
   readonly affinityGainPerMember:number;
+  readonly masteryXpRemainder?:number;
 }
 const safe=(v:unknown):v is number=>
   typeof v==='number'&&Number.isSafeInteger(v)&&v>=0;
@@ -62,6 +65,9 @@ export function expeditionRewards(elapsedMs:number,context?:ExpeditionContext):E
     if(!safe(n))throw new RangeError('Progresso de Pokébolas inválido.');
     progress[kind]=n;
   }
+  const percent=context.masteryXpPercent??0;
+  let remainder=context.masteryXpRemainder??0;
+  if(![0,2,5,10].includes(percent)||!safe(remainder)||remainder>=100||(!percent&&remainder!==0))throw new RangeError('Invalid expedition mastery');
   const drops=emptyExpeditionBallProgress();
   const xpByMember=profiles.map(()=>0);
   let coins=0,trainerXp=0;
@@ -75,7 +81,10 @@ export function expeditionRewards(elapsedMs:number,context?:ExpeditionContext):E
     // a expedição, recebe XP. Os outros membros não progridem neste modo.
     const current=profiles[0]!;
     const factor=expeditionProgressFactor(context.regionId,current.level);
-    const gained=current.level===100?0:scaledRegionalReward(rates.pokemonXp,factor);
+    const base=current.level===100?0:scaledRegionalReward(rates.pokemonXp,factor);
+    const extra=base*percent+remainder;
+    const gained=base+Math.floor(extra/100);
+    remainder=extra%100;
     xpByMember[0]!+=gained;
     if(gained>0)profiles[0]=grantXp('pokemon',current,gained);
     // Se o fator não entrega nenhuma moeda/XP após arredondamento, o ciclo
@@ -95,5 +104,5 @@ export function expeditionRewards(elapsedMs:number,context?:ExpeditionContext):E
   }
   return {cycles,coins,trainerXp,pokemonXpPerMember:xpByMember[0]??0,
     pokemonXpByMember:xpByMember,ballDrops:drops,ballProgress:progress,
-    affinityGainPerMember:0};
+    affinityGainPerMember:0,...(percent?{masteryXpRemainder:remainder}:{})};
 }

@@ -66,10 +66,12 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
        !/^[a-z][a-z-]{1,63}$/.test(name))||
      new Set(equipped).size!==equipped.length))
     return null;
+  if(raw.research!==undefined&&(!raw.research||typeof raw.research!=='object'||Array.isArray(raw.research)||!raw.research.points||typeof raw.research.points!=='object'||Array.isArray(raw.research.points)))return null;
   // Canonical move legality, HP/SP, types, and stats remain the engine's
   // responsibility. Snapshot freezes identities/levels only.
   return {
-    version:equipped===undefined?1:2,regionId:encounter.regionId,opponent:{
+    version:equipped===undefined?1:2,regionId:encounter.regionId,
+    ...(raw.research===undefined?{}:{masteryPoints:{...raw.research.points}}),opponent:{
       speciesId:encounter.speciesId,level:encounter.level
     },trainer:{level:trainerLevel,manual:trainerManual,
       equipped:raw.trainer.equipped,title:raw.trainer.title,

@@ -12,6 +12,7 @@
  */
 import { kantoCaptureStartingLevel } from '../catalog/kantoEvolution.js';
 import { AFFINITY_LOSS_ON_DEFEAT, AFFINITY_LOSS_ON_DRAW } from '../affinity/affinityDynamics.js';
+import {masteryBonusFromSave} from '../progression/kantoMastery.js';
 import { grantXp, battleTrainerXp, beginnerBattleXp } from '../progression/xp.js';
 import {expeditionRewards,emptyExpeditionBallProgress} from '../rewards/expedition.js';
 import type {ExpeditionBallKind} from '../rewards/expedition.js';
@@ -204,10 +205,14 @@ function claimExpedition(state: ValidState, nowMs: number, required: boolean): b
       previous[kind]=n;
     }
   }
+  const mastery=masteryBonusFromSave(state.research,members[0]!.pokemonId);
+  if(!mastery)throw new RangeError('Invalid research points');
+  const remainder=exp.masteryXpRemainder??0;
+  if(!natural(remainder)||remainder>=100)throw new RangeError('Invalid research remainder');
   const reward=expeditionRewards(nowMs-(exp.lastClaimAt as number),
     regionId===undefined?undefined:{
       regionId,pokemon:members.map(p=>({level:p.level,xp:p.xp})),
-      ballProgress:previous
+      ballProgress:previous,masteryXpPercent:mastery.xpPercent,masteryXpRemainder:remainder
     });
   if(reward.cycles<1){
     if(required)throw new RangeError('Nenhum ciclo completo para resgatar.');
@@ -241,6 +246,7 @@ function claimExpedition(state: ValidState, nowMs: number, required: boolean): b
   // Proteção também para expedições legadas sem regionId:
   // só o UID líder (primeiro membro fixado no início) recebe XP.
   creditPokemonXp(members[0]!,reward.pokemonXpByMember?.[0]??reward.pokemonXpPerMember);
+  if(reward.masteryXpRemainder!==undefined)exp.masteryXpRemainder=reward.masteryXpRemainder;
   exp.lastClaimAt=nowMs;
   state.lastClaim={
     coins:reward.coins,trainerXP:reward.trainerXp,

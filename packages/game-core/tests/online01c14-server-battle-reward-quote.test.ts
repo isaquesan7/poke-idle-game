@@ -62,3 +62,12 @@ describe('ONLINE-01C-14 — server reward quote parity (no grants)',()=>{
     expect(quote.outcome).toBe(actual.outcome);
   });
 });
+
+it('applies only family XP after regional scaling; other rewards remain identical',()=>{
+ const base=snapshot(2),plain=quoteFrozenBattleRewards(base,outcomePreview('win'),0)!;
+ const mastered=quoteFrozenBattleRewards({...base,masteryPoints:{'4':100}},outcomePreview('win'),0)!;
+ expect(mastered).toEqual({...plain,pokemonXp:Math.floor(plain.pokemonXp*1.1)});
+ expect(quoteFrozenBattleRewards({...base,masteryPoints:{'7':100}},outcomePreview('win'),0)).toEqual(plain);
+ expect(quoteFrozenBattleRewards({...snapshot(14),masteryPoints:{'4':100}},outcomePreview('win'),0)?.pokemonXp).toBe(0);
+ expect(quoteFrozenBattleRewards({...base,masteryPoints:{'5':100}},outcomePreview('win'),0)).toBeNull();
+});

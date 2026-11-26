@@ -101,3 +101,29 @@ export function quoteKantoResearch(snapshot:ResearchSnapshot,selected:unknown){
  });
  return {status:'ok',items,families,totalPoints:families.reduce((sum,f)=>sum+f.credit,0)} as const;
 }
+
+/** Canonical mastery bonus lookup. Missing data means zero; malformed
+ * data is rejected. Only server-owned saves and frozen snapshots supply points.
+ */
+export function masteryBonusFromPoints(points:unknown,speciesId:number){
+ const family=kantoMasteryFamily(speciesId);
+ if(!family)return null;
+ if(points===undefined)return kantoMasteryRank(0)!.current;
+ if(!points||typeof points!=='object'||Array.isArray(points))return null;
+ const values=points as Record<string,unknown>;
+ for(const [id,n] of Object.entries(values)){
+  if(String(Number(id))!==id||!roots.has(Number(id))||!safePoints(n))return null;
+ }
+ const value=values[String(family.id)]??0;
+ return safePoints(value)?kantoMasteryRank(value)!.current:null;
+}
+export function masteryBonusFromSave(research:unknown,speciesId:number){
+ if(research===undefined)return masteryBonusFromPoints(undefined,speciesId);
+ if(!research||typeof research!=='object'||Array.isArray(research)||!Object.hasOwn(research,'points'))return null;
+ const points=(research as {points:unknown}).points;
+ return points===undefined?null:masteryBonusFromPoints(points,speciesId);
+}
+export function masteryPokemonXp(base:number,percent:number){
+ if(!Number.isSafeInteger(base)||base<0||![0,2,5,10].includes(percent))throw new RangeError('Invalid mastery XP');
+ return Math.floor(base*(100+percent)/100);
+}

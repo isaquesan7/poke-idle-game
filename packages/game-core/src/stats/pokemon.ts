@@ -29,3 +29,11 @@ export function pokemonFinalStats(
   for (const stat of STATS) result[stat] += trainerContribution(trainer[stat], affinity);
   return result;
 }
+
+/** Apply after own stats and trainer contribution, once, never to manual points. */
+export function pokemonMasteryStats(stats:Readonly<StatValues>,percent:number):StatValues{
+ if(![0,1,3].includes(percent))throw new RangeError('Invalid mastery stat bonus');
+ const result=zeroStats();
+ for(const stat of STATS)result[stat]=Math.floor(stats[stat]*(100+percent)/100);
+ return result;
+}

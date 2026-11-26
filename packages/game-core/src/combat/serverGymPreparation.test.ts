@@ -252,3 +252,11 @@ describe('D6B — shared online Collection move legality',()=>{
     expect(canonicalOnlineGymEquippedMoves(64,60,['tackle','tackle'])).toBeNull();
   });
 });
+
+it('mastery affects only members of the mastered family, not Gym NPCs',()=>{
+ const raw=fixture(),plain=canonicalOnlineGymPreparation(raw)!;
+ const boosted=canonicalOnlineGymPreparation({...raw,research:{points:{'4':100}}})!;
+ expect(boosted.player[0].combatant.stats).toEqual(Object.fromEntries(Object.entries(plain.player[0].combatant.stats).map(([k,v])=>[k,Math.floor(v*1.03)])));
+ expect(boosted.player.slice(1)).toEqual(plain.player.slice(1));
+ expect(boosted.leaderTeam).toEqual(plain.leaderTeam);
+});

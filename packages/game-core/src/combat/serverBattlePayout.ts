@@ -2,6 +2,7 @@
  * Revalidate the persisted quote against every possible canonical affinity
  * roll; the caller must obtain snapshot/preview/quote from locked DB rows.
  */
+import {masteryBonusFromPoints,masteryBonusFromSave} from '../progression/kantoMastery.js';
 import {grantXp} from '../progression/xp.js';
 import {quoteFrozenBattleRewards} from './serverBattleRewards.js';
 import {KANTO_REGION_WINS_CAP,d064BattleBallDropRates} from '../capture/draftBallSupply.js';
@@ -51,7 +52,7 @@ export function applyFrozenBattleRewardQuote(raw:string,snapshot:unknown,preview
     ||!legal.some(candidate=>keys.every(k=>
       Object.is(input[k],(candidate as Record<string,unknown>)[k]))))
     return null;
-  const s=snapshot as {trainer:{level:number};activePokemon:{
+  const s=snapshot as {masteryPoints?:unknown;trainer:{level:number};activePokemon:{
     uid:number;speciesId:number;level:number;affinity:number}};
   let state:Record<string,unknown>;
   try{state=JSON.parse(raw);}catch{return null;}
@@ -76,6 +77,9 @@ export function applyFrozenBattleRewardQuote(raw:string,snapshot:unknown,preview
     !pokemon.manual||typeof pokemon.manual!=='object'||
     !stats.every(k=>natural((pokemon.manual as Record<string,unknown>)[k])))
     return null;
+  const frozenMastery=masteryBonusFromPoints(s.masteryPoints,s.activePokemon.speciesId);
+  const currentMastery=masteryBonusFromSave(state.research,s.activePokemon.speciesId);
+  if(!frozenMastery||!currentMastery||frozenMastery.rank!==currentMastery.rank)return null;
   const history=pokemon.battleRecord;
   if(!history||typeof history!=='object'||Array.isArray(history))return null;
   const record=history as Record<string,unknown>;
