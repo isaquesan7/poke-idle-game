@@ -1,3 +1,4 @@
+import {BadgeArt} from './BadgeArt';
 /**
  * GYM-04A — tela jogável que apenas envia ações ao writer versionado.
  * Nunca fornece HP/SP/outcome/recompensas. O estado exibido é replayado
@@ -192,7 +193,7 @@ export function GymScreen({game,data,busy,revision,onAction,onOpenCollection}:Pr
           aria-label={g.order+'º Ginásio: '+g.name+', '+g.leader+
             (won?', conquistado':current?', desafio atual':', bloqueado')}>
           <small>{String(g.order).padStart(2,'0')} · {g.city}</small>
-          <strong>{g.name}</strong>
+          <strong className={styles.badgeTitle}><BadgeArt id={g.id} earned={won}/> {g.name}</strong>
           <span>{g.leader}</span>
           <small>{won?'✓ Insígnia conquistada':
             current?'Disponível · nível recomendado '+g.recommendedMinLevel+'–'+g.recommendedMaxLevel:

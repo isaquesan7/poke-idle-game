@@ -1,3 +1,4 @@
+import {RegionDialog} from '../regions/RegionDialog';
 import {PokeballSymbol,PokeballArt} from './PokeballArt';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
@@ -163,6 +164,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   const [demo, setDemo] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selectedUid, setSelectedUid] = useState<number | null>(null);
+  const [evolutionConfirm,setEvolutionConfirm]=useState<{uid:number;from:number;to:number;requirement:string;stone:boolean;revision:number}|null>(null);
   /** Apenas navegação local: não grava no save nem altera o Pokémon ativo. */
   const [pokemonSection,setPokemonSection]=useState<PokemonSection>('profile');
   const [trainerSection,setTrainerSection]=useState<TrainerSection>('profile');
@@ -962,17 +964,29 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                             <button type="button" className={styles.primary}
                               aria-label={'Evoluir para '+target}
                               disabled={busy||Boolean(expedition)||!available}
-                              onClick={()=>{
-                                if(window.confirm('Evoluir UID #'+focused.uid+' para '+target+
-                                  '? Esta ação altera a espécie e, se aplicável, consome uma pedra.')){
-                                  dispatch({type:'evolution',uid:focused.uid,targetSpeciesId:rule.to});
-                                }
-                              }}>Evoluir</button>
+                              onClick={()=>setEvolutionConfirm({uid:focused.uid,from:focused.pokemonId,to:rule.to,requirement,stone:rule.trigger==='stone',revision:save.snapshot.revision})}>Evoluir</button>
                           </div>;
                         })}
                       </div>}
 
                 </section>
+                {evolutionConfirm&&<RegionDialog title="Confirmar evolução" size="compact" onClose={()=>setEvolutionConfirm(null)}>
+                  <div className={styles.evolutionConfirmScene}>
+                    <div><PokemonArt id={evolutionConfirm.from} name={speciesName(evolutionConfirm.from)} large/><strong>{speciesName(evolutionConfirm.from)}</strong></div>
+                    <i className="fa-solid fa-arrow-right" aria-hidden="true"/>
+                    <div><PokemonArt id={evolutionConfirm.to} name={speciesName(evolutionConfirm.to)} large/><strong>{speciesName(evolutionConfirm.to)}</strong></div>
+                  </div>
+                  <p>Confirme a evolução deste Pokémon. A espécie será alterada permanentemente.</p>
+                  <p className={styles.evolutionConfirmRequirement}><i className={'fa-solid '+(evolutionConfirm.stone?'fa-gem':'fa-dna')} aria-hidden="true"/> {evolutionConfirm.stone?'Será consumida: ':'Requisito: '}{evolutionConfirm.requirement}</p>
+                  {evolutionConfirm.revision!==save.snapshot.revision&&<p role="status">O progresso mudou. Feche e confirme novamente.</p>}
+                  <div className={styles.evolutionConfirmActions}>
+                    <button type="button" className={styles.secondary} onClick={()=>setEvolutionConfirm(null)}>Cancelar</button>
+                    <button type="button" className={styles.primary} disabled={busy||Boolean(expedition)||evolutionConfirm.revision!==save.snapshot.revision||focused.uid!==evolutionConfirm.uid||focused.pokemonId!==evolutionConfirm.from||!!onlineViews?.region?.encounter||!!onlineViews?.gym?.gym} onClick={()=>{
+                      const choice=evolutionConfirm;setEvolutionConfirm(null);
+                      dispatch({type:'evolution',uid:choice.uid,targetSpeciesId:choice.to});
+                    }}><i className="fa-solid fa-dna" aria-hidden="true"/> Confirmar evolução</button>
+                  </div>
+                </RegionDialog>}
                 </>}
                 {pokemonSection==='moves'&&<>
                 <section className={styles.panel+' '+styles.pokemonMovesPanel} id="pokemon-moves" aria-label="Treinar golpes do Pokémon">

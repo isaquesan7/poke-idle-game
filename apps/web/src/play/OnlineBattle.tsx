@@ -1,3 +1,4 @@
+import {BadgeArt} from './BadgeArt';
 import {PokeballArt,PokeballSymbol} from './PokeballArt';
 import {useEffect,useRef,useState} from 'react';
 import {KANTO_BATTLE_SPECIES,KANTO_GYMS,kantoNextGym,xpThreshold,LEGACY_ITEMS} from '@kanto/game-core';
@@ -72,7 +73,7 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
   return narrateGymAction(actor.turn,match[2]!,name(actor.actor),name(actor.foe),actor.side==='player'?data.name:g.leader,name(actor.entered));
  })??[];
  return <section className={mode==='gym'?gymStyles.screen:styles.panel} data-testid={'online-'+mode+'-battle'}>
- {mode==='gym'&&!e&&<><div className={gymStyles.intro}><div><p className={gymStyles.kicker}>DESAFIO OFICIAL · KANTO</p><h2>Ginásios Pokémon</h2><p>Defina sua equipe na Coleção. A IA conduz o duelo 3 × 3.</p></div><strong className={gymStyles.progress}>{data.badges.length}/8 insígnias</strong></div><div className={gymStyles.gymList}>{KANTO_GYMS.map(x=><article key={x.id} className={next?.id===x.id?gymStyles.gymCurrent:gymStyles.gymCard}><small>{x.order} · {x.city}</small><strong>{x.name}</strong><span>{x.leader}</span><small>{data.badges.includes(x.id)?'✓ Insígnia conquistada':next?.id===x.id?'Desafio atual':'Bloqueado'}</small></article>)}</div></>}
+ {mode==='gym'&&!e&&<><div className={gymStyles.intro}><div><p className={gymStyles.kicker}>DESAFIO OFICIAL · KANTO</p><h2>Ginásios Pokémon</h2><p>Defina sua equipe na Coleção. A IA conduz o duelo 3 × 3.</p></div><strong className={gymStyles.progress}>{data.badges.length}/8 insígnias</strong></div><div className={gymStyles.gymList}>{KANTO_GYMS.map(x=><article key={x.id} className={next?.id===x.id?gymStyles.gymCurrent:gymStyles.gymCard}><small>{x.order} · {x.city}</small><strong className={gymStyles.badgeTitle}><BadgeArt id={x.id} earned={data.badges.includes(x.id)}/> {x.name}</strong><span>{x.leader}</span><small>{data.badges.includes(x.id)?'✓ Insígnia conquistada':next?.id===x.id?'Desafio atual':'Bloqueado'}</small></article>)}</div></>}
  <div className={mode==='gym'?gymStyles.panel:styles.battleIntro}>
  <div><div className={styles.kicker}>{mode==='gym'?'BATALHA 3 × 3':'ENCONTROS SELVAGENS'}</div>{mode==='gym'&&<h2>{g?g.leader+' × '+data.name:next?'Desafiar '+next.leader:'Todos os ginásios conquistados'}</h2>}
  {!e&&mode==='gym'&&<><p>Equipe definida na Coleção: {data.team.length}/3.</p><div className={gymStyles.choices}>{data.team.map(uid=>{const p=data.roster.find(x=>x.uid===uid);return p?<div key={uid} className={gymStyles.choiceOn}><PokemonArt id={p.pokemonId} name={name(p.pokemonId)}/><span>{name(p.pokemonId)} · Nv. {p.level}</span></div>:null;})}</div></>}

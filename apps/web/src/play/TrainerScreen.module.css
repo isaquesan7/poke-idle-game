@@ -343,3 +343,5 @@
 /* Adventure trainer panels — violet identity, existing stats/controls unchanged. */
 .eyebrow{color:var(--color-affinity)}
 .panel{background:linear-gradient(155deg,var(--color-panel-trainer),var(--color-surface));border-color:var(--color-panel-trainer-border)}
+
+.badgeWon>span>img,.badgeLocked>span>img{width:48px;height:48px;object-fit:contain}

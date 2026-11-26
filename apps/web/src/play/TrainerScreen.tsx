@@ -1,3 +1,4 @@
+import {BadgeArt} from './BadgeArt';
 import {PokeballArt} from './PokeballArt';
 /**
  * D-050 — Perfil do treinador. UI/pontos provisórios: esta tela não grava no
@@ -27,7 +28,6 @@ const SLOT_NAMES:Readonly<Record<EquipmentSlot,string>>={
   earrings:'Brincos'
 };
 const SLOT_ICONS:Readonly<Record<EquipmentSlot,string>>={hat:'fa-hat-cowboy',jacket:'fa-vest',gloves:'fa-mitten',pants:'fa-person',shoes:'fa-shoe-prints',necklace:'fa-gem',ring1:'fa-ring',ring2:'fa-ring',earrings:'fa-gem'};
-const BADGE_ICONS:Readonly<Record<string,string>>={boulder:'fa-mountain',cascade:'fa-droplet',thunder:'fa-bolt',rainbow:'fa-rainbow',soul:'fa-heart',marsh:'fa-water',volcano:'fa-fire',earth:'fa-earth-americas'};
 const STAT_ICONS:Readonly<Record<Stat,string>>={hp:'fa-heart-pulse',attack:'fa-khanda',defense:'fa-shield-halved',specialAttack:'fa-wand-magic-sparkles',specialDefense:'fa-shield-heart',speed:'fa-angles-right'};
 function Fa({name}:{name:string}){return <i className={'fa-solid '+name} aria-hidden="true"/>;}
 function bonusLabel(stats:Partial<StatValues>):string{
@@ -228,7 +228,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
                 tabIndex={0} title={badge.name+' · Líder: '+gym.leader+' · '+bonusLabel(badge.stats)}
                 aria-label={badge.name+(won?' conquistada':' bloqueada')+'. '+gym.leader+'. Bônus: '+bonusLabel(badge.stats)}>
                 <span className={styles.badgeTooltip} aria-hidden="true"><strong>{badge.name}</strong><small>Bônus: {bonusLabel(badge.stats)}</small><small>{won?'Conquistada':'Derrote '+gym.leader}</small></span>
-                <span><Fa name={BADGE_ICONS[badge.id]??'fa-medal'}/></span>
+                <span><BadgeArt id={badge.id} earned={won}/></span>
                 <strong>{badge.name}</strong><small>{gym.leader}</small>
               </div>;
             })}

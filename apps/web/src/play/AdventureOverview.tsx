@@ -7,7 +7,7 @@ import {expeditionElapsedMs,formatExpeditionDuration} from './expeditionDisplay'
 import styles from './AdventureOverview.module.css';
 
 const TYPE_LABELS:Record<string,string>={normal:'Normal',fire:'Fogo',water:'Água',electric:'Elétrico',grass:'Planta',ice:'Gelo',fighting:'Lutador',poison:'Veneno',ground:'Terra',flying:'Voador',psychic:'Psíquico',bug:'Inseto',rock:'Pedra',ghost:'Fantasma',dragon:'Dragão',dark:'Sombrio',steel:'Aço',fairy:'Fada'};
-const STATS=[['hp','HP','fa-heart-pulse'],['attack','ATK','fa-khanda'],['specialAttack','SP. ATK','fa-wand-magic-sparkles'],['speed','SPD','fa-gauge-high']] as const;
+const STATS=[['hp','HP','fa-heart-pulse'],['attack','ATK','fa-khanda'],['defense','DEF','fa-shield-halved'],['specialAttack','SP. ATK','fa-wand-magic-sparkles'],['specialDefense','SP. DEF','fa-shield'],['speed','SPD','fa-gauge-high']] as const;
 function Fa({name}:{name:string}){return <i className={'fa-solid '+name} aria-hidden="true"/>}
 export function AdventureTopbar({online,level,name,coins,now,onLogout,busy}:{online:boolean|null;level:number|string;name:string;coins:number;now:number;onLogout:()=>void;busy:boolean}){
  const [open,setOpen]=useState(false);
