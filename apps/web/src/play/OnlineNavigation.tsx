@@ -42,7 +42,7 @@ export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onN
  return <nav className={styles.menu+' '+styles.groupedMenu} aria-label="Navegação do jogo">
   {link({tab:'overview',label:'Visão geral',icon:'fa-house'})}
   {groups.map(group=><div className={styles.menuGroup} key={group.id} data-expanded={open===group.id}>
-    <button type="button" className={(current===group.id?styles.menuActive:styles.menuItem)+' '+styles.menuGroupToggle'}
+    <button type="button" className={(current===group.id?styles.menuActive:styles.menuItem)+' '+styles.menuGroupToggle}
       aria-expanded={open===group.id} aria-controls={'nav-'+group.id} onClick={()=>setOpen(old=>old===group.id?null:group.id)}>
       <i className={'fa-solid '+group.icon} aria-hidden="true"/><span>{group.label}</span><i className={'fa-solid '+(open===group.id?'fa-chevron-up':'fa-chevron-down')} aria-hidden="true"/>
     </button>

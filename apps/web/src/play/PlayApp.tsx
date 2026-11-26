@@ -722,7 +722,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   }
 
   return (
-    <div className={styles.appShell} data-testid="play-root" data-motion="full">
+    <div className={styles.appShell} data-testid="play-root" data-motion="full" data-theme="kanto-adventure">
       <aside className={styles.sidebar}>
         <div className={styles.brand}><span className={styles.brandBall}>◉</span>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
@@ -776,14 +776,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                   <PokemonArt id={active.pokemonId} name={view.active.name} large />
                 </section>
                 <div className={styles.metrics}>
-                  <article className={styles.metric}><small>Treinador</small><strong>Lv. {view.level}</strong><span>{view.xpNext === null ? 'Nível máximo' : view.xp + ' / ' + view.xpNext + ' XP'}</span></article>
-                  <article className={styles.metric}><small>Parceiro</small><strong>Lv. {active.level}</strong><span>{view.active.name}</span></article>
-                  <article className={styles.metric}><small>Moedas</small><strong>{data.coins}</strong><span>Saldo da jornada</span></article>
-                  <article className={styles.metric}><small>Pokédex de Kanto</small><strong>{caughtSpeciesCount}/151</strong><span>{data.roster.length} indivíduos · {view.seenSpecies} vistos</span></article>
+                  <article className={styles.metric} data-tone="trainer"><small><i className="fa-solid fa-user" aria-hidden="true"/> Treinador</small><strong>Lv. {view.level}</strong><span>{view.xpNext === null ? 'Nível máximo' : view.xp + ' / ' + view.xpNext + ' XP'}</span></article>
+                  <article className={styles.metric} data-tone="pokemon"><small><i className="fa-solid fa-dragon" aria-hidden="true"/> Parceiro</small><strong>Lv. {active.level}</strong><span>{view.active.name}</span></article>
+                  <article className={styles.metric} data-tone="gold"><small><i className="fa-solid fa-coins" aria-hidden="true"/> Moedas</small><strong>{data.coins}</strong><span>Saldo da jornada</span></article>
+                  <article className={styles.metric} data-tone="collection"><small><i className="fa-solid fa-book-open" aria-hidden="true"/> Pokédex de Kanto</small><strong>{caughtSpeciesCount}/151</strong><span>{data.roster.length} indivíduos · {view.seenSpecies} vistos</span></article>
                 </div>
                 <div className={styles.twoColumn}>
-                  <section className={styles.panel}>
-                    <h2>Seu parceiro</h2>
+                  <section className={styles.panel} data-tone="pokemon">
+                    <h2><i className="fa-solid fa-circle-dot" aria-hidden="true"/> Seu parceiro</h2>
                     <div className={styles.partner}>
                       <PokemonArt id={active.pokemonId} name={view.active.name} />
                       <div><strong>{view.active.name}</strong><p>UID #{active.uid} · Afinidade {active.affinity}%</p>
@@ -792,14 +792,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                         onClick={() => openPokemon(active.uid)}>Treinar Pokémon</button></div>
                     </div>
                   </section>
-                  <section className={styles.panel}>
-                    <h2>Coleção e equipe</h2>
+                  <section className={styles.panel} data-tone="collection">
+                    <h2><i className="fa-solid fa-layer-group" aria-hidden="true"/> Coleção e equipe</h2>
                     <p>{data.roster.length} Pokémon capturado(s) · {data.team.length}/3 na equipe</p>
                     <p>Organize seus parceiros e escolha quem lidera as batalhas nas regiões.</p>
                     <button type="button" className={styles.secondary} onClick={() => setTab('collection')}>Abrir coleção</button>
                   </section>
-                  <section className={styles.panel}>
-                    <h2>Expedição idle</h2>
+                  <section className={styles.panel} data-tone="expedition">
+                    <h2><i className="fa-solid fa-mountain" aria-hidden="true"/> Expedição idle</h2>
                     <p>{expedition
                       ? 'Explorando Kanto · ' + (pending?.cycles ?? 0) + ' ciclos disponíveis para resgate'
                       : 'Envie seu parceiro em expedição para receber moedas e XP.'}</p>

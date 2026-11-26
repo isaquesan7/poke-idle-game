@@ -218,6 +218,10 @@ try{
   await alpha.goto(origin+'/online',{waitUntil:'domcontentloaded'});
   await alpha.getByRole('heading',{name:'Bem-vindo de volta, Treinador Browser!'}).waitFor();
   assert.equal(await alpha.getByTestId('play-root').count(),1);
+  assert.equal(await alpha.getByTestId('play-root').getAttribute('data-theme'),'kanto-adventure');
+  const theme=await alpha.evaluate(()=>{const s=getComputedStyle(document.documentElement);return Object.fromEntries(['--color-bg','--color-primary','--color-secondary','--color-success','--color-gold','--color-affinity'].map(k=>[k,s.getPropertyValue(k).trim()]));});
+  assert.deepEqual(theme,{'--color-bg':'#091228','--color-primary':'#ff476c','--color-secondary':'#43d5ff','--color-success':'#15e3ad','--color-gold':'#ffc94d','--color-affinity':'#a875ff'});
+  assert.equal(await alpha.locator('[data-tone="trainer"]').evaluate(el=>getComputedStyle(el).borderTopColor),'rgb(136, 98, 207)');
   const alphaNav=alpha.getByRole('navigation',{name:'Navegação do jogo'});
   const expand=async(page,group)=>{const btn=page.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:group,exact:true});if(await btn.getAttribute('aria-expanded')!=='true')await btn.click();};
   assert.equal(await alphaNav.getByRole('button').count(),5);

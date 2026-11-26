@@ -78,3 +78,9 @@
 .modalHeader{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3)}
 .modalHeader h3{margin:0;font-size:1.2rem}.modalClose{min-width:44px;min-height:44px;background:var(--color-surface-raised);color:var(--color-text);border:1px solid var(--color-border);border-radius:var(--radius-control);cursor:pointer}
 .modal .details{padding:0;border:0}.modal .pokemonList{max-height:40dvh;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}.modal .fight{width:100%}
+
+/* Exploration accent is cyan, distinct from the primary action color. */
+.kicker{color:var(--color-secondary)}
+.regionActive{border-color:var(--color-secondary);background:var(--color-panel-collection)}
+.modal{background:var(--color-modal-background-1);border-color:var(--color-modal-border-1);box-shadow:var(--shadow-modal)}
+.modal::backdrop{background:var(--color-modalbg-background-1)}
