@@ -261,7 +261,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
       {equipmentChoice&&<InventoryDialog title={equipmentChoice.name}
         onClose={()=>setSelectedEquipment(null)}>
         <div className={styles.detailItem}>
-          <span className={styles.detailIcon}><GearArt id={'templateId' in equipmentChoice?equipmentChoice.templateId:equipmentChoice.id} rarity={'rarity' in equipmentChoice?equipmentChoice.rarity:undefined} fallback={SLOT_ICONS[equipmentChoice.slot]}/></span>
+          <span className={styles.detailIcon}><GearArt id={equipmentEntries.find(item=>item.id===equipmentChoice.id)?.gearTemplateId??equipmentChoice.id} rarity={equipmentEntries.find(item=>item.id===equipmentChoice.id)?.rarity} fallback={SLOT_ICONS[equipmentChoice.slot]}/></span>
           <div><strong>{SLOT_NAMES[equipmentChoice.slot]}</strong>
             <p>{onlineInventory?'Equipamento individual do servidor.':'Equipamento de '+SLOT_NAMES[equipmentChoice.slot]+' do catálogo de testes.'}</p></div>
         </div>
