@@ -2,7 +2,7 @@ import {battlePendingDisplay} from './battlePendingDisplay.mjs';
 /** Explicit public display fields only. No combat stats, moves, seed or hidden effects. */
 export function gymPublicSide(p){
  return {activeIndex:p.activeIndex,needsReplacement:p.needsReplacement,voluntarySwitchesUsed:p.voluntarySwitchesUsed,
- fighters:p.fighters.map(f=>({uid:f.uid,speciesId:f.combatant.speciesId,level:f.combatant.level,hp:f.hp,maxHp:f.combatant.stats.hp,sp:f.sp,maxSp:f.maxSp,status:f.status,pendingAction:battlePendingDisplay(f),retreatRecoveriesUsed:f.retreatRecoveriesUsed}))};
+ fighters:p.fighters.map(f=>({uid:f.uid,speciesId:f.combatant.speciesId,...(f.combatant.megaForm?{megaForm:f.combatant.megaForm}:{}),level:f.combatant.level,hp:f.hp,maxHp:f.combatant.stats.hp,sp:f.sp,maxSp:f.maxSp,status:f.status,pendingAction:battlePendingDisplay(f),retreatRecoveriesUsed:f.retreatRecoveriesUsed}))};
 }
 const display=s=>({player:gymPublicSide(s.player),opponent:gymPublicSide(s.leader)});
 export function gymPresentation(before,resolved){
