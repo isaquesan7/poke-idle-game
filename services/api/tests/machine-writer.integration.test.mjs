@@ -55,3 +55,99 @@ test('TM teaching: atomic stock, compatible UID, permanent lesson, concurrency a
   assert.equal(Number((await pool.query("SELECT count(*) AS n FROM game_action_receipts WHERE account_id=$1 AND kind='pokemon-tm-teach'",[id])).rows[0].n),1);
  }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
 });
+
+test('TM regional loot: certified overlevel win credits stock exactly once and survives finalization',async()=>{
+ const db=new URL(process.env.DATABASE_URL);
+ assert.equal(db.protocol,'postgresql:');assert.equal(db.hostname,'127.0.0.1');assert.equal(db.port,'55432');
+ assert.equal(db.pathname,'/kanto_ci');assert.equal(db.username,'kanto_ci');assert.equal(db.search,'');
+ const pool=new pg.Pool({connectionString:db.href});let accountId;
+ const flags=['NODE_ENV','ONLINE_REGISTRATION_ENABLED','ONLINE_TM_CI_ONLY'];
+ const previous=Object.fromEntries(flags.map(f=>[f,process.env[f]]));
+ try{
+  process.env.NODE_ENV='test';process.env.ONLINE_REGISTRATION_ENABLED='true';process.env.ONLINE_TM_CI_ONLY='true';
+  const {reserveEncounter}=await import('../src/encounterReservation.mjs');
+  const {materializeReservedEncounter}=await import('../src/encounterMaterialization.mjs');
+  const {prepareReservedBattle}=await import('../src/battlePreparation.mjs');
+  const {startReservedWildTurnSession}=await import('../src/wildTurnSession.mjs');
+  const {applyReservedWildTurn}=await import('../src/wildTurnAction.mjs');
+  const {certifyResolvedWildTurn}=await import('../src/wildTurnCertificate.mjs');
+  const {payCertifiedWildTurns}=await import('../src/wildTurnSettlement.mjs');
+  const {finishPaidWildTurnEncounter}=await import('../src/wildTurnFinalization.mjs');
+  const {createPrivateBattleRandom}=await import('../src/battleEntropy.mjs');
+  const {quoteCertifiedRegionalLoot}=await import('../src/regionalLootQuote.mjs');
+  const core=await loadCombatAdapter();
+  accountId=(await pool.query("INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id",['tm-loot-'+randomUUID()+'@example.test','x'.repeat(48)])).rows[0].id;
+  const initial=firstSave('TM Loot CI',4,1740000000000),before=JSON.parse(initial.journal.raw);
+  before.roster[0].level=20;
+  initial.journal.raw=JSON.stringify(before);
+  await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[accountId,JSON.stringify(initial)]);
+  const booked=await reserveEncounter(pool,{accountId,actionId:randomUUID(),expectedRevision:0,regionId:1});
+  assert.equal(booked.status,'reserved');
+  const ids={accountId,encounterId:booked.encounterId};
+  // Find a synthetic CI key for a genuine common-tier drop; no runtime
+  // override of the roll, payout, opponent catalogue, or player command.
+  const input={regionId:1,speciesId:10,wildLevel:2,trainerLevel:before.trainer.level,pokemonLevel:20,won:true};
+  let entropyKey,tmId;
+  for(let n=0;n<8192;n++){
+   const candidate=Buffer.alloc(32);candidate.writeUInt32BE(n);
+   const random=createPrivateBattleRandom(candidate,{...ids,phase:'wild-battle-tm-drop'});
+   const rolled=core.rollRegionalMachine(input,random.integer);
+   assert.ok(rolled);
+   if(rolled.tmId){entropyKey=candidate;tmId=rolled.tmId;break;}
+  }
+  assert.ok(entropyKey&&tmId,'exercise a real nonempty R1 TM pool');
+  assert.equal((await materializeReservedEncounter(pool,{...ids,entropyKey})).status,'materialized');
+  // Same legitimate R1 species/level fixture used by the capture CI journey.
+  await pool.query('UPDATE game_encounter_reservations SET species_id=10,pokemon_level=2 WHERE id=$1',[ids.encounterId]);
+  const prepared=await prepareReservedBattle(pool,ids);
+  assert.equal(prepared.status,'prepared');assert.equal(prepared.snapshot.tmLootVersion,1);
+  const opening=await startReservedWildTurnSession(pool,{...ids,expectedRevision:1});
+  assert.equal(opening.status,'started');
+  let revision=1,state=opening.turnState;
+  for(let n=0;n<30&&state.phase==='await-player';n++){
+   const result=await applyReservedWildTurn(pool,{...ids,actionId:randomUUID(),expectedRevision:revision,action:{kind:'basic'},entropyKey});
+   assert.equal(result.status,'applied');revision=result.revision;
+   state=(await pool.query('SELECT battle_turn_state FROM game_encounter_reservations WHERE id=$1',[ids.encounterId])).rows[0].battle_turn_state;
+  }
+  assert.equal(state.phase,'resolved');assert.equal(state.outcome,'win');
+  const cert=await certifyResolvedWildTurn(pool,{...ids,actionId:randomUUID(),expectedRevision:revision});
+  assert.equal(cert.status,'certified');revision=cert.revision;
+  const args={...ids,actionId:randomUUID(),expectedRevision:revision,entropyKey};
+  const results=await Promise.all([payCertifiedWildTurns(pool,args),payCertifiedWildTurns(pool,args)]);
+  assert.deepEqual(results.map(x=>x.status).sort(),['paid','replay']);
+  const paid=results.find(x=>x.status==='paid');
+  assert.deepEqual(results[0].quote,results[1].quote);assert.deepEqual(results[0].paid,results[1].paid);
+  assert.equal(paid.quote.loot.tmId,tmId);
+  const legacy={...prepared.snapshot};delete legacy.tmLootVersion;
+  const baseLoot=quoteCertifiedRegionalLoot(core,legacy,{outcome:'win'},{...ids,entropyKey});
+  const {tmId:quotedTm,...otherLoot}=paid.quote.loot;
+  assert.deepEqual(otherLoot,baseLoot,'TM has its own HMAC domain; existing loot unchanged');
+  assert.equal(quotedTm,tmId);
+  assert.equal(paid.paid.pokemonXp,0);assert.equal(paid.paid.trainerXp,0);
+  assert.deepEqual(paid.paid.loot.stored.filter(x=>x.kind==='tm'),[{kind:'tm',itemId:tmId,quantity:1}]);
+  assert.equal(paid.paid.loot.pending.some(x=>x.kind==='tm'),false);
+  const read=async()=>JSON.parse((await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[accountId])).rows[0].state.journal.raw);
+  const after=await read();
+  assert.equal(after.machineStock[tmId],1);
+  assert.equal(after.roster[0].xp,before.roster[0].xp);assert.equal(after.trainer.xp,before.trainer.xp);
+  assert.equal((await payCertifiedWildTurns(pool,{...args,actionId:randomUUID(),expectedRevision:paid.revision})).status,'already-paid');
+  const row=await pool.query('SELECT battle_turn_payout_quote FROM game_encounter_reservations WHERE id=$1',[ids.encounterId]);
+  assert.equal(row.rows[0].battle_turn_payout_quote.loot.tmId,tmId);
+  // Forge only the TM quote, then restore the certified record.
+  const forged=structuredClone(row.rows[0].battle_turn_payout_quote);forged.loot.tmId=null;
+  await pool.query('UPDATE game_encounter_reservations SET battle_turn_payout_quote=$2::jsonb WHERE id=$1',[ids.encounterId,JSON.stringify(forged)]);
+  const finish={...ids,actionId:randomUUID(),expectedRevision:paid.revision,choice:'skip',entropyKey};
+  assert.equal((await finishPaidWildTurnEncounter(pool,finish)).status,'invalid-payout');
+  assert.equal((await read()).machineStock[tmId],1);
+  await pool.query('UPDATE game_encounter_reservations SET battle_turn_payout_quote=$2::jsonb WHERE id=$1',[ids.encounterId,JSON.stringify(row.rows[0].battle_turn_payout_quote)]);
+  assert.equal((await finishPaidWildTurnEncounter(pool,finish)).status,'finished');
+  assert.equal((await read()).machineStock[tmId],1);
+  const view=await readMachines(pool,accountId);
+  assert.equal(view.status,'ok');assert.equal(view.machines.find(x=>x.id===tmId).quantity,1);
+  assert.equal(Number((await pool.query("SELECT count(*) AS n FROM game_action_receipts WHERE account_id=$1 AND kind='wild-turn-payout'",[accountId])).rows[0].n),1);
+ }finally{
+  for(const f of flags){if(previous[f]===undefined)delete process.env[f];else process.env[f]=previous[f];}
+  if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);
+  await pool.end();
+ }
+});
