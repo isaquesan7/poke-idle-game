@@ -1,3 +1,4 @@
+import {battlePendingDisplay} from './battlePendingDisplay.mjs';
 /** Regional HTTP bridge for the disposable CI environment only.
  * No combat rules here: calls the existing canonical writers. Never return
  * entropy keys, proofs, snapshots, internal engine state or receipt digests.
@@ -41,8 +42,8 @@ export function regionalExpansionEnabled(env=process.env){
  loadRegionalTestKey(env);
  return true;
 }
-function actor(p){return p?{speciesId:p.speciesId,hp:p.hp,maxHp:p.maxHp,
- sp:p.sp,maxSp:p.maxSp,status:p.status,equippedMoves:p.equippedMoves,
+function actor(p,fighter){return p?{speciesId:p.speciesId,hp:p.hp,maxHp:p.maxHp,
+ sp:p.sp,maxSp:p.maxSp,status:p.status,equippedMoves:p.equippedMoves,pendingAction:battlePendingDisplay(fighter),
  ...(p.uid===undefined?{}:{uid:p.uid})}:null;}
 export async function readRegionalEncounter(pool,accountId,expanded=false){
  const result=await pool.query(
@@ -65,7 +66,7 @@ export async function readRegionalEncounter(pool,accountId,expanded=false){
   regions:expanded?regions:regions.filter(r=>r.id===1),pendingLoot:raw.pendingRegionalLoot!=null||raw.pendingExpeditionLoot!=null,encounter:row.id?{
   id:row.id,regionId:Number(row.region_id),speciesId:row.species_id,level:row.pokemon_level,
   phase,actions:actions??[],recommendedAction:phase==='await-player'?core.chooseFrozenWildPlayerAction(row.battle_snapshot,state):null,captureChoices,loot:phase==='paid'?row.battle_turn_payout_receipt?.loot??null:null,playerLevel:row.battle_snapshot?.activePokemon?.level??null,
-  turn:state?.turn??0,outcome:state?.outcome??null,player:actor(state?.player),wild:actor(state?.wild),
+  turn:state?.turn??0,outcome:state?.outcome??null,player:actor(state?.player,state?.engine?.player?.fighters?.[0]),wild:actor(state?.wild,state?.engine?.leader?.fighters?.[0]),
   log:Array.isArray(state?.log)?state.log:[],frames:Array.isArray(state?.frames)?state.frames:[]
  }:null};
 }

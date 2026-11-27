@@ -8,6 +8,7 @@ import type {Actor,Party,RegionView,GymView,RegionalReward} from './onlinePlay';
 import {BattleStage} from './BattleStage';
 import {BattlePlayback} from './BattlePlayback';
 import {PokemonArt} from './JourneyShell';
+import {battlePendingLabel} from './battlePending';
 import {narrateGymAction} from './gymLogText';
 import styles from './PlayApp.module.css';
 import {RegionDialog} from '../regions/RegionDialog';
@@ -66,6 +67,12 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  const a:Actor|null|undefined=w?w.player:display?.player?.fighters[display.player.activeIndex];
  const z:Actor|null|undefined=w?w.wild:display?.opponent?.fighters[display.opponent.activeIndex];
  const frame=w?.frames?.length===w?.log.length&&w&&w.frames.length>0?w.frames[Math.max(0,Math.min(w.frames.length-1,playing?Math.max(prior,visible-1):w.frames.length-1))]??null:present&&playing&&index>=0?present.events[index]?.frame??null:null;
+ // Region vitals are final while frames replay; defer pending labels to the
+ // end of the diary. Gym presentation has per-event snapshots.
+ const pendingActors=e?.phase==='await-player'&&(!w||!playing)?
+  [a,z].flatMap((actor,i)=>{const pending=battlePendingLabel(actor?.pendingAction);
+   return actor&&actor.hp>0&&pending?[{...pending,speciesId:actor.speciesId,side:i===0?'player':'opponent'}]:[];
+  }):[];
  const next=kantoNextGym(data.badges);
  const log=e?.log.map((line,i)=>{
   if(!g)return line;
@@ -85,6 +92,7 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  {e?.phase==='await-player'&&<div className={gymStyles.actions}><button className={styles.primary} disabled={busy||auto||blocked} onClick={()=>{sent.current='';setAuto(true);}}>Continuar batalha automática</button><button className={styles.secondary} disabled={!auto} onClick={()=>setAuto(false)}>Pausar após a rodada</button></div>}
  </div>
  {lead&&(mode==='region'||!!g?.player&&!!g.opponent)&&<div className={styles.battleArenaColumn}>{masteredSpecies.includes(a?.speciesId??lead.pokemonId)&&<span className={styles.masteryEmblem}><i className="fa-solid fa-award" aria-hidden="true"/> {name(a?.speciesId??lead.pokemonId)} · Maestria V</span>}<BattleStage stageRef={stageRef} levelUp={levelUp} player={{name:name(a?.speciesId??lead.pokemonId),level:w?.phase==='paid'?lead.level:a?.level??w?.playerLevel??lead.level,art:<PokemonArt id={a?.speciesId??lead.pokemonId} name={name(a?.speciesId??lead.pokemonId)} large/>}} wild={z?{name:name(z.speciesId),level:z.level??w?.level??1,art:<PokemonArt id={z.speciesId} name={name(z.speciesId)} large/>}:null} frame={frame} playerMaxHp={a?.maxHp??null} wildMaxHp={z?.maxHp??null} playerMaxSp={a?.maxSp??null} wildMaxSp={z?.maxSp??null} playing={playing&&!!frame} cue={key+':'+visible} {...(a&&z?{vitals:{playerHp:a.hp,wildHp:z.hp,playerSp:a.sp,wildSp:z.sp}}:{})} opponentLabel={g?'Pokémon de '+g.leader:'Pokémon selvagem'}/>
+ {pendingActors.length>0&&<div className={gymStyles.pendingActions} aria-live="polite" aria-label="Preparação e recarga">{pendingActors.map(p=><div key={p.side} className={gymStyles.pendingAction} data-testid={'battle-pending-'+p.side}><i className={'fa-solid '+p.icon} aria-hidden="true"/><div><strong>{name(p.speciesId)} · {p.title}</strong><small>{p.detail}</small></div></div>)}</div>}
  {w?.phase==='paid'&&!playing&&!levelUp&&<div className={styles.battleCapturePlacement} ref={captureRef} tabIndex={-1}><div className={styles.captureDecision}><h3>{w.outcome==='win'?'Tentar capturar '+name(w.wild?.speciesId??0)+'?':'Encerrar batalha'}</h3>{w.captureChoices.map(ball=><button key={ball.ballId} className={styles.primary} disabled={busy||ball.quantity<1} onClick={()=>void onCommand('finish',ball.ballId)}><PokeballArt id={ball.ballId}/> {balls[ball.ballId]??ball.ballId} · {ball.quantity}</button>)}<button className={styles.secondary} disabled={busy} onClick={()=>void onCommand('finish','skip')}>Seguir sem capturar</button></div></div>}
  </div>}
  </div>

@@ -2,7 +2,7 @@ import type {ServerClockSample} from './expeditionDisplay';
 import {parseLegacySave} from '../storage/legacySave';
 import type {PlayRead,PlaySnapshot,PlayAction} from './playSave';
 import type {GymTurnAction,KantoBattleVisualFrame} from '@kanto/game-core';
-export type Actor={speciesId:number;level?:number;hp:number;maxHp:number;sp:number;maxSp:number;status:string|null};
+export type Actor={speciesId:number;level?:number;hp:number;maxHp:number;sp:number;maxSp:number;status:string|null;pendingAction?:'solar-beam'|'dig'|'recharge'|null};
 export type Party={activeIndex:number;needsReplacement:boolean;fighters:Actor[]};
 export type Encounter={id:string;phase:'reserved'|'await-player'|'resolved'|'certified'|'paid';turn:number;outcome:string|null;log:string[];recommendedAction:GymTurnAction|null};
 export type RegionEncounter=Encounter&{regionId:number;level:number;playerLevel:number;player:Actor|null;wild:Actor|null;frames:KantoBattleVisualFrame[];captureChoices:{ballId:string;quantity:number}[]};
