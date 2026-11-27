@@ -9,7 +9,7 @@ import type {Combatant,KantoMove,KantoBattleVisualFrame} from '../combat/kantoBa
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
-  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop} from './gymEffects.js';
+  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt} from './gymEffects.js';
 import {gymSignatureSupport} from './gymSignatureTms.js';
 import {gymPsychicSecondary} from './gymPsychicMoves.js';
 import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
@@ -222,6 +222,7 @@ export function resolveGymTurn(
     log.push(line);frames.push(gymLogFrame(observed,state,line,meta));
       snapshots.push(state);observed=state;
   };
+  const protectedSides=new Set<GymSide>();
   for(const side of [first,other(first)]){
     if(state.outcome!=='ongoing')break;
     // Depois de KO, o derrotado perde sua ação pendente nesta rodada.
@@ -285,9 +286,28 @@ export function resolveGymTurn(
       record(side+' errou '+move.name+' (-'+cost+' SP).');
       continue;
     }
+    const supportEffect=kantoSupportEffect(move.name);
+    const selfDirected=supportEffect?.kind==='heal'||['bulk-up','calm-mind','reflect','light-screen','safeguard','protect'].includes(move.name);
+    if(!selfDirected&&protectedSides.has(defendingSide)){
+      record(defendingSide+' bloqueou '+move.name+' com Protect (-'+cost+' SP).');
+      continue;
+    }
     if(move.category==='status'){
-      const support=kantoSupportEffect(move.name);
+      const support=supportEffect;
       const signature=gymSignatureSupport(move.name);
+      if(signature==='protect'){
+        const attempt=gymProtectAttempt(state,side,roll);
+        state=attempt.state;
+        if(attempt.success)protectedSides.add(side);
+        record(side+' usou protect'+(attempt.success?' e ficou protegido.':', mas falhou.'));
+        continue;
+      }
+      if(signature==='reflect'||signature==='light-screen'||signature==='safeguard'){
+        const next=gymSetBarrier(state,side,signature);
+        record(side+' usou '+signature+(next===state?': barreira já ativa.':' por cinco turnos.'));
+        state=next;
+        continue;
+      }
       if(signature==='toxic'){
         const next=gymApplyToxic(state,defendingSide);
         const applied=next!==state;
@@ -328,6 +348,10 @@ export function resolveGymTurn(
       }
       continue;
     }
+    if(move.name==='brick-break'&&kantoTypeMultiplier(move.type,target.combatant.types)>0){
+      const next=gymBreakScreens(state,defendingSide);
+      if(next!==state){state=next;record(side+' quebrou Reflect/Light Screen com brick-break.');}
+    }
     const ownDrops=active.effects??GYM_EMPTY_EFFECTS;
     const foeDrops=target.effects??GYM_EMPTY_EFFECTS;
     const cleanAttacker=combatantUsing(active,move);
@@ -345,9 +369,10 @@ export function resolveGymTurn(
       if(actual.hp===0)break;
       const damage=kantoDamage(attacker,defender,roll(),roll(),
         active.status==='burn'&&move.category==='physical'?.5:1);
-      state=applyGymDamage(state,defendingSide,damage.damage);
+      const inflicted=gymProtectedDamage(state,defendingSide,move.category,move.name,damage.damage,damage.critical);
+      state=applyGymDamage(state,defendingSide,inflicted);
       record(side+' usou '+move.name+' ('+hit+'/'+hits+'), causando '+
-        damage.damage+' de dano'+(hit===1?' (-'+cost+' SP)':'')+'.',{
+        inflicted+' de dano'+(hit===1?' (-'+cost+' SP)':'')+'.',{
           moveName:move.name,moveType:move.type,critical:damage.critical,
           effectiveness:damage.effectiveness,hitIndex:hit,hitTotal:hits
         });
@@ -415,8 +440,8 @@ export function resolveGymTurn(
       if(psychic&&roll()*100<psychic.chance){
         if(psychic.kind==='confusion'){
           const duration=2+Math.floor(roll()*4);
-          state=gymApplyConfusion(state,defendingSide,duration);
-          record(defendingSide+' ficou confuso por '+duration+' ações.');
+          const next=gymApplyConfusion(state,defendingSide,duration);
+          if(next!==state){state=next;record(defendingSide+' ficou confuso por '+duration+' ações.');}
         }else{
           state=gymDropStat(state,defendingSide,'specialDefenseDrops');
           record(defendingSide+' perdeu Special Defense.');

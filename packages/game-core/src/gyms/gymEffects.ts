@@ -48,11 +48,35 @@ export function gymReplaceFighter(
   fighters[idx]=replacement;
   return {...state,[side]:{...party,fighters}};
 }
+export type GymBarrier='reflect'|'light-screen'|'safeguard';
+export function gymBarrierActive(state:GymBattleState,side:GymSide,barrier:GymBarrier):boolean{
+ return (state[side].barriers?.[barrier]??0)>state.turn;
+}
+export function gymSetBarrier(state:GymBattleState,side:GymSide,barrier:GymBarrier):GymBattleState{
+ if(gymBarrierActive(state,side,barrier))return state;
+ return {...state,[side]:{...state[side],barriers:{...state[side].barriers,[barrier]:state.turn+5}}};
+}
+export function gymBreakScreens(state:GymBattleState,side:GymSide):GymBattleState{
+ if(!gymBarrierActive(state,side,'reflect')&&!gymBarrierActive(state,side,'light-screen'))return state;
+ return {...state,[side]:{...state[side],barriers:{...state[side].barriers,reflect:0,'light-screen':0}}};
+}
+export function gymProtectedDamage(state:GymBattleState,side:GymSide,category:string,name:string,damage:number,critical:boolean):number{
+ if(damage<=0||critical||name==='night-shade')return damage;
+ if((category==='physical'&&gymBarrierActive(state,side,'reflect'))||
+    (category==='special'&&gymBarrierActive(state,side,'light-screen')))return Math.max(1,Math.floor(damage/2));
+ return damage;
+}
+export function gymProtectAttempt(state:GymBattleState,side:GymSide,roll:()=>number):{state:GymBattleState;success:boolean}{
+ const party=state[side],old=party.protectChain;
+ const repeats=old?.index===party.activeIndex&&old.lastTurn===state.turn-1?old.uses:0;
+ const success=repeats===0||roll()<2**(-Math.min(8,repeats));
+ return {success,state:{...state,[side]:{...party,protectChain:{index:party.activeIndex,lastTurn:state.turn,uses:success?Math.min(8,repeats+1):0}}}};
+}
 export function gymApplyStatus(
   state:GymBattleState,side:GymSide,status:KantoBattleStatus
 ):GymBattleState{
   const current=state[side].fighters[state[side].activeIndex]!;
-  if(current.status!==null||!gymStatusAllowed(status,current.combatant.types))
+  if(gymBarrierActive(state,side,'safeguard')||current.status!==null||!gymStatusAllowed(status,current.combatant.types))
     return state;
   return gymReplaceFighter(state,side,old=>({...old,status}));
 }
@@ -117,6 +141,7 @@ export function gymApplyConfusion(
 ):GymBattleState{
   if(!Number.isSafeInteger(actions)||actions<2||actions>5)
     throw new RangeError('Duração de confusão inválida.');
+  if(gymBarrierActive(state,side,'safeguard'))return state;
   return gymReplaceFighter(state,side,old=>
     (old.confusionTurns??0)>0?old:{...old,confusionTurns:actions});
 }
@@ -152,7 +177,7 @@ export function gymApplySleep(
     throw new RangeError('Duração de sono inválida.');
   const actor=state[side].fighters[state[side].activeIndex]!;
   // Não gerar sequer uma cópia de estado quando o status já está ocupado.
-  if(actor.status!==null)return state;
+  if(actor.status!==null||gymBarrierActive(state,side,'safeguard'))return state;
   return gymReplaceFighter(state,side,old=>({
     ...old,status:'sleep',sleepActions:actions
   }));

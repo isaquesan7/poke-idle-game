@@ -39,6 +39,9 @@ export interface GymFighterState {
 export interface GymSideState {
   readonly fighters:readonly [GymFighterState,GymFighterState,GymFighterState];
   readonly activeIndex:number;
+  /** Exclusive turn expiry for team-wide barriers; retained across switches. */
+  readonly barriers?:Readonly<Partial<Record<'reflect'|'light-screen'|'safeguard',number>>>;
+  readonly protectChain?:Readonly<{index:number;lastTurn:number;uses:number}>;
   readonly voluntarySwitchesUsed:number;
   /** True após o Pokémon ativo cair; a substituição é obrigatória e grátis. */
   readonly needsReplacement:boolean;

@@ -16,6 +16,11 @@ const MACHINE_ONLY_MOVES:Readonly<Record<string,KantoMove>>=Object.freeze({
  'toxic':GYM_NPC_SUPPORT_MOVES.toxic!,
  'calm-mind':GYM_NPC_SUPPORT_MOVES['calm-mind']!,
  'bulk-up':GYM_NPC_SUPPORT_MOVES['bulk-up']!,
+ 'reflect':GYM_NPC_SUPPORT_MOVES.reflect!,
+ 'light-screen':GYM_NPC_SUPPORT_MOVES['light-screen']!,
+ 'safeguard':GYM_NPC_SUPPORT_MOVES.safeguard!,
+ 'protect':GYM_NPC_SUPPORT_MOVES.protect!,
+ 'brick-break':Object.freeze({name:'brick-break',type:'fighting',category:'physical',power:75,accuracy:100,priority:0}),
  // Gen III: https://pokemondb.net/move/steel-wing and /move/overheat.
  'steel-wing':Object.freeze({name:'steel-wing',type:'steel',category:'physical',power:70,accuracy:90,priority:0}),
  'overheat':Object.freeze({name:'overheat',type:'fire',category:'special',power:140,accuracy:90,priority:0}),

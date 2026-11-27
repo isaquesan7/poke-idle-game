@@ -6,7 +6,7 @@
 import type {GymBattleState,GymSide} from './gymBattleState.js';
 import type {GymTurnAction,GymTurnResult} from './gymTurn.js';
 import {gymLegalTurnActions,resolveGymTurn} from './gymTurn.js';
-import {gymSpecialStat} from './gymEffects.js';
+import {gymSpecialStat,gymBarrierActive} from './gymEffects.js';
 import {gymAiDecision} from './gymTactics.js';
 import {kantoTypeMultiplier} from '../combat/kantoBattle.js';
 
@@ -60,6 +60,8 @@ export function gymChooseAiAction(
     actor:{...actor.combatant,moves:permittedMoves,stats:{...actor.combatant.stats,attack:gymSpecialStat(actor.combatant.stats.attack,actor.effects?.attackBoosts??0),specialAttack:gymSpecialStat(actor.combatant.stats.specialAttack,actor.effects?.specialAttackBoosts??0,actor.effects?.specialAttackDrops??0)}},
     defender:{...enemy.combatant,stats:{...enemy.combatant.stats,defense:gymSpecialStat(enemy.combatant.stats.defense,enemy.effects?.defenseBoosts??0),specialDefense:gymSpecialStat(enemy.combatant.stats.specialDefense,enemy.effects?.specialDefenseBoosts??0)}},actorHp:actor.hp,actorSp:actor.sp,
     defenderStatus:enemy.status,calmMindStage:actor.effects?.specialAttackBoosts??0,bulkUpStage:Math.min(actor.effects?.attackBoosts??0,actor.effects?.defenseBoosts??0),
+    activeBarriers:(['reflect','light-screen','safeguard'] as const).filter(b=>gymBarrierActive(state,side,b)),
+    protectRepeated:party.protectChain?.index===party.activeIndex&&party.protectChain.lastTurn===state.turn-1,
     bench,consecutiveSwitches:bench.length?0:1,
     allowConcentrate:legal.some(a=>a.kind==='focus')
   });
