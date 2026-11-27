@@ -104,6 +104,8 @@ export const KANTO_WILD_POOL = [
 
 export type Combatant = Readonly<{
   speciesId: number;
+  /** Form identity is separate from the original Kanto species. */
+  megaForm?:import('../catalog/kantoMegaForms.js').KantoMegaFormId;
   name: string;
   level: number;
   types: readonly string[];
