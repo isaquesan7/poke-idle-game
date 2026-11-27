@@ -11,6 +11,7 @@ const groups=[
  ['pokedex','ONLINE_POKEDEX_CI_ONLY',['GET pokedex/current']],
  ['inventory','ONLINE_TRAINER_LOADOUT_CI_ONLY',['GET inventory/current','POST inventory/loadout']],
  ['tm','ONLINE_TM_CI_ONLY',['GET tm/current','POST tm/teach']],
+ ['mega','ONLINE_MEGA_CI_ONLY',['GET mega/current','POST mega/challenge','POST mega/evolve']],
  ['mastery','ONLINE_MASTERY_CI_ONLY',['GET mastery/current','POST mastery/research']],
  ['gym','ONLINE_GYM_PORTAL_CI_ONLY',['GET gym/current','POST gym/reserve','POST gym/start','POST gym/turn','POST gym/certify','POST gym/settle']]
 ];
