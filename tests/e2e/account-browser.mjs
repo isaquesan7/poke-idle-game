@@ -1244,6 +1244,27 @@ try{
   assert.equal(evolved.status,'applied');
   await megaEvolution.getByText('Forma permanente: Mega Charizard X. O Passe Mega já foi consumido.').waitFor();
   assert.equal((await megaRead()).stones.length,0);
+  // The permanent form must survive navigation and not fall back to the
+  // national species sprite. Research still protects this individual.
+  const megaRevision=(await megaRead()).revision;
+  await expand(megaPage,'Pokémon');
+  await megaNav.getByRole('button',{name:'Perfil',exact:true}).click();
+  await megaPage.getByRole('heading',{name:'Mega Charizard X',exact:true}).waitFor();
+  await megaPage.getByTestId('pokemon-type-fire').waitFor();
+  assert.equal(await megaPage.getByTestId('pokemon-type-dragon').textContent(),'Dragão');
+  assert.equal(await megaPage.getByTestId('pokemon-type-flying').count(),0);
+  await expand(megaPage,'Abrir mapa');
+  await megaNav.getByRole('button',{name:'Expedição',exact:true}).click();
+  await megaPage.getByText('Mega Charizard X',{exact:true}).waitFor();
+  assert.ok(await megaPage.locator('img[src*="poke_10034.gif"]').count()>0);
+  await expand(megaPage,'Treinador');
+  await megaNav.getByRole('button',{name:'Centro de Pesquisa',exact:true}).click();
+  const megaResearchCard=megaPage.getByTestId('mastery-pokemon-'+megaUid);
+  await megaResearchCard.getByText('Mega Charizard X · Nv. 100',{exact:true}).waitFor();
+  assert.ok(await megaResearchCard.locator('img[src*="poke_10034.gif"]').count()>0);
+  assert.equal(await megaResearchCard.getByRole('checkbox').isDisabled(),true);
+  assert.equal((await megaRead()).revision,megaRevision);
+
   await megaPage.setViewportSize({width:390,height:844});
   assert.ok(await megaPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
   await megaPage.close();
