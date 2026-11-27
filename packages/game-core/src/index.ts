@@ -211,3 +211,5 @@ export type {PendingExpeditionLoot} from './inventory/serverExpeditionLoot.js';
 export {KANTO_MASTERY_RANKS,quoteKantoResearch,kantoMasteryFamily} from './progression/kantoMastery.js';
 export {pokemonMasteryStats} from './stats/pokemon.js';
 export type {onlineMasteryProjection} from './progression/serverMastery.js';
+
+export type {onlineMachineProjection} from './combat/serverMachineLessons.js';

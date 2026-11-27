@@ -4,6 +4,7 @@ import {
 } from '@kanto/game-core';
 import type { KantoDexStatus } from '@kanto/game-core';
 import styles from './PokedexPanel.module.css';
+import type {MachineView} from './onlinePlay';
 import { PokedexDetailModal } from './PokedexDetailModal';
 
 type DexFilter = 'all' | 'unknown' | 'seen' | 'caught';
@@ -12,6 +13,7 @@ const STATUS: Record<KantoDexStatus,string> = {
 };
 
 interface Props {
+  readonly machines?:MachineView['machines'];
   readonly seenIds: readonly number[];
   readonly capturedSpeciesIds: readonly number[];
   readonly onCollection: () => void;
@@ -24,7 +26,7 @@ interface Props {
  * Captura prevalece mesmo que o save antigo tenha omitido o ID em seen.
  * Tudo é projetado do mesmo save local, sem fetch nem nova gravação.
  */
-export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena}:Props) {
+export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena,machines}:Props) {
   const [query,setQuery]=useState('');
   const [filter,setFilter]=useState<DexFilter>('all');
   const [selectedId,setSelectedId]=useState<number|null>(null);
@@ -126,7 +128,7 @@ export function PokedexPanel({seenIds,capturedSpeciesIds,onCollection,onArena}:P
           <p role="status" className={styles.empty}>Nenhum registro corresponde a esta busca.</p>}
       </section>
       {selected&&selectionStatus!=='unknown'&&(
-        <PokedexDetailModal key={selected.id} species={selected}
+        <PokedexDetailModal key={selected.id} species={selected} {...(machines?{machines}:{})}
           status={selectionStatus} revealedSpeciesIds={seen} onClose={()=>setSelectedId(null)}/>
       )}
     </section>

@@ -27,6 +27,7 @@ import {OnlineBattle} from './OnlineBattle';
 import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
 import {MasteryScreen} from './MasteryScreen';
+import {MachineEvolution,MachineBag} from './MachineScreen';
 import {pokemonMasteryStats,kantoMasteryFamily} from '@kanto/game-core';
 import {OnlineNavigation} from './OnlineNavigation';
 import {AdventureOverview,AdventureTopbar} from './AdventureOverview';
@@ -287,7 +288,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     }catch{await refreshOnline();setFeedback('Não foi possível confirmar a ação no servidor.');return null;}
     finally{onlineLock.current=false;setBusy(false);}
   }
-  async function onlineExtra(path:'inventory/loadout'|'shop/purchase'|'mastery/research',fields:Record<string,unknown>,expectedRevision?:number){
+  async function onlineExtra(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach',fields:Record<string,unknown>,expectedRevision?:number){
     if(!online||onlineLock.current||save.status!=='ready')return false;
     onlineLock.current=true;setBusy(true);setFeedback('');
     try{if(expectedRevision!==undefined&&expectedRevision!==save.snapshot.revision){setFeedback('O progresso mudou. Atualize e confirme novamente.');return false;}const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');return ok;}
@@ -446,8 +447,13 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     ?Math.min(pokemonXpMax,Math.max(0,focused.xp)):0;
   const pokemonXpPercent=pokemonXpMax===null?100:Math.min(100,
     pokemonXpCurrent/pokemonXpMax*100);
-  const levelMoves=focused?kantoLevelMoves(focused.pokemonId,focused.level):[];
-  const supportMoves=focused?kantoSupportMoves(focused.pokemonId,focused.level):[];
+  const machineView=online?onlineViews?.machines:null;
+  const machineMoves=machineView?.pokemon.find(p=>p.uid===focused?.uid)?.learnedMachineMoves??[];
+  const tmNames=new Set(machineMoves.map(m=>m.name));
+  const nativeDamage=focused?kantoLevelMoves(focused.pokemonId,focused.level):[];
+  const nativeSupport=focused?kantoSupportMoves(focused.pokemonId,focused.level):[];
+  const levelMoves=[...nativeDamage,...machineMoves.filter(m=>m.category!=='status'&&!nativeDamage.some(x=>x.move.name===m.name)).map(move=>({move,learnedAt:0}))];
+  const supportMoves=[...nativeSupport,...machineMoves.filter(m=>m.category==='status'&&!nativeSupport.some(x=>x.move.name===m.name)).map(move=>({move,learnedAt:0}))];
   const currentMoveName=typeof focused?.moveName==='string'?focused.moveName:'';
   const currentMove=KANTO_BATTLE_MOVES[currentMoveName]
     ??KANTO_SUPPORT_MOVES[currentMoveName]??focusedSpeciesFallback(focused?.pokemonId);
@@ -842,6 +848,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               onInvest={investTrainerBatch}
               onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
+            {tab==='trainer'&&trainerSection==='bag'&&machineView&&<section className={styles.panel}><MachineBag view={machineView}/></section>}
             {tab === 'pokemon' && (
               <div className={styles.pokemonWorkspace}>
                 <header className={styles.pokemonHeading}>
@@ -983,6 +990,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                       </div>}
 
                 </section>
+                {machineView&&<MachineEvolution key={focused.uid+':'+machineView.revision} view={machineView} uid={focused.uid} revision={save.snapshot.revision} busy={busy} onTeach={(command,revision)=>onlineExtra('tm/teach',{command},revision)}/>}
                 {evolutionConfirm&&<RegionDialog title="Confirmar evolução" size="compact" onClose={()=>setEvolutionConfirm(null)}>
                   <div className={styles.evolutionConfirmScene}>
                     <div><PokemonArt id={evolutionConfirm.from} name={speciesName(evolutionConfirm.from)} large/><strong>{speciesName(evolutionConfirm.from)}</strong></div>
@@ -1052,7 +1060,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                         :availablePoints<1?'Pontos de aprimoramento insuficientes.':null;
                       return <div key={move.name} className={(inSlots?styles.moveEquipped:styles.moveOption)+' '+styles.pokemonMoveCard}>
                         <div><strong><i className="fa-solid fa-bolt" aria-hidden="true"/> {move.name}</strong>
-                          {inSlots&&<span className={styles.pokemonMoveBadge}><i className="fa-solid fa-circle-check" aria-hidden="true"/> Equipado</span>}<small>Nv. {learnedAt} · {move.type} ·
+                          {inSlots&&<span className={styles.pokemonMoveBadge}><i className="fa-solid fa-circle-check" aria-hidden="true"/> Equipado</span>}<small>{tmNames.has(move.name)?'Aprendido via TM':'Nv. '+learnedAt} · {move.type} ·
                           Poder {move.power}{move.name==='double-kick'?' × 2 impactos':''} · Precisão {move.accuracy}%</small>
                           <small>Rank {rank} · {move.category==='physical'?'Físico':'Especial'} ·
                             PP {kantoMovePp(move.name)??'não catalogado'} ·
@@ -1088,7 +1096,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                       return <div key={move.name} className={(inSlots?styles.moveEquipped:styles.moveOption)+' '+styles.pokemonMoveCard}>
                         <div><strong><i className="fa-solid fa-hand-holding-heart" aria-hidden="true"/> {move.name}</strong>
                           {inSlots&&<span className={styles.pokemonMoveBadge}><i className="fa-solid fa-circle-check" aria-hidden="true"/> Equipado</span>}
-                          <small>Nv. {learnedAt} · {move.type} · Precisão {move.accuracy}% ·
+                          <small>{tmNames.has(move.name)?'Aprendido via TM':'Nv. '+learnedAt} · {move.type} · Precisão {move.accuracy}% ·
                             PP {kantoMovePp(move.name)??'não catalogado'} ·
                             Custo {kantoMoveSpCost(move)} SP</small>
                           <small>{move.name==='growl'?'Reduz Ataque':
@@ -1264,6 +1272,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
 
             {tab === 'pokedex' && (
               <PokedexPanel
+                {...(machineView?{machines:machineView.machines}:{})}
                 seenIds={seenDexIds}
                 capturedSpeciesIds={caughtDexIds}
                 onArena={()=>setTab('regions')}

@@ -89,11 +89,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -1060,6 +1060,49 @@ try{
   await researchPage.setViewportSize({width:390,height:844});
   assert.ok(await researchPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
   await researchPage.close();
+
+  checkpoint("TM teaching through Evolution");
+  const tmSave=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const tmRaw=JSON.parse(tmSave.journal.raw);
+  const tmUid=tmRaw.nextUid++;
+  tmRaw.roster.push({...structuredClone(tmRaw.roster[0]),uid:tmUid,pokemonId:4,level:10,xp:0,affinity:0,moveName:'scratch',equippedMoveNames:['scratch'],upgrades:{},manual:{hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0}});
+  const tmStudent=tmRaw.roster.at(-1);delete tmStudent.evolutionHistory;delete tmStudent.machineLessons;
+  tmRaw.team=[tmUid];tmRaw.machineStock={tm35:2};
+  tmSave.journal.raw=JSON.stringify(tmRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(tmSave)]);
+  const tmPage=await context.newPage();
+  await tmPage.setViewportSize({width:1365,height:768});
+  await tmPage.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await tmPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  await expand(tmPage,'Pokémon');
+  const tmNav=tmPage.getByRole('navigation',{name:'Navegação do jogo'});
+  await tmNav.getByRole('button',{name:'Evolução',exact:true}).click();
+  const tmCard=tmPage.getByTestId('tm-evolution-tm35');
+  await tmCard.waitFor();
+  assert.match(await tmCard.textContent(),/Na mochila: 2/);
+  const learn=tmCard.getByRole('button',{name:'Aprender TM35 — Flamethrower'});
+  await learn.click();
+  const confirmTm=tmPage.getByRole('dialog',{name:'Confirmar aprendizado de TM'});
+  await confirmTm.getByRole('button',{name:'Cancelar',exact:true}).click();
+  await learn.click();
+  const taught=await responseFor(tmPage,'/api/v1/tm/teach',()=>confirmTm.getByRole('button',{name:'Confirmar aprendizado',exact:true}).click());
+  assert.equal(taught.status,'applied');
+  await tmCard.getByText('Aprendido via TM',{exact:true}).waitFor();
+  assert.match(await tmCard.textContent(),/Na mochila: 1/);
+  await tmNav.getByRole('button',{name:'Golpes',exact:true}).click();
+  await tmPage.getByRole('button',{name:'Adicionar golpe flamethrower',exact:true}).waitFor();
+  await responseFor(tmPage,'/api/v1/moves/equip',()=>tmPage.getByRole('button',{name:'Adicionar golpe flamethrower',exact:true}).click());
+  await tmPage.getByTestId('equipped-moves').getByText('flamethrower',{exact:true}).waitFor();
+  await expand(tmPage,'Treinador');
+  await tmNav.getByRole('button',{name:'Mochila',exact:true}).click();
+  await tmPage.getByTestId('tm-bag').getByRole('button',{name:'Consultar TM35 — Flamethrower'}).click();
+  const bagTm=tmPage.getByRole('dialog',{name:'TM35 — Flamethrower'});
+  await bagTm.getByText('Pokémon compatíveis (46)',{exact:true}).waitFor();
+  assert.equal(await bagTm.getByText('Squirtle',{exact:true}).count(),0);
+  await bagTm.getByRole('button',{name:'Fechar',exact:true}).click();
+  await tmPage.setViewportSize({width:390,height:844});
+  assert.ok(await tmPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
+  await tmPage.close();
 
   checkpoint("password recovery and logout");
   // Recovery is requested using the actual browser form, never a real inbox.

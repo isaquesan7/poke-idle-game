@@ -62,7 +62,7 @@ export function onlineMachineProjection(raw:string){
    const quantity=stock[tm.id]??0,implemented=!!executableMachineMove(tm.moveName);
    return {tmId:tm.id,origin,canTeach:!busy&&!origin&&quantity>0&&implemented};
   });
-  return {uid:p.uid,speciesId:p.pokemonId,compatible};
+  return {uid:p.uid,speciesId:p.pokemonId,compatible,learnedMachineMoves:[...lessons.values()]};
  });
  if(pokemon.some(p=>p===null))return null;
  return {busy,machines,pokemon:pokemon.filter(p=>p!==null)};
