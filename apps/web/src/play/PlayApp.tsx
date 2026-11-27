@@ -749,7 +749,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
       <aside className={styles.sidebar}>
         <div className={styles.brand}><PokeballSymbol className={styles.brandBall}/>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
-        {online?<OnlineNavigation megaAvailable={!!megaView?.visible} masteryAvailable={!!onlineViews?.mastery||trainerSection==='mastery'} tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
+        {online?<OnlineNavigation megaAvailable={true} masteryAvailable={!!onlineViews?.mastery||trainerSection==='mastery'} tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
           disabled={item=>item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition}
           onNavigate={item=>{if(onlineViews?.region?.encounter){setTab('battle');return;}if(onlineViews?.gym?.gym){setTab('gyms');return;}if(item.tab==='trainer')setTrainerSection(item.trainerSection??'profile');if(item.tab==='pokemon')setPokemonSection(item.pokemonSection??'profile');setTab(item.tab);setFeedback('');setBattlePlayback(null);}}/>:<nav className={styles.menu} aria-label="Navegação do jogo">
           {(['overview','trainer','pokemon','collection','pokedex','regions','gyms','expedition','shop'] as Tab[]).map(item => (
@@ -853,7 +853,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
             {tab==='trainer'&&trainerSection==='bag'&&machineView&&<section className={styles.panel}><MachineBag view={machineView}/></section>}
             {tab==='trainer'&&trainerSection==='bag'&&megaView&&<MegaBag view={megaView} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>}
-            {tab==='mega'&&online&&(megaView?.visible?<MegaSanctuary view={megaView} roster={data.roster} busy={busy} onChallenge={(command,revision)=>onlineExtra('mega/challenge',{command},revision)} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>:<section className={styles.panel}>Santuário bloqueado ou indisponível. <button className={styles.secondary} onClick={()=>setTab('regions')}>Voltar às regiões</button></section>)}
+            {tab==='mega'&&online&&(megaView?<MegaSanctuary view={megaView} roster={data.roster} busy={busy} onChallenge={(command,revision)=>onlineExtra('mega/challenge',{command},revision)} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>:<section className={styles.panel}>Não foi possível carregar os requisitos do Santuário Mega. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button> <button className={styles.secondary} onClick={()=>setTab('regions')}>Voltar às regiões</button></section>)}
             {tab === 'pokemon' && (
               <div className={styles.pokemonWorkspace}>
                 <header className={styles.pokemonHeading}>
