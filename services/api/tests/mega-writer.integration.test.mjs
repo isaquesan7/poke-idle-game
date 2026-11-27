@@ -15,7 +15,7 @@ test('Mega evolution persists once per UID under concurrent requests',async()=>{
   Object.assign(raw.roster[0],{pokemonId:6,level:100,affinity:100});
   raw.badges=['boulder','cascade','thunder','rainbow','soul','marsh','volcano','earth'];
   raw.research={points:{'4':100},favorites:[],totalSent:0,history:[]};
-  raw.megaStoneStock={'charizardite-x':1,'charizardite-y':1};
+  raw.roster[0].megaTrialForm='charizard-mega-x';
   save.journal.raw=JSON.stringify(raw);
   await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[id,JSON.stringify(save)]);
   const evolve=(formId,expectedRevision,actionId=randomUUID())=>evolvePokemonMega(pool,{accountId:id,actionId,expectedRevision,command:{uid:1,formId}});
@@ -26,7 +26,7 @@ test('Mega evolution persists once per UID under concurrent requests',async()=>{
   assert.equal((await evolve('charizard-mega-y',1)).status,'already-mega');
   const row=(await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[id])).rows[0];
   assert.equal(Number(row.revision),1);
-  assert.deepEqual(JSON.parse(row.state.journal.raw),{...raw,roster:[{...raw.roster[0],megaForm:'charizard-mega-x'}],megaStoneStock:{'charizardite-y':1}});
+  assert.deepEqual(JSON.parse(row.state.journal.raw),{...raw,roster:[{...raw.roster[0],megaForm:'charizard-mega-x'}]});
   assert.equal(Number((await pool.query("SELECT count(*) AS n FROM game_action_receipts WHERE account_id=$1 AND kind='pokemon-mega-evolve'",[id])).rows[0].n),1);
  }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
 });
