@@ -213,3 +213,6 @@ export {pokemonMasteryStats} from './stats/pokemon.js';
 export type {onlineMasteryProjection} from './progression/serverMastery.js';
 
 export type {onlineMachineProjection} from './combat/serverMachineLessons.js';
+
+export {kantoMachine} from './catalog/kantoMachines.js';
+export {machineRarity} from './inventory/machineLoot.js';

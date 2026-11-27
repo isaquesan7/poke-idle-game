@@ -8,6 +8,7 @@ import {compatibleMachineSpecies,compatibleSpeciesMachines} from '../catalog/kan
 import {inheritedOnlineMoves,regionalNativeMoves} from './serverInheritedMoves.js';
 import {planMachineTeaching} from '../progression/kantoMachineTeaching.js';
 import type {MachineLesson} from '../progression/kantoMachineTeaching.js';
+import {machineRarity,TM_DROP_TIERS} from '../inventory/machineLoot.js';
 import {prepareRewardJournal} from '../legacy/rewardEvents.js';
 
 export {executableMachineMove} from './machineLessonCatalog.js';
@@ -50,7 +51,8 @@ export function onlineMachineProjection(raw:string){
  const busy=state.expedition!==null||state.pendingBattle!=null||state.gymSession!=null||state.lastBattle?.captureStatus==='available'||state.pendingRegionalLoot!=null||state.pendingExpeditionLoot!=null;
  const machines=KANTO_MACHINES.map(tm=>{
   const move=executableMachineMove(tm.moveName);
-  return {...tm,quantity:stock[tm.id]??0,implemented:!!move,move,compatibleSpeciesIds:compatibleMachineSpecies(tm.id)};
+  const rarity=machineRarity(tm.id);
+  return {...tm,rarity,minRegion:TM_DROP_TIERS.find(t=>t.rarity===rarity)?.minRegion??null,quantity:stock[tm.id]??0,implemented:!!move,move,compatibleSpeciesIds:compatibleMachineSpecies(tm.id)};
  });
  const pokemon=(state.roster as {uid:number;pokemonId:number;level:number;evolutionHistory?:unknown;machineLessons?:unknown}[]).map(p=>{
   const inherited=inheritedOnlineMoves(p.pokemonId,p.level,p.evolutionHistory,p.machineLessons);

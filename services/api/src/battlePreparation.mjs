@@ -4,6 +4,7 @@
  * A later server game-core adapter must recompute stats/moves from trusted
  * catalogs and must not use client-supplied stats or moves.
  */
+import {machineHttpEnabled} from './machineHttp.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const STATS=['hp','attack','defense','specialAttack','specialDefense','speed'];
@@ -19,7 +20,7 @@ const manualStats=(value,maxPerStat=40)=>{
   return out;
 };
 /** Pure preparation from the DB save and the already materialized encounter. */
-export function buildBattleSnapshot(save,encounter,regionalPolicy){
+export function buildBattleSnapshot(save,encounter,regionalPolicy,tmLoot=false){
   if(!save||save.schemaVersion!==2||
      !save.journal||typeof save.journal.raw!=='string'||
      !encounter||!Number.isInteger(encounter.regionId)||encounter.regionId<1||encounter.regionId>10||
@@ -72,6 +73,7 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
   // responsibility. Snapshot freezes identities/levels only.
   return {
     version:equipped===undefined?1:2,regionId:encounter.regionId,
+    ...(tmLoot?{tmLootVersion:1}:{}),
     ...(raw.research===undefined?{}:{masteryPoints:{...raw.research.points}}),opponent:{
       speciesId:encounter.speciesId,level:encounter.level
     },trainer:{level:trainerLevel,manual:trainerManual,
@@ -90,9 +92,9 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy){
 }
 
 /** Only server code supplies the canonical regional validator. */
-export async function buildPersistedBattleSnapshot(save,encounter){
+export async function buildPersistedBattleSnapshot(save,encounter,tmLoot=machineHttpEnabled()){
   const core=await loadCombatAdapter();
-  const snapshot=buildBattleSnapshot(save,encounter,core.serverRegionalOpponent);
+  const snapshot=buildBattleSnapshot(save,encounter,core.serverRegionalOpponent,tmLoot);
   return snapshot&&core.canonicalFrozenCombatants(snapshot)?snapshot:null;
 }
 /** All account/encounter identifiers originate from the server session/DB. */

@@ -59,3 +59,5 @@ export {inspectPendingExpeditionLoot,resolvePendingExpeditionLoot} from '../inve
 export {onlineMasteryProjection,applyOnlineResearch} from '../progression/serverMastery.js';
 
 export {onlineMachineProjection,applyOnlineMachineTeaching} from './serverMachineLessons.js';
+
+export {rollRegionalMachine} from '../inventory/machineLoot.js';

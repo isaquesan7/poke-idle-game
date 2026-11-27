@@ -25,6 +25,7 @@ import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
 export interface ServerBattleSnapshotV1 {
   readonly version:1;
   readonly regionId:number;
+  readonly tmLootVersion?:1;
   readonly masteryPoints?:Readonly<Record<string,number>>;
   readonly opponent:{readonly speciesId:number;readonly level:number};
   readonly trainer:{readonly level:number;readonly manual:Readonly<StatValues>;
@@ -94,7 +95,7 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return null;
   const s=snapshot as Partial<ServerBattleSnapshotV1|ServerBattleSnapshotV2>;
   const player=s.activePokemon,trainer=s.trainer,enemy=s.opponent;
-  if((s.version!==1&&s.version!==2)||typeof s.regionId!=='number'||!player||!trainer||!enemy
+  if((s.tmLootVersion!==undefined&&s.tmLootVersion!==1)||(s.version!==1&&s.version!==2)||typeof s.regionId!=='number'||!player||!trainer||!enemy
      ||!Number.isSafeInteger(trainer.level)||trainer.level<1||trainer.level>100
      ||!Number.isSafeInteger(player.uid)||player.uid<1
      ||!Number.isSafeInteger(player.level)||player.level<1||player.level>100

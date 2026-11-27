@@ -160,7 +160,7 @@ export async function payCertifiedWildTurns(pool,{
       regionId:Number(encounter.region_id),
       speciesId:Number(encounter.species_id),
       level:Number(encounter.pokemon_level)
-    });
+    },encounter.battle_snapshot?.tmLootVersion===1);
     if(!fresh||!isDeepStrictEqual(fresh,encounter.battle_snapshot))
       return await rollback(client,{status:'stale-snapshot'});
     // 01C-20 digests the PostgreSQL JSONB snapshot, whose object key order
@@ -211,7 +211,7 @@ export async function payCertifiedWildTurns(pool,{
     if(!loot)return await rollback(client,{status:'invalid-loot'});
     const placed=core.placeCertifiedRegionalLoot(save.journal.raw,candidate.raw,{
       encounterId,regionId:snapshot.regionId,speciesId:snapshot.opponent.speciesId,
-      outcome:quote.outcome,gear:loot.gear,stone:loot.stone,ballId:quote.ballDropId
+      outcome:quote.outcome,gear:loot.gear,stone:loot.stone,ballId:quote.ballDropId,...(loot.tmId?{tmId:loot.tmId}:{})
     });
     if(!placed)return await rollback(client,{status:'invalid-inventory'});
     const fullQuote={...quote,loot};

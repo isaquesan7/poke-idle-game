@@ -8,6 +8,7 @@ import css from './MachineScreen.module.css';
 type Machine=MachineView['machines'][number];
 const name=(s:string)=>s.split('-').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');
 const title=(m:Machine)=>m.id.toUpperCase()+' — '+name(m.moveName);
+const rarities:Record<string,string>={common:'Comum',uncommon:'Incomum',rare:'Raro',epic:'Épico',legendary:'Lendário'};
 const speciesName=(id:number)=>kantoSpecies(id)?.name??'Pokémon';
 function Disc({machine}:{machine:Machine}){
  return <span className={css.disc} data-type={machine.move?.type??'unknown'} aria-hidden="true"><i className="fa-solid fa-compact-disc"/></span>;
@@ -29,7 +30,7 @@ export function MachineEvolution({view,uid,revision,busy,onTeach}:{view:MachineV
   <p>{items.length} TMs compatíveis · {items.filter(x=>x.origin).length} aprendidas</p>
   {view.busy&&<p role="status">Finalize a atividade em andamento para ensinar golpes.</p>}
   <div className={css.grid}>{visible.map(({m,origin,canTeach})=><article key={m.id} className={css.item} data-testid={'tm-evolution-'+m.id}>
-   <div className={css.identity}><Disc machine={m}/><div><strong>{title(m)}</strong><small>{m.move?name(m.move.type)+' · '+(m.move.category==='physical'?'Físico':m.move.category==='special'?'Especial':'Suporte'):'Técnica em preparação'}</small><small>Na mochila: {m.quantity}</small></div></div>
+   <div className={css.identity}><Disc machine={m}/><div><strong>{title(m)}</strong><small>{m.move?name(m.move.type)+' · '+(m.move.category==='physical'?'Físico':m.move.category==='special'?'Especial':'Suporte'):'Técnica em preparação'}</small><small>{m.rarity?rarities[m.rarity]:''} · Região {m.minRegion}+</small><small>Na mochila: {m.quantity}</small></div></div>
    {origin?<span className={css.learned}><i className="fa-solid fa-circle-check" aria-hidden="true"/> {origin==='tm'?'Aprendido via TM':origin==='level'?'Aprendido por nível':'Aprendido na evolução anterior'}</span>:<button type="button" className={styles.primary} disabled={blocked||!canTeach} aria-label={'Aprender '+title(m)} onClick={()=>setConfirm(m)}>{!m.implemented?'Golpe em preparação':m.quantity===0?'TM indisponível':'Aprender golpe'}</button>}
   </article>)}</div>
   {!visible.length&&<p role="status">Nenhuma TM corresponde a este filtro.</p>}
@@ -48,7 +49,7 @@ export function MachineBag({view}:{view:MachineView}){
   <h3><i className="fa-solid fa-compact-disc" aria-hidden="true"/> Máquinas Técnicas</h3>
   <p>Bolso de TMs · {owned.length} tipos · {owned.reduce((n,m)=>n+m.quantity,0)} unidades. Ensine golpes em Pokémon → Evolução.</p>
   <div className={css.grid}>{owned.map(m=><button type="button" className={css.item+' '+css.bagItem} key={m.id} onClick={()=>setSelected(m.id)} aria-label={'Consultar '+title(m)}>
-   <div className={css.identity}><Disc machine={m}/><div><strong>{title(m)}</strong><small>Quantidade: {m.quantity}</small></div></div></button>)}</div>
+   <div className={css.identity}><Disc machine={m}/><div><strong>{title(m)}</strong><small>{m.rarity?rarities[m.rarity]:''} · Quantidade: {m.quantity}</small></div></div></button>)}</div>
   {!owned.length&&<p>Nenhuma TM na mochila.</p>}
   {machine&&<RegionDialog title={title(machine)} onClose={()=>setSelected(null)}>
    <p>Quantidade: {machine.quantity}. Ensine esta técnica na tela de Evolução de um Pokémon compatível.</p>
