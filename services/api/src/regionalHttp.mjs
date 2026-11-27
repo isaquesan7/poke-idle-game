@@ -61,7 +61,10 @@ export async function readRegionalEncounter(pool,accountId,expanded=false){
  if(!regions)return {status:'invalid-save'};
  const phase=row.battle_turn_payout_action_id?'paid':row.battle_turn_certificate_action_id?'certified':state?.phase??'reserved';
  const actions=phase==='await-player'?core.legalFrozenWildTurnActions(row.battle_snapshot,state):[];
- const captureChoices=phase==='paid'&&state?.outcome==='win'?core.serverRegionalCaptureChoices(Number(row.region_id),Number(row.species_id),state.wild.maxHp,raw.ballPocket):[];
+ const receipt=row.battle_turn_payout_receipt;
+ const oldCredit=receipt&&!Object.hasOwn(receipt,'deferredBall')&&receipt.ballDrop?.quantity===1?receipt.ballDrop.ballId:null;
+ const pocket=oldCredit?{...raw.ballPocket,quantities:{...raw.ballPocket.quantities,[oldCredit]:Math.max(0,(raw.ballPocket.quantities[oldCredit]??0)-1)}}:raw.ballPocket;
+ const captureChoices=phase==='paid'&&state?.outcome==='win'?core.serverRegionalCaptureChoices(Number(row.region_id),Number(row.species_id),state.wild.maxHp,pocket):[];
  return {status:'ok',revision:Number(row.revision),
   regions:expanded?regions:regions.filter(r=>r.id===1),pendingLoot:raw.pendingRegionalLoot!=null||raw.pendingExpeditionLoot!=null,encounter:row.id?{
   id:row.id,regionId:Number(row.region_id),speciesId:row.species_id,level:row.pokemon_level,
