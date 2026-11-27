@@ -52,7 +52,7 @@ describe('D-045 — Recover e Double Kick com learnset/PP versionados',()=>{
       power:30,accuracy:100,priority:0});
     expect(KANTO_MULTI_HIT_MOVES['double-kick']).toEqual({minHits:2,maxHits:2});
     expect(kantoMoveHitCount('double-kick')).toBe(2);
-    expect(kantoMoveHitCount('bullet-seed')).toBe(1);
+    expect(kantoMoveHitCount('bullet-seed')).toBe(2);
     expect(KANTO_BATTLE_MOVES['bullet-seed']).toBeUndefined();
     expect(kantoMovePp('double-kick')).toBe(30);
     expect(kantoMoveSpCost(double)).toBe(18);

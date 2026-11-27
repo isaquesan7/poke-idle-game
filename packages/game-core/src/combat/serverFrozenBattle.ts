@@ -8,6 +8,8 @@ import {KANTO_BATTLE_SPECIES,simulateKantoBattle} from '../combat/kantoBattle.js
 import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
 import {masteryBonusFromPoints} from '../progression/kantoMastery.js';
 import {serverRegionalOpponent} from './serverRegionalPolicy.js';
+import {validatedMachineLessons} from './serverMachineLessons.js';
+import type {MachineLesson} from '../progression/kantoMachineTeaching.js';
 import {inheritedOnlineMoves,regionalNativeMoves} from './serverInheritedMoves.js';
 import type {OnlineEvolutionStep} from './serverInheritedMoves.js';
 import {kantoWildMoveLoadout} from '../catalog/kantoWildMoves.js';
@@ -23,6 +25,7 @@ import type {Combatant,KantoMove} from '../combat/kantoBattle.js';
 export interface ServerBattleSnapshotV1 {
   readonly version:1;
   readonly regionId:number;
+  readonly tmLootVersion?:1;
   readonly masteryPoints?:Readonly<Record<string,number>>;
   readonly opponent:{readonly speciesId:number;readonly level:number};
   readonly trainer:{readonly level:number;readonly manual:Readonly<StatValues>;
@@ -45,6 +48,7 @@ export interface ServerBattleSnapshotV2 extends
     readonly moveNames:readonly string[];
     readonly evolutionHistory?:readonly OnlineEvolutionStep[];
     readonly upgrades?:Readonly<Record<string,number>>;
+    readonly machineLessons?:readonly MachineLesson[];
   };
 }
 /** Only canonical FRLG learned/implemented moves (plus the historical
@@ -52,7 +56,7 @@ export interface ServerBattleSnapshotV2 extends
  * This is used by BOTH the equip writer and frozen battle constructor.
  */
 export function frozenValidatedEquippedMoves(
-  speciesId:number,level:number,names:unknown,history?:unknown
+  speciesId:number,level:number,names:unknown,history?:unknown,lessons?:unknown
 ):readonly KantoMove[]|null{
   if(!Number.isSafeInteger(speciesId)||speciesId<1||speciesId>151||
      !Number.isSafeInteger(level)||level<1||level>100||
@@ -62,9 +66,10 @@ export function frozenValidatedEquippedMoves(
      new Set(names).size!==names.length)return null;
   const species=KANTO_BATTLE_SPECIES[speciesId];
   if(!species)return null;
-  const inherited=inheritedOnlineMoves(speciesId,level,history);
-  if(!inherited)return null;
-  const legal=new Map([...inherited,...regionalNativeMoves(speciesId,level)]);
+  const inherited=inheritedOnlineMoves(speciesId,level,history,lessons);
+  const learned=validatedMachineLessons(speciesId,level,history,lessons);
+  if(!inherited||!learned)return null;
+  const legal=new Map([...inherited,...regionalNativeMoves(speciesId,level),...learned]);
   const result=names.map(name=>legal.get(name));
   return result.every((move):move is KantoMove=>!!move)?
     Object.freeze(result as KantoMove[]):null;
@@ -90,7 +95,7 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   if(!snapshot||typeof snapshot!=='object'||Array.isArray(snapshot))return null;
   const s=snapshot as Partial<ServerBattleSnapshotV1|ServerBattleSnapshotV2>;
   const player=s.activePokemon,trainer=s.trainer,enemy=s.opponent;
-  if((s.version!==1&&s.version!==2)||typeof s.regionId!=='number'||!player||!trainer||!enemy
+  if((s.tmLootVersion!==undefined&&s.tmLootVersion!==1)||(s.version!==1&&s.version!==2)||typeof s.regionId!=='number'||!player||!trainer||!enemy
      ||!Number.isSafeInteger(trainer.level)||trainer.level<1||trainer.level>100
      ||!Number.isSafeInteger(player.uid)||player.uid<1
      ||!Number.isSafeInteger(player.level)||player.level<1||player.level>100
@@ -112,13 +117,14 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   // v2 MUST bind the first equipped slot to the legacy primary moveName.
   const history=(player as {evolutionHistory?:unknown}).evolutionHistory;
   const upgrades=(player as {upgrades?:unknown}).upgrades;
-  if(s.version===1&&(rawNames!==undefined||history!==undefined||upgrades!==undefined))return null;
+  const lessons=(player as {machineLessons?:unknown}).machineLessons;
+  if(s.version===1&&(rawNames!==undefined||history!==undefined||upgrades!==undefined||lessons!==undefined))return null;
   if(s.version===2&&(!Array.isArray(rawNames)||
      rawNames[0]!==player.moveName))return null;
   const equipped=frozenValidatedEquippedMoves(
-    player.speciesId,player.level,s.version===2?rawNames:[player.moveName],history);
+    player.speciesId,player.level,s.version===2?rawNames:[player.moveName],history,lessons);
   if(!equipped)return null;
-  const ranks=validatedOnlineMoveRanks(player.speciesId,player.level,history,upgrades);
+  const ranks=validatedOnlineMoveRanks(player.speciesId,player.level,history,upgrades,lessons);
   if(!ranks)return null;
   const selected=equipped[0]!;
   const equippedRanks=equippedOnlineRanks(equipped,ranks);
@@ -134,6 +140,7 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   if(!mastery)return null;
   const playerCombatant:Combatant={
     speciesId:own.id,name:own.name,types:own.types,level:player.level,
+    ...(equipped.some(m=>m.name==='return'||m.name==='frustration')?{affinity:player.affinity}:{}),
     stats:pokemonMasteryStats(pokemonFinalStats(own.base,player.level,player.manual,
       trainerStats,player.affinity),mastery.statPercent),
     move:selected,moves:equipped,rank:equippedRanks[selected.name]??0,
@@ -160,6 +167,9 @@ export function previewFrozenWildBattle(snapshot:unknown,serverSeed:number){
     return null;
   const pair=canonicalFrozenCombatants(snapshot);
   if(!pair)return null;
+  // The old automatic preview does not model the shared online TM support
+  // effects. Refuse these loadouts instead of throwing or simulating a false result.
+  if((pair.player.moves??[pair.player.move]).some(m=>['toxic','calm-mind','bulk-up','steel-wing','overheat','reflect','light-screen','safeguard','protect','brick-break','sunny-day','rain-dance','sandstorm','hail','thunder','rest','solar-beam','dig','hyper-beam','taunt','double-team','ice-beam','blizzard','return','frustration','facade','focus-punch','roar','torment','snatch','secret-power'].includes(m.name)))return null;
   const result=simulateKantoBattle(pair.player,pair.wild,serverSeed);
   // Legacy engine auto-rolls a 35% capture and says rewards were granted.
   // Those are NOT authoritative online actions. Preserve one frame per

@@ -94,7 +94,7 @@ export async function equipPokemonMoves(pool,{
     if(typeof core.frozenValidatedEquippedMoves!=='function')
       throw new Error('Canonical FRLG loadout validator missing in private bundle');
     const legal=core.frozenValidatedEquippedMoves(
-      pokemon.pokemonId,pokemon.level,moveNames,pokemon.evolutionHistory);
+      pokemon.pokemonId,pokemon.level,moveNames,pokemon.evolutionHistory,pokemon.machineLessons);
     if(!legal||legal.length!==moveNames.length||
        legal.some((move,i)=>move.name!==moveNames[i])||
        !legal.some(move=>move.category!=='status'))

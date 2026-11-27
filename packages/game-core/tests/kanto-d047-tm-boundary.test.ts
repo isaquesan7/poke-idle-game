@@ -4,8 +4,8 @@ import {
   kantoPreviewMoveSpCost,reducePokemonMoveSlotsJson
 } from '../src/index.js';
 
-/** D-047: contrato NEGATIVO, não desbloqueio de TM ou engine 2..5. */
-describe('D-047 — TM09 somente design, sem acesso jogável',()=>{
+/** D-047: preview/local writer must not authorize the online TM. */
+describe('D-047 — preview e writer local não autorizam TM09',()=>{
   it('não confunde prévia PokéAPI moderna com autorização para equipar TM09',()=>{
     // A prévia D-039 usa dados MODERNOS; sua estimativa 2,5 impactos
     // não significa que exista TM, learnset, inventário nem RNG de golpes.
@@ -16,7 +16,7 @@ describe('D-047 — TM09 somente design, sem acesso jogável',()=>{
     });
     expect(modernPreview).toBeGreaterThan(0);
     expect(KANTO_BATTLE_MOVES['bullet-seed']).toBeUndefined();
-    expect(KANTO_MULTI_HIT_MOVES['bullet-seed']).toBeUndefined();
+    expect(KANTO_MULTI_HIT_MOVES['bullet-seed']).toEqual({minHits:2,maxHits:5});
     expect(kantoLevelMoves(1,100).some(x=>x.move.name==='bullet-seed')).toBe(false);
     const saved=JSON.stringify({
       version:1,roster:[{uid:19,pokemonId:1,level:100,moveName:'tackle'}],

@@ -178,3 +178,10 @@
 .gymCurrent strong{color:var(--color-gold)}
 
 .badgeTitle{display:flex;align-items:center;gap:var(--space-2)}.badgeTitle img{width:46px;height:46px}
+
+/* TM15: read-only pending action cards under the common arena. */
+.pendingActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-2);margin-top:var(--space-2)}
+.pendingAction{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface-raised);min-width:0;overflow-wrap:anywhere}
+.pendingAction>i{color:var(--color-gold);font-size:1.25rem;flex-shrink:0}
+.pendingAction strong,.pendingAction small{display:block}.pendingAction small{color:var(--color-text-muted);margin-top:var(--space-1)}
+@media(max-width:680px){.pendingActions{grid-template-columns:1fr}}

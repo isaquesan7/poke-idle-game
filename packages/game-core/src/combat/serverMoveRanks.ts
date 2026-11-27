@@ -3,18 +3,20 @@
  * Historical ranks remain spent even when a move is unequipped or lost on evolution.
  */
 import {legacyMoveRankLimits,reduceLegacyPokemonMoveJson} from '../legacy/pokemonMoveReducer.js';
+import {validatedMachineLessons} from './serverMachineLessons.js';
 import {inheritedOnlineMoves,regionalNativeMoves} from './serverInheritedMoves.js';
 import type {OnlineEvolutionStep} from './serverInheritedMoves.js';
 import {prepareRewardJournal} from '../legacy/rewardEvents.js';
 import type {KantoMove} from './kantoBattle.js';
 
-export function validatedOnlineMoveRanks(speciesId:number,level:number,history:unknown,upgrades:unknown):Record<string,number>|null{
+export function validatedOnlineMoveRanks(speciesId:number,level:number,history:unknown,upgrades:unknown,lessons?:unknown):Record<string,number>|null{
  if(!Number.isSafeInteger(speciesId)||speciesId<1||speciesId>151||!Number.isSafeInteger(level)||level<1||level>100)return null;
- const inherited=inheritedOnlineMoves(speciesId,level,history);
- if(!inherited)return null;
+ const inherited=inheritedOnlineMoves(speciesId,level,history,lessons);
+ const learned=validatedMachineLessons(speciesId,level,history,lessons);
+ if(!inherited||!learned)return null;
  if(upgrades===undefined)return {};
  if(!upgrades||typeof upgrades!=='object'||Array.isArray(upgrades))return null;
- const known=new Map<string,KantoMove>([...inherited,...regionalNativeMoves(speciesId,level)]);
+ const known=new Map<string,KantoMove>([...inherited,...regionalNativeMoves(speciesId,level),...learned]);
  // A formerly native move can retain spent ranks without becoming equipable.
  if(Array.isArray(history))for(const step of history as OnlineEvolutionStep[]){
   for(const [name,move] of regionalNativeMoves(step.from,step.level))known.set(name,move);
@@ -37,10 +39,11 @@ export function applyOnlineMoveRank(raw:string,uid:number,name:string){
  if(state.expedition!==null||state.pendingBattle!=null||state.gymSession!=null||state.lastBattle?.captureStatus==='available')return {status:'busy'} as const;
  const p=state.roster.find((entry:{uid:number})=>entry.uid===uid);
  if(!p)return {status:'missing-pokemon'} as const;
- const ranks=validatedOnlineMoveRanks(p.pokemonId,p.level,p.evolutionHistory,p.upgrades);
- const inherited=inheritedOnlineMoves(p.pokemonId,p.level,p.evolutionHistory);
- if(!ranks||!inherited)return {status:'invalid-save'} as const;
- const legal=new Map([...inherited,...regionalNativeMoves(p.pokemonId,p.level)]);
+ const ranks=validatedOnlineMoveRanks(p.pokemonId,p.level,p.evolutionHistory,p.upgrades,p.machineLessons);
+ const inherited=inheritedOnlineMoves(p.pokemonId,p.level,p.evolutionHistory,p.machineLessons);
+ const learned=validatedMachineLessons(p.pokemonId,p.level,p.evolutionHistory,p.machineLessons);
+ if(!ranks||!inherited||!learned)return {status:'invalid-save'} as const;
+ const legal=new Map([...inherited,...regionalNativeMoves(p.pokemonId,p.level),...learned]);
  const equipped=p.equippedMoveNames===undefined?[p.moveName]:p.equippedMoveNames;
  if(!Array.isArray(equipped)||equipped.length<1||equipped.length>4||equipped[0]!==p.moveName||
   new Set(equipped).size!==equipped.length||!equipped.every(n=>typeof n==='string'&&legal.has(n)))return {status:'invalid-save'} as const;
@@ -53,7 +56,7 @@ export function applyOnlineMoveRank(raw:string,uid:number,name:string){
  if(result.status!=='ok')return {status:'unavailable'} as const;
  const after=JSON.parse(result.json),target=after.roster.find((entry:{uid:number})=>entry.uid===uid);
  if(originalHasSlots)target.moveNames=originalSlots;else delete target.moveNames;
- const next=validatedOnlineMoveRanks(target.pokemonId,target.level,target.evolutionHistory,target.upgrades);
+ const next=validatedOnlineMoveRanks(target.pokemonId,target.level,target.evolutionHistory,target.upgrades,target.machineLessons);
  if(!next)return {status:'invalid-save'} as const;
  const limits=legacyMoveRankLimits(target.level);
  return {status:'ok',raw:JSON.stringify(after),rank:next[name]!,remaining:limits.skillPoints-Object.values(next).reduce((a,b)=>a+b,0)} as const;

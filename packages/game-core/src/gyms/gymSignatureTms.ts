@@ -22,7 +22,7 @@ export function gymSignatureTm(gymId:string,speciesId:number){
  const tm=SIGNATURES[gymId];
  return tm?.species.includes(speciesId)?tm:null;
 }
-/** Only Gym turns recognize these support effects; never a player learnset. */
-export function gymSignatureSupport(name:string):'toxic'|'calm-mind'|null{
- return name==='toxic'||name==='calm-mind'?name:null;
+/** Shared online Gym/region turns recognize these effects; no native learnset grant. */
+export function gymSignatureSupport(name:string):'toxic'|'calm-mind'|'bulk-up'|'reflect'|'light-screen'|'safeguard'|'protect'|'sunny-day'|'rain-dance'|'sandstorm'|'hail'|'rest'|'taunt'|'double-team'|'roar'|'torment'|'snatch'|null{
+ return name==='toxic'||name==='calm-mind'||name==='bulk-up'||name==='reflect'||name==='light-screen'||name==='safeguard'||name==='protect'||name==='sunny-day'||name==='rain-dance'||name==='sandstorm'||name==='hail'||name==='rest'||name==='taunt'||name==='double-team'||name==='roar'||name==='torment'||name==='snatch'?name:null;
 }

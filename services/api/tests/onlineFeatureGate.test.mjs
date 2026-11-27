@@ -10,7 +10,8 @@ import {pokedexHttpEnabled} from '../src/pokedexHttp.mjs';
 import {trainerLoadoutHttpEnabled} from '../src/trainerLoadoutHttp.mjs';
 import {gymPortalEnabled} from '../src/gymPortalState.mjs';
 import {masteryHttpEnabled} from '../src/masteryHttp.mjs';
-const fns=[expeditionHttpEnabled,shopHttpEnabled,movesHttpEnabled,evolutionHttpEnabled,pokemonTrainingHttpEnabled,pokedexHttpEnabled,trainerLoadoutHttpEnabled,masteryHttpEnabled,gymPortalEnabled];
+import {machineHttpEnabled} from '../src/machineHttp.mjs';
+const fns=[expeditionHttpEnabled,shopHttpEnabled,movesHttpEnabled,evolutionHttpEnabled,pokemonTrainingHttpEnabled,pokedexHttpEnabled,trainerLoadoutHttpEnabled,machineHttpEnabled,masteryHttpEnabled,gymPortalEnabled];
 const base={NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',DATABASE_URL:'postgresql://kanto_ci:fixture@127.0.0.1:55432/kanto_ci'};
 test('D6G: every feature is individually opt-in only in the disposable CI database',()=>{
  assert.equal(CI_FEATURE_FLAGS.length,fns.length);

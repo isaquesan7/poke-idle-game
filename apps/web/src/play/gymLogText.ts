@@ -62,7 +62,11 @@ export function narrateGymAction(turn:number,action:string,pokemon:string,foe:st
     }else if(action.startsWith('errou ')){
       narration=pokemon+' '+action.replace(/^errou ([a-z-]+)/,(_,move:string)=>
         'errou '+prettyMove(move));
-    }else if(/^(sofreu|recebeu|ficou|está|acordou|perdeu|se feriu)/.test(action)){
+    }else if(action.startsWith('preparou ')){
+      narration=pokemon+' '+action.replace(/^preparou ([a-z-]+)/,(_,move:string)=>'preparou '+prettyMove(move));
+    }else if(action.startsWith('recarregou após ')){
+      narration=pokemon+' '+action.replace(/^recarregou após ([a-z-]+)/,(_,move:string)=>'recarregou após '+prettyMove(move));
+    }else if(/^(sofreu|recebeu|ficou|está|acordou|perdeu|se feriu|recuou|descongelou|roubou|evitou|bloqueou|precisará)/.test(action)){
       narration=pokemon+' '+action;
     }else narration=coach+' '+action;
     return 'T'+turn+' '+narration;

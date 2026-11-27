@@ -6,7 +6,8 @@
 import type {GymBattleState,GymSide} from './gymBattleState.js';
 import type {GymTurnAction,GymTurnResult} from './gymTurn.js';
 import {gymLegalTurnActions,resolveGymTurn} from './gymTurn.js';
-import {gymSpecialStat} from './gymEffects.js';
+import {gymActiveWeather} from './gymWeather.js';
+import {gymSpecialStat,gymBarrierActive} from './gymEffects.js';
 import {gymAiDecision} from './gymTactics.js';
 import {kantoTypeMultiplier} from '../combat/kantoBattle.js';
 
@@ -48,6 +49,7 @@ export function gymChooseAiAction(
     return {kind:'basic'};
 
   const actor=party.fighters[party.activeIndex]!;
+  if(actor.pendingAction)return {kind:'basic'};
   const enemySide=side==='player'?'leader':'player';
   const enemy=state[enemySide].fighters[state[enemySide].activeIndex]!;
   const permittedMoves=(actor.combatant.moves??[actor.combatant.move])
@@ -57,9 +59,14 @@ export function gymChooseAiAction(
     hp:party.fighters[a.toIndex]!.hp
   }]:[]);
   const proposed=gymAiDecision({
-    actor:{...actor.combatant,moves:permittedMoves,stats:{...actor.combatant.stats,specialAttack:gymSpecialStat(actor.combatant.stats.specialAttack,actor.effects?.specialAttackBoosts??0)}},
-    defender:{...enemy.combatant,stats:{...enemy.combatant.stats,specialDefense:gymSpecialStat(enemy.combatant.stats.specialDefense,enemy.effects?.specialDefenseBoosts??0)}},actorHp:actor.hp,actorSp:actor.sp,
-    defenderStatus:enemy.status,calmMindStage:actor.effects?.specialAttackBoosts??0,
+    actor:{...actor.combatant,moves:permittedMoves,stats:{...actor.combatant.stats,attack:gymSpecialStat(actor.combatant.stats.attack,actor.effects?.attackBoosts??0),specialAttack:gymSpecialStat(actor.combatant.stats.specialAttack,actor.effects?.specialAttackBoosts??0,actor.effects?.specialAttackDrops??0)}},
+    defender:{...enemy.combatant,stats:{...enemy.combatant.stats,defense:gymSpecialStat(enemy.combatant.stats.defense,enemy.effects?.defenseBoosts??0),specialDefense:gymSpecialStat(enemy.combatant.stats.specialDefense,enemy.effects?.specialDefenseBoosts??0)}},actorHp:actor.hp,actorSp:actor.sp,
+    targetTormented:enemy.tormented??false,targetHasReserve:state[enemySide].fighters.some((f,i)=>i!==state[enemySide].activeIndex&&f.hp>0),
+    evasionStage:actor.effects?.evasionBoosts??0,targetEvasionStage:enemy.effects?.evasionBoosts??0,targetTauntActions:enemy.tauntActions??0,
+    actorStatus:actor.status,defenderStatus:enemy.status,calmMindStage:actor.effects?.specialAttackBoosts??0,bulkUpStage:Math.min(actor.effects?.attackBoosts??0,actor.effects?.defenseBoosts??0),
+    weather:gymActiveWeather(state),
+    activeBarriers:(['reflect','light-screen','safeguard'] as const).filter(b=>gymBarrierActive(state,side,b)),
+    protectRepeated:party.protectChain?.index===party.activeIndex&&party.protectChain.lastTurn===state.turn-1,
     bench,consecutiveSwitches:bench.length?0:1,
     allowConcentrate:legal.some(a=>a.kind==='focus')
   });

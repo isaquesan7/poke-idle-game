@@ -11,7 +11,7 @@ import {KANTO_FRLG_MOVE_META} from '../catalog/kantoFrlgLevelupSnapshot.js';
 export const KANTO_STATUS_SOURCE_COMMIT =
   'ac2f1acb055026e3dff1e0aca743bb46256a810a';
 
-export type KantoBattleStatus = 'burn' | 'paralysis' | 'poison' | 'sleep';
+export type KantoBattleStatus = 'burn' | 'paralysis' | 'poison' | 'sleep' | 'freeze';
 export type KantoSecondaryEffect =
   | {readonly kind:'status';readonly status:KantoBattleStatus;readonly chance:number}
   | {readonly kind:'drain';readonly percent:number}

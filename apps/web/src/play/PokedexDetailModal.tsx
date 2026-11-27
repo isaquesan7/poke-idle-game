@@ -9,6 +9,7 @@ import {
   KANTO_POKEDEX,kantoSpecies,kantoTypeMultiplier,kantoLevelMoves,kantoSupportMoves
 } from '@kanto/game-core';
 import type {KantoCatalogSpecies,KantoDexStatus,KantoMove} from '@kanto/game-core';
+import type {MachineView} from './onlinePlay';
 import styles from './PokedexDetailModal.module.css';
 
 const TYPES_PT:Readonly<Record<string,string>>={
@@ -33,6 +34,7 @@ const displayMove=(move:string)=>move.split('-').map(word=>
 const formatId=(id:number)=>'#'+String(id).padStart(3,'0');
 
 interface Props {
+  readonly machines?:MachineView['machines'];
   readonly species:KantoCatalogSpecies;
   readonly status:Exclude<KantoDexStatus,'unknown'>;
   readonly revealedSpeciesIds:ReadonlySet<number>;
@@ -54,7 +56,7 @@ function matchup(types:readonly string[]) {
   };
 }
 
-export function PokedexDetailModal({species,status,revealedSpeciesIds,onClose}:Props) {
+export function PokedexDetailModal({species,status,revealedSpeciesIds,onClose,machines}:Props) {
   const dialogRef=useRef<HTMLElement>(null);
   const closeRef=useRef<HTMLButtonElement>(null);
   const meta=matchup(species.types);
@@ -178,6 +180,7 @@ export function PokedexDetailModal({species,status,revealedSpeciesIds,onClose}:P
                 </div>)}</div>:<p className={styles.hint}>Nenhum outro golpe registrado neste recorte.</p>}
             </section>
           </div>
+          {machines&&<section className={styles.block} aria-label="Aprendizado por TM"><h3><i className="fa-solid fa-compact-disc" aria-hidden="true"/> Aprendizado por TM</h3><p className={styles.hint}>Somente máquinas compatíveis com esta espécie.</p><div className={styles.moves}>{machines.filter(tm=>tm.compatibleSpeciesIds.includes(species.id)).map(tm=><div key={tm.id} className={styles.move}><strong>{tm.id.toUpperCase()} — {displayMove(tm.moveName)}</strong><small>{tm.move?name(tm.move.type):'Técnica em preparação'}</small><span>{tm.implemented?'Aprendizado por TM':'Ainda indisponível'}</span></div>)}</div>{!machines.some(tm=>tm.compatibleSpeciesIds.includes(species.id))&&<p>Nenhuma TM compatível.</p>}</section>}
           <p className={styles.footnote}>Dados-base por espécie; atributos treinados e golpes equipados pertencem à sua Coleção. O registro não realiza ações nem modifica o save.</p>
         </div>
       </section>

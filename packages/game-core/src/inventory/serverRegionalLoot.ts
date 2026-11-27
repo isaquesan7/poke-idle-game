@@ -2,6 +2,9 @@
  * the private certified-turn settlement. All changes are committed together
  * with the existing save/encounter/receipt transaction by the API.
  */
+import {kantoMachine,inspectMachineStock} from '../catalog/kantoMachines.js';
+import type {KantoMachineId} from '../catalog/kantoMachines.js';
+import {machineRarity,regionalMachinePool} from './machineLoot.js';
 import {onlineInventoryProjection} from './serverInventory.js';
 import {inspectOnlineGear,createOnlineDropGear} from './onlineOwnership.js';
 import type {OnlineGearInstance} from './onlineOwnership.js';
@@ -15,6 +18,7 @@ import type {KantoEvolutionStone} from '../catalog/kantoEvolution.js';
 export type RegionalLootItem=
  | {readonly kind:'ball';readonly itemId:KantoBallId;readonly quantity:1}
  | {readonly kind:'stone';readonly itemId:KantoEvolutionStone;readonly quantity:1}
+ | {readonly kind:'tm';readonly itemId:KantoMachineId;readonly quantity:1}
  | {readonly kind:'gear';readonly gear:OnlineGearInstance};
 export interface PendingRegionalLoot{
  readonly encounterId:string;readonly items:readonly RegionalLootItem[];
@@ -23,7 +27,7 @@ const UUID=/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 const rec=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const key=(item:RegionalLootItem)=>item.kind==='gear'?item.gear.id:item.itemId;
 export function inspectPendingRegionalLoot(value:unknown):PendingRegionalLoot|null{
- if(!rec(value)||Object.keys(value).sort().join(',')!=='encounterId,items'||typeof value.encounterId!=='string'||!UUID.test(value.encounterId)||!Array.isArray(value.items)||value.items.length<1||value.items.length>3)return null;
+ if(!rec(value)||Object.keys(value).sort().join(',')!=='encounterId,items'||typeof value.encounterId!=='string'||!UUID.test(value.encounterId)||!Array.isArray(value.items)||value.items.length<1||value.items.length>4)return null;
  const items:RegionalLootItem[]=[],kinds=new Set<string>();
  for(const item of value.items){
   if(!rec(item)||typeof item.kind!=='string'||kinds.has(item.kind))return null;
@@ -31,11 +35,14 @@ export function inspectPendingRegionalLoot(value:unknown):PendingRegionalLoot|nu
    if(Object.keys(item).sort().join(',')!=='gear,kind')return null;
    const gear=inspectOnlineGear(item.gear);if(!gear||gear.id!=='gear-'+value.encounterId.toLowerCase())return null;
    items.push({kind:'gear',gear});
-  }else if(item.kind==='ball'||item.kind==='stone'){
+  }else if(item.kind==='ball'||item.kind==='stone'||item.kind==='tm'){
    if(Object.keys(item).sort().join(',')!=='itemId,kind,quantity'||typeof item.itemId!=='string'||item.quantity!==1)return null;
    if(item.kind==='ball'){
     if(!Object.hasOwn(KANTO_BALLS,item.itemId))return null;
     items.push({kind:'ball',itemId:item.itemId as KantoBallId,quantity:1});
+   }else if(item.kind==='tm'){
+    const tm=kantoMachine(item.itemId);if(!tm)return null;
+    items.push({kind:'tm',itemId:tm.id,quantity:1});
    }else{
     if(!KANTO_EVOLUTION_STONES.some(s=>s.id===item.itemId))return null;
     items.push({kind:'stone',itemId:item.itemId as KantoEvolutionStone,quantity:1});
@@ -56,6 +63,11 @@ function tryStore(state:any,item:RegionalLootItem):boolean|null{
   if(!view.bag.available)return false;
   state.inventory.gear.push(item.gear);return true;
  }
+ if(item.kind==='tm'){
+  const stock=inspectMachineStock(state.machineStock);if(!stock)return null;
+  const old=stock[item.itemId]??0;if(old>=100000)return false;
+  state.machineStock={...stock,[item.itemId]:old+1};return true;
+ }
  const pocket=item.kind==='ball'?state.ballPocket.quantities:state.evolutionStones;
  const old=pocket[item.itemId]??0;
  if(!Number.isSafeInteger(old)||old<0)return null;
@@ -64,13 +76,13 @@ function tryStore(state:any,item:RegionalLootItem):boolean|null{
 }
 export function placeCertifiedRegionalLoot(beforeRaw:string,paidRaw:string,input:{
  encounterId:string;regionId:number;speciesId:number;outcome:string;
- gear:ProceduralGearRoll|null;stone:KantoEvolutionStone|null;ballId:KantoBallId|null;
+ gear:ProceduralGearRoll|null;stone:KantoEvolutionStone|null;ballId:KantoBallId|null;tmId?:KantoMachineId|null;
 }){
  try{
   if(!UUID.test(input.encounterId)||!['win','loss','draw'].includes(input.outcome))return null;
   const before=JSON.parse(beforeRaw),state=JSON.parse(paidRaw);
   if(before.pendingRegionalLoot!=null||state.pendingRegionalLoot!=null||!onlineInventoryProjection(beforeRaw)||!onlineInventoryProjection(paidRaw))return null;
-  if(input.outcome!=='win'&&(input.gear||input.stone||input.ballId))return null;
+  if(input.outcome!=='win'&&(input.gear||input.stone||input.ballId||input.tmId))return null;
   const items:RegionalLootItem[]=[];
   // The base payout already credited a ball. Reverse only this validated
   // increment, then re-place it using the shared capacity rule.
@@ -84,6 +96,11 @@ export function placeCertifiedRegionalLoot(beforeRaw:string,paidRaw:string,input
   if(input.stone){
    if(!eligibleEvolutionStones(input.speciesId).includes(input.stone))return null;
    items.push({kind:'stone',itemId:input.stone,quantity:1});
+  }
+  if(input.tmId){
+   const rarity=machineRarity(input.tmId);
+   if(!rarity||!regionalMachinePool(input.regionId,rarity).some(m=>m.id===input.tmId))return null;
+   items.push({kind:'tm',itemId:input.tmId,quantity:1});
   }
   if(input.gear){
    if(input.gear.regionId!==input.regionId)return null;

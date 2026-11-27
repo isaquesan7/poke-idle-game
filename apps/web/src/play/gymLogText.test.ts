@@ -36,6 +36,10 @@ describe('GYM-07 — diário distingue treinadores e Pokémon',()=>{
     expect(line).not.toContain('lower-attack');
     expect(prettyMove('basic-attack')).toBe('Ataque Básico');
   });
+  it('atribui preparação e recarga ao Pokémon',()=>{
+    expect(gymNarratedLog([round(state(0),state(0),'player preparou solar-beam (-37 SP).')],'Karem','Brock')[0]).toContain('Charmander preparou Solar Beam');
+    expect(gymNarratedLog([round(state(0),state(0),'leader recarregou após hyper-beam.')],'Karem','Brock')[0]).toContain('Onix recarregou após Hyper Beam');
+  });
   it('nocaute é do Pokémon e decisão da troca é do treinador',()=>{
     const line=gymNarratedLog([round(state(0),state(0),
       'player sofreu KO: aguarda substituição grátis.')],

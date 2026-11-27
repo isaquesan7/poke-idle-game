@@ -17,6 +17,7 @@ import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
 import { kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect } from './kantoStatusEffects.js';
 import {GYM_NPC_SUPPORT_MOVES} from '../gyms/gymNpcSupportMoves.js';
 import {KANTO_SUPPORT_MOVES,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
+import {KANTO_TM09_COMBAT_MOVE} from '../catalog/kantoMachineCombatMoves.js';
 import {KANTO_MULTI_HIT_MOVES,kantoMoveExpectedHits,kantoRollHitCount} from './kantoMultiHit.js';
 import type { KantoBattleStatus } from './kantoStatusEffects.js';
 import {
@@ -109,6 +110,8 @@ export type Combatant = Readonly<{
   stats: Readonly<StatValues>;
   move: KantoMove;
   rank: number;
+  /** Frozen individual affinity (0–100), required for variable-power TM loadouts. */
+  affinity?:number;
   /** Opcional para progresso legado: primeiro item é o principal. */
   moves?:readonly KantoMove[];
   ranks?:Readonly<Record<string,number>>;
@@ -228,7 +231,7 @@ function validMove(m:KantoMove|undefined,allowNpcSupport=false):boolean{
   }
   // D064AT: bloquear alteração de poder/tipo/precisão de TODOS os multi-hit.
   if(Object.hasOwn(KANTO_MULTI_HIT_MOVES,m.name)){
-    const fixed=KANTO_BATTLE_MOVES[m.name];
+    const fixed=m.name===KANTO_TM09_COMBAT_MOVE.name?KANTO_TM09_COMBAT_MOVE:KANTO_BATTLE_MOVES[m.name];
     return !!fixed&&m.type===fixed.type&&m.category===fixed.category
       &&m.power===fixed.power&&m.accuracy===fixed.accuracy
       &&m.priority===fixed.priority;
@@ -243,6 +246,7 @@ function validateCombatant(monster:Combatant,allowInternalBasic=false):void {
     || !Array.isArray(monster.types) || monster.types.length<1 || monster.types.length>2
     || monster.types.some(type=>!TYPES[type])
     || !Number.isSafeInteger(monster.rank) || monster.rank<0 || monster.rank>10
+    ||(monster.affinity!==undefined&&(!Number.isSafeInteger(monster.affinity)||monster.affinity<0||monster.affinity>100))
     || !monster.stats || !validMove(monster.move,allowInternalBasic)
     // Basic Attack só pode ser usado internamente na resolução do golpe.
     || (!allowInternalBasic&&monster.move.name===KANTO_BASIC_ATTACK.name)

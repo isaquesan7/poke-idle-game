@@ -1,0 +1,27 @@
+name: TM — fonte FRLG fixada
+on:
+  pull_request:
+    paths:
+      - 'scripts/extract-kanto-tms.mjs'
+      - 'tests/kanto-tm-extractor.test.mjs'
+      - '.github/workflows/tm-source-snapshot.yml'
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test tests/kanto-tm-extractor.test.mjs
+      - name: Obtain exact public source and verify Git blob hashes
+        run: |
+          curl --fail --silent --show-error --location --retry 2 'https://raw.githubusercontent.com/PokeAPI/pokeapi/ac2f1acb055026e3dff1e0aca743bb46256a810a/data/v2/csv/machines.csv' -o /tmp/machines.csv
+          curl --fail --silent --show-error --location --retry 2 'https://raw.githubusercontent.com/PokeAPI/pokeapi/ac2f1acb055026e3dff1e0aca743bb46256a810a/data/v2/csv/pokemon_moves.csv' -o /tmp/pokemon_moves.csv
+          node scripts/extract-kanto-tms.mjs /tmp/machines.csv /tmp/pokemon_moves.csv /tmp/kanto-tms.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kanto-tm-compatibility
+          path: /tmp/kanto-tms.json

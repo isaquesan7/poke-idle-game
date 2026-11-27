@@ -13,6 +13,11 @@ import {kantoSpecies} from '../catalog/kantoSpecies.js';
 import {gymPsychicLevelMoves} from './gymPsychicMoves.js';
 import {pokemonFinalStats} from '../stats/pokemon.js';
 import {trainerTotals,MANUAL_TRAINER_CAP} from '../stats/trainer.js';
+import {gymSnatchable} from './gymTerrain.js';
+import {gymEffectiveMove} from './gymVariableMoves.js';
+import {gymAccuracyAfterEvasion} from './gymEffects.js';
+import {gymWeatherMove,gymWeatherMultiplier,gymWeatherAccuracy,gymWeatherResidual} from './gymWeather.js';
+import type {GymWeather} from './gymWeather.js';
 import {gymSignatureTm,gymSignatureSupport} from './gymSignatureTms.js';
 import {LEGACY_ITEMS} from '../legacy/catalog.js';
 import {legacyMoveRankLimits} from '../legacy/pokemonMoveReducer.js';
@@ -231,7 +236,17 @@ export function gymAiDecision(args:{
   /** False quando Concentrar esgotou quotas ou cooldown no motor 3×3. */
   readonly allowConcentrate?:boolean;
   readonly defenderStatus?:string|null;
+  readonly actorStatus?:string|null;
+  readonly evasionStage?:number;
+  readonly targetEvasionStage?:number;
+  readonly targetTauntActions?:number;
+  readonly targetTormented?:boolean;
+  readonly targetHasReserve?:boolean;
   readonly calmMindStage?:number;
+  readonly bulkUpStage?:number;
+  readonly activeBarriers?:readonly string[];
+  readonly protectRepeated?:boolean;
+  readonly weather?:GymWeather|null;
 }):GymAiDecision{
   const {actor,defender,actorHp,actorSp,bench}=args;
   const maxSp=kantoMaxSp(actor.level,actor.speciesId);
@@ -244,7 +259,7 @@ export function gymAiDecision(args:{
   // A propriedade opcional 'moves' deve ser OMITIDA (exactOptionalPropertyTypes).
   const {moves: _loadout,...combatantWithoutSlots}=actor;
   const estimate=(move:KantoMove)=>kantoDamage(
-    {...combatantWithoutSlots,move,rank:move.name===KANTO_BASIC_ATTACK.name?0:actor.ranks?.[move.name]??(move.name===actor.move.name?actor.rank:0)},defender,.5,.5);
+    {...combatantWithoutSlots,move:gymEffectiveMove(move,actor.affinity,args.actorStatus),rank:move.name===KANTO_BASIC_ATTACK.name?0:actor.ranks?.[move.name]??(move.name===actor.move.name?actor.rank:0)},defender,.5,.5);
   // Ataque básico gratuito permanece disponível mesmo com SP esgotado.
   const basicDamage=estimate(KANTO_BASIC_ATTACK).damage;
   const decisions:GymAiDecision[]=[{action:'basic',score:Math.round(
@@ -256,7 +271,25 @@ export function gymAiDecision(args:{
       const support=kantoSupportEffect(move.name);
       const signature=gymSignatureSupport(move.name);
       if(signature){
-        const score=signature==='toxic'?(args.defenderStatus||defender.types.includes('poison')||defender.types.includes('steel')?-100:36)
+        const weather=gymWeatherMove(move.name);
+        if(weather){
+          const ownHurt=gymWeatherResidual(weather,actor.types,actor.stats.hp)>0;
+          const foeHurt=gymWeatherResidual(weather,defender.types,defender.stats.hp)>0;
+          const benefit=moves.some(m=>m.category!=='status'&&gymWeatherMultiplier(weather,m.type)>1);
+          const risk=gymWeatherMultiplier(weather,defender.move.type)>1;
+          const score=args.weather===weather?-100:weather==='hail'||weather==='sandstorm'?(foeHurt&&!ownHurt?30:-100):benefit&&!risk?28:-100;
+          decisions.push({action:'move',moveName:move.name,score});continue;
+        }
+        const score=signature==='snatch'?((defender.moves??[defender.move]).some(m=>gymSnatchable(m.name))?26:-100)
+          :signature==='roar'?(args.targetHasReserve?10:-100)
+          :signature==='torment'?(args.targetTormented?-100:(defender.moves??[defender.move]).length<=2?26:12)
+          :signature==='taunt'?((args.targetTauntActions??0)>0||!(defender.moves??[defender.move]).some(m=>m.category==='status')?-100:30)
+          :signature==='double-team'?((args.evasionStage??0)>=6||actorHp/actor.stats.hp<.35?-100:(args.evasionStage??0)===0?28:12)
+          :signature==='rest'?(actorHp/actor.stats.hp<=.4?70:actorHp/actor.stats.hp<=.6&&!!args.actorStatus?45:-100)
+          :signature==='toxic'?(args.defenderStatus||defender.types.includes('poison')||defender.types.includes('steel')?-100:36)
+          :signature==='protect'?(!args.protectRepeated&&args.defenderStatus==='poison'?26:-100)
+          :signature==='reflect'||signature==='light-screen'||signature==='safeguard'?(args.activeBarriers?.includes(signature)?-100:signature==='safeguard'?10:(signature==='reflect'&&defender.move.category==='physical'||signature==='light-screen'&&defender.move.category==='special')?30:5)
+          :signature==='bulk-up'?((args.bulkUpStage??0)>=6||actorHp/actor.stats.hp<.35?-100:(args.bulkUpStage??0)===0?35:15)
           :((args.calmMindStage??0)>=6||!moves.some(m=>m.category==='special'&&m.power>0)||actorHp/actor.stats.hp<.35?-100:(args.calmMindStage??0)===0?40:18);
         decisions.push({action:'move',moveName:move.name,score});continue;
       }
@@ -271,8 +304,9 @@ export function gymAiDecision(args:{
     }
     // Dano previsível com rolls médios fixos, nunca os futuros resultados do RNG.
     const expected=estimate(move);
-    const accuracy=move.accuracy/100;
-    const damage=expected.damage*accuracy;
+    const accuracy=gymAccuracyAfterEvasion(move.name,gymWeatherAccuracy(args.weather??null,move),args.targetEvasionStage??0)/100;
+    const delayed=move.name==='hyper-beam'||move.name==='dig'||move.name==='solar-beam'&&args.weather!=='sunny-day';
+    const damage=expected.damage*accuracy*gymWeatherMultiplier(args.weather??null,move.type)*(delayed?.5:1)*(move.name==='focus-punch'?.25:1);
     const score=expected.effectiveness===0?-100
       :Math.round(100*damage/Math.max(1,defender.stats.hp))
         +(expected.damage>=defender.stats.hp?30:0)
