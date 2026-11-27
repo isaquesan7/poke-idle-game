@@ -89,11 +89,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MEGA_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MEGA_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -1106,6 +1106,78 @@ try{
   await tmPage.setViewportSize({width:390,height:844});
   assert.ok(await tmPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
   await tmPage.close();
+
+  checkpoint("Mega sanctuary through Alpha");
+  const megaPage=await context.newPage();
+  await megaPage.setViewportSize({width:1365,height:768});
+  await megaPage.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await megaPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  const megaNav=megaPage.getByRole('navigation',{name:'Navegação do jogo'});
+  const megaRead=async()=>{const q=await megaPage.request.get(origin+'/api/v1/mega/current');assert.equal(q.status(),200);return q.json();};
+  const megaBefore=await megaRead();
+  const megaSave=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const megaRaw=JSON.parse(megaSave.journal.raw);
+  megaRaw.research={points:{'4':99},favorites:[],totalSent:0,history:[]};
+  megaSave.journal.raw=JSON.stringify(megaRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(megaSave)]);
+  await megaPage.reload({waitUntil:'domcontentloaded'});
+  await megaPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  await expand(megaPage,'Abrir mapa');
+  assert.equal((await megaRead()).visible,false);
+  assert.equal(await megaNav.getByRole('button',{name:'Santuário Mega',exact:true}).count(),0);
+  megaRaw.research.points['4']=100;
+  megaRaw.trainer.level=100;megaRaw.trainer.manual={hp:40,attack:40,defense:19,specialAttack:40,specialDefense:19,speed:40};
+  megaRaw.badges=['boulder','cascade','thunder','rainbow','soul','marsh','volcano','earth'];
+  megaRaw.seen=[...new Set([...megaRaw.seen,4,5,6])];
+  const megaUid=megaRaw.nextUid++;
+  const candidate={...structuredClone(tmStudent),uid:megaUid,pokemonId:6,level:100,affinity:100,moveName:'dragon-claw',equippedMoveNames:['dragon-claw','earthquake'],machineLessons:[{tmId:'tm02',speciesId:6},{tmId:'tm26',speciesId:6}],upgrades:{'dragon-claw':10,earthquake:10},manual:{hp:0,attack:0,defense:0,specialAttack:158,specialDefense:0,speed:40}};
+  delete candidate.evolutionHistory;
+  megaRaw.roster.push(candidate);megaRaw.team=[megaUid];megaSave.journal.raw=JSON.stringify(megaRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(megaSave)]);
+  await megaPage.reload({waitUntil:'domcontentloaded'});
+  await megaPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  await expand(megaPage,'Abrir mapa');
+  await megaNav.getByRole('button',{name:'Santuário Mega',exact:true}).click();
+  const xCard=megaPage.getByTestId('mega-challenge-charizard-mega-x');
+  await xCard.waitFor();
+  assert.equal(await megaPage.getByTestId('mega-challenge-venusaur-mega').getByRole('button').isDisabled(),true);
+  assert.equal(await megaPage.getByTestId('mega-challenge-blastoise-mega').getByRole('button').isDisabled(),true);
+  assert.equal(await megaPage.getByTestId('mega-challenge-charizard-mega-y').getByRole('button').isEnabled(),true);
+  assert.equal((await megaRead()).revision,megaBefore.revision);
+  const forged=await megaPage.request.post(origin+'/api/v1/mega/challenge',{headers:{Origin:origin},data:{actionId:'browser-mega-forged-01',expectedRevision:megaBefore.revision,command:{uid:megaUid,formId:'charizard-mega-x',outcome:'win'}}});
+  assert.equal(forged.status(),400);
+  let trial;
+  for(let i=0;i<24;i++){
+    await xCard.getByRole('button',{name:'Desafiar',exact:true}).click();
+    const dialog=megaPage.getByRole('dialog',{name:'Confirmar desafio Mega'});
+    trial=await responseFor(megaPage,'/api/v1/mega/challenge',()=>dialog.getByRole('button',{name:'Iniciar desafio',exact:true}).click());
+    assert.equal(trial.status,'applied');
+    const playback=megaPage.getByTestId('mega-trial-replay');
+    await playback.waitFor();
+    const skip=playback.getByRole('button',{name:'Pular apresentação',exact:true});
+    if(await skip.isEnabled())await skip.click();
+    await playback.getByRole('button',{name:'Voltar ao Santuário'}).click();
+    if(trial.trial.outcome==='win')break;
+  }
+  assert.equal(trial.trial.outcome,'win');
+  await xCard.getByRole('button',{name:'Bloqueado'}).waitFor();
+  assert.equal(await megaPage.getByTestId('mega-challenge-charizard-mega-y').getByRole('button').isDisabled(),true);
+  await expand(megaPage,'Treinador');
+  await megaNav.getByRole('button',{name:'Mochila',exact:true}).click();
+  const megaBag=megaPage.getByTestId('mega-bag');
+  await megaBag.getByText('Charizardite X',{exact:true}).waitFor();
+  await megaBag.getByRole('button',{name:'Ver Pokémon',exact:true}).click();
+  const megaEvolution=megaPage.getByTestId('mega-evolution');
+  const evolve=megaEvolution.getByRole('button',{name:'Mega Evoluir',exact:true}).filter({hasNotText:'xyz'});
+  assert.equal(await evolve.count(),2);
+  await evolve.first().click();
+  const evolved=await responseFor(megaPage,'/api/v1/mega/evolve',()=>megaPage.getByRole('dialog',{name:'Confirmar Mega Evolução'}).getByRole('button',{name:'Confirmar Mega Evolução',exact:true}).click());
+  assert.equal(evolved.status,'applied');
+  await megaEvolution.getByText('Forma permanente: Mega Charizard X. O Passe Mega já foi consumido.').waitFor();
+  assert.equal((await megaRead()).stones.length,0);
+  await megaPage.setViewportSize({width:390,height:844});
+  assert.ok(await megaPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
+  await megaPage.close();
 
   checkpoint("password recovery and logout");
   // Recovery is requested using the actual browser form, never a real inbox.
