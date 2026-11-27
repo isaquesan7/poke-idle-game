@@ -221,8 +221,6 @@ export {machineRarity} from './inventory/machineLoot.js';
 export {KANTO_MEGA_FORMS,kantoMegaForm,kantoMegaOptions,kantoPokemonFormProfile,quoteKantoMegaChoice} from './catalog/kantoMegaForms.js';
 export type {KantoMegaForm,KantoMegaFormId,KantoMegaStoneId} from './catalog/kantoMegaForms.js';
 
-export {inspectMegaStoneStock} from './catalog/kantoMegaForms.js';
-export type {MegaStoneStock} from './catalog/kantoMegaForms.js';
-export {KANTO_MEGA_REQUIREMENTS,onlineMegaProjection,applyOnlineMegaEvolution} from './combat/serverMegaEvolution.js';
+export {validKantoMegaEntitlement} from './catalog/kantoMegaForms.js';
+export {KANTO_MEGA_REQUIREMENTS,onlineMegaProjection,quoteOnlineMegaTrial,applyOnlineMegaEvolution} from './combat/serverMegaEvolution.js';
 
-export {MEGA_STONE_DROP_BPS,regionalMegaStoneRate,regionalMegaStonePool} from './inventory/megaStoneLoot.js';
