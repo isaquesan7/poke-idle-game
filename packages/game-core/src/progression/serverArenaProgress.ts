@@ -2,9 +2,9 @@
  * The caller must own the save lock, read PostgreSQL time and certify the duel.
  * Never accept a balance, reward, result or team from a public request.
  */
-import {arenaWeeklyProjection,startArenaRun,abandonArenaRun,settleCertifiedArenaFloor} from './weeklyArena.js';
+import {arenaFloorPoints,arenaWeeklyProjection,startArenaRun,abandonArenaRun,settleCertifiedArenaFloor} from './weeklyArena.js';
 import type {ArenaWeeklyProgress} from './weeklyArena.js';
-import {arenaOpponentLevel} from './weeklyArenaRotation.js';
+import {arenaOpponentLevel,weeklyArenaRotation} from './weeklyArenaRotation.js';
 import {prepareRewardJournal} from '../legacy/rewardEvents.js';
 import {canonicalOnlineGymTrainerBonuses,canonicalOnlineOwnedCombatant} from '../combat/serverGymPreparation.js';
 import {grantXp,battleTrainerXp} from './xp.js';
@@ -101,4 +101,23 @@ export function applyCertifiedOnlineArenaResult(raw:string,nowMs:number,weekStar
  if(!prepareRewardJournal(next))return {status:'invalid-save'} as const;
  return {status:'ok',raw:next,balance,progress:q.next,points:q.points,rewardEligible:q.rewardEligible,
   reward,outcome:q.outcome} as const;
+}
+
+/** Public-safe projection for future authenticated HTTP. Opponent stats,
+ * move ranks, private seed and full engine snapshots are not returned.
+ */
+export function onlineArenaPublicProjection(raw:string,nowMs:number){
+ const c=checked(raw,nowMs);if(!c)return null;
+ const rotation=weeklyArenaRotation(c.view.startMs);if(!rotation)return null;
+ const team=c.view.run?.team??c.source.team;
+ return {...c.view,balance:c.balance,busy:c.busy,teamEligible:validTeam(c,c.source.team),
+  rotationVersion:rotation.version,
+  team:team.flatMap((uid:number)=>{
+   const p=c.source.roster.find((p:{uid:number})=>p.uid===uid);
+   return p?[{uid:p.uid,speciesId:p.pokemonId,level:p.level,...(p.megaForm?{megaForm:p.megaForm}:{})}]:[];
+  }),
+  opponents:rotation.opponents.map(p=>({floor:p.floor,speciesId:p.speciesId,name:p.name,level:p.level,
+   guardian:p.guardian,types:p.types,tmIds:p.tmIds,points:arenaFloorPoints(p.floor),
+   paid:p.floor<=c.view.paidThrough}))
+ };
 }

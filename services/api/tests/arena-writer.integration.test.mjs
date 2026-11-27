@@ -5,6 +5,12 @@ import pg from 'pg';
 import {firstSave} from '../src/initialAdventure.mjs';
 import {writeArenaAction} from '../src/arenaWriter.mjs';
 import {setCollectionTeam} from '../src/collectionTeam.mjs';
+import {reserveEncounter} from '../src/encounterReservation.mjs';
+import {reserveNextGym} from '../src/gymReservation.mjs';
+import {applyExpeditionCommand} from '../src/expeditionWriter.mjs';
+import {trainPokemon} from '../src/pokemonTrainingWriter.mjs';
+import {applyTrainerInvestment} from '../src/trainerInvestment.mjs';
+import {readArena} from '../src/arenaHttp.mjs';
 test('Arena private PostgreSQL writer: frozen trio, real duel, receipt and single first-clear reward',async()=>{
  const db=new URL(process.env.DATABASE_URL);
  assert.equal(db.protocol,'postgresql:');assert.equal(db.hostname,'127.0.0.1');assert.equal(db.port,'55432');
@@ -26,6 +32,19 @@ test('Arena private PostgreSQL writer: frozen trio, real duel, receipt and singl
   const {weekStartMs,run}=start.result.progress;
   assert.deepEqual(run.team,[1,2,3]);assert.equal(run.cleared,0);
   assert.equal((await setCollectionTeam(pool,{accountId,actionId:randomUUID(),expectedRevision:1,teamUids:[1,2,4]})).status,'busy');
+  const base=()=>({accountId,actionId:randomUUID(),expectedRevision:1});
+  for(const action of [
+   reserveEncounter(pool,{...base(),regionId:1}),
+   reserveNextGym(pool,base()),
+   applyExpeditionCommand(pool,{...base(),kind:'start',regionId:1}),
+   trainPokemon(pool,{...base(),pokemonUid:2,increments:{attack:1}}),
+   applyTrainerInvestment(pool,{...base(),stat:'attack'})
+  ])assert.equal((await action).status,'busy');
+  const view=await readArena(pool,accountId);
+  assert.equal(view.status,'ok');assert.equal(view.opponents.length,40);
+  assert.deepEqual(view.team.map(p=>p.uid),[1,2,3]);
+  for(const p of view.opponents)for(const k of ['stats','ranks','moves','seed'])assert.equal(Object.hasOwn(p,k),false);
+  assert.equal((await read()).revision,1);
   const command={type:'challenge',weekStartMs,runId:run.id,floor:1,uid:2};
   assert.equal((await apply({...command,outcome:'win'},1)).status,'invalid');
   assert.equal((await apply({...command,uid:4},1)).status,'outside-team');

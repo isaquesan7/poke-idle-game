@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** ONLINE-01C-23B2A — PRIVATE Collection team composer.
  *
  * This writer only orders 1–3 owned Pokémon UIDs in the server save.
@@ -104,15 +105,7 @@ export async function setCollectionTeam(pool,{
        raw.lastBattle?.captureStatus==='available')
       return await rollback(client,{status:'busy'});
 
-    // Freeze the selected trio until the current Arena run ends. Expired
-    // weeks do not block changing the team before the next run.
-    if(raw.weeklyArena?.progress?.run){
-      const {onlineArenaProgress}=await import('./battlePreview.mjs').then(m=>m.loadCombatAdapter());
-      const clock=await client.query('SELECT floor(extract(epoch from clock_timestamp())*1000)::bigint AS ms');
-      const arena=onlineArenaProgress(save.journal.raw,Number(clock.rows[0].ms));
-      if(!arena)return await rollback(client,{status:'invalid-save'});
-      if(arena.run)return await rollback(client,{status:'busy'});
-    }
+    if(await arenaActivityBlocks(client,save.journal.raw))return await rollback(client,{status:'busy'});
 
     // The one—and only—gameplay modification: ordered Collection team.
     const nextRevision=revision+1;

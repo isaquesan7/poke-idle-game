@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** ONLINE-01C-6: first server-authoritative action.
  * A confirmed distribution is applied in one transaction and revision.
  * No coins/experience/levels/captures/badges arrive from the client.
@@ -77,6 +78,7 @@ export async function applyTrainerInvestment(pool,{accountId,actionId,expectedRe
     let raw;
     try{raw=JSON.parse(save.journal.raw);}catch{await client.query('ROLLBACK');return {status:'invalid'};}
     if(raw?.expedition!=null){await client.query('ROLLBACK');return {status:'busy'};}
+    if(await arenaActivityBlocks(client,save.journal.raw)){await client.query('ROLLBACK');return {status:'busy'};}
     const applied=single?investTrainerPoint(save,stat):investTrainerBatch(save,increments);
     if(applied.status!=='ok'){
       await client.query('ROLLBACK');return {status:applied.status};

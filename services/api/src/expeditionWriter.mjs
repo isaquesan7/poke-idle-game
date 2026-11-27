@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** 23F8A — private expedition writer. No HTTP or client timestamps.
  * One transaction locks save before reading other reservations. The DB clock
  * is sampled AFTER the lock; generic durable receipt prevents any second pay.
@@ -30,6 +31,7 @@ export async function applyExpeditionCommand(pool,params){
   const busy=await c.query(`SELECT EXISTS(SELECT 1 FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved')
    OR EXISTS(SELECT 1 FROM game_gym_reservations WHERE account_id=$1 AND status='reserved') AS busy`,[accountId]);
   if(busy.rows[0].busy)return await rollback(c,{status:'busy'});
+  if(await arenaActivityBlocks(c,save.journal.raw))return await rollback(c,{status:'busy'});
   const time=await c.query('SELECT floor(extract(epoch from clock_timestamp())*1000)::bigint AS ms');
   const nowMs=Number(time.rows[0].ms);
   const core=await loadCombatAdapter();

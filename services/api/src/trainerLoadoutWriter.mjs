@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** Private writer only. Do not expose via HTTP until regional and Gym bonuses agree. */
 import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
@@ -20,6 +21,7 @@ export async function changeTrainerLoadout(pool,params){
   const busy=await c.query(`SELECT EXISTS(SELECT 1 FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved')
    OR EXISTS(SELECT 1 FROM game_gym_reservations WHERE account_id=$1 AND status='reserved') AS busy`,[accountId]);
   if(busy.rows[0].busy)return await rollback(c,{status:'busy'});
+  if(await arenaActivityBlocks(c,save.journal.raw))return await rollback(c,{status:'busy'});
   const core=await loadCombatAdapter();
   const lootAction=['loot-store','loot-discard'].includes(command.kind);
   const expeditionLootAction=['expedition-loot-store','expedition-loot-discard'].includes(command.kind);

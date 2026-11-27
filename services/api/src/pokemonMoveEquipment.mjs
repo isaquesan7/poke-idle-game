@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** ONLINE-01C-23A: private loadout writer for 1–4 explicitly equipped moves.
  * Cannot equip during any pending encounter, not even prior to turn-zero.
  * Learned moves, legal level, status/SP policies come from bundled game-core.
@@ -81,6 +82,7 @@ export async function equipPokemonMoves(pool,{
        new Set(raw.roster.map(p=>p?.uid)).size!==raw.roster.length)
       return await rollback(client,{status:'invalid-save'});
     if(raw.expedition!==null||raw.pendingBattle!=null||raw.gymSession!=null||raw.lastBattle?.captureStatus==='available')return await rollback(client,{status:'busy'});
+    if(await arenaActivityBlocks(client,save.journal.raw))return await rollback(client,{status:'busy'});
     const index=raw.roster.findIndex(p=>p?.uid===pokemonUid);
     if(index<0)return await rollback(client,{status:'missing-pokemon'});
     const pokemon=raw.roster[index];

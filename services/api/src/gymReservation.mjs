@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** ONLINE-01C-23B2C — INTERNAL, server-authoritative Gym reservation.
  * Freezes the NEXT Gym and the three owned UIDs ALREADY selected in Collection.
  * Neither web clients nor this writer can choose a trio, seed, result or loot.
@@ -61,6 +62,7 @@ export async function reserveNextGym(pool,params){
       return await rollback(client,{status:'invalid-save'});
     }
     if(raw?.pendingRegionalLoot!=null||raw?.pendingExpeditionLoot!=null)return await rollback(client,{status:'busy'});
+    if(await arenaActivityBlocks(client,save.journal.raw))return await rollback(client,{status:'busy'});
     const adapter=await loadCombatAdapter();
     if(typeof adapter.canonicalOnlineGymOpeningState!=='function')
       throw new Error('Private Gym bundle unavailable');
