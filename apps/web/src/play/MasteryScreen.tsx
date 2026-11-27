@@ -1,11 +1,13 @@
 import {useState} from 'react';
-import {quoteKantoResearch,KANTO_MASTERY_RANKS,kantoSpecies} from '@kanto/game-core';
+import {quoteKantoResearch,KANTO_MASTERY_RANKS,kantoSpecies,kantoPokemonFormProfile} from '@kanto/game-core';
 import type {MasteryView} from './onlinePlay';
 import {PokemonArt} from './JourneyShell';
 import {RegionDialog} from '../regions/RegionDialog';
 import styles from './PlayApp.module.css';
 const names=['Não iniciada','Iniciante','Experiente','Especialista','Veterano','Mestre'];
 const name=(id:number)=>kantoSpecies(id)?.name??'Pokémon';
+const specimenName=(p:MasteryView['pokemon'][number])=>kantoPokemonFormProfile(p.speciesId,p.megaForm)?.name??name(p.speciesId);
+const specimenArt=(p:MasteryView['pokemon'][number])=>kantoPokemonFormProfile(p.speciesId,p.megaForm)?.artId??p.speciesId;
 const reason={mega:'Mega Evolução ou pedra vinculada protegida',team:'Na equipe',favorite:'Favorito protegido','last-specimen':'Último exemplar',mastered:'Maestria máxima'} as const;
 export type MasteryCommand={kind:'send';uids:number[]}|{kind:'favorite';uid:number;favorite:boolean};
 export function MasteryScreen({view,busy,onCommand}:{view:MasteryView;busy:boolean;onCommand:(command:MasteryCommand,revision:number)=>Promise<boolean>}){
@@ -17,7 +19,7 @@ export function MasteryScreen({view,busy,onCommand}:{view:MasteryView;busy:boole
  const snapshot={roster:view.pokemon.map(p=>({uid:p.uid,pokemonId:p.speciesId,megaForm:p.megaForm,megaTrialForm:p.megaTrialForm})),team:view.pokemon.filter(p=>p.inTeam).map(p=>p.uid),favorites:view.pokemon.filter(p=>p.favorite).map(p=>p.uid),points:Object.fromEntries(view.families.map(f=>[String(f.id),f.points])),busy:view.busy};
  const quote=quoteKantoResearch(snapshot,selected);
  const matched=view.families.filter(f=>(filter==='all'||(filter==='mastered'?f.current.rank===5:f.current.rank<5))&&f.speciesIds.some(id=>name(id).toLowerCase().includes(search.toLowerCase())));
- const candidates=view.pokemon.filter(p=>filter==='all'||matched.some(f=>f.id===p.familyId)).filter(p=>name(p.speciesId).toLowerCase().includes(search.toLowerCase())||name(p.familyId).toLowerCase().includes(search.toLowerCase()));
+ const candidates=view.pokemon.filter(p=>filter==='all'||matched.some(f=>f.id===p.familyId)).filter(p=>specimenName(p).toLowerCase().includes(search.toLowerCase())||name(p.speciesId).toLowerCase().includes(search.toLowerCase())||name(p.familyId).toLowerCase().includes(search.toLowerCase()));
  const canSelect=(uid:number)=>selected.includes(uid)||quoteKantoResearch(snapshot,[...selected,uid]).status==='ok';
  return <div className={styles.masteryWorkspace}>
   <section className={styles.panel}><h2><i className="fa-solid fa-flask" aria-hidden="true"/> Laboratório do Professor Carvalho</h2><p>Envie exemplares excedentes para fortalecer permanentemente suas famílias evolutivas.</p>
@@ -29,7 +31,7 @@ export function MasteryScreen({view,busy,onCommand}:{view:MasteryView;busy:boole
     <div className={styles.masteryList}>{matched.map(f=><article className={styles.masteryFamily} key={f.id}><PokemonArt id={f.id} name={name(f.id)}/><div><strong>Família {name(f.id)}</strong><small>Maestria {f.current.rank} — {names[f.current.rank]}</small><progress aria-label={'Maestria '+name(f.id)} value={f.points} max={f.next?.points??100}/><small>{f.points}/{f.next?.points??100} pontos · +{f.current.xpPercent}% XP · +{f.current.statPercent}% atributos</small></div></article>)}{!matched.length&&<p>Nenhuma família encontrada.</p>}</div>
    </section>
    <section className={styles.panel}><h2>Exemplares da coleção</h2><p>Selecione até 100 duplicados. A equipe, os favoritos e o último exemplar são protegidos.</p>
-    <div className={styles.masteryList}>{candidates.map(p=><article className={styles.masteryPokemon} key={p.uid} data-testid={'mastery-pokemon-'+p.uid}><PokemonArt id={p.speciesId} name={name(p.speciesId)}/><div><strong>{name(p.speciesId)} · Nv. {p.level}</strong><small>{p.blocked?reason[p.blocked as keyof typeof reason]:'+'+p.points+' pontos de pesquisa'} · #{p.uid}</small></div><button className={styles.secondary} type="button" disabled={blocked} aria-label={(p.favorite?'Remover favorito ':'Favoritar ')+p.uid} aria-pressed={p.favorite} onClick={()=>void onCommand({kind:'favorite',uid:p.uid,favorite:!p.favorite},view.revision)}><i className={(p.favorite?'fa-solid':'fa-regular')+' fa-star'} aria-hidden="true"/></button><label className={styles.masterySelect}><input type="checkbox" aria-label={'Selecionar Pokémon '+p.uid} checked={selected.includes(p.uid)} disabled={blocked||!!p.blocked||!canSelect(p.uid)} onChange={e=>setSelected(old=>e.target.checked?[...old,p.uid]:old.filter(id=>id!==p.uid))}/><span>Enviar</span></label></article>)}{!candidates.length&&<p>Nenhum exemplar encontrado.</p>}</div>
+    <div className={styles.masteryList}>{candidates.map(p=><article className={styles.masteryPokemon} key={p.uid} data-testid={'mastery-pokemon-'+p.uid}><PokemonArt id={specimenArt(p)} name={specimenName(p)}/><div><strong>{specimenName(p)} · Nv. {p.level}</strong><small>{p.blocked?reason[p.blocked as keyof typeof reason]:'+'+p.points+' pontos de pesquisa'} · #{p.uid}</small></div><button className={styles.secondary} type="button" disabled={blocked} aria-label={(p.favorite?'Remover favorito ':'Favoritar ')+p.uid} aria-pressed={p.favorite} onClick={()=>void onCommand({kind:'favorite',uid:p.uid,favorite:!p.favorite},view.revision)}><i className={(p.favorite?'fa-solid':'fa-regular')+' fa-star'} aria-hidden="true"/></button><label className={styles.masterySelect}><input type="checkbox" aria-label={'Selecionar Pokémon '+p.uid} checked={selected.includes(p.uid)} disabled={blocked||!!p.blocked||!canSelect(p.uid)} onChange={e=>setSelected(old=>e.target.checked?[...old,p.uid]:old.filter(id=>id!==p.uid))}/><span>Enviar</span></label></article>)}{!candidates.length&&<p>Nenhum exemplar encontrado.</p>}</div>
     <div className={styles.masteryCheckout}><strong>{selected.length} selecionado(s) · +{quote.status==='ok'?quote.totalPoints:0} pontos</strong>{quote.status==='ok'&&quote.families.map(f=><small key={f.id}>{name(f.id)}: {f.before} → {f.after} pontos</small>)}<button type="button" className={styles.primary} disabled={blocked||quote.status!=='ok'} onClick={()=>setConfirm(true)}>Enviar para pesquisa</button></div>
    </section>
   </div>

@@ -8,9 +8,12 @@ const fixture=()=>({version:1,mode:'normal',trainer:{level:100,xp:0},roster:[{..
 const x={uid:1,formId:'charizard-mega-x'},y={uid:1,formId:'charizard-mega-y'};
 const raw=(state:unknown)=>JSON.stringify(state);
 describe('Santuário Mega: shared mastery, one independent permanent pass',()=>{
- it('unlocks only mastered families, not a low-level individual',()=>{
+ it('always shows sanctuary but unlocks only mastered families, not a low-level individual',()=>{
   const s=fixture();
-  expect(onlineMegaProjection(raw({...s,research:{...s.research,points:{'4':99}}}))?.visible).toBe(false);
+  const locked=onlineMegaProjection(raw({...s,research:{...s.research,points:{'4':99}}}))!;
+  expect(locked.visible).toBe(true);
+  expect(locked.challenges.every(c=>!c.unlocked)).toBe(true);
+  expect(locked.pokemon.every(p=>p.pass==='locked'&&p.options.every(o=>!o.canChallenge))).toBe(true);
   const view=onlineMegaProjection(raw({...s,roster:[student,{...student,uid:2,level:99}]}))!;
   expect(view.visible).toBe(true);
   expect(view.challenges.map(c=>c.unlocked)).toEqual([false,true,true,false]);

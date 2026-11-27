@@ -17,3 +17,6 @@
 .select select{width:100%;min-height:44px;border:1px solid var(--color-border);background:var(--color-bg);color:var(--color-text);border-radius:var(--radius-control);padding:var(--space-2)}
 .result{padding:var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-card);margin-top:var(--space-3)}
 @media(max-width:600px){.grid{grid-template-columns:1fr}.challenge img{height:130px}.heroGem{display:none}}
+
+.requirements{margin-top:var(--space-3);padding:var(--space-3);border:1px solid var(--trainer-card-border);border-radius:var(--radius-control);background:var(--color-surface)}
+.requirements ul{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:var(--space-1) var(--space-3);padding-left:var(--space-4);margin:var(--space-2) 0 0;font-size:.82rem;line-height:1.5;color:var(--color-text)}

@@ -749,7 +749,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
       <aside className={styles.sidebar}>
         <div className={styles.brand}><PokeballSymbol className={styles.brandBall}/>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
-        {online?<OnlineNavigation megaAvailable={!!megaView?.visible} masteryAvailable={!!onlineViews?.mastery||trainerSection==='mastery'} tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
+        {online?<OnlineNavigation megaAvailable={true} masteryAvailable={!!onlineViews?.mastery||trainerSection==='mastery'} tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
           disabled={item=>item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition}
           onNavigate={item=>{if(onlineViews?.region?.encounter){setTab('battle');return;}if(onlineViews?.gym?.gym){setTab('gyms');return;}if(item.tab==='trainer')setTrainerSection(item.trainerSection??'profile');if(item.tab==='pokemon')setPokemonSection(item.pokemonSection??'profile');setTab(item.tab);setFeedback('');setBattlePlayback(null);}}/>:<nav className={styles.menu} aria-label="Navegação do jogo">
           {(['overview','trainer','pokemon','collection','pokedex','regions','gyms','expedition','shop'] as Tab[]).map(item => (
@@ -853,7 +853,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
             {tab==='trainer'&&trainerSection==='bag'&&machineView&&<section className={styles.panel}><MachineBag view={machineView}/></section>}
             {tab==='trainer'&&trainerSection==='bag'&&megaView&&<MegaBag view={megaView} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>}
-            {tab==='mega'&&online&&(megaView?.visible?<MegaSanctuary view={megaView} roster={data.roster} busy={busy} onChallenge={(command,revision)=>onlineExtra('mega/challenge',{command},revision)} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>:<section className={styles.panel}>Santuário bloqueado ou indisponível. <button className={styles.secondary} onClick={()=>setTab('regions')}>Voltar às regiões</button></section>)}
+            {tab==='mega'&&online&&(megaView?<MegaSanctuary view={megaView} roster={data.roster} busy={busy} onChallenge={(command,revision)=>onlineExtra('mega/challenge',{command},revision)} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>:<section className={styles.panel}>Não foi possível carregar os requisitos do Santuário Mega. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button> <button className={styles.secondary} onClick={()=>setTab('regions')}>Voltar às regiões</button></section>)}
             {tab === 'pokemon' && (
               <div className={styles.pokemonWorkspace}>
                 <header className={styles.pokemonHeading}>
@@ -909,6 +909,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                           'Faltam '+(pokemonXpMax-pokemonXpCurrent)+' XP para o nível '+(focused.level+1)+'.'}</small>
                       </div>
                       <div className={styles.pokemonChips}>
+                        {focusedSpecies?.types.map(type=><span key={type} data-testid={'pokemon-type-'+type}>{({normal:'Normal',fire:'Fogo',water:'Água',grass:'Planta',electric:'Elétrico',ice:'Gelo',fighting:'Lutador',poison:'Venenoso',ground:'Terrestre',flying:'Voador',psychic:'Psíquico',bug:'Inseto',rock:'Pedra',ghost:'Fantasma',dragon:'Dragão',dark:'Sombrio',steel:'Aço',fairy:'Fada'} as Record<string,string>)[type]??type}</span>)}
                         <span><i className="fa-solid fa-star" aria-hidden="true"/> Nível {focused.level}</span>
                         <span><i className="fa-solid fa-shield-heart" aria-hidden="true"/> Afinidade {focused.affinity}%</span>
                         <span><i className="fa-solid fa-users" aria-hidden="true"/> {data.team[0]===focused.uid?'Líder da equipe':data.team.includes(focused.uid)?'Na equipe':'Na coleção'}</span>
@@ -1545,9 +1546,9 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 }))}
                 selectedRegionId={expeditionArea}
                 onSelectRegion={setExpeditionArea}
-                leaderName={view.active.name}
+                leaderName={activeSpecies?.name??view.active.name}
                 leaderLevel={active.level}
-                leaderArt={<PokemonArt id={active.pokemonId} name={view.active.name} />}
+                leaderArt={<PokemonArt id={activeSpecies?.artId??active.pokemonId} name={activeSpecies?.name??view.active.name} />}
                 pending={online?(onlineViews?.expedition?.expedition?.preview?{cycles:onlineViews.expedition.expedition.preview.cycles,coins:onlineViews.expedition.expedition.preview.coins,trainerXp:onlineViews.expedition.expedition.preview.trainerXP,pokemonXpPerMember:onlineViews.expedition.expedition.preview.pokemonXP,ballDrops:{'poke-ball':onlineViews.expedition.expedition.preview.ballDrops?.['poke-ball']??0,'great-ball':onlineViews.expedition.expedition.preview.ballDrops?.['great-ball']??0,'ultra-ball':onlineViews.expedition.expedition.preview.ballDrops?.['ultra-ball']??0}}:null):pendingClaim??null}
                 ballStockCapped={pendingStockLimitReached}
                 ballProgress={expProgress}

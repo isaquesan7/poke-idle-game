@@ -40,8 +40,8 @@ function boundStone(p:Student,form:KantoMegaForm){return p.megaForm===undefined&
 export function onlineMegaProjection(raw:string){
  const c=checked(raw);if(!c)return null;
  const unlocked=(speciesId:number)=>masteryBonusFromSave(c.state.research,speciesId)?.rank===5;
- const visible=KANTO_MEGA_FORMS.some(f=>unlocked(f.speciesId));
- return {visible,busy:c.busy,requirements:KANTO_MEGA_REQUIREMENTS,
+ // Discoverability is independent of eligibility; only the challenge is gated.
+ return {visible:true,busy:c.busy,requirements:KANTO_MEGA_REQUIREMENTS,
   challenges:KANTO_MEGA_FORMS.map(form=>({form,name:names[form.id],unlocked:unlocked(form.speciesId)})),
   stones:c.roster.flatMap(p=>KANTO_MEGA_FORMS.filter(f=>boundStone(p,f)).map(f=>({id:f.stoneId,formId:f.id,uid:p.uid,quantity:1}))),
   pokemon:c.roster.filter(p=>KANTO_MEGA_FORMS.some(f=>f.speciesId===p.pokemonId)).map(p=>{
