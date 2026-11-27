@@ -197,6 +197,7 @@ export function canonicalOnlineGymPreparation(source:unknown):
     const combatant:Combatant={
       speciesId:species.id,name:species.name,level:p.level,
       types:species.types,
+      ...(moves.some(m=>m.name==='return'||m.name==='frustration')?{affinity:p.affinity}:{}),
       stats:pokemonMasteryStats(pokemonFinalStats(species.base,p.level,pokemonManual,
         bonuses.totals,p.affinity),mastery.statPercent),
       move:moves[0]!,moves,rank:ranks[moves[0]!.name]??0,ranks

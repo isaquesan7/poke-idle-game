@@ -11,6 +11,7 @@ import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
   gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt,gymPendingAction,gymRestSleep,gymTaunt,gymTickTaunt,gymDoubleTeam,gymAccuracyAfterEvasion,gymThaw} from './gymEffects.js';
 import {gymWeatherMove,gymActiveWeather,gymSetWeather,gymWeatherAccuracy,gymWeatherDamage,gymWeatherResidual} from './gymWeather.js';
+import {gymEffectiveMove} from './gymVariableMoves.js';
 import {gymSignatureSupport} from './gymSignatureTms.js';
 import {gymPsychicSecondary} from './gymPsychicMoves.js';
 import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
@@ -310,6 +311,12 @@ export function resolveGymTurn(
     if(taunted&&move.category==='status'){record(side+' não pôde usar '+move.name+' devido a Taunt.');continue;}
     const cost=pending?0:kantoMoveSpCost(move);
     state=spendGymSp(state,side,cost);
+    // Focus Punch has priority -3. Only earlier direct HP loss interrupts;
+    // residual is after actions. The attempt still costs its canonical SP.
+    if(move.name==='focus-punch'&&input[side].activeIndex===state[side].activeIndex&&active.hp<input[side].fighters[input[side].activeIndex]!.hp){
+      record(side+' perdeu a concentração de focus-punch (-'+cost+' SP).');
+      continue;
+    }
     if(!pending&&(move.name==='dig'||move.name==='solar-beam'&&gymActiveWeather(state)!=='sunny-day')){
       state=gymPendingAction(state,side,move.name);
       record(side+' preparou '+move.name+' (-'+cost+' SP).');
@@ -417,7 +424,7 @@ export function resolveGymTurn(
     }
     const ownDrops=active.effects??GYM_EMPTY_EFFECTS;
     const foeDrops=target.effects??GYM_EMPTY_EFFECTS;
-    const cleanAttacker=combatantUsing(active,move);
+    const cleanAttacker=combatantUsing(active,gymEffectiveMove(move,active.combatant.affinity,active.status));
     const attacker={...cleanAttacker,stats:{...cleanAttacker.stats,
       attack:gymSpecialStat(cleanAttacker.stats.attack,ownDrops.attackBoosts??0,ownDrops.attackDrops),
       specialAttack:gymSpecialStat(cleanAttacker.stats.specialAttack,ownDrops.specialAttackBoosts??0,ownDrops.specialAttackDrops??0)}};

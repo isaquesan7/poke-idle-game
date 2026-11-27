@@ -25,6 +25,11 @@ const MACHINE_ONLY_MOVES:Readonly<Record<string,KantoMove>>=Object.freeze({
  'sandstorm':GYM_NPC_SUPPORT_MOVES.sandstorm!,
  'hail':GYM_NPC_SUPPORT_MOVES.hail!,
  rest:GYM_NPC_SUPPORT_MOVES.rest!,
+ // Variable-power moves use their maximum/base for slot identity and SP.
+ return:Object.freeze({name:'return',type:'normal',category:'physical',power:102,accuracy:100,priority:0}),
+ frustration:Object.freeze({name:'frustration',type:'normal',category:'physical',power:102,accuracy:100,priority:0}),
+ facade:Object.freeze({name:'facade',type:'normal',category:'physical',power:70,accuracy:100,priority:0}),
+ 'focus-punch':Object.freeze({name:'focus-punch',type:'fighting',category:'physical',power:150,accuracy:100,priority:-3}),
  taunt:GYM_NPC_SUPPORT_MOVES.taunt!,
  'double-team':GYM_NPC_SUPPORT_MOVES['double-team']!,
  'ice-beam':Object.freeze({name:'ice-beam',type:'ice',category:'special',power:95,accuracy:100,priority:0}),

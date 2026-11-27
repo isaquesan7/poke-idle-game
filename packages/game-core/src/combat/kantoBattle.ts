@@ -110,6 +110,8 @@ export type Combatant = Readonly<{
   stats: Readonly<StatValues>;
   move: KantoMove;
   rank: number;
+  /** Frozen individual affinity (0–100), required for variable-power TM loadouts. */
+  affinity?:number;
   /** Opcional para progresso legado: primeiro item é o principal. */
   moves?:readonly KantoMove[];
   ranks?:Readonly<Record<string,number>>;
@@ -244,6 +246,7 @@ function validateCombatant(monster:Combatant,allowInternalBasic=false):void {
     || !Array.isArray(monster.types) || monster.types.length<1 || monster.types.length>2
     || monster.types.some(type=>!TYPES[type])
     || !Number.isSafeInteger(monster.rank) || monster.rank<0 || monster.rank>10
+    ||(monster.affinity!==undefined&&(!Number.isSafeInteger(monster.affinity)||monster.affinity<0||monster.affinity>100))
     || !monster.stats || !validMove(monster.move,allowInternalBasic)
     // Basic Attack só pode ser usado internamente na resolução do golpe.
     || (!allowInternalBasic&&monster.move.name===KANTO_BASIC_ATTACK.name)

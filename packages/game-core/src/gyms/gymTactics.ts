@@ -13,6 +13,7 @@ import {kantoSpecies} from '../catalog/kantoSpecies.js';
 import {gymPsychicLevelMoves} from './gymPsychicMoves.js';
 import {pokemonFinalStats} from '../stats/pokemon.js';
 import {trainerTotals,MANUAL_TRAINER_CAP} from '../stats/trainer.js';
+import {gymEffectiveMove} from './gymVariableMoves.js';
 import {gymAccuracyAfterEvasion} from './gymEffects.js';
 import {gymWeatherMove,gymWeatherMultiplier,gymWeatherAccuracy,gymWeatherResidual} from './gymWeather.js';
 import type {GymWeather} from './gymWeather.js';
@@ -255,7 +256,7 @@ export function gymAiDecision(args:{
   // A propriedade opcional 'moves' deve ser OMITIDA (exactOptionalPropertyTypes).
   const {moves: _loadout,...combatantWithoutSlots}=actor;
   const estimate=(move:KantoMove)=>kantoDamage(
-    {...combatantWithoutSlots,move,rank:move.name===KANTO_BASIC_ATTACK.name?0:actor.ranks?.[move.name]??(move.name===actor.move.name?actor.rank:0)},defender,.5,.5);
+    {...combatantWithoutSlots,move:gymEffectiveMove(move,actor.affinity,args.actorStatus),rank:move.name===KANTO_BASIC_ATTACK.name?0:actor.ranks?.[move.name]??(move.name===actor.move.name?actor.rank:0)},defender,.5,.5);
   // Ataque básico gratuito permanece disponível mesmo com SP esgotado.
   const basicDamage=estimate(KANTO_BASIC_ATTACK).damage;
   const decisions:GymAiDecision[]=[{action:'basic',score:Math.round(
@@ -299,7 +300,7 @@ export function gymAiDecision(args:{
     const expected=estimate(move);
     const accuracy=gymAccuracyAfterEvasion(move.name,gymWeatherAccuracy(args.weather??null,move),args.targetEvasionStage??0)/100;
     const delayed=move.name==='hyper-beam'||move.name==='dig'||move.name==='solar-beam'&&args.weather!=='sunny-day';
-    const damage=expected.damage*accuracy*gymWeatherMultiplier(args.weather??null,move.type)*(delayed?.5:1);
+    const damage=expected.damage*accuracy*gymWeatherMultiplier(args.weather??null,move.type)*(delayed?.5:1)*(move.name==='focus-punch'?.25:1);
     const score=expected.effectiveness===0?-100
       :Math.round(100*damage/Math.max(1,defender.stats.hp))
         +(expected.damage>=defender.stats.hp?30:0)
