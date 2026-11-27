@@ -174,7 +174,7 @@ export function PokedexDetailModal({species,status,revealedSpeciesIds,onClose,ma
                 </div>)}</div>:<p className={styles.hint}>Nenhum ataque especial registrado neste recorte.</p>}
               <h4>Outros golpes e suportes</h4>
               {rest.length?<div className={styles.moves}>
-                {rest.slice(0,8).map(({move,learnedAt})=><div key={move.name} className={styles.move}>
+                {rest.map(({move,learnedAt})=><div key={move.name} className={styles.move}>
                   <strong>{displayMove(move.name)}</strong><small>{name(move.type)} · Nv. {learnedAt}</small>
                   <span>{CATEGORY[move.category]}{move.power>0?' · Poder '+move.power:''}</span>
                 </div>)}</div>:<p className={styles.hint}>Nenhum outro golpe registrado neste recorte.</p>}

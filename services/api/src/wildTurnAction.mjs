@@ -78,7 +78,7 @@ export async function applyReservedWildTurn(pool,{
     const frozen=await buildPersistedBattleSnapshot(save,{
       regionId:Number(encounter.region_id),speciesId:Number(encounter.species_id),
       level:Number(encounter.pokemon_level)
-    });
+    },encounter.battle_snapshot?.tmLootVersion===1);
     if(!frozen||!isDeepStrictEqual(frozen,encounter.battle_snapshot))
       return await rollback(client,{status:'stale-snapshot'});
     const keyProof=createPrivateBattleKeyProof(entropyKey,{accountId,encounterId});

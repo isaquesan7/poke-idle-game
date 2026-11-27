@@ -78,7 +78,7 @@ test('TM regional loot: certified overlevel win credits stock exactly once and s
   const core=await loadCombatAdapter();
   accountId=(await pool.query("INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id",['tm-loot-'+randomUUID()+'@example.test','x'.repeat(48)])).rows[0].id;
   const initial=firstSave('TM Loot CI',4,1740000000000),before=JSON.parse(initial.journal.raw);
-  before.trainer.level=80;before.roster[0].level=80;
+  before.trainer.level=80;before.roster[0].level=80;before.ballPocket.quantities['poke-ball']=0;
   initial.journal.raw=JSON.stringify(before);
   await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[accountId,JSON.stringify(initial)]);
   const booked=await reserveEncounter(pool,{accountId,actionId:randomUUID(),expectedRevision:0,regionId:1});
@@ -95,7 +95,8 @@ test('TM regional loot: certified overlevel win credits stock exactly once and s
    const random=createPrivateBattleRandom(candidate,{...ids,phase:'wild-battle-tm-drop'});
    const rolled=core.rollRegionalMachine({regionId:1,speciesId:selected.speciesId,wildLevel:selected.level,trainerLevel:80,pokemonLevel:80,won:true},random.integer);
    assert.ok(rolled);
-   if(rolled.tmId){entropyKey=candidate;tmId=rolled.tmId;opponent=selected;break;}
+   const ballRoll=createPrivateBattleRandom(candidate,{...ids,phase:'wild-battle-ball-drop'}).integer(10000);
+   if(rolled.tmId&&ballRoll<3000){entropyKey=candidate;tmId=rolled.tmId;opponent=selected;break;}
   }
   assert.ok(entropyKey&&tmId,'exercise a real nonempty R1 TM pool');
   const materialized=await materializeReservedEncounter(pool,{...ids,entropyKey});
@@ -130,6 +131,13 @@ test('TM regional loot: certified overlevel win credits stock exactly once and s
   const read=async()=>JSON.parse((await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[accountId])).rows[0].state.journal.raw);
   const after=await read();
   assert.equal(after.machineStock[tmId],1);
+  assert.ok(after.seen.includes(opponent.speciesId));
+  assert.equal(after.ballPocket.quantities['poke-ball']??0,0);
+  assert.deepEqual(paid.paid.deferredBall,{kind:'ball',itemId:'poke-ball',quantity:1});
+  const {readRegionalEncounter}=await import('../src/regionalHttp.mjs');
+  const current=await readRegionalEncounter(pool,accountId);
+  assert.equal(current.encounter.captureChoices.some(x=>x.ballId==='poke-ball'),false);
+  assert.equal((await finishPaidWildTurnEncounter(pool,{...ids,actionId:randomUUID(),expectedRevision:paid.revision,choice:'poke-ball',entropyKey})).status,'unavailable');
   assert.equal(after.roster[0].xp,before.roster[0].xp);assert.equal(after.trainer.xp,before.trainer.xp);
   assert.equal((await payCertifiedWildTurns(pool,{...args,actionId:randomUUID(),expectedRevision:paid.revision})).status,'already-paid');
   const row=await pool.query('SELECT battle_turn_payout_quote FROM game_encounter_reservations WHERE id=$1',[ids.encounterId]);
@@ -142,6 +150,9 @@ test('TM regional loot: certified overlevel win credits stock exactly once and s
   assert.equal((await read()).machineStock[tmId],1);
   await pool.query('UPDATE game_encounter_reservations SET battle_turn_payout_quote=$2::jsonb WHERE id=$1',[ids.encounterId,JSON.stringify(row.rows[0].battle_turn_payout_quote)]);
   assert.equal((await finishPaidWildTurnEncounter(pool,finish)).status,'finished');
+  assert.equal((await read()).ballPocket.quantities['poke-ball'],1);
+  assert.equal((await finishPaidWildTurnEncounter(pool,finish)).status,'replay');
+  assert.equal((await read()).ballPocket.quantities['poke-ball'],1);
   assert.equal((await read()).machineStock[tmId],1);
   const view=await readMachines(pool,accountId);
   assert.equal(view.status,'ok');assert.equal(view.machines.find(x=>x.id===tmId).quantity,1);

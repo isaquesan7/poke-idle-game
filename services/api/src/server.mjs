@@ -420,7 +420,7 @@ const server=createServer(async(req,res)=>{
       return json(res,status,result.status==='ok'?result:{error:result.status});
     }
     if(onlineRouteGroup(pathname,'tm')){
-      if(!enabled||!machineHttpEnabled())return json(res,503,{error:'TMs online em preparação'});
+      if(!enabled||(!release.savesEnabled&&!machineHttpEnabled()))return json(res,503,{error:'TMs online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       if(!read)requireSameOrigin(req);
@@ -594,7 +594,7 @@ const server=createServer(async(req,res)=>{
         return json(res,current.status==='ok'?200:404,current);
       }
       if(!await enforceThrottle(req,res,{scope:'region-action-account',identifier:account.id,limit:300}))return;
-      const result=await runRegionalCommand(pool,account.id,pathname.split('/').at(-1),await readJson(req),key,expanded);
+      const result=await runRegionalCommand(pool,account.id,pathname.split('/').at(-1),await readJson(req),key,expanded,release.savesEnabled||machineHttpEnabled());
       const ok=['reserved','started','applied','certified','paid','finished','replay'].includes(result.status);
       return json(res,ok?200:result.status==='invalid'?400:
         ['missing','missing-save'].includes(result.status)?404:409,result);

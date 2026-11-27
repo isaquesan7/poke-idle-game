@@ -61,7 +61,10 @@ export async function readRegionalEncounter(pool,accountId,expanded=false){
  if(!regions)return {status:'invalid-save'};
  const phase=row.battle_turn_payout_action_id?'paid':row.battle_turn_certificate_action_id?'certified':state?.phase??'reserved';
  const actions=phase==='await-player'?core.legalFrozenWildTurnActions(row.battle_snapshot,state):[];
- const captureChoices=phase==='paid'&&state?.outcome==='win'?core.serverRegionalCaptureChoices(Number(row.region_id),Number(row.species_id),state.wild.maxHp,raw.ballPocket):[];
+ const receipt=row.battle_turn_payout_receipt;
+ const oldCredit=receipt&&!Object.hasOwn(receipt,'deferredBall')&&receipt.ballDrop?.quantity===1?receipt.ballDrop.ballId:null;
+ const pocket=oldCredit?{...raw.ballPocket,quantities:{...raw.ballPocket.quantities,[oldCredit]:Math.max(0,(raw.ballPocket.quantities[oldCredit]??0)-1)}}:raw.ballPocket;
+ const captureChoices=phase==='paid'&&state?.outcome==='win'?core.serverRegionalCaptureChoices(Number(row.region_id),Number(row.species_id),state.wild.maxHp,pocket):[];
  return {status:'ok',revision:Number(row.revision),
   regions:expanded?regions:regions.filter(r=>r.id===1),pendingLoot:raw.pendingRegionalLoot!=null||raw.pendingExpeditionLoot!=null,encounter:row.id?{
   id:row.id,regionId:Number(row.region_id),speciesId:row.species_id,level:row.pokemon_level,
@@ -70,7 +73,7 @@ export async function readRegionalEncounter(pool,accountId,expanded=false){
   log:Array.isArray(state?.log)?state.log:[],frames:Array.isArray(state?.frames)?state.frames:[]
  }:null};
 }
-export async function runRegionalCommand(pool,accountId,command,data,entropyKey,expanded=false){
+export async function runRegionalCommand(pool,accountId,command,data,entropyKey,expanded=false,tmLoot=undefined){
  if(!Object.hasOwn(shapes,command)||!data||Object.keys(data).sort().join(',')!==shapes[command]||
     !Number.isSafeInteger(data.expectedRevision)||data.expectedRevision<0||
     (command!=='reserve'&&(typeof data.encounterId!=='string'||!UUID.test(data.encounterId)))||
@@ -93,7 +96,7 @@ export async function runRegionalCommand(pool,accountId,command,data,entropyKey,
   if(pending.revision!==data.expectedRevision)return {status:'stale'};
   const materialized=await materializeReservedEncounter(pool,{accountId,encounterId:data.encounterId,entropyKey});
   if(!['materialized','replay'].includes(materialized.status))return {status:materialized.status};
-  const prepared=await prepareReservedBattle(pool,{accountId,encounterId:data.encounterId});
+  const prepared=await prepareReservedBattle(pool,{accountId,encounterId:data.encounterId,tmLoot});
   if(!['prepared','replay'].includes(prepared.status))return {status:prepared.status};
   result=await startReservedWildTurnSession(pool,params);
  }else if(command==='turn')result=await applyReservedWildTurn(pool,{...params,entropyKey});
