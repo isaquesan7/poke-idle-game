@@ -30,19 +30,23 @@ import type {onlineMasteryProjection} from '@kanto/game-core';
 export type MasteryView=NonNullable<ReturnType<typeof onlineMasteryProjection>> & {revision:number};
 import type {onlineMachineProjection} from '@kanto/game-core';
 export type MachineView=NonNullable<ReturnType<typeof onlineMachineProjection>> & {revision:number};
-export interface OnlineViews {machines?:MachineView|null;mastery?:MasteryView|null;inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;expeditionClock:ServerClockSample|null;region:RegionView|null;gym:GymView|null}
+import type {onlineMegaProjection,KantoMegaFormId,KantoMegaStoneId} from '@kanto/game-core';
+export type MegaFighter={uid:number|null;speciesId:number;megaForm?:KantoMegaFormId;name:string;level:number;hp:number;maxHp:number;sp:number;maxSp:number};
+export type MegaTrial={id:string;uid:number;formId:KantoMegaFormId;outcome:'win'|'loss'|'draw';stoneId:KantoMegaStoneId|null;turns:number;player:MegaFighter;boss:MegaFighter;log:string[];frames:KantoBattleVisualFrame[]};
+export type MegaView=NonNullable<ReturnType<typeof onlineMegaProjection>>&{revision:number;lastTrial:MegaTrial|null};
+export interface OnlineViews {mega?:MegaView|null;machines?:MachineView|null;mastery?:MasteryView|null;inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;expeditionClock:ServerClockSample|null;region:RegionView|null;gym:GymView|null}
 export async function readOnlineViews(revision:number):Promise<OnlineViews>{
  async function load<T>(path:string):Promise<T|null>{try{const r=await get(path);if(!r.ok)return null;const v=await r.json();return v?.status==='ok'&&v.revision===revision?v as T:null;}catch{return null;}}
  const expeditionRequest=load<ExpeditionView>('expedition/current').then(expedition=>({expedition,expeditionClock:expedition?{serverNowMs:expedition.serverNowMs,receivedAt:performance.now()}:null}));
- const [inventory,shop,expeditionResult,region,gym,mastery,machines]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),expeditionRequest,load<RegionView>('region/current'),load<GymView>('gym/current'),load<MasteryView>('mastery/current'),load<MachineView>('tm/current')]);
- return {inventory,shop,...expeditionResult,region,gym,mastery,machines};
+ const [inventory,shop,expeditionResult,region,gym,mastery,machines,mega]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),expeditionRequest,load<RegionView>('region/current'),load<GymView>('gym/current'),load<MasteryView>('mastery/current'),load<MachineView>('tm/current'),load<MegaView>('mega/current')]);
+ return {inventory,shop,...expeditionResult,region,gym,mastery,machines,mega};
 }
-export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach',fields:Record<string,unknown>,revision:number){
+export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach'|'mega/challenge'|'mega/evolve',fields:Record<string,unknown>,revision:number){
  const r=await post(path,{...fields,actionId:crypto.randomUUID(),expectedRevision:revision});
  // Consume the complete server receipt before triggering a new refresh.
  const receipt=await r.json();
  if(!r.ok)return false;
- if(path==='mastery/research'||path==='tm/teach')return receipt?.status==='applied'&&receipt.revision===revision+1;
+ if(path==='mastery/research'||path==='tm/teach'||path==='mega/challenge'||path==='mega/evolve')return receipt?.status==='applied'&&receipt.revision===revision+1;
  if(path==='shop/purchase'&&Array.isArray(fields.items))return receipt?.status==='purchased'&&receipt.revision===revision+1&&Array.isArray(receipt.purchase?.items)&&receipt.purchase.items.length>0;
  return true;
 }
