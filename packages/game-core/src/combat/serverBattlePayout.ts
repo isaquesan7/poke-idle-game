@@ -140,11 +140,6 @@ export function applyFrozenBattleRewardQuote(raw:string,snapshot:unknown,preview
        !Number.isSafeInteger((record[name] as number)+1))return null;
     record[name]=(record[name] as number)+1;
   }
-  // Every certified encounter reveals the wild species, irrespective of result or capture.
-  const seen=state.seen;
-  const wildId=(snapshot as {opponent:{speciesId:number}}).opponent.speciesId;
-  if(!Array.isArray(seen)||!seen.every(id=>natural(id)&&id>=1&&id<=151))return null;
-  if(!seen.includes(wildId))state.seen=[...seen,wildId];
   // No captured Pokémon, badges, or release of encounter here.
   return {raw:JSON.stringify(state),paid:Object.freeze({
     coins,trainerXp,pokemonXp,affinityDelta,outcome:input.outcome,
