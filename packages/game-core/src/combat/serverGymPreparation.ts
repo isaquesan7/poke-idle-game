@@ -19,6 +19,7 @@ import {LEGACY_TITLES,legacyTitleIsUnlocked}
   from '../legacy/catalog.js';
 import {inspectOnlineInventory,onlineGearForSlot} from '../inventory/onlineOwnership.js';
 import {KANTO_BATTLE_SPECIES} from './kantoBattle.js';
+import {kantoPokemonFormProfile,validKantoMegaEntitlement} from '../catalog/kantoMegaForms.js';
 import {trainerTotals} from '../stats/trainer.js';
 import {masteryBonusFromSave} from '../progression/kantoMastery.js';
 import {pokemonMasteryStats,pokemonFinalStats} from '../stats/pokemon.js';
@@ -136,6 +137,37 @@ export function canonicalOnlineGymTrainerBonuses(source:unknown):
     activeTitle:title.id,badges:badgeDefs.map(g=>g.id),totals
   };
 }
+/** Shared canonical owned fighter for Gym and Santuário; caller selects a real UID. */
+export function canonicalOnlineOwnedCombatant(source:RecordValue,p:unknown,bonuses:OnlineGymTrainerBonuses):Combatant|null{
+    if(!isRecord(p)||!integer(p.pokemonId,1,151)||
+       !integer(p.level,1,100)||!integer(p.affinity,0,100)||
+       typeof p.moveName!=='string'||!MOVE.test(p.moveName))
+      return null;
+    const pokemonManual=manualStats(p.manual,p.level,(p.level-1)*2);
+    if(!pokemonManual)return null;
+    const names=p.equippedMoveNames===undefined?
+      [p.moveName]:p.equippedMoveNames;
+    if(!Array.isArray(names)||names[0]!==p.moveName)return null;
+    const moves=canonicalOnlineGymEquippedMoves(p.pokemonId,p.level,names,p.evolutionHistory,p.machineLessons);
+    if(!moves)return null;
+    const validated=validatedOnlineMoveRanks(p.pokemonId,p.level,p.evolutionHistory,p.upgrades,p.machineLessons);
+    if(!validated)return null;
+    const ranks=Object.keys(validated).length?equippedOnlineRanks(moves,validated):{};
+    const species=kantoPokemonFormProfile(p.pokemonId,p.megaForm);
+    if(!species||!validKantoMegaEntitlement(p.pokemonId,p.megaForm,p.megaTrialForm))return null;
+    const mastery=masteryBonusFromSave(source.research,p.pokemonId);
+    if(!mastery)return null;
+    const combatant:Combatant={
+      speciesId:species.speciesId,name:species.name,level:p.level,
+      types:species.types,
+      ...(species.formId?{megaForm:species.formId}:{}),
+      ...(moves.some(m=>m.name==='return'||m.name==='frustration')?{affinity:p.affinity}:{}),
+      stats:pokemonMasteryStats(pokemonFinalStats(species.base,p.level,pokemonManual,
+        bonuses.totals,p.affinity),mastery.statPercent),
+      move:moves[0]!,moves,rank:ranks[moves[0]!.name]??0,ranks
+    };
+    return combatant;
+}
 export interface OnlineGymPreparationV1 {
   readonly version:1;
   readonly gymId:string;
@@ -176,32 +208,8 @@ export function canonicalOnlineGymPreparation(source:unknown):
   const players:{uid:number;combatant:Combatant}[]=[];
   for(const uid of source.team){
     const p=source.roster.find(entry=>isRecord(entry)&&entry.uid===uid);
-    if(!isRecord(p)||!integer(p.pokemonId,1,151)||
-       !integer(p.level,1,100)||!integer(p.affinity,0,100)||
-       typeof p.moveName!=='string'||!MOVE.test(p.moveName))
-      return null;
-    const pokemonManual=manualStats(p.manual,p.level,(p.level-1)*2);
-    if(!pokemonManual)return null;
-    const names=p.equippedMoveNames===undefined?
-      [p.moveName]:p.equippedMoveNames;
-    if(!Array.isArray(names)||names[0]!==p.moveName)return null;
-    const moves=canonicalOnlineGymEquippedMoves(p.pokemonId,p.level,names,p.evolutionHistory,p.machineLessons);
-    if(!moves)return null;
-    const validated=validatedOnlineMoveRanks(p.pokemonId,p.level,p.evolutionHistory,p.upgrades,p.machineLessons);
-    if(!validated)return null;
-    const ranks=Object.keys(validated).length?equippedOnlineRanks(moves,validated):{};
-    const species=KANTO_BATTLE_SPECIES[p.pokemonId];
-    if(!species)return null;
-    const mastery=masteryBonusFromSave(source.research,p.pokemonId);
-    if(!mastery)return null;
-    const combatant:Combatant={
-      speciesId:species.id,name:species.name,level:p.level,
-      types:species.types,
-      ...(moves.some(m=>m.name==='return'||m.name==='frustration')?{affinity:p.affinity}:{}),
-      stats:pokemonMasteryStats(pokemonFinalStats(species.base,p.level,pokemonManual,
-        bonuses.totals,p.affinity),mastery.statPercent),
-      move:moves[0]!,moves,rank:ranks[moves[0]!.name]??0,ranks
-    };
+    const combatant=canonicalOnlineOwnedCombatant(source,p,bonuses);
+    if(!combatant)return null;
     players.push({uid,combatant});
   }
   const opponent=prepareGymOpponent(gym);
