@@ -25,6 +25,7 @@ export function gymWeatherMultiplier(weather:GymWeather|null,type:string):number
 }
 export function gymWeatherDamage(weather:GymWeather|null,move:KantoMove,damage:number):number{
  if(damage<=0||move.name==='night-shade')return damage;
+ if(move.name==='solar-beam'&&weather&&weather!=='sunny-day')return Math.max(1,Math.floor(damage/2));
  return Math.max(1,Math.floor(damage*gymWeatherMultiplier(weather,move.type)));
 }
 export function gymWeatherResidual(weather:GymWeather|null,types:readonly string[],maxHp:number):number{

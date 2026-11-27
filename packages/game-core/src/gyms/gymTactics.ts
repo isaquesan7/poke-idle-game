@@ -233,6 +233,7 @@ export function gymAiDecision(args:{
   /** False quando Concentrar esgotou quotas ou cooldown no motor 3×3. */
   readonly allowConcentrate?:boolean;
   readonly defenderStatus?:string|null;
+  readonly actorStatus?:string|null;
   readonly calmMindStage?:number;
   readonly bulkUpStage?:number;
   readonly activeBarriers?:readonly string[];
@@ -271,7 +272,8 @@ export function gymAiDecision(args:{
           const score=args.weather===weather?-100:weather==='hail'||weather==='sandstorm'?(foeHurt&&!ownHurt?30:-100):benefit&&!risk?28:-100;
           decisions.push({action:'move',moveName:move.name,score});continue;
         }
-        const score=signature==='toxic'?(args.defenderStatus||defender.types.includes('poison')||defender.types.includes('steel')?-100:36)
+        const score=signature==='rest'?(actorHp/actor.stats.hp<=.4?70:actorHp/actor.stats.hp<=.6&&!!args.actorStatus?45:-100)
+          :signature==='toxic'?(args.defenderStatus||defender.types.includes('poison')||defender.types.includes('steel')?-100:36)
           :signature==='protect'?(!args.protectRepeated&&args.defenderStatus==='poison'?26:-100)
           :signature==='reflect'||signature==='light-screen'||signature==='safeguard'?(args.activeBarriers?.includes(signature)?-100:signature==='safeguard'?10:(signature==='reflect'&&defender.move.category==='physical'||signature==='light-screen'&&defender.move.category==='special')?30:5)
           :signature==='bulk-up'?((args.bulkUpStage??0)>=6||actorHp/actor.stats.hp<.35?-100:(args.bulkUpStage??0)===0?35:15)
@@ -290,7 +292,8 @@ export function gymAiDecision(args:{
     // Dano previsível com rolls médios fixos, nunca os futuros resultados do RNG.
     const expected=estimate(move);
     const accuracy=gymWeatherAccuracy(args.weather??null,move)/100;
-    const damage=expected.damage*accuracy*gymWeatherMultiplier(args.weather??null,move.type);
+    const delayed=move.name==='hyper-beam'||move.name==='dig'||move.name==='solar-beam'&&args.weather!=='sunny-day';
+    const damage=expected.damage*accuracy*gymWeatherMultiplier(args.weather??null,move.type)*(delayed?.5:1);
     const score=expected.effectiveness===0?-100
       :Math.round(100*damage/Math.max(1,defender.stats.hp))
         +(expected.damage>=defender.stats.hp?30:0)

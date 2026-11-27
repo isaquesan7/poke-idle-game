@@ -72,6 +72,22 @@ export function gymProtectAttempt(state:GymBattleState,side:GymSide,roll:()=>num
  const success=repeats===0||roll()<2**(-Math.min(8,repeats));
  return {success,state:{...state,[side]:{...party,protectChain:{index:party.activeIndex,lastTurn:state.turn,uses:success?Math.min(8,repeats+1):0}}}};
 }
+/** Set/clear the next forced action without modifying HP/SP or move slots. */
+export function gymPendingAction(state:GymBattleState,side:GymSide,pending:GymFighterState['pendingAction']):GymBattleState{
+ return gymReplaceFighter(state,side,old=>{
+  const {pendingAction:previous,...rest}=old;
+  return pending?{...rest,pendingAction:pending}:rest;
+ });
+}
+/** Rest replaces the primary condition, including toxic's counter.
+ * Self-induced sleep is independent of Safeguard; confusion is not a primary status.
+ */
+export function gymRestSleep(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>{
+  const {toxicStage,...rest}=old;
+  return {...rest,status:'sleep',sleepActions:2};
+ });
+}
 export function gymApplyStatus(
   state:GymBattleState,side:GymSide,status:KantoBattleStatus
 ):GymBattleState{

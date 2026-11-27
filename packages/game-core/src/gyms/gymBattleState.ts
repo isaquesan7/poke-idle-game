@@ -32,6 +32,8 @@ export interface GymFighterState {
   readonly toxicStage?:number;
   readonly effects?:GymEffects;
   readonly confusionTurns?:number;
+  /** Forced next action; not a new move slot or a second SP payment. */
+  readonly pendingAction?:'solar-beam'|'dig'|'recharge';
   readonly retreatRecoveriesUsed:number;
   readonly focusUses:number;
   readonly lastFocusTurn:number;

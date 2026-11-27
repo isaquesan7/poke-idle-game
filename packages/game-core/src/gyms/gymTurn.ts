@@ -9,7 +9,7 @@ import type {Combatant,KantoMove,KantoBattleVisualFrame} from '../combat/kantoBa
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
-  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt} from './gymEffects.js';
+  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt,gymPendingAction,gymRestSleep} from './gymEffects.js';
 import {gymWeatherMove,gymActiveWeather,gymSetWeather,gymWeatherAccuracy,gymWeatherDamage,gymWeatherResidual} from './gymWeather.js';
 import {gymSignatureSupport} from './gymSignatureTms.js';
 import {gymPsychicSecondary} from './gymPsychicMoves.js';
@@ -90,6 +90,16 @@ function validateAction(
     return target&&action.toIndex!==party.activeIndex&&target.hp>0
       ?{action,move:null,priority:99}:null;
   }
+  // A free forced substitution must not consume a waiting actor's charge/recharge.
+  if(state[side==='player'?'leader':'player'].needsReplacement)
+    return action.kind==='basic'?{action,move:KANTO_BASIC_ATTACK,priority:0}:null;
+  const waiting=party.fighters[party.activeIndex];
+  if(waiting?.pendingAction){
+    if(action.kind!=='basic')return null;
+    if(waiting.pendingAction==='recharge')return {action,move:null,priority:0};
+    const pending=(waiting.combatant.moves??[waiting.combatant.move]).find(m=>m.name===waiting.pendingAction);
+    return pending?{action,move:pending,priority:pending.priority}:null;
+  }
   if(action.kind==='switch'){
     if(!Number.isSafeInteger(action.toIndex)||action.toIndex<0||action.toIndex>2
       ||action.toIndex===party.activeIndex
@@ -116,6 +126,7 @@ function validateAction(
     const support=kantoSupportEffect(move.name);
     if(!support&&!gymSignatureSupport(move.name))return null;
     if(support?.kind==='heal'&&active.hp===active.combatant.stats.hp)return null;
+    if(move.name==='rest'&&(active.status==='sleep'||active.hp===active.combatant.stats.hp&&active.status===null))return null;
   }
   return {action,move,priority:move.priority};
 }
@@ -239,6 +250,14 @@ export function resolveGymTurn(
     }
     const active=state[side].fighters[state[side].activeIndex]!;
     if(active.hp<=0)continue;
+    const pending=active.pendingAction;
+    if(pending){
+      state=gymPendingAction(state,side,undefined);
+      if(pending==='recharge'){
+        record(side+' recarregou após hyper-beam.');
+        continue;
+      }
+    }
     // Sono: 1–3 ações próprias; recolhimento congela a duração.
     if(active.status==='sleep'){
       state=gymTickSleep(state,side);
@@ -281,16 +300,26 @@ export function resolveGymTurn(
     if(state[defendingSide].needsReplacement)break;
     const target=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
     const move=chosen.move!;
-    const cost=kantoMoveSpCost(move);
+    const cost=pending?0:kantoMoveSpCost(move);
     state=spendGymSp(state,side,cost);
+    if(!pending&&(move.name==='dig'||move.name==='solar-beam'&&gymActiveWeather(state)!=='sunny-day')){
+      state=gymPendingAction(state,side,move.name);
+      record(side+' preparou '+move.name+' (-'+cost+' SP).');
+      continue;
+    }
     if(roll()*100>=gymWeatherAccuracy(gymActiveWeather(state),move)){
       record(side+' errou '+move.name+' (-'+cost+' SP).');
       continue;
     }
     const supportEffect=kantoSupportEffect(move.name);
-    const selfDirected=!!gymWeatherMove(move.name)||supportEffect?.kind==='heal'||['bulk-up','calm-mind','reflect','light-screen','safeguard','protect'].includes(move.name);
+    const selfDirected=!!gymWeatherMove(move.name)||supportEffect?.kind==='heal'||['bulk-up','calm-mind','reflect','light-screen','safeguard','protect','rest'].includes(move.name);
     if(!selfDirected&&protectedSides.has(defendingSide)){
       record(defendingSide+' bloqueou '+move.name+' com Protect (-'+cost+' SP).');
+      continue;
+    }
+    // Dig is underground until the forced attack or an interrupted attempt.
+    if(!selfDirected&&target.pendingAction==='dig'&&move.name!=='earthquake'&&move.name!=='magnitude'){
+      record(defendingSide+' evitou '+move.name+' enquanto estava no subsolo.');
       continue;
     }
     if(move.category==='status'){
@@ -301,6 +330,12 @@ export function resolveGymTurn(
         const next=gymSetWeather(state,weather);
         record(side+' usou '+move.name+(next===state?': clima já ativo.':' por cinco turnos.'));
         state=next;
+        continue;
+      }
+      if(signature==='rest'){
+        state=healGymHp(state,side,active.combatant.stats.hp);
+        state=gymRestSleep(state,side);
+        record(side+' usou rest, recuperou todo o HP e adormeceu por duas ações.');
         continue;
       }
       if(signature==='protect'){
@@ -377,7 +412,7 @@ export function resolveGymTurn(
       if(actual.hp===0)break;
       const damage=kantoDamage(attacker,defender,roll(),roll(),
         active.status==='burn'&&move.category==='physical'?.5:1);
-      const inflicted=gymProtectedDamage(state,defendingSide,move.category,move.name,gymWeatherDamage(gymActiveWeather(state),move,damage.damage),damage.critical);
+      const inflicted=gymProtectedDamage(state,defendingSide,move.category,move.name,gymWeatherDamage(gymActiveWeather(state),move,damage.damage)*(target.pendingAction==='dig'&&['earthquake','magnitude'].includes(move.name)?2:1),damage.critical);
       state=applyGymDamage(state,defendingSide,inflicted);
       record(side+' usou '+move.name+' ('+hit+'/'+hits+'), causando '+
         inflicted+' de dano'+(hit===1?' (-'+cost+' SP)':'')+'.',{
@@ -401,6 +436,10 @@ export function resolveGymTurn(
     }
     // Self effects occur even if this attack KOs a target with reserves.
     if(state.outcome==='ongoing'&&state[defendingSide].fighters[state[defendingSide].activeIndex]!.hp<target.hp){
+      if(move.name==='hyper-beam'){
+        state=gymPendingAction(state,side,'recharge');
+        record(side+' precisará recarregar após hyper-beam.');
+      }
       if(move.name==='overheat'){
         state=gymOverheatDrop(state,side);
         record(side+' perdeu dois estágios de Ataque Especial.');
