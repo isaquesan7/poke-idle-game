@@ -45,7 +45,7 @@ describe('ARENA02: weekly deterministic legal opponent schedule',()=>{
      expect(p.moves.map(m=>m.name)).toContain(tm.moveName);
      return tm.moveName;
     });
-    expect(p.moves.every(m=>native.includes(m.name)||lessons.includes(m.name))).toBe(true);
+    expect(p.moves.every(m=>native.includes(m.name)||lessons.some(name=>name===m.name))).toBe(true);
     expect(lessons.every(n=>!['roar','secret-power','sunny-day','rain-dance','sandstorm','hail'].includes(n))).toBe(true);
     const limits=legacyMoveRankLimits(p.level);
     expect(Object.values(p.ranks).reduce((a,b)=>a+b,0)).toBeLessThanOrEqual(limits.skillPoints);
