@@ -63,3 +63,5 @@ export {onlineMachineProjection,applyOnlineMachineTeaching} from './serverMachin
 export {rollRegionalMachine} from '../inventory/machineLoot.js';
 
 export {onlineMegaProjection,quoteOnlineMegaTrial,applyCertifiedMegaTrialVictory,applyOnlineMegaEvolution} from './serverMegaEvolution.js';
+
+export {prepareMegaTrialBattle,resolveMegaTrialBattle} from './serverMegaBattle.js';
