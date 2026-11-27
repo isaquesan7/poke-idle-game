@@ -16,7 +16,7 @@ import gymStyles from './GymScreen.module.css';
 
 export type BattleCommand=(command:'open'|'turn'|'reward'|'finish',choice?:string)=>Promise<boolean>;
 const name=(id:number)=>KANTO_BATTLE_SPECIES[id]?.name??'Pokémon #'+id;
-const stones:Record<string,string>={'venusaurite':'Venusaurite','blastoisinite':'Blastoisinite','charizardite-x':'Charizardite X','charizardite-y':'Charizardite Y','fire-stone':'Pedra de Fogo','water-stone':'Pedra de Água','thunder-stone':'Pedra do Trovão','leaf-stone':'Pedra da Folha','moon-stone':'Pedra da Lua'};
+const stones:Record<string,string>={'fire-stone':'Pedra de Fogo','water-stone':'Pedra de Água','thunder-stone':'Pedra do Trovão','leaf-stone':'Pedra da Folha','moon-stone':'Pedra da Lua'};
 const rarities:Record<string,string>={common:'Comum',uncommon:'Incomum',rare:'Raro',epic:'Épico',legendary:'Lendário'};
 const balls:Record<string,string>={'poke-ball':'Poké Ball','great-ball':'Great Ball','ultra-ball':'Ultra Ball'};
 function Reserve({party,label}:{party:Party;label:string}){
