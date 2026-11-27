@@ -13,7 +13,7 @@ const basic={kind:'basic'} as const;
 const action=(name:string)=>({kind:'move',moveName:name} as const);
 function make(a:KantoMove,b:KantoMove=KANTO_BATTLE_MOVES.tackle!){
  const p:Combatant={speciesId:4,name:'Player',types:['normal'],level:50,stats,move:a,rank:0};
- const l:Combatant={speciesId:19,name:'Leader',types:['normal'],level:50,stats:{...stats,speed:10},move:b,rank:0};
+ const l:Combatant={speciesId:19,name:'Leader',types:['normal'],level:100,stats:{...stats,speed:10},move:b,rank:0};
  return createGymBattleState([{uid:1,combatant:p},{uid:2,combatant:p},{uid:3,combatant:p}],[l,l,l]);
 }
 function run(s:ReturnType<typeof make>,p:Parameters<typeof resolveGymTurn>[1],l:Parameters<typeof resolveGymTurn>[2]){
@@ -49,6 +49,8 @@ describe('TM13 — team control',()=>{
   expect(gymLegalTurnActions(r,'leader')).not.toContainEqual(action('rock-tomb'));
   expect(gymLegalTurnActions(r,'leader')).toContainEqual(basic);
   const next=run(r,basic,basic).state;
+  expect(next.leader.fighters[0].lastSkill).toBeUndefined();
+  expect(next.leader.fighters[0].sp).toBeGreaterThanOrEqual(kantoMoveSpCost(move('rock-tomb')));
   expect(gymLegalTurnActions(next,'leader')).toContainEqual(action('rock-tomb'));
   const switched=run(r,basic,{kind:'switch',toIndex:1}).state;
   expect(switched.leader.fighters[0].tormented).toBeUndefined();

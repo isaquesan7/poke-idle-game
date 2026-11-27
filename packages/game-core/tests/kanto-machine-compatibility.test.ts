@@ -51,7 +51,7 @@ describe('first-region TM moves with existing combat effects',()=>{
  it('uses the exact published FRLG gym stats and does not grant native moves',()=>{
   expect(executableMachineMove('rock-tomb')).toEqual(gymSignatureTm('boulder',95)?.move);
   expect(executableMachineMove('shock-wave')).toEqual(gymSignatureTm('thunder',25)?.move);
-  expect(regionalMachinePool(1,'common').map(m=>m.id)).toEqual(['tm03','tm05','tm12','tm21','tm27','tm28','tm32','tm34','tm39']);
+  expect(regionalMachinePool(1,'common').map(m=>m.id)).toEqual(['tm03','tm05','tm12','tm21','tm27','tm28','tm32','tm34','tm39','tm43']);
   expect(frozenValidatedEquippedMoves(25,10,['shock-wave'])).toBeNull();
   expect(frozenValidatedEquippedMoves(25,10,['shock-wave'],undefined,[{tmId:'tm34',speciesId:25}])?.[0]?.name).toBe('shock-wave');
   expect(canonicalOnlineGymEquippedMoves(25,10,['shock-wave'],undefined,[{tmId:'tm34',speciesId:25}])?.[0]?.name).toBe('shock-wave');

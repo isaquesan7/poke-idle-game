@@ -56,6 +56,8 @@ export interface GymBattleState {
   readonly leader:GymSideState;
   readonly outcome:'ongoing'|'player-win'|'leader-win'|'draw';
   readonly turn:number;
+  /** Server-derived regional terrain; absent in indoor gym arenas. */
+  readonly regionId?:number;
   readonly weather?:Readonly<{kind:import('./gymWeather.js').GymWeather;expiresAt:number}>;
 }
 export type GymStateResult=

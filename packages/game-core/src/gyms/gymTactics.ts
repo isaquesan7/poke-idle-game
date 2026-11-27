@@ -13,6 +13,7 @@ import {kantoSpecies} from '../catalog/kantoSpecies.js';
 import {gymPsychicLevelMoves} from './gymPsychicMoves.js';
 import {pokemonFinalStats} from '../stats/pokemon.js';
 import {trainerTotals,MANUAL_TRAINER_CAP} from '../stats/trainer.js';
+import {gymSnatchable} from './gymTerrain.js';
 import {gymEffectiveMove} from './gymVariableMoves.js';
 import {gymAccuracyAfterEvasion} from './gymEffects.js';
 import {gymWeatherMove,gymWeatherMultiplier,gymWeatherAccuracy,gymWeatherResidual} from './gymWeather.js';
@@ -279,7 +280,8 @@ export function gymAiDecision(args:{
           const score=args.weather===weather?-100:weather==='hail'||weather==='sandstorm'?(foeHurt&&!ownHurt?30:-100):benefit&&!risk?28:-100;
           decisions.push({action:'move',moveName:move.name,score});continue;
         }
-        const score=signature==='roar'?(args.targetHasReserve?10:-100)
+        const score=signature==='snatch'?((defender.moves??[defender.move]).some(m=>gymSnatchable(m.name))?26:-100)
+          :signature==='roar'?(args.targetHasReserve?10:-100)
           :signature==='torment'?(args.targetTormented?-100:(defender.moves??[defender.move]).length<=2?26:12)
           :signature==='taunt'?((args.targetTauntActions??0)>0||!(defender.moves??[defender.move]).some(m=>m.category==='status')?-100:30)
           :signature==='double-team'?((args.evasionStage??0)>=6||actorHp/actor.stats.hp<.35?-100:(args.evasionStage??0)===0?28:12)

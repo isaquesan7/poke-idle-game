@@ -11,6 +11,7 @@ import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
   gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt,gymPendingAction,gymRestSleep,gymTaunt,gymTickTaunt,gymDoubleTeam,gymAccuracyAfterEvasion,gymThaw,gymTorment,gymRememberSkill} from './gymEffects.js';
 import {gymWeatherMove,gymActiveWeather,gymSetWeather,gymWeatherAccuracy,gymWeatherDamage,gymWeatherResidual} from './gymWeather.js';
+import {gymSecretPowerEffect,gymSnatchable} from './gymTerrain.js';
 import {gymEffectiveMove} from './gymVariableMoves.js';
 import {gymSignatureSupport} from './gymSignatureTms.js';
 import {gymPsychicSecondary} from './gymPsychicMoves.js';
@@ -239,6 +240,8 @@ export function resolveGymTurn(
   };
   const protectedSides=new Set<GymSide>();
   const displaced=new Set<GymSide>();
+  const snatching=new Set<GymSide>();
+  const flinched=new Set<GymSide>();
   for(const side of [first,other(first)]){
     if(state.outcome!=='ongoing')break;
     // Depois de KO, o derrotado perde sua ação pendente nesta rodada.
@@ -255,6 +258,10 @@ export function resolveGymTurn(
     const active=state[side].fighters[state[side].activeIndex]!;
     if(active.hp<=0)continue;
     const pending=active.pendingAction;
+    if(flinched.has(side)){
+      if(pending)state=gymPendingAction(state,side,undefined);
+      record(side+' recuou e perdeu a ação.');continue;
+    }
     const taunted=(active.tauntActions??0)>0;
     if(taunted)state=gymTickTaunt(state,side);
     if(pending){
@@ -331,7 +338,7 @@ export function resolveGymTurn(
       continue;
     }
     const supportEffect=kantoSupportEffect(move.name);
-    const selfDirected=!!gymWeatherMove(move.name)||supportEffect?.kind==='heal'||['bulk-up','calm-mind','reflect','light-screen','safeguard','protect','rest','double-team'].includes(move.name);
+    const selfDirected=!!gymWeatherMove(move.name)||supportEffect?.kind==='heal'||['bulk-up','calm-mind','reflect','light-screen','safeguard','protect','rest','double-team','snatch'].includes(move.name);
     const accuracy=gymWeatherAccuracy(gymActiveWeather(state),move);
     if(roll()*100>=(selfDirected?accuracy:gymAccuracyAfterEvasion(move.name,accuracy,target.effects?.evasionBoosts??0))){
       record(side+' errou '+move.name+' (-'+cost+' SP).');
@@ -349,6 +356,13 @@ export function resolveGymTurn(
     if(move.category==='status'){
       const support=supportEffect;
       const signature=gymSignatureSupport(move.name);
+      if(signature==='snatch'){
+        snatching.add(side);record(side+' usou snatch e aguarda um suporte roubável.');continue;
+      }
+      const stolen=snatching.has(defendingSide)&&gymSnatchable(move.name);
+      const recipient=stolen?defendingSide:side;
+      const beneficiary=state[recipient].fighters[state[recipient].activeIndex]!;
+      if(stolen){snatching.delete(defendingSide);record(defendingSide+' roubou '+move.name+' com snatch.');}
       const weather=gymWeatherMove(move.name);
       if(weather){
         const next=gymSetWeather(state,weather);
@@ -376,14 +390,14 @@ export function resolveGymTurn(
         continue;
       }
       if(signature==='double-team'){
-        state=gymDoubleTeam(state,side);
+        state=gymDoubleTeam(state,recipient);
         record(side+' usou double-team e elevou evasão.');
         continue;
       }
       if(signature==='rest'){
-        state=healGymHp(state,side,active.combatant.stats.hp);
-        state=gymRestSleep(state,side);
-        record(side+' usou rest, recuperou todo o HP e adormeceu por duas ações.');
+        state=healGymHp(state,recipient,beneficiary.combatant.stats.hp);
+        state=gymRestSleep(state,recipient);
+        record(recipient+' recebeu rest, recuperou todo o HP e adormeceu por duas ações.');
         continue;
       }
       if(signature==='protect'){
@@ -394,7 +408,7 @@ export function resolveGymTurn(
         continue;
       }
       if(signature==='reflect'||signature==='light-screen'||signature==='safeguard'){
-        const next=gymSetBarrier(state,side,signature);
+        const next=gymSetBarrier(state,recipient,signature);
         record(side+' usou '+signature+(next===state?': barreira já ativa.':' por cinco turnos.'));
         state=next;
         continue;
@@ -407,20 +421,20 @@ export function resolveGymTurn(
         continue;
       }
       if(signature==='bulk-up'){
-        state=gymBulkUp(state,side);
+        state=gymBulkUp(state,recipient);
         record(side+' usou bulk-up e elevou Ataque e Defesa.');
         continue;
       }
       if(signature==='calm-mind'){
-        const capped=(active.effects?.specialAttackBoosts??0)>=6&&(active.effects?.specialDefenseBoosts??0)>=6;
-        state=gymCalmMind(state,side);
+        const capped=(beneficiary.effects?.specialAttackBoosts??0)>=6&&(beneficiary.effects?.specialDefenseBoosts??0)>=6;
+        state=gymCalmMind(state,recipient);
         record(side+' usou calm-mind'+(capped?': limite de estágios atingido.':' e elevou Ataque Especial e Defesa Especial.'));
         continue;
       }
       if(!support)throw new RangeError('Suporte não resolvido.');
       if(support.kind==='heal'){
-        const healing=Math.max(1,Math.floor(active.combatant.stats.hp*.5));
-        state=healGymHp(state,side,healing);
+        const healing=Math.max(1,Math.floor(beneficiary.combatant.stats.hp*.5));
+        state=healGymHp(state,recipient,healing);
         record(side+' usou '+move.name+' e recuperou HP (-'+cost+' SP).');
       }else if(kantoTypeMultiplier(move.type,target.combatant.types)===0){
         record(side+' usou '+move.name+', mas o alvo é imune.');
@@ -502,6 +516,15 @@ export function resolveGymTurn(
     }else if(state.outcome==='ongoing'){
       const hitTarget=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
       const landed=hitTarget.hp<target.hp;
+      if(landed&&move.name==='secret-power'&&roll()<.3){
+        const effect=gymSecretPowerEffect(state.regionId);
+        const before=state;
+        if(effect==='flinch')flinched.add(defendingSide);
+        else if(effect==='attack-drop')state=gymDropStat(state,defendingSide,'attackDrops');
+        else if(effect==='sleep')state=gymApplySleep(state,defendingSide,1+Math.floor(roll()*3));
+        else state=gymApplyStatus(state,defendingSide,effect);
+        if(before!==state||effect==='flinch')record(defendingSide+' recebeu efeito de terreno '+effect+' de secret-power.');
+      }
       if(landed&&move.type==='fire'&&hitTarget.status==='freeze'){
         state=gymThaw(state,defendingSide);record(defendingSide+' descongelou pelo ataque de fogo.');
       }

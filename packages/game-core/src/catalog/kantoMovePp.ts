@@ -26,6 +26,8 @@ export const KANTO_MOVE_PP:Readonly<Record<string,number>>={
   dig:10,
   'hyper-beam':5,
   rest:5,
+  snatch:10,
+  'secret-power':20,
   roar:20,
   torment:15,
   return:20,

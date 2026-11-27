@@ -11,6 +11,7 @@ export const GYM_NPC_SUPPORT_MOVES:Readonly<Record<string,KantoMove>>=Object.fre
  'double-team':Object.freeze({name:'double-team',type:'normal',category:'status',power:0,accuracy:100,priority:0}),
  roar:Object.freeze({name:'roar',type:'normal',category:'status',power:0,accuracy:100,priority:-6}),
  torment:Object.freeze({name:'torment',type:'dark',category:'status',power:0,accuracy:100,priority:0}),
+ snatch:Object.freeze({name:'snatch',type:'dark',category:'status',power:0,accuracy:100,priority:4}),
  rest:Object.freeze({name:'rest',type:'psychic',category:'status',power:0,accuracy:100,priority:0}),
  reflect:Object.freeze({name:'reflect',type:'psychic',category:'status',power:0,accuracy:100,priority:0}),
  'light-screen':Object.freeze({name:'light-screen',type:'psychic',category:'status',power:0,accuracy:100,priority:0}),

@@ -65,12 +65,12 @@ function initializeEngine(snapshot:unknown):GymBattleState|null{
     {uid:Number.MAX_SAFE_INTEGER-1,combatant:pair.player},
     {uid:Number.MAX_SAFE_INTEGER,combatant:pair.player}
   ],[pair.wild,pair.wild,pair.wild]);
-  return {...initial,player:sentinel(initial.player),
+  return {...initial,regionId:(snapshot as {regionId:number}).regionId,player:sentinel(initial.player),
     leader:sentinel(initial.leader)};
 }
 function verifyEngine(engine:GymBattleState,turn:number,snapshot:unknown):boolean{
   const actors=canonicalFrozenCombatants(snapshot);
-  if(!actors||!engine||engine.outcome!=='ongoing'||engine.turn!==turn||
+  if(!actors||!engine||engine.outcome!=='ongoing'||engine.turn!==turn||engine.regionId!==(snapshot as {regionId:number}).regionId||
     !engine.player||!engine.leader)return false;
   for(const side of ['player','leader'] as const){
     const party=engine[side],base=side==='player'?actors.player:actors.wild;
