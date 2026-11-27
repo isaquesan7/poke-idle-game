@@ -259,7 +259,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
       <InventoryGrid title="Equipamentos" items={visibleEquipment}
         capacity={Math.max(15,equipmentEntries.length)}
         onSelect={setSelectedEquipment}
-        actionLabel={item=>item.name+', '+item.status+'. Abrir detalhes'}
+        actionLabel={item=>item.name+', '+item.status+(item.requiredLevel!==undefined?', nível exigido '+item.requiredLevel:'')+(item.levelLocked?', bloqueado por nível':'')+'. Abrir detalhes'}
       />
     </section>}
 
@@ -297,7 +297,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
               onEquip(equipmentChoice.slot,equipmentEquipped?'':equipmentChoice.id);
               setSelectedEquipment(null);
             }}>
-            <Fa name={equipmentEquipped?'fa-xmark':'fa-check'}/> {equipmentEquipped?'Remover':'Equipar'}
+            <Fa name={equipmentEquipped?'fa-xmark':onlineChoice&&!onlineChoice.canEquip?'fa-lock':'fa-check'}/> {equipmentEquipped?'Remover':onlineChoice&&!onlineChoice.canEquip?'Nível insuficiente':'Equipar'}
           </button>
         </div>
       </InventoryDialog>}
