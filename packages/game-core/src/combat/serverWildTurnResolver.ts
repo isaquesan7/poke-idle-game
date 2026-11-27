@@ -35,7 +35,7 @@ type Persisted=Omit<FrozenState,'player'|'wild'|'log'|'frames'>&{
 const uint32=(n:unknown):n is number=>Number.isSafeInteger(n)&&
   typeof n==='number'&&n>=0&&n<=0xffffffff;
 const movesEqual=(a:Combatant,b:Combatant)=>a.speciesId===b.speciesId&&
-  a.level===b.level&&a.name===b.name&&a.rank===b.rank&&
+  a.level===b.level&&a.name===b.name&&a.rank===b.rank&&a.affinity===b.affinity&&
   a.types.join(',')===b.types.join(',')&&
   Object.keys(a.ranks??{}).length===Object.keys(b.ranks??{}).length&&
   Object.entries(a.ranks??{}).every(([name,rank])=>b.ranks?.[name]===rank)&&

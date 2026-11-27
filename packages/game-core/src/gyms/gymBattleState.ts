@@ -33,6 +33,8 @@ export interface GymFighterState {
   readonly effects?:GymEffects;
   readonly confusionTurns?:number;
   readonly tauntActions?:number;
+  readonly tormented?:boolean;
+  readonly lastSkill?:string;
   /** Forced next action; not a new move slot or a second SP payment. */
   readonly pendingAction?:'solar-beam'|'dig'|'recharge';
   readonly retreatRecoveriesUsed:number;
@@ -173,6 +175,13 @@ export function spendGymSp(
     ...active,sp:active.sp-amount
   }));
 }
+/** Roar forces a conscious reserve without HP/SP restoration or voluntary quota. */
+export function forceGymSwitch(state:GymBattleState,side:GymSide,toIndex:number):GymBattleState{
+ const party=state[side];
+ if(state.outcome!=='ongoing'||party.needsReplacement||toIndex===party.activeIndex||!party.fighters[toIndex]||party.fighters[toIndex]!.hp<=0)return state;
+ const {pendingAction,tormented,lastSkill,...clean}=party.fighters[party.activeIndex]!;
+ return replaceSide(state,side,{...updateFighter(party,party.activeIndex,clean),activeIndex:toIndex});
+}
 /** Recuperação por recolhimento somente em trocas VOLUNTÁRIAS;
  * o adversário tem exatamente o mesmo limite do jogador.
  *
@@ -208,6 +217,10 @@ export function switchGymPokemon(
       // Marcar a oportunidade mesmo se SP estava cheio: evita ping-pong.
       retreatRecoveriesUsed:outgoing.retreatRecoveriesUsed+1
     });
+  }
+  if(outgoing.tormented||outgoing.lastSkill!==undefined){
+    const {tormented,lastSkill,...clean}=updated.fighters[current.activeIndex]!;
+    updated=updateFighter(updated,current.activeIndex,clean);
   }
   updated={
     ...updated,activeIndex:toIndex,needsReplacement:false,

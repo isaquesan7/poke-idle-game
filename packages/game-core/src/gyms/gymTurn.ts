@@ -9,7 +9,7 @@ import type {Combatant,KantoMove,KantoBattleVisualFrame} from '../combat/kantoBa
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
-  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt,gymPendingAction,gymRestSleep,gymTaunt,gymTickTaunt,gymDoubleTeam,gymAccuracyAfterEvasion,gymThaw} from './gymEffects.js';
+  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt,gymPendingAction,gymRestSleep,gymTaunt,gymTickTaunt,gymDoubleTeam,gymAccuracyAfterEvasion,gymThaw,gymTorment,gymRememberSkill} from './gymEffects.js';
 import {gymWeatherMove,gymActiveWeather,gymSetWeather,gymWeatherAccuracy,gymWeatherDamage,gymWeatherResidual} from './gymWeather.js';
 import {gymEffectiveMove} from './gymVariableMoves.js';
 import {gymSignatureSupport} from './gymSignatureTms.js';
@@ -18,7 +18,7 @@ import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kan
 import {kantoRollHitCount} from '../combat/kantoMultiHit.js';
 import {kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
 import {kantoMoveSpCost,KANTO_BASIC_ATTACK,KANTO_SP_BALANCE} from '../combat/kantoSkillEnergy.js';
-import {applyGymDamage,applyGymResidual,spendGymSp,switchGymPokemon,healGymHp,focusGymSp} from './gymBattleState.js';
+import {applyGymDamage,applyGymResidual,spendGymSp,switchGymPokemon,healGymHp,focusGymSp,forceGymSwitch} from './gymBattleState.js';
 import type {GymBattleState,GymSide,GymFighterState} from './gymBattleState.js';
 
 export const GYM_MAX_TURNS=120;
@@ -123,6 +123,7 @@ function validateAction(
     .find(m=>m.name===action.moveName);
   if(!move||move.name===KANTO_BASIC_ATTACK.name
     ||kantoMoveSpCost(move)>active.sp)return null;
+  if(active.tormented&&active.lastSkill===move.name)return null;
   if(move.category==='status'){
     if((active.tauntActions??0)>0)return null;
     const support=kantoSupportEffect(move.name);
@@ -237,10 +238,11 @@ export function resolveGymTurn(
       snapshots.push(state);observed=state;
   };
   const protectedSides=new Set<GymSide>();
+  const displaced=new Set<GymSide>();
   for(const side of [first,other(first)]){
     if(state.outcome!=='ongoing')break;
     // Depois de KO, o derrotado perde sua ação pendente nesta rodada.
-    if(state[side].needsReplacement)continue;
+    if(state[side].needsReplacement||displaced.has(side))continue;
     const chosen=side==='player'?p:l;
     if(chosen.action.kind==='switch'){
       const changed=switchGymPokemon(state,side,chosen.action.toIndex);
@@ -300,6 +302,7 @@ export function resolveGymTurn(
     if(chosen.action.kind==='focus'){
       const before=active.sp;
       state=focusGymSp(state,side);
+      if(active.lastSkill!==undefined)state=gymRememberSkill(state,side,null);
       record(side+' usou Concentrar e recuperou '+
         (state[side].fighters[state[side].activeIndex]!.sp-before)+' SP.');
       continue;
@@ -308,9 +311,14 @@ export function resolveGymTurn(
     if(state[defendingSide].needsReplacement)break;
     const target=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
     const move=chosen.move!;
+    if(!pending&&active.tormented&&active.lastSkill===move.name){record(side+' não pôde repetir '+move.name+' devido a Torment.');continue;}
     if(taunted&&move.category==='status'){record(side+' não pôde usar '+move.name+' devido a Taunt.');continue;}
     const cost=pending?0:kantoMoveSpCost(move);
     state=spendGymSp(state,side,cost);
+    if(!pending){
+      if(move.name===KANTO_BASIC_ATTACK.name){if(active.lastSkill!==undefined)state=gymRememberSkill(state,side,null);}
+      else state=gymRememberSkill(state,side,move.name);
+    }
     // Focus Punch has priority -3. Only earlier direct HP loss interrupts;
     // residual is after actions. The attempt still costs its canonical SP.
     if(move.name==='focus-punch'&&input[side].activeIndex===state[side].activeIndex&&active.hp<input[side].fighters[input[side].activeIndex]!.hp){
@@ -346,6 +354,19 @@ export function resolveGymTurn(
         const next=gymSetWeather(state,weather);
         record(side+' usou '+move.name+(next===state?': clima já ativo.':' por cinco turnos.'));
         state=next;
+        continue;
+      }
+      if(signature==='roar'){
+        const reserves=state[defendingSide].fighters.flatMap((f,i)=>f.hp>0&&i!==state[defendingSide].activeIndex?[i]:[]);
+        if(!reserves.length){record(side+' usou roar, mas não havia reserva consciente.');continue;}
+        state=forceGymSwitch(state,defendingSide,reserves[Math.floor(roll()*reserves.length)]!);
+        displaced.add(defendingSide);
+        record(side+' usou roar e forçou uma troca sem recuperar HP/SP.');
+        continue;
+      }
+      if(signature==='torment'){
+        state=gymTorment(state,defendingSide);
+        record(side+' usou torment: alvo não pode repetir a mesma habilidade consecutivamente.');
         continue;
       }
       if(signature==='taunt'){

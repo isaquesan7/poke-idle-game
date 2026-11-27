@@ -98,7 +98,7 @@ export function kantoMoveSpCost(move:KantoMove):number{
       toxic:18,'calm-mind':14,'bulk-up':14,
       reflect:14,'light-screen':14,safeguard:14,protect:14,
       'sunny-day':14,'rain-dance':14,sandstorm:14,hail:14,
-      recover:18,rest:22,taunt:14,'double-team':14
+      recover:18,rest:22,taunt:14,'double-team':14,roar:14,torment:14
     };
     const weight=weights[move.name];
     if(weight===undefined)throw new RangeError('Suporte sem custo catalogado.');

@@ -23,6 +23,6 @@ export function gymSignatureTm(gymId:string,speciesId:number){
  return tm?.species.includes(speciesId)?tm:null;
 }
 /** Shared online Gym/region turns recognize these effects; no native learnset grant. */
-export function gymSignatureSupport(name:string):'toxic'|'calm-mind'|'bulk-up'|'reflect'|'light-screen'|'safeguard'|'protect'|'sunny-day'|'rain-dance'|'sandstorm'|'hail'|'rest'|'taunt'|'double-team'|null{
- return name==='toxic'||name==='calm-mind'||name==='bulk-up'||name==='reflect'||name==='light-screen'||name==='safeguard'||name==='protect'||name==='sunny-day'||name==='rain-dance'||name==='sandstorm'||name==='hail'||name==='rest'||name==='taunt'||name==='double-team'?name:null;
+export function gymSignatureSupport(name:string):'toxic'|'calm-mind'|'bulk-up'|'reflect'|'light-screen'|'safeguard'|'protect'|'sunny-day'|'rain-dance'|'sandstorm'|'hail'|'rest'|'taunt'|'double-team'|'roar'|'torment'|null{
+ return name==='toxic'||name==='calm-mind'||name==='bulk-up'||name==='reflect'||name==='light-screen'||name==='safeguard'||name==='protect'||name==='sunny-day'||name==='rain-dance'||name==='sandstorm'||name==='hail'||name==='rest'||name==='taunt'||name==='double-team'||name==='roar'||name==='torment'?name:null;
 }

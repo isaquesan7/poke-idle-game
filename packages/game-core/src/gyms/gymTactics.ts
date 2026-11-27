@@ -239,6 +239,8 @@ export function gymAiDecision(args:{
   readonly evasionStage?:number;
   readonly targetEvasionStage?:number;
   readonly targetTauntActions?:number;
+  readonly targetTormented?:boolean;
+  readonly targetHasReserve?:boolean;
   readonly calmMindStage?:number;
   readonly bulkUpStage?:number;
   readonly activeBarriers?:readonly string[];
@@ -277,7 +279,9 @@ export function gymAiDecision(args:{
           const score=args.weather===weather?-100:weather==='hail'||weather==='sandstorm'?(foeHurt&&!ownHurt?30:-100):benefit&&!risk?28:-100;
           decisions.push({action:'move',moveName:move.name,score});continue;
         }
-        const score=signature==='taunt'?((args.targetTauntActions??0)>0||!(defender.moves??[defender.move]).some(m=>m.category==='status')?-100:30)
+        const score=signature==='roar'?(args.targetHasReserve?10:-100)
+          :signature==='torment'?(args.targetTormented?-100:(defender.moves??[defender.move]).length<=2?26:12)
+          :signature==='taunt'?((args.targetTauntActions??0)>0||!(defender.moves??[defender.move]).some(m=>m.category==='status')?-100:30)
           :signature==='double-team'?((args.evasionStage??0)>=6||actorHp/actor.stats.hp<.35?-100:(args.evasionStage??0)===0?28:12)
           :signature==='rest'?(actorHp/actor.stats.hp<=.4?70:actorHp/actor.stats.hp<=.6&&!!args.actorStatus?45:-100)
           :signature==='toxic'?(args.defenderStatus||defender.types.includes('poison')||defender.types.includes('steel')?-100:36)

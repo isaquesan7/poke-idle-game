@@ -90,6 +90,12 @@ export function gymRestSleep(state:GymBattleState,side:GymSide):GymBattleState{
   return {...rest,status:'sleep',sleepActions:2};
  });
 }
+export function gymTorment(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>old.tormented?old:{...old,tormented:true});
+}
+export function gymRememberSkill(state:GymBattleState,side:GymSide,name:string|null):GymBattleState{
+ return gymReplaceFighter(state,side,old=>{const {lastSkill,...rest}=old;return name===null?rest:{...rest,lastSkill:name};});
+}
 export function gymTaunt(state:GymBattleState,side:GymSide):GymBattleState{
  return gymReplaceFighter(state,side,old=>(old.tauntActions??0)>0?old:{...old,tauntActions:2});
 }

@@ -25,6 +25,8 @@ const MACHINE_ONLY_MOVES:Readonly<Record<string,KantoMove>>=Object.freeze({
  'sandstorm':GYM_NPC_SUPPORT_MOVES.sandstorm!,
  'hail':GYM_NPC_SUPPORT_MOVES.hail!,
  rest:GYM_NPC_SUPPORT_MOVES.rest!,
+ roar:GYM_NPC_SUPPORT_MOVES.roar!,
+ torment:GYM_NPC_SUPPORT_MOVES.torment!,
  // Variable-power moves use their maximum/base for slot identity and SP.
  return:Object.freeze({name:'return',type:'normal',category:'physical',power:102,accuracy:100,priority:0}),
  frustration:Object.freeze({name:'frustration',type:'normal',category:'physical',power:102,accuracy:100,priority:0}),
