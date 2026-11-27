@@ -4,8 +4,16 @@ import type {KantoMove} from './kantoBattle.js';
 import {KANTO_SUPPORT_MOVES} from '../catalog/kantoSupportMoves.js';
 import {kantoMachine} from '../catalog/kantoMachines.js';
 import {compatibleMachineSpecies} from '../catalog/kantoMachineCompatibility.js';
+/** Historical Gen III stats already used by the Gym signatures (GYM04).
+ * Rock Tomb has its canonical speed drop; Shock Wave always hits in the
+ * current engine (accuracy 100, no evasion stages). No native learnset changes.
+ */
+const MACHINE_ONLY_MOVES:Readonly<Record<string,KantoMove>>=Object.freeze({
+ 'rock-tomb':Object.freeze({name:'rock-tomb',type:'rock',category:'physical',power:50,accuracy:80,priority:0}),
+ 'shock-wave':Object.freeze({name:'shock-wave',type:'electric',category:'special',power:60,accuracy:100,priority:0})
+});
 export function executableMachineMove(name:string):KantoMove|null{
- return KANTO_BATTLE_MOVES[name]??KANTO_SUPPORT_MOVES[name]??null;
+ return KANTO_BATTLE_MOVES[name]??KANTO_SUPPORT_MOVES[name]??MACHINE_ONLY_MOVES[name]??null;
 }
 export function machineLessonEntries(lessons:unknown):readonly {speciesId:number;move:KantoMove}[]|null{
  if(lessons===undefined)return [];

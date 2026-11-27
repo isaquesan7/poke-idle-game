@@ -81,7 +81,7 @@ test('TM regional loot: certified overlevel win credits stock exactly once and s
   before.trainer.level=80;before.roster[0].level=80;
   initial.journal.raw=JSON.stringify(before);
   await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[accountId,JSON.stringify(initial)]);
-  const booked=await reserveEncounter(pool,{accountId,actionId:randomUUID(),expectedRevision:0,regionId:3,allowExpandedRegions:true});
+  const booked=await reserveEncounter(pool,{accountId,actionId:randomUUID(),expectedRevision:0,regionId:1});
   assert.equal(booked.status,'reserved');
   const ids={accountId,encounterId:booked.encounterId};
   // Find a synthetic CI key for a genuine executable TM drop; no runtime
@@ -90,14 +90,14 @@ test('TM regional loot: certified overlevel win credits stock exactly once and s
   for(let n=0;n<8192;n++){
    const candidate=Buffer.alloc(32);candidate.writeUInt32BE(n);
    const encounterRng=createPrivateBattleRandom(candidate,{...ids,phase:'wild-encounter'});
-   const selected=core.serverRegionalRoll(3,80,80,encounterRng.integer);
+   const selected=core.serverRegionalRoll(1,80,80,encounterRng.integer);
    assert.ok(selected);
    const random=createPrivateBattleRandom(candidate,{...ids,phase:'wild-battle-tm-drop'});
-   const rolled=core.rollRegionalMachine({regionId:3,speciesId:selected.speciesId,wildLevel:selected.level,trainerLevel:80,pokemonLevel:80,won:true},random.integer);
+   const rolled=core.rollRegionalMachine({regionId:1,speciesId:selected.speciesId,wildLevel:selected.level,trainerLevel:80,pokemonLevel:80,won:true},random.integer);
    assert.ok(rolled);
    if(rolled.tmId){entropyKey=candidate;tmId=rolled.tmId;opponent=selected;break;}
   }
-  assert.ok(entropyKey&&tmId,'exercise a real nonempty R3 TM pool');
+  assert.ok(entropyKey&&tmId,'exercise a real nonempty R1 TM pool');
   const materialized=await materializeReservedEncounter(pool,{...ids,entropyKey});
   assert.equal(materialized.status,'materialized');assert.equal(materialized.speciesId,opponent.speciesId);assert.equal(materialized.level,opponent.level);
   const prepared=await prepareReservedBattle(pool,ids);
