@@ -42,7 +42,7 @@ export function regionalExpansionEnabled(env=process.env){
  loadRegionalTestKey(env);
  return true;
 }
-function actor(p,fighter){return p?{speciesId:p.speciesId,hp:p.hp,maxHp:p.maxHp,
+function actor(p,fighter){return p?{speciesId:p.speciesId,...(p.megaForm?{megaForm:p.megaForm}:{}),hp:p.hp,maxHp:p.maxHp,
  sp:p.sp,maxSp:p.maxSp,status:p.status,equippedMoves:p.equippedMoves,pendingAction:battlePendingDisplay(fighter),
  ...(p.uid===undefined?{}:{uid:p.uid})}:null;}
 export async function readRegionalEncounter(pool,accountId,expanded=false){
