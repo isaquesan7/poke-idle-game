@@ -95,13 +95,13 @@ describe('MEGA09: reproducible difficulty matrix for all guardians',()=>{
    return outcomes;
   }
   const weak=sample(make(false)),trained=sample(make(true));
-  console.info('MEGA_BALANCE',JSON.stringify({form:c.formId,weak,trained}));
+  const report=JSON.stringify({form:c.formId,weak,trained});
   expect(weak.win+weak.loss+weak.draw).toBe(32);
   expect(trained.win+trained.loss+trained.draw).toBe(32);
   // A guardian must resist an untrained basic-move specimen, and a
   // deliberately trained legal build must have a path to victory.
-  expect(weak.win).toBeLessThan(16);
-  expect(trained.win).toBeGreaterThan(0);
-  expect(trained.win).toBeGreaterThan(weak.win);
+  expect(weak.win,report).toBeLessThan(16);
+  expect(trained.win,report).toBeGreaterThan(0);
+  expect(trained.win,report).toBeGreaterThan(weak.win);
  });
 });
