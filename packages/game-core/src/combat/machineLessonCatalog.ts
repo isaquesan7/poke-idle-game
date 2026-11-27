@@ -20,6 +20,11 @@ const MACHINE_ONLY_MOVES:Readonly<Record<string,KantoMove>>=Object.freeze({
  'light-screen':GYM_NPC_SUPPORT_MOVES['light-screen']!,
  'safeguard':GYM_NPC_SUPPORT_MOVES.safeguard!,
  'protect':GYM_NPC_SUPPORT_MOVES.protect!,
+ 'sunny-day':GYM_NPC_SUPPORT_MOVES['sunny-day']!,
+ 'rain-dance':GYM_NPC_SUPPORT_MOVES['rain-dance']!,
+ 'sandstorm':GYM_NPC_SUPPORT_MOVES.sandstorm!,
+ 'hail':GYM_NPC_SUPPORT_MOVES.hail!,
+ 'thunder':Object.freeze({name:'thunder',type:'electric',category:'special',power:120,accuracy:70,priority:0}),
  'brick-break':Object.freeze({name:'brick-break',type:'fighting',category:'physical',power:75,accuracy:100,priority:0}),
  // Gen III: https://pokemondb.net/move/steel-wing and /move/overheat.
  'steel-wing':Object.freeze({name:'steel-wing',type:'steel',category:'physical',power:70,accuracy:90,priority:0}),

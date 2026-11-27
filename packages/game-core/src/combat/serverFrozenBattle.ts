@@ -168,7 +168,7 @@ export function previewFrozenWildBattle(snapshot:unknown,serverSeed:number){
   if(!pair)return null;
   // The old automatic preview does not model the shared online TM support
   // effects. Refuse these loadouts instead of throwing or simulating a false result.
-  if((pair.player.moves??[pair.player.move]).some(m=>['toxic','calm-mind','bulk-up','steel-wing','overheat','reflect','light-screen','safeguard','protect','brick-break'].includes(m.name)))return null;
+  if((pair.player.moves??[pair.player.move]).some(m=>['toxic','calm-mind','bulk-up','steel-wing','overheat','reflect','light-screen','safeguard','protect','brick-break','sunny-day','rain-dance','sandstorm','hail','thunder'].includes(m.name)))return null;
   const result=simulateKantoBattle(pair.player,pair.wild,serverSeed);
   // Legacy engine auto-rolls a 35% capture and says rewards were granted.
   // Those are NOT authoritative online actions. Preserve one frame per

@@ -13,6 +13,8 @@ import {kantoSpecies} from '../catalog/kantoSpecies.js';
 import {gymPsychicLevelMoves} from './gymPsychicMoves.js';
 import {pokemonFinalStats} from '../stats/pokemon.js';
 import {trainerTotals,MANUAL_TRAINER_CAP} from '../stats/trainer.js';
+import {gymWeatherMove,gymWeatherMultiplier,gymWeatherAccuracy,gymWeatherResidual} from './gymWeather.js';
+import type {GymWeather} from './gymWeather.js';
 import {gymSignatureTm,gymSignatureSupport} from './gymSignatureTms.js';
 import {LEGACY_ITEMS} from '../legacy/catalog.js';
 import {legacyMoveRankLimits} from '../legacy/pokemonMoveReducer.js';
@@ -235,6 +237,7 @@ export function gymAiDecision(args:{
   readonly bulkUpStage?:number;
   readonly activeBarriers?:readonly string[];
   readonly protectRepeated?:boolean;
+  readonly weather?:GymWeather|null;
 }):GymAiDecision{
   const {actor,defender,actorHp,actorSp,bench}=args;
   const maxSp=kantoMaxSp(actor.level,actor.speciesId);
@@ -259,6 +262,15 @@ export function gymAiDecision(args:{
       const support=kantoSupportEffect(move.name);
       const signature=gymSignatureSupport(move.name);
       if(signature){
+        const weather=gymWeatherMove(move.name);
+        if(weather){
+          const ownHurt=gymWeatherResidual(weather,actor.types,actor.stats.hp)>0;
+          const foeHurt=gymWeatherResidual(weather,defender.types,defender.stats.hp)>0;
+          const benefit=moves.some(m=>m.category!=='status'&&gymWeatherMultiplier(weather,m.type)>1);
+          const risk=gymWeatherMultiplier(weather,defender.move.type)>1;
+          const score=args.weather===weather?-100:weather==='hail'||weather==='sandstorm'?(foeHurt&&!ownHurt?30:-100):benefit&&!risk?28:-100;
+          decisions.push({action:'move',moveName:move.name,score});continue;
+        }
         const score=signature==='toxic'?(args.defenderStatus||defender.types.includes('poison')||defender.types.includes('steel')?-100:36)
           :signature==='protect'?(!args.protectRepeated&&args.defenderStatus==='poison'?26:-100)
           :signature==='reflect'||signature==='light-screen'||signature==='safeguard'?(args.activeBarriers?.includes(signature)?-100:signature==='safeguard'?10:(signature==='reflect'&&defender.move.category==='physical'||signature==='light-screen'&&defender.move.category==='special')?30:5)
@@ -277,8 +289,8 @@ export function gymAiDecision(args:{
     }
     // Dano previsível com rolls médios fixos, nunca os futuros resultados do RNG.
     const expected=estimate(move);
-    const accuracy=move.accuracy/100;
-    const damage=expected.damage*accuracy;
+    const accuracy=gymWeatherAccuracy(args.weather??null,move)/100;
+    const damage=expected.damage*accuracy*gymWeatherMultiplier(args.weather??null,move.type);
     const score=expected.effectiveness===0?-100
       :Math.round(100*damage/Math.max(1,defender.stats.hp))
         +(expected.damage>=defender.stats.hp?30:0)

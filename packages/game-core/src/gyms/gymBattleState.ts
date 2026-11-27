@@ -51,6 +51,7 @@ export interface GymBattleState {
   readonly leader:GymSideState;
   readonly outcome:'ongoing'|'player-win'|'leader-win'|'draw';
   readonly turn:number;
+  readonly weather?:Readonly<{kind:import('./gymWeather.js').GymWeather;expiresAt:number}>;
 }
 export type GymStateResult=
   | {readonly status:'applied';readonly state:GymBattleState;

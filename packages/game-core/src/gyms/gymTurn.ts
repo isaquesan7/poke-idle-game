@@ -10,6 +10,7 @@ import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
   gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt} from './gymEffects.js';
+import {gymWeatherMove,gymActiveWeather,gymSetWeather,gymWeatherAccuracy,gymWeatherDamage,gymWeatherResidual} from './gymWeather.js';
 import {gymSignatureSupport} from './gymSignatureTms.js';
 import {gymPsychicSecondary} from './gymPsychicMoves.js';
 import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
@@ -282,12 +283,12 @@ export function resolveGymTurn(
     const move=chosen.move!;
     const cost=kantoMoveSpCost(move);
     state=spendGymSp(state,side,cost);
-    if(roll()*100>=move.accuracy){
+    if(roll()*100>=gymWeatherAccuracy(gymActiveWeather(state),move)){
       record(side+' errou '+move.name+' (-'+cost+' SP).');
       continue;
     }
     const supportEffect=kantoSupportEffect(move.name);
-    const selfDirected=supportEffect?.kind==='heal'||['bulk-up','calm-mind','reflect','light-screen','safeguard','protect'].includes(move.name);
+    const selfDirected=!!gymWeatherMove(move.name)||supportEffect?.kind==='heal'||['bulk-up','calm-mind','reflect','light-screen','safeguard','protect'].includes(move.name);
     if(!selfDirected&&protectedSides.has(defendingSide)){
       record(defendingSide+' bloqueou '+move.name+' com Protect (-'+cost+' SP).');
       continue;
@@ -295,6 +296,13 @@ export function resolveGymTurn(
     if(move.category==='status'){
       const support=supportEffect;
       const signature=gymSignatureSupport(move.name);
+      const weather=gymWeatherMove(move.name);
+      if(weather){
+        const next=gymSetWeather(state,weather);
+        record(side+' usou '+move.name+(next===state?': clima já ativo.':' por cinco turnos.'));
+        state=next;
+        continue;
+      }
       if(signature==='protect'){
         const attempt=gymProtectAttempt(state,side,roll);
         state=attempt.state;
@@ -369,7 +377,7 @@ export function resolveGymTurn(
       if(actual.hp===0)break;
       const damage=kantoDamage(attacker,defender,roll(),roll(),
         active.status==='burn'&&move.category==='physical'?.5:1);
-      const inflicted=gymProtectedDamage(state,defendingSide,move.category,move.name,damage.damage,damage.critical);
+      const inflicted=gymProtectedDamage(state,defendingSide,move.category,move.name,gymWeatherDamage(gymActiveWeather(state),move,damage.damage),damage.critical);
       state=applyGymDamage(state,defendingSide,inflicted);
       record(side+' usou '+move.name+' ('+hit+'/'+hits+'), causando '+
         inflicted+' de dano'+(hit===1?' (-'+cost+' SP)':'')+'.',{
@@ -405,7 +413,7 @@ export function resolveGymTurn(
     if(state[defendingSide].needsReplacement){
       record(defendingSide+' sofreu KO: aguarda substituição grátis.');
     }else if(state.outcome==='ongoing'){
-      const effect=kantoMoveSecondaryEffect(move.name);
+      const effect=move.name==='thunder'&&kantoTypeMultiplier(move.type,target.combatant.types)>0?{kind:'status' as const,status:'paralysis' as const,chance:30}:kantoMoveSecondaryEffect(move.name);
       if(effect?.kind==='drain'){
         const afterHp=state[defendingSide].fighters[state[defendingSide].activeIndex]!.hp;
         const inflicted=target.hp-afterHp;
@@ -461,14 +469,20 @@ export function resolveGymTurn(
       return fighter.status==='poison'||fighter.status==='burn'
         ?Math.max(1,Math.floor(fighter.combatant.stats.hp/8)):0;
     };
-    const amounts={player:amount('player'),leader:amount('leader')};
+    const weather=gymActiveWeather(state);
+    const climate=(side:GymSide)=>{
+      const fighter=state[side].fighters[state[side].activeIndex]!;
+      return gymWeatherResidual(weather,fighter.combatant.types,fighter.combatant.stats.hp);
+    };
+    const weatherAmounts={player:climate('player'),leader:climate('leader')};
+    const amounts={player:amount('player')+weatherAmounts.player,leader:amount('leader')+weatherAmounts.leader};
     if(amounts.player>0||amounts.leader>0){
       const residuals=(['player','leader'] as const).flatMap(side=>{
         if(amounts[side]<=0)return [];
         const fighter=state[side].fighters[state[side].activeIndex]!;
         return [{side,amount:Math.min(fighter.hp,amounts[side]),
           text:side+' sofreu '+Math.min(fighter.hp,amounts[side])+
-            ' dano residual ('+(fighter.toxicStage!==undefined?'toxic':fighter.status)+').'}];
+            ' dano residual ('+[...(amount(side)>0?[fighter.toxicStage!==undefined?'toxic':fighter.status]:[]),...(weatherAmounts[side]>0?[weather]:[])].join(' + ')+').'}];
       });
       for(const event of residuals){
         if(state[event.side].fighters[state[event.side].activeIndex]!.toxicStage!==undefined)
@@ -481,6 +495,7 @@ export function resolveGymTurn(
       if(state.outcome==='draw')record('Empate: ambos os times desmaiaram.');
     }
   }
+  if(gymActiveWeather(state)&&state.weather?.expiresAt===state.turn+1)record('O clima terminou.');
   const finished={...state,turn:state.turn+1};
   // Empate técnico igual para jogador e líder. Sem bônus por HP restante
   // e sem concessão de insígnias em combate sem vencedor.
