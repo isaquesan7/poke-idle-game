@@ -252,6 +252,8 @@ try{
   const alphaNav=alpha.getByRole('navigation',{name:'Navegação do jogo'});
   await alphaNav.getByRole('button',{name:'Visão geral',exact:true}).click();
   const expand=async(page,group)=>{const btn=page.getByRole('navigation',{name:'Navegação do jogo'}).getByRole('button',{name:group,exact:true});if(await btn.getAttribute('aria-expanded')!=='true')await btn.click();};
+  // Navigation collapses the previous group in an effect after changing tabs.
+  await alphaNav.locator('button[aria-expanded="true"]').waitFor({state:'detached'});
   assert.equal(await alphaNav.getByRole('button').count(),5);
   await expand(alpha,'Treinador');
   await alpha.getByRole('heading',{name:'Seu centro de comando'}).waitFor();

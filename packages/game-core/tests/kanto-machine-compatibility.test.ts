@@ -200,3 +200,64 @@ describe('TM05 — executable historical attacks in the shared online engine',()
   }
  });
 });
+
+import {createFrozenWildTurnSession} from '../src/combat/serverWildTurnSession.js';
+import {legalFrozenWildTurnActions,resolveFrozenWildTurn} from '../src/combat/serverWildTurnResolver.js';
+import {previewFrozenWildBattle,canonicalFrozenCombatants} from '../src/combat/serverFrozenBattle.js';
+import {zeroStats} from '../src/stats/types.js';
+describe('TM06 — verified online Toxic and Calm Mind',()=>{
+ const toxic=executableMachineMove('toxic')!,calm=executableMachineMove('calm-mind')!;
+ const lessons=[{tmId:'tm06',speciesId:35},{tmId:'tm04',speciesId:35}];
+ const snapshot={
+  version:2,regionId:1,
+  trainer:{level:10,manual:zeroStats(),equipped:{},title:'aprendiz',wins:0,seen:[35],badges:[],inventory:{version:1,gear:[],extraBagSlots:0}},
+  activePokemon:{uid:1,speciesId:35,level:10,affinity:0,manual:zeroStats(),moveName:'pound',moveNames:['pound','toxic','calm-mind'],machineLessons:lessons},
+  opponent:{speciesId:19,level:2}
+ };
+ it('shares leader metadata, preserves native boundaries and consumes existing status SP',()=>{
+  expect(toxic).toEqual(gymSignatureTm('soul',109)?.move);
+  expect(calm).toEqual(gymSignatureTm('marsh',122)?.move);
+  expect(kantoMovePp('toxic')).toBe(10);expect(kantoMovePp('calm-mind')).toBe(20);
+  expect(kantoMoveSpCost(toxic)).toBe(34);expect(kantoMoveSpCost(calm)).toBe(25);
+  expect(compatibleMachineSpecies('tm06')).toHaveLength(145);
+  expect(compatibleMachineSpecies('tm04')).toHaveLength(16);
+  expect(regionalMachinePool(5,'rare').map(x=>x.id)).toContain('tm06');
+  expect(regionalMachinePool(8,'epic').map(x=>x.id)).toContain('tm04');
+  expect(frozenValidatedEquippedMoves(35,10,['toxic'])).toBeNull();
+  expect(canonicalOnlineGymEquippedMoves(35,10,['calm-mind'])).toBeNull();
+  expect(frozenValidatedEquippedMoves(35,10,['toxic','calm-mind'],undefined,lessons)).toEqual([toxic,calm]);
+  expect(canonicalOnlineGymEquippedMoves(35,10,['toxic','calm-mind'],undefined,lessons)).toEqual([toxic,calm]);
+  expect(validatedOnlineMoveRanks(35,10,undefined,{'calm-mind':1},lessons)).toBeNull();
+  expect(validatedMachineLessons(4,10,undefined,[{tmId:'tm04',speciesId:4}])).toBeNull();
+  expect(validatedMachineLessons(10,10,undefined,[{tmId:'tm06',speciesId:10}])).toBeNull();
+ });
+ it('uses the actual frozen regional turn adapter; persists effects through JSON roundtrip and blocks old preview',()=>{
+  const initial=createFrozenWildTurnSession(snapshot)!;
+  expect(initial).not.toBeNull();
+  expect(canonicalFrozenCombatants(snapshot)?.player.moves?.map(m=>m.name)).toEqual(['pound','toxic','calm-mind']);
+  expect(previewFrozenWildBattle(snapshot,1)).toBeNull();
+  const calmAction={kind:'move',moveName:'calm-mind'} as const;
+  const toxicAction={kind:'move',moveName:'toxic'} as const;
+  expect(legalFrozenWildTurnActions(snapshot,initial)).toContainEqual(calmAction);
+  expect(legalFrozenWildTurnActions(snapshot,initial)).toContainEqual(toxicAction);
+  const boosted=resolveFrozenWildTurn(snapshot,initial,calmAction,1234);
+  if(boosted?.status!=='applied')throw Error('calm mind rejected');
+  expect(boosted.turnState.engine?.player.fighters[0].effects?.specialAttackBoosts).toBe(1);
+  expect(boosted.turnState.engine?.player.fighters[0].effects?.specialDefenseBoosts).toBe(1);
+  expect(boosted.turnState.player.sp).toBe(initial.player.sp-kantoMoveSpCost(calm));
+  const saved=JSON.parse(JSON.stringify(boosted.turnState));
+  const next=resolveFrozenWildTurn(snapshot,saved,{kind:'basic'},1235);
+  if(next?.status!=='applied')throw Error('restart rejected');
+  expect(next).toEqual(resolveFrozenWildTurn(snapshot,boosted.turnState,{kind:'basic'},1235));
+  expect(next.turnState.engine?.player.fighters[0].effects?.specialAttackBoosts).toBe(1);
+  const poisoned=Array.from({length:32},(_,i)=>resolveFrozenWildTurn(snapshot,initial,toxicAction,Math.imul(i+1,0x9e3779b9)>>>0))
+    .find(x=>x?.status==='applied'&&x.turnState.engine?.leader.fighters[0].toxicStage===2);
+  if(poisoned?.status!=='applied')throw Error('no toxic hit');
+  expect(poisoned.turnState.wild.status).toBe('poison');
+  expect(poisoned.turnState.player.sp).toBe(initial.player.sp-kantoMoveSpCost(toxic));
+  expect(poisoned.logDelta.some(x=>x.includes('dano residual (toxic)'))).toBe(true);
+  const continued=resolveFrozenWildTurn(snapshot,JSON.parse(JSON.stringify(poisoned.turnState)),{kind:'basic'},1236);
+  if(continued?.status!=='applied')throw Error('toxic restart rejected');
+  expect(continued).toEqual(resolveFrozenWildTurn(snapshot,poisoned.turnState,{kind:'basic'},1236));
+ });
+});

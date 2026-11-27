@@ -22,7 +22,7 @@ export function gymSignatureTm(gymId:string,speciesId:number){
  const tm=SIGNATURES[gymId];
  return tm?.species.includes(speciesId)?tm:null;
 }
-/** Only Gym turns recognize these support effects; never a player learnset. */
+/** Shared online Gym/region turns recognize these effects; no native learnset grant. */
 export function gymSignatureSupport(name:string):'toxic'|'calm-mind'|null{
  return name==='toxic'||name==='calm-mind'?name:null;
 }

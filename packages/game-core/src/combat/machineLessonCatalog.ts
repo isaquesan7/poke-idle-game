@@ -2,6 +2,7 @@
 import {KANTO_BATTLE_MOVES} from './kantoBattle.js';
 import type {KantoMove} from './kantoBattle.js';
 import {KANTO_TM09_COMBAT_MOVE} from '../catalog/kantoMachineCombatMoves.js';
+import {GYM_NPC_SUPPORT_MOVES} from '../gyms/gymNpcSupportMoves.js';
 import {KANTO_SUPPORT_MOVES} from '../catalog/kantoSupportMoves.js';
 import {kantoMachine} from '../catalog/kantoMachines.js';
 import {compatibleMachineSpecies} from '../catalog/kantoMachineCompatibility.js';
@@ -11,6 +12,9 @@ import {compatibleMachineSpecies} from '../catalog/kantoMachineCompatibility.js'
  */
 const MACHINE_ONLY_MOVES:Readonly<Record<string,KantoMove>>=Object.freeze({
  'bullet-seed':KANTO_TM09_COMBAT_MOVE,
+ // Same status definitions and SP costs used by GYM04B. No native grant.
+ 'toxic':GYM_NPC_SUPPORT_MOVES.toxic!,
+ 'calm-mind':GYM_NPC_SUPPORT_MOVES['calm-mind']!,
  // GYM04 signatures retain the exact published combat values.
  'water-pulse':Object.freeze({name:'water-pulse',type:'water',category:'special',power:60,accuracy:100,priority:0}),
  'earthquake':Object.freeze({name:'earthquake',type:'ground',category:'physical',power:100,accuracy:100,priority:0}),
