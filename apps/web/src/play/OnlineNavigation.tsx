@@ -21,13 +21,14 @@ const groups:readonly {id:Group;label:string;icon:string;links:readonly Destinat
  {id:'map',label:'Abrir mapa',icon:'fa-map-location-dot',links:[
   {tab:'regions',label:'Regiões',icon:'fa-map'},
   {tab:'gyms',label:'Ginásios',icon:'fa-medal'},
-  {tab:'expedition',label:'Expedição',icon:'fa-compass'}]}
+  {tab:'expedition',label:'Expedição',icon:'fa-compass'},
+  {tab:'mega',label:'Santuário Mega',icon:'fa-gem'}]}
 ];
 function activeGroup(tab:Tab):Group|null{
  return tab==='battle'?'map':groups.find(g=>g.links.some(x=>x.tab===tab))?.id??null;
 }
-interface Props{masteryAvailable?:boolean;tab:Tab;trainerSection:TrainerSection;pokemonSection:PokemonSection;disabled:(tab:Tab)=>boolean;onNavigate:(destination:Destination)=>void}
-export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onNavigate,masteryAvailable=false}:Props){
+interface Props{megaAvailable?:boolean;masteryAvailable?:boolean;tab:Tab;trainerSection:TrainerSection;pokemonSection:PokemonSection;disabled:(tab:Tab)=>boolean;onNavigate:(destination:Destination)=>void}
+export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onNavigate,masteryAvailable=false,megaAvailable=false}:Props){
  const current=activeGroup(tab);
  const [open,setOpen]=useState<Group|null>(current);
  const [mobileOpen,setMobileOpen]=useState(false);
@@ -66,7 +67,7 @@ export function OnlineNavigation({tab,trainerSection,pokemonSection,disabled,onN
       aria-expanded={open===group.id} aria-controls={'nav-'+group.id} onClick={()=>setOpen(old=>old===group.id?null:group.id)}>
       <i className={'fa-solid '+group.icon} aria-hidden="true"/><span>{group.label}</span><i className={'fa-solid '+(open===group.id?'fa-chevron-up':'fa-chevron-down')} aria-hidden="true"/>
     </button>
-    <div id={'nav-'+group.id} hidden={open!==group.id} className={styles.menuChildren}>{group.links.filter(item=>item.trainerSection!=='mastery'||masteryAvailable).map(item=>link(item,true))}</div>
+    <div id={'nav-'+group.id} hidden={open!==group.id} className={styles.menuChildren}>{group.links.filter(item=>(item.trainerSection!=='mastery'||masteryAvailable)&&(item.tab!=='mega'||megaAvailable)).map(item=>link(item,true))}</div>
   </div>)}
   {link({tab:'shop',label:'Loja',icon:'fa-store'})}
  </nav>

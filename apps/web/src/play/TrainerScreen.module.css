@@ -345,3 +345,10 @@
 .panel{background:linear-gradient(155deg,var(--color-panel-trainer),var(--color-surface));border-color:var(--color-panel-trainer-border)}
 
 .badgeWon>span>img,.badgeLocked>span>img{width:48px;height:48px;object-fit:contain}
+
+/* Requirement is visible in the equipment dialog, independent of hover. */
+.gearRequirement{display:grid;gap:var(--space-1);padding:var(--space-3);border:1px solid var(--trainer-card-border);border-radius:var(--radius-tight);background:var(--color-surface)}
+.gearRequirement p{margin:0;line-height:1.45}
+.gearRequirement[data-locked=true]{border-color:var(--color-danger)}
+.gearRequirement[data-locked=true]>strong,.gearRequirement[data-locked=true] p[role=status]{color:var(--color-danger)}
+.gearRequirement[data-locked=false] p:last-child{color:var(--color-success)}

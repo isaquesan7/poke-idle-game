@@ -1,0 +1,19 @@
+.workspace{display:grid;gap:var(--space-4);min-width:0}
+.heroGem{font-size:clamp(2rem,8vw,5rem);color:var(--color-primary);padding:var(--space-4)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.challenge,.stone{min-width:0;padding:var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface-raised);display:flex;flex-direction:column;gap:var(--space-2)}
+.challenge{align-items:center;text-align:center}
+.challenge img{width:100%;max-width:220px;height:150px;object-fit:contain}
+.challenge[data-locked=true] img{filter:grayscale(1);opacity:.5}
+.challenge[data-locked=true]{border-color:var(--color-border)}
+.challenge h3,.challenge p,.identity p{margin:0}
+.challenge button{width:100%;margin-top:auto}
+.challenge small,.stone small{color:var(--color-text-muted)}
+.identity,.stone{display:flex;align-items:center;gap:var(--space-3)}
+.stone{flex-direction:row;align-items:flex-start}
+.stone div{display:grid;gap:var(--space-2)}
+.stone>i{color:var(--color-primary);font-size:2rem}
+.select{display:grid;gap:var(--space-2);margin-bottom:var(--space-3)}
+.select select{width:100%;min-height:44px;border:1px solid var(--color-border);background:var(--color-bg);color:var(--color-text);border-radius:var(--radius-control);padding:var(--space-2)}
+.result{padding:var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-card);margin-top:var(--space-3)}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.challenge img{height:130px}.heroGem{display:none}}

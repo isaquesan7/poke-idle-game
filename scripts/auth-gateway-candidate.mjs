@@ -30,8 +30,8 @@ function routeFor(raw,gameplayEnabled){
   if(question>=0)return null;
   if(/^\/assets\/[A-Za-z0-9_.-]+\.(?:js|css|svg|png|webp|woff2?)$/.test(path))
     return {path,kind:'asset'};
-  const sprite=/^\/assets\/pokemon-gifs\/poke_([1-9]\d{0,2})\.gif$/.exec(path);
-  if(sprite&&Number(sprite[1])<=151)return {path,kind:'asset'};
+  const sprite=/^\/assets\/pokemon-gifs\/poke_([1-9]\d{0,2}|1003[3-6])\.gif$/.exec(path);
+  if(sprite&&(Number(sprite[1])<=151||/^1003[3-6]$/.test(sprite[1])))return {path,kind:'asset'};
   return null;
 }
 function exactOrigin(value,{loopback=false}={}){

@@ -32,6 +32,7 @@ export function createFrozenWildTurnSession(snapshot:unknown){
     phase:'await-player',turn:0,maxTurns:MAX_TURNS,
     player:{
       uid:s.activePokemon.uid,speciesId:player.speciesId,
+      ...(player.megaForm?{megaForm:player.megaForm}:{}),
       hp:player.stats.hp,maxHp:player.stats.hp,
       sp:playerMaxSp,maxSp:playerMaxSp,
       status:null,focusUses:0,lastFocusTurn:-100,

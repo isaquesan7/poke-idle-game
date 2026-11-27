@@ -20,16 +20,19 @@ export interface InventorySlotItem {
   readonly rarity?:string;
   readonly detail?:string;
   readonly status?:string;
+  readonly requiredLevel?:number;
+  readonly levelLocked?:boolean;
 }
 interface Props {
   title:string;
   items:readonly InventorySlotItem[];
   capacity:number;
   onSelect?:(id:string)=>void;
+  selectable?:(item:InventorySlotItem)=>boolean;
   actionLabel?:(item:InventorySlotItem)=>string;
   emptyLabel?:string;
 }
-export function InventoryGrid({title,items,capacity,onSelect,actionLabel,emptyLabel='Espaço vazio'}:Props){
+export function InventoryGrid({title,items,capacity,onSelect,selectable,actionLabel,emptyLabel='Espaço vazio'}:Props){
   // Nunca ocultar itens caso um save legado já exceda o limite de exibição.
   const [selected,setSelected]=useState<string|null>(null);
   const total=Math.max(capacity,items.length);
@@ -51,11 +54,12 @@ export function InventoryGrid({title,items,capacity,onSelect,actionLabel,emptyLa
     <div className={styles.grid}>
       {slots.map((item,index)=>item
         ? <button key={item.id} type="button" data-testid={'inventory-item-'+item.id}
-          onClick={()=>{if(onSelect){setSelected(null);onSelect(item.id);}else setSelected(current=>current===item.id?null:item.id);}}
+          onClick={()=>{if(onSelect&&(!selectable||selectable(item))){setSelected(null);onSelect(item.id);}else setSelected(current=>current===item.id?null:item.id);}}
           className={selected===item.id?styles.slotSelected:styles.slotFilled}
-          aria-label={actionLabel? actionLabel(item):item.name+', quantidade '+item.quantity+', '+item.description}
+          aria-label={actionLabel? actionLabel(item):item.name+', quantidade '+item.quantity+', '+item.description+(item.levelLocked?', bloqueado por nível':'')}
           title={item.name}>
             <span className={styles.itemIcon}>{item.gearTemplateId?<GearArt id={item.gearTemplateId} rarity={item.rarity} fallback={item.icon}/>:isBallArtId(item.id)?<PokeballArt id={item.id}/>:<i className={'fa-solid '+item.icon} aria-hidden="true"/>}</span>
+            {item.requiredLevel!==undefined&&<span className={styles.levelTag} data-locked={!!item.levelLocked} data-testid={'gear-level-'+item.id}>{item.levelLocked&&<i className="fa-solid fa-lock" aria-hidden="true"/>} Nv. {item.requiredLevel}</span>}
             {item.status==='Equipado'&&<span className={styles.equippedMarker} aria-hidden="true"><i className="fa-solid fa-circle-check"/></span>}
             <span className={styles.tooltip} aria-hidden="true">
               <strong>{item.name}</strong><small>Quantidade: {item.quantity}</small>

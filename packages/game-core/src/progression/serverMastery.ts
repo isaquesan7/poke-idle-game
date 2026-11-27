@@ -48,11 +48,11 @@ export function onlineMasteryProjection(raw:string){
  const discovered=new Set<number>([...snapshot.roster.map(p=>kantoMasteryFamily(p.pokemonId)!.id),...Object.keys(data.points).map(Number)]);
  return {busy:snapshot.busy,totalSent:data.totalSent,totalFamilies:KANTO_MASTERY_FAMILIES.length,mastered:Object.values(data.points).filter(n=>n===100).length,achievements:masteryAchievements(data.points),
   families:KANTO_MASTERY_FAMILIES.filter(f=>discovered.has(f.id)).map(f=>({...f,...kantoMasteryRank(data.points[String(f.id)]??0)!})),
-  pokemon:(state.roster as {uid:number;pokemonId:number;level:number}[]).map(p=>{
+  pokemon:(state.roster as {uid:number;pokemonId:number;level:number;megaForm?:unknown;megaTrialForm?:unknown}[]).map(p=>{
    const familyId=kantoMasteryFamily(p.pokemonId)!.id;
    const favorite=data.favorites.includes(p.uid),inTeam=snapshot.team.includes(p.uid);
-   const blocked=inTeam?'team':favorite?'favorite':(counts.get(p.pokemonId)??0)<2?'last-specimen':(data.points[String(familyId)]??0)>=100?'mastered':null;
-   return {uid:p.uid,speciesId:p.pokemonId,level:p.level,familyId,favorite,inTeam,blocked,points:kantoResearchValue(p.pokemonId)};
+   const blocked=p.megaForm!==undefined||p.megaTrialForm!==undefined?'mega':inTeam?'team':favorite?'favorite':(counts.get(p.pokemonId)??0)<2?'last-specimen':(data.points[String(familyId)]??0)>=100?'mastered':null;
+   return {uid:p.uid,speciesId:p.pokemonId,level:p.level,megaForm:p.megaForm,megaTrialForm:p.megaTrialForm,familyId,favorite,inTeam,blocked,points:kantoResearchValue(p.pokemonId)};
   }),history:data.history};
 }
 export function applyOnlineResearch(raw:string,command:unknown,nowMs:number){

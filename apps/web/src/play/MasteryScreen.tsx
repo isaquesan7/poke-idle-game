@@ -6,7 +6,7 @@ import {RegionDialog} from '../regions/RegionDialog';
 import styles from './PlayApp.module.css';
 const names=['Não iniciada','Iniciante','Experiente','Especialista','Veterano','Mestre'];
 const name=(id:number)=>kantoSpecies(id)?.name??'Pokémon';
-const reason={team:'Na equipe',favorite:'Favorito protegido','last-specimen':'Último exemplar',mastered:'Maestria máxima'} as const;
+const reason={mega:'Mega Evolução ou pedra vinculada protegida',team:'Na equipe',favorite:'Favorito protegido','last-specimen':'Último exemplar',mastered:'Maestria máxima'} as const;
 export type MasteryCommand={kind:'send';uids:number[]}|{kind:'favorite';uid:number;favorite:boolean};
 export function MasteryScreen({view,busy,onCommand}:{view:MasteryView;busy:boolean;onCommand:(command:MasteryCommand,revision:number)=>Promise<boolean>}){
  const [selected,setSelected]=useState<number[]>([]);
@@ -14,7 +14,7 @@ export function MasteryScreen({view,busy,onCommand}:{view:MasteryView;busy:boole
  const [search,setSearch]=useState('');
  const [confirm,setConfirm]=useState(false);
  const blocked=busy||view.busy;
- const snapshot={roster:view.pokemon.map(p=>({uid:p.uid,pokemonId:p.speciesId})),team:view.pokemon.filter(p=>p.inTeam).map(p=>p.uid),favorites:view.pokemon.filter(p=>p.favorite).map(p=>p.uid),points:Object.fromEntries(view.families.map(f=>[String(f.id),f.points])),busy:view.busy};
+ const snapshot={roster:view.pokemon.map(p=>({uid:p.uid,pokemonId:p.speciesId,megaForm:p.megaForm,megaTrialForm:p.megaTrialForm})),team:view.pokemon.filter(p=>p.inTeam).map(p=>p.uid),favorites:view.pokemon.filter(p=>p.favorite).map(p=>p.uid),points:Object.fromEntries(view.families.map(f=>[String(f.id),f.points])),busy:view.busy};
  const quote=quoteKantoResearch(snapshot,selected);
  const matched=view.families.filter(f=>(filter==='all'||(filter==='mastered'?f.current.rank===5:f.current.rank<5))&&f.speciesIds.some(id=>name(id).toLowerCase().includes(search.toLowerCase())));
  const candidates=view.pokemon.filter(p=>filter==='all'||matched.some(f=>f.id===p.familyId)).filter(p=>name(p.speciesId).toLowerCase().includes(search.toLowerCase())||name(p.familyId).toLowerCase().includes(search.toLowerCase()));

@@ -93,9 +93,9 @@ createServer((req, res) => {
     });
     return;
   }
-  // GIFs Kanto: somente IDs inteiros entre 1 e 151, sem acesso livre ao filesystem.
-  const spriteMatch = /^\/assets\/pokemon-gifs\/poke_([1-9]\d{0,2})\.gif$/.exec(url.pathname);
-  if (spriteMatch && Number(spriteMatch[1]) <= 151) {
+  // GIFs Kanto: somente IDs Kanto 1–151 e as quatro formas Mega 10033–10036, sem acesso livre ao filesystem.
+  const spriteMatch = /^\/assets\/pokemon-gifs\/poke_([1-9]\d{0,2}|1003[3-6])\.gif$/.exec(url.pathname);
+  if (spriteMatch && (Number(spriteMatch[1]) <= 151 || /^1003[3-6]$/.test(spriteMatch[1]))) {
     const file = new URL('./assets/pokemon-gifs/poke_' + spriteMatch[1] + '.gif', import.meta.url);
     const sprite = createReadStream(file);
     sprite.once('open', () => {

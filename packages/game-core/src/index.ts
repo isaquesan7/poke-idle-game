@@ -216,3 +216,11 @@ export type {onlineMachineProjection} from './combat/serverMachineLessons.js';
 
 export {kantoMachine} from './catalog/kantoMachines.js';
 export {machineRarity} from './inventory/machineLoot.js';
+
+// MEGA01 — permanent form identity/catalog only; no online writer yet.
+export {KANTO_MEGA_FORMS,kantoMegaForm,kantoMegaOptions,kantoPokemonFormProfile,quoteKantoMegaChoice} from './catalog/kantoMegaForms.js';
+export type {KantoMegaForm,KantoMegaFormId,KantoMegaStoneId} from './catalog/kantoMegaForms.js';
+
+export {validKantoMegaEntitlement} from './catalog/kantoMegaForms.js';
+export {KANTO_MEGA_REQUIREMENTS,onlineMegaProjection,quoteOnlineMegaTrial,applyOnlineMegaEvolution} from './combat/serverMegaEvolution.js';
+

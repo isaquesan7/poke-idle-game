@@ -4,6 +4,8 @@
  * The API bundles this game-core in its isolated runtime and derives
  * battle seeds exclusively from the persisted encounter's private entropy.
  */
+import {kantoPokemonFormProfile,validKantoMegaEntitlement} from '../catalog/kantoMegaForms.js';
+import type {KantoMegaFormId} from '../catalog/kantoMegaForms.js';
 import {KANTO_BATTLE_SPECIES,simulateKantoBattle} from '../combat/kantoBattle.js';
 import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
 import {masteryBonusFromPoints} from '../progression/kantoMastery.js';
@@ -36,6 +38,8 @@ export interface ServerBattleSnapshotV1 {
     readonly uid:number;readonly speciesId:number;readonly level:number;
     readonly affinity:number;readonly manual:Readonly<StatValues>;
     readonly moveName:string;
+    readonly megaForm?:KantoMegaFormId;
+    readonly megaTrialForm?:KantoMegaFormId;
   };
 }
 /** v2 records an EXPLICIT equipped loadout, not the entire learned catalog.
@@ -109,7 +113,8 @@ export function canonicalFrozenCombatants(snapshot:unknown):
      ||typeof player.moveName!=='string'
      ||!manualValid(trainer.manual,(trainer.level-1)*2)
      ||!manualValid(player.manual,(player.level-1)*2,(player.level-1)*2))return null;
-  const own=KANTO_BATTLE_SPECIES[player.speciesId];
+  if(!validKantoMegaEntitlement(player.speciesId,player.megaForm,player.megaTrialForm))return null;
+  const own=kantoPokemonFormProfile(player.speciesId,player.megaForm);
   const other=KANTO_BATTLE_SPECIES[enemy.speciesId];
   if(!own||!other)return null;
   const rawNames=(player as {moveNames?:unknown}).moveNames;
@@ -139,7 +144,8 @@ export function canonicalFrozenCombatants(snapshot:unknown):
   const mastery=masteryBonusFromPoints(s.masteryPoints,player.speciesId);
   if(!mastery)return null;
   const playerCombatant:Combatant={
-    speciesId:own.id,name:own.name,types:own.types,level:player.level,
+    speciesId:own.speciesId,name:own.name,types:own.types,level:player.level,
+    ...(own.formId?{megaForm:own.formId}:{}),
     ...(equipped.some(m=>m.name==='return'||m.name==='frustration')?{affinity:player.affinity}:{}),
     stats:pokemonMasteryStats(pokemonFinalStats(own.base,player.level,player.manual,
       trainerStats,player.affinity),mastery.statPercent),

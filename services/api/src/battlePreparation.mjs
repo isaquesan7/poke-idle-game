@@ -83,6 +83,8 @@ export function buildBattleSnapshot(save,encounter,regionalPolicy,tmLoot=false){
       uid:selected.uid,speciesId:selected.pokemonId,
       level:selected.level,affinity:selected.affinity,
       manual:pokemonManual,moveName:selected.moveName,
+      ...(selected.megaForm===undefined?{}:{megaForm:selected.megaForm}),
+      ...(selected.megaTrialForm===undefined?{}:{megaTrialForm:selected.megaTrialForm}),
       ...(equipped===undefined?{}:{moveNames:[...equipped]}),
       ...(history===undefined?{}:{evolutionHistory:history}),
       ...(lessons===undefined?{}:{machineLessons:lessons}),

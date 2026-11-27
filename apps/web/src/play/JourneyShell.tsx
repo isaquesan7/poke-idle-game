@@ -2,11 +2,11 @@ import {PokeballSymbol} from './PokeballArt';
 import type {ReactNode} from 'react';
 import styles from './PlayApp.module.css';
 
-export type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'gyms' | 'expedition' | 'shop';
+export type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'gyms' | 'expedition' | 'shop' | 'mega';
 /** D-051: navegação consistente com o Font Awesome da tela do treinador. */
 const NAV_ICONS:Readonly<Record<Tab,string>>={
   overview:'fa-house',trainer:'fa-user',pokemon:'fa-dragon',collection:'fa-layer-group',
-  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',gyms:'fa-medal',expedition:'fa-compass',shop:'fa-store'
+  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',gyms:'fa-medal',expedition:'fa-compass',shop:'fa-store',mega:'fa-gem'
 };
 
 
@@ -30,7 +30,7 @@ export function PokemonArt({ id, name, large = false }: {
 
 
 export function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', gyms:'Ginásios', expedition: 'Expedição', shop:'Loja' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', gyms:'Ginásios', expedition: 'Expedição', shop:'Loja',mega:'Santuário Mega' }[tab];
 }
 
 
