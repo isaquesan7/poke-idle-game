@@ -15,13 +15,22 @@ export function extractKantoTms(machineText,learnsetText){
   machines.set(move,{number:n,itemId:item,moveId:move,speciesIds:new Set()});
  }
  if(machines.size!==50)throw Error('Incomplete FRLG machines');
+ // The pinned source may carry additional columns (e.g. mastery).
+ // Resolve required fields by exact header names, not fixed row width.
+ const [header,...lines]=learnsetText.trim().split(/\r?\n/);
+ const columns=header.split(',').map(x=>x.trim());
+ const required=['pokemon_id','version_group_id','move_id','pokemon_move_method_id','level'];
+ const indices=required.map(x=>columns.indexOf(x));
+ if(new Set(columns).size!==columns.length||indices.some(i=>i<0))throw Error('Invalid learnset header: '+header);
  let scanned=0;
- for(const [i,line] of learnsetText.trim().split(/\r?\n/).entries()){
-  if(i===0){if(line!=='pokemon_id,version_group_id,move_id,pokemon_move_method_id,level,order')throw Error('Invalid learnset header');continue;}
+ for(const [i,line] of lines.entries()){
   const f=line.split(',');
-  if(f.length!==6||!f.slice(0,5).every(v=>/^\d+$/.test(v))||!/^\d*$/.test(f[5]))throw Error('Invalid learnset row '+(i+1));
+  if(f.length!==columns.length||!indices.slice(0,4).every(j=>/^\d+$/.test(f[j].trim())))throw Error('Invalid learnset row '+(i+2));
   scanned++;
-  const [species,version,move,method,level]=f.map(Number);
+  const [species,version,move,method]=indices.slice(0,4).map(j=>Number(f[j]));
+  const levelText=f[indices[4]].trim();
+  if(!/^\d*$/.test(levelText))throw Error('Invalid level '+(i+2));
+  const level=levelText===''?null:Number(levelText);
   if(species<1||species>151||version!==7||method!==4)continue;
   const tm=machines.get(move);if(!tm)continue;
   if(level!==0||tm.speciesIds.has(species))throw Error('Invalid or duplicate compatibility');

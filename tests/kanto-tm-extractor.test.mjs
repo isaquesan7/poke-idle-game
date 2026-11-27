@@ -10,3 +10,10 @@ test('extract only FRLG machine permissions for Kanto, excluding HMs and unrelat
  assert.throws(()=>extractKantoTms(m,p+'\n25,7,100,4,1,'));
  assert.throws(()=>extractKantoTms(m,p.split('\n').slice(0,-1).join('\n')));
 });
+
+test('accept pinned CSV additional columns and reject missing/duplicate required headers',()=>{
+ const extra=p.split('\n').map((line,i)=>line+(i===0?',mastery':',')).join('\n');
+ assert.deepEqual(extractKantoTms(m,extra),extractKantoTms(m,p));
+ assert.throws(()=>extractKantoTms(m,p.replace('pokemon_id','species')));
+ assert.throws(()=>extractKantoTms(m,p.replace('order','level')));
+});
