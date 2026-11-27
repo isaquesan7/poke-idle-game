@@ -1197,7 +1197,7 @@ try{
   assert.equal(lockedMega.challenges.every(c=>!c.unlocked),true);
   await megaNav.getByRole('button',{name:'Santuário Mega',exact:true}).click();
   await megaPage.getByText('Requisitos para desafiar',{exact:true}).waitFor();
-  for(const card of megaPage.getByTestId(/^mega-challenge-/).all?await megaPage.getByTestId(/^mega-challenge-/).all():[]){assert.equal(await card.getByRole('button',{name:'Bloqueado',exact:true}).isDisabled(),true);}
+  for(const card of await megaPage.getByTestId(/^mega-challenge-/).all()){assert.equal(await card.getByRole('button',{name:'Bloqueado',exact:true}).isDisabled(),true);}
   assert.equal(await megaPage.getByTestId(/^mega-challenge-/).count(),4);
   assert.equal(await megaPage.getByText('Maestria V na família',{exact:true}).isVisible(),true);
   megaRaw.research.points['4']=100;
