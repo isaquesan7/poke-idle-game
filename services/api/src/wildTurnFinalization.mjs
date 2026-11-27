@@ -178,8 +178,21 @@ export async function finishPaidWildTurnEncounter(pool,{
     const seed=createPrivateBattleRandom(entropyKey,{
       accountId,encounterId,phase:'wild-turn-capture'
     }).integer(2**32);
+    // Current encounter loot is unavailable to the capture attempt. For a
+    // paid encounter created before this fix, temporarily remove its credited ball.
+    const state=JSON.parse(save.journal.raw);
+    const deferred=receipt.deferredBall??null;
+    const previouslyCredited=!Object.hasOwn(receipt,'deferredBall')&&receipt.ballDrop?.quantity===1?receipt.ballDrop.ballId:null;
+    const releaseBall=deferred?.itemId??previouslyCredited;
+    if(releaseBall&&(!CHOICES.includes(releaseBall)||releaseBall==='skip'||releaseBall!==expectedQuote.ballDropId))return await rollback(client,{status:'invalid-payout'});
+    if(deferred&&(deferred.kind!=='ball'||deferred.quantity!==1||receipt.ballDrop?.quantity!==1))return await rollback(client,{status:'invalid-payout'});
+    if(previouslyCredited){
+      const quantity=state.ballPocket.quantities[previouslyCredited];
+      if(!Number.isSafeInteger(quantity)||quantity<1)return await rollback(client,{status:'invalid-payout'});
+      state.ballPocket.quantities[previouslyCredited]=quantity-1;
+    }
     const candidate=core.finalizeFrozenWildEncounter(
-      save.journal.raw,snapshot,verified.summary,choice,seed,Date.now());
+      JSON.stringify(state),snapshot,verified.summary,choice,seed,Date.now());
     if(!candidate||typeof candidate.raw!=='string'||!candidate.result||
        !['skipped','failed','captured'].includes(candidate.result.outcome)||
        candidate.result.speciesId!==Number(encounter.species_id)||
@@ -187,9 +200,16 @@ export async function finishPaidWildTurnEncounter(pool,{
        (choice!=='skip'&&(candidate.result.outcome==='skipped'||
          candidate.result.ballId!==choice)))
       return await rollback(client,{status:'unavailable'});
+    const finalState=JSON.parse(candidate.raw);
+    if(releaseBall){
+      const quantity=finalState.ballPocket.quantities[releaseBall]??0;
+      if(!Number.isSafeInteger(quantity)||quantity<0||quantity>=100000)return await rollback(client,{status:'invalid-inventory'});
+      finalState.ballPocket.quantities[releaseBall]=quantity+1;
+    }
+    if(!finalState.seen.includes(candidate.result.speciesId))finalState.seen.push(candidate.result.speciesId);
     const nextRevision=revision+1;
     const next={...save,revision:nextRevision,
-      journal:{...save.journal,raw:candidate.raw,revision:nextRevision}};
+      journal:{...save.journal,raw:JSON.stringify(finalState),revision:nextRevision}};
     await client.query(
       `UPDATE game_encounter_reservations
           SET status='completed',
