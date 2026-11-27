@@ -10,7 +10,7 @@
  * diferente é conflito; revisão obsoleta é recusada; recompensas, captura
  * e recibo são calculados na MESMA transição imutável. Ainda não é writer.
  */
-import {kantoPokemonFormProfile,inspectMegaStoneStock} from '../catalog/kantoMegaForms.js';
+import {validKantoMegaEntitlement} from '../catalog/kantoMegaForms.js';
 import { kantoCaptureStartingLevel } from '../catalog/kantoEvolution.js';
 import { AFFINITY_LOSS_ON_DEFEAT, AFFINITY_LOSS_ON_DRAW } from '../affinity/affinityDynamics.js';
 import {masteryBonusFromSave} from '../progression/kantoMastery.js';
@@ -113,14 +113,14 @@ function parseState(raw: string): ValidState | null {
     || !Array.isArray(source.team) || source.team.length < 1 || source.team.length > 3
     || !(source.expedition === null || record(source.expedition))) return null;
 
-  if(!inspectMegaStoneStock(source.megaStoneStock))return null;
+  if(source.megaStoneStock!==undefined)return null;
   const uids = new Set<number>();
   for (const p of source.roster as unknown[]) {
     if (!record(p) || !positive(p.uid) || uids.has(p.uid)
       || !positive(p.pokemonId) || p.pokemonId > 151
       || !positive(p.level) || p.level > 100
       || !natural(p.xp) || !natural(p.affinity) || p.affinity > 100
-      || !kantoPokemonFormProfile(p.pokemonId,p.megaForm)) return null;
+      || !validKantoMegaEntitlement(p.pokemonId,p.megaForm,p.megaTrialForm)) return null;
     uids.add(p.uid);
   }
   if (source.nextUid <= Math.max(...uids)) return null;
