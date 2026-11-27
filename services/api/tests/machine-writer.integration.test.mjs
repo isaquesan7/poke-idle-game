@@ -78,27 +78,28 @@ test('TM regional loot: certified overlevel win credits stock exactly once and s
   const core=await loadCombatAdapter();
   accountId=(await pool.query("INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id",['tm-loot-'+randomUUID()+'@example.test','x'.repeat(48)])).rows[0].id;
   const initial=firstSave('TM Loot CI',4,1740000000000),before=JSON.parse(initial.journal.raw);
-  before.roster[0].level=20;
+  before.trainer.level=80;before.roster[0].level=80;
   initial.journal.raw=JSON.stringify(before);
   await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[accountId,JSON.stringify(initial)]);
-  const booked=await reserveEncounter(pool,{accountId,actionId:randomUUID(),expectedRevision:0,regionId:1});
+  const booked=await reserveEncounter(pool,{accountId,actionId:randomUUID(),expectedRevision:0,regionId:3,allowExpandedRegions:true});
   assert.equal(booked.status,'reserved');
   const ids={accountId,encounterId:booked.encounterId};
-  // Find a synthetic CI key for a genuine common-tier drop; no runtime
+  // Find a synthetic CI key for a genuine executable TM drop; no runtime
   // override of the roll, payout, opponent catalogue, or player command.
-  const input={regionId:1,speciesId:10,wildLevel:2,trainerLevel:before.trainer.level,pokemonLevel:20,won:true};
-  let entropyKey,tmId;
+  let entropyKey,tmId,opponent;
   for(let n=0;n<8192;n++){
    const candidate=Buffer.alloc(32);candidate.writeUInt32BE(n);
+   const encounterRng=createPrivateBattleRandom(candidate,{...ids,phase:'wild-encounter'});
+   const selected=core.serverRegionalRoll(3,80,80,encounterRng.integer);
+   assert.ok(selected);
    const random=createPrivateBattleRandom(candidate,{...ids,phase:'wild-battle-tm-drop'});
-   const rolled=core.rollRegionalMachine(input,random.integer);
+   const rolled=core.rollRegionalMachine({regionId:3,speciesId:selected.speciesId,wildLevel:selected.level,trainerLevel:80,pokemonLevel:80,won:true},random.integer);
    assert.ok(rolled);
-   if(rolled.tmId){entropyKey=candidate;tmId=rolled.tmId;break;}
+   if(rolled.tmId){entropyKey=candidate;tmId=rolled.tmId;opponent=selected;break;}
   }
-  assert.ok(entropyKey&&tmId,'exercise a real nonempty R1 TM pool');
-  assert.equal((await materializeReservedEncounter(pool,{...ids,entropyKey})).status,'materialized');
-  // Same legitimate R1 species/level fixture used by the capture CI journey.
-  await pool.query('UPDATE game_encounter_reservations SET species_id=10,pokemon_level=2 WHERE id=$1',[ids.encounterId]);
+  assert.ok(entropyKey&&tmId,'exercise a real nonempty R3 TM pool');
+  const materialized=await materializeReservedEncounter(pool,{...ids,entropyKey});
+  assert.equal(materialized.status,'materialized');assert.equal(materialized.speciesId,opponent.speciesId);assert.equal(materialized.level,opponent.level);
   const prepared=await prepareReservedBattle(pool,ids);
   assert.equal(prepared.status,'prepared');assert.equal(prepared.snapshot.tmLootVersion,1);
   const opening=await startReservedWildTurnSession(pool,{...ids,expectedRevision:1});
