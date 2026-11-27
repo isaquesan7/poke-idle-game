@@ -65,3 +65,6 @@ export {rollRegionalMachine} from '../inventory/machineLoot.js';
 export {onlineMegaProjection,quoteOnlineMegaTrial,applyCertifiedMegaTrialVictory,applyOnlineMegaEvolution} from './serverMegaEvolution.js';
 
 export {prepareMegaTrialBattle,resolveMegaTrialBattle} from './serverMegaBattle.js';
+
+export {onlineArenaProgress,startOnlineArenaRun,abandonOnlineArenaRun,applyCertifiedOnlineArenaResult} from '../progression/serverArenaProgress.js';
+export {prepareArenaFloorBattle,resolvePreparedArenaDuel} from './serverArenaBattle.js';

@@ -104,6 +104,16 @@ export async function setCollectionTeam(pool,{
        raw.lastBattle?.captureStatus==='available')
       return await rollback(client,{status:'busy'});
 
+    // Freeze the selected trio until the current Arena run ends. Expired
+    // weeks do not block changing the team before the next run.
+    if(raw.weeklyArena?.progress?.run){
+      const {onlineArenaProgress}=await import('./battlePreview.mjs').then(m=>m.loadCombatAdapter());
+      const clock=await client.query('SELECT floor(extract(epoch from clock_timestamp())*1000)::bigint AS ms');
+      const arena=onlineArenaProgress(save.journal.raw,Number(clock.rows[0].ms));
+      if(!arena)return await rollback(client,{status:'invalid-save'});
+      if(arena.run)return await rollback(client,{status:'busy'});
+    }
+
     // The one—and only—gameplay modification: ordered Collection team.
     const nextRevision=revision+1;
     const nextRaw={...raw,team:[...teamUids]};
