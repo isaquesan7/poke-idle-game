@@ -1029,6 +1029,33 @@ try{
    await ringsPage.getByTestId('inventory-item-'+id).locator('[class*="equippedMarker"]').waitFor({state:'detached'});
   }
   assert.deepEqual((await inventoryRead()).totals,ringsBefore.totals);
+  // Reproduce the owner's Nv.22 vs Nv.28 report in the disposable DB only.
+  const lockedSave=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const originalRingRaw=lockedSave.journal.raw;
+  const lockedRaw=JSON.parse(originalRingRaw);
+  lockedRaw.trainer.level=22;lockedRaw.trainer.manual={hp:0,attack:0,defense:0,specialAttack:0,specialDefense:0,speed:0};
+  lockedRaw.inventory.gear.push({id:'gear-ring2-locked-ci',source:'drop',templateId:'ring-d',slot:'ring2',rarity:'common',regionId:4,requiredLevel:28,stats:{speed:3}});
+  lockedSave.journal.raw=JSON.stringify(lockedRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(lockedSave)]);
+  await ringsPage.reload({waitUntil:'domcontentloaded'});
+  await ringsPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  await expand(ringsPage,'Treinador');
+  for(const section of ['Mochila','Equipamentos']){
+   await ringsNav.getByRole('button',{name:section,exact:true}).click();
+   const tile=ringsPage.getByTestId('gear-level-gear-ring2-locked-ci');
+   await tile.waitFor({state:'visible'});
+   assert.equal(await tile.getAttribute('data-locked'),'true');
+   assert.match(await tile.textContent(),/Nv\. 28/);
+   await ringsPage.getByTestId('inventory-item-gear-ring2-locked-ci').click();
+   const dialog=ringsPage.getByRole('dialog',{name:'Anel da Agilidade',exact:true});
+   await dialog.getByText('Nível exigido do treinador: 28',{exact:true}).waitFor();
+   await dialog.getByText('Seu nível: 22',{exact:true}).waitFor();
+   await dialog.getByText(/Faltam 6 níveis para equipar/).waitFor();
+   assert.equal(await dialog.getByRole('button',{name:'Nível insuficiente',exact:true}).isDisabled(),true);
+   await dialog.getByRole('button',{name:'Cancelar',exact:true}).click();
+  }
+  lockedSave.journal.raw=originalRingRaw;
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(lockedSave)]);
   await ringsPage.close();
   checkpoint("Alpha confirmed level-up");
   // A disposable low-level Pokémon needs only one XP to level up.
