@@ -988,6 +988,48 @@ try{
   assert.ok(!finalInv.titles.some(t=>t.id==='gym-leader'));
   assert.equal(finalInv.badges.length,8);
   assert.deepEqual(finalInv.bag,inv.bag);
+  checkpoint("Alpha dropped Ring 2 equip and removal");
+  const ringsSave=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const ringsRaw=JSON.parse(ringsSave.journal.raw);
+  ringsRaw.inventory.gear.push(
+   {id:'gear-ring1-ci',source:'drop',templateId:'ring-a',slot:'ring1',rarity:'common',regionId:1,requiredLevel:1,stats:{attack:2}},
+   {id:'gear-ring2-ci',source:'drop',templateId:'ring-c',slot:'ring2',rarity:'common',regionId:1,requiredLevel:1,stats:{defense:2}});
+  ringsSave.journal.raw=JSON.stringify(ringsRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(ringsSave)]);
+  const ringsPage=await context.newPage();
+  await ringsPage.setViewportSize({width:1365,height:768});
+  await ringsPage.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await ringsPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  const ringsNav=ringsPage.getByRole('navigation',{name:'Navegação do jogo'});
+  await expand(ringsPage,'Treinador');
+  await ringsNav.getByRole('button',{name:'Mochila',exact:true}).click();
+  const ringsBefore=await inventoryRead();
+  for(const [id,label,slot] of [['gear-ring1-ci','Anel da Força','ring1'],['gear-ring2-ci','Anel da Defesa','ring2']]){
+   await ringsPage.getByTestId('inventory-item-'+id).click();
+   const dialog=ringsPage.getByRole('dialog',{name:label,exact:true});
+   await dialog.getByText('Nível exigido do treinador: 1',{exact:true}).waitFor();
+   const applied=await responseFor(ringsPage,'/api/v1/inventory/loadout',()=>dialog.getByRole('button',{name:'Equipar',exact:true}).click());
+   assert.equal(applied.status,'applied');
+   await ringsPage.getByTestId('inventory-item-'+id).waitFor({state:'detached'});
+   assert.equal((await inventoryRead()).slots.find(x=>x.slot===slot).itemId,id);
+  }
+  const ringsAfter=await inventoryRead();
+  assert.equal(ringsAfter.totals.attack,ringsBefore.totals.attack+2);
+  assert.equal(ringsAfter.totals.defense,ringsBefore.totals.defense+2);
+  assert.equal(ringsAfter.bag.available,ringsBefore.bag.available+2);
+  const wrongSlot=await ringsPage.request.post(origin+'/api/v1/inventory/loadout',{headers:{Origin:origin},data:{actionId:'browser-ring2-wrong-slot',expectedRevision:ringsAfter.revision,command:{kind:'equipment',slot:'ring1',itemId:'gear-ring2-ci'}}});
+  assert.equal(wrongSlot.status(),409);
+  await ringsNav.getByRole('button',{name:'Equipamentos',exact:true}).click();
+  for(const [id,label] of [['gear-ring1-ci','Anel da Força'],['gear-ring2-ci','Anel da Defesa']]){
+   await ringsPage.getByTestId('inventory-item-'+id).click();
+   const dialog=ringsPage.getByRole('dialog',{name:label,exact:true});
+   await dialog.getByText('Equipado',{exact:true}).waitFor();
+   const removed=await responseFor(ringsPage,'/api/v1/inventory/loadout',()=>dialog.getByRole('button',{name:'Remover',exact:true}).click());
+   assert.equal(removed.status,'applied');
+   await ringsPage.getByTestId('inventory-item-'+id).locator('[class*="equippedMarker"]').waitFor({state:'detached'});
+  }
+  assert.deepEqual((await inventoryRead()).totals,ringsBefore.totals);
+  await ringsPage.close();
   checkpoint("Alpha confirmed level-up");
   // A disposable low-level Pokémon needs only one XP to level up.
   // A win, half-XP defeat or beginner draw must cross the threshold.
