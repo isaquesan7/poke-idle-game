@@ -21,7 +21,7 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
   const child=spawn(process.execPath,['src/server.mjs'],{
     cwd:new URL('../',import.meta.url).pathname,
     env:{...process.env,PORT:'23142',APP_ORIGIN:origin,
-      ONLINE_REGISTRATION_ENABLED:'true',NODE_ENV:'test',ONLINE_MASTERY_CI_ONLY:'true'},
+      ONLINE_REGISTRATION_ENABLED:'true',NODE_ENV:'test',ONLINE_TM_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true'},
     stdio:['ignore','pipe','pipe']
   });
   let stderr='';
@@ -90,6 +90,19 @@ test('ONLINE-01B: signup/login/session and save isolated from legacy client',asy
       {starterId:4},{Cookie:sessionCookie});
     assert.equal(started.status,201);
     assert.deepEqual(started.data,{created:true,revision:0,starterId:4});
+    const tmPath='/api/v1/tm/current',teachPath='/api/v1/tm/teach';
+    assert.equal((await json(origin,tmPath)).status,401);
+    const tm=await json(origin,tmPath,'GET',undefined,{Cookie:sessionCookie});
+    assert.equal(tm.status,200);assert.equal(tm.data.revision,0);
+    assert.equal(tm.data.machines.length,50);
+    assert.equal(tm.data.machines.every(m=>m.quantity===0),true);
+    const lesson={actionId:'tm-http-no-stock-001',expectedRevision:0,command:{uid:1,tmId:'tm35'}};
+    assert.equal((await json(origin,teachPath,'POST',lesson)).status,401);
+    assert.equal((await json(origin,teachPath,'POST',lesson,{Cookie:sessionCookie,Origin:'https://example.org'})).status,400);
+    assert.equal((await json(origin,teachPath,'POST',{...lesson,accountId:register.data.id},{Cookie:sessionCookie})).status,400);
+    const noStock=await json(origin,teachPath,'POST',lesson,{Cookie:sessionCookie});
+    assert.equal(noStock.status,409);assert.equal(noStock.data.status,'no-stock');
+    assert.equal((await json(origin,tmPath,'GET',undefined,{Cookie:sessionCookie})).data.revision,0);
     const masteryPath='/api/v1/mastery/current',researchPath='/api/v1/mastery/research';
     assert.equal((await json(origin,masteryPath)).status,401);
     const mastery=await json(origin,masteryPath,'GET',undefined,{Cookie:sessionCookie});

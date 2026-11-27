@@ -10,6 +10,7 @@ const groups=[
  ['pokemon-training','ONLINE_POKEMON_TRAINING_CI_ONLY',['GET pokemon-training/current','POST pokemon-training/train']],
  ['pokedex','ONLINE_POKEDEX_CI_ONLY',['GET pokedex/current']],
  ['inventory','ONLINE_TRAINER_LOADOUT_CI_ONLY',['GET inventory/current','POST inventory/loadout']],
+ ['tm','ONLINE_TM_CI_ONLY',['GET tm/current','POST tm/teach']],
  ['mastery','ONLINE_MASTERY_CI_ONLY',['GET mastery/current','POST mastery/research']],
  ['gym','ONLINE_GYM_PORTAL_CI_ONLY',['GET gym/current','POST gym/reserve','POST gym/start','POST gym/turn','POST gym/certify','POST gym/settle']]
 ];
@@ -33,6 +34,7 @@ export function webOnlineRoute(path,env=process.env){
  const route=onlineRoute(path);
  if(!route)return null;
  if(route.group==='base')return route;
+ if(route.group==='tm'&&env.NODE_ENV!=='test')return null;
  if(privateHomologationRole('web',env)&&env.ONLINE_GATEWAY_FORWARD_MODE==='reviewed')return route;
  if(env.NODE_ENV==='production'&&env.ONLINE_RELEASE_MODE==='reviewed'&&
     env.ONLINE_PUBLIC_SAVES_ENABLED==='true'&&env.ONLINE_GATEWAY_FORWARD_MODE==='reviewed')return route;

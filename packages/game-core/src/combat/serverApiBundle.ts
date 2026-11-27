@@ -57,3 +57,5 @@ export {placeCertifiedRegionalLoot,inspectPendingRegionalLoot,resolvePendingRegi
 export {inspectPendingExpeditionLoot,resolvePendingExpeditionLoot} from '../inventory/serverExpeditionLoot.js';
 
 export {onlineMasteryProjection,applyOnlineResearch} from '../progression/serverMastery.js';
+
+export {onlineMachineProjection,applyOnlineMachineTeaching} from './serverMachineLessons.js';
