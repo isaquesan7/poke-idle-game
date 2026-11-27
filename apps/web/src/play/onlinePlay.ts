@@ -20,7 +20,7 @@ export function onlineMoveSlots(p:LegacyPokemon,fallback:string):readonly string
   ?slots as string[]:pokemonMoveSlots({moveName:p.moveName},fallback);
 }
 export type RegionalReward={outcome:string;trainerXp:number;pokemonXp:number;coins:number;loot:{stored:RegionalDrop[];pending:RegionalDrop[]};capture:'captured'|'failed'|'skipped'|null};
-type RegionalDrop={kind:'ball'|'stone'|'tm';itemId:string;quantity:number}|{kind:'gear';gear:{templateId:string;rarity:string}};
+type RegionalDrop={kind:'ball'|'stone'|'tm'|'mega-stone';itemId:string;quantity:number}|{kind:'gear';gear:{templateId:string;rarity:string}};
 import type {onlineInventoryProjection,onlineShopProjection,onlineExpeditionProjection} from '@kanto/game-core';
 import type {PendingRegionalLoot,PendingExpeditionLoot} from '@kanto/game-core';
 export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number;pending:PendingRegionalLoot|null;expeditionPending:PendingExpeditionLoot|null;canResolveExpeditionLoot:boolean};

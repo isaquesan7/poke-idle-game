@@ -15,5 +15,8 @@ export function quoteCertifiedRegionalLoot(core,snapshot,summary,{accountId,enco
  if(snapshot.tmLootVersion!==1)return null;
  const rng=createPrivateBattleRandom(entropyKey,{accountId,encounterId,phase:'wild-battle-tm-drop'});
  const tm=core.rollRegionalMachine(input,rng.integer);
- return tm?{...loot,tmId:tm.tmId}:null;
+ if(!tm)return null;
+ const megaRng=createPrivateBattleRandom(entropyKey,{accountId,encounterId,phase:'wild-battle-mega-stone-drop'});
+ const mega=core.rollRegionalMegaStone(input,megaRng.integer);
+ return mega?{...loot,tmId:tm.tmId,...(mega.megaStoneId?{megaStoneId:mega.megaStoneId}:{})}:null;
 }

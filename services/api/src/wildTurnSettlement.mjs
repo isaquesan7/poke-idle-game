@@ -211,7 +211,7 @@ export async function payCertifiedWildTurns(pool,{
     if(!loot)return await rollback(client,{status:'invalid-loot'});
     const placed=core.placeCertifiedRegionalLoot(save.journal.raw,candidate.raw,{
       encounterId,regionId:snapshot.regionId,speciesId:snapshot.opponent.speciesId,
-      outcome:quote.outcome,gear:loot.gear,stone:loot.stone,ballId:quote.ballDropId,...(loot.tmId?{tmId:loot.tmId}:{})
+      outcome:quote.outcome,gear:loot.gear,stone:loot.stone,ballId:quote.ballDropId,...(loot.tmId?{tmId:loot.tmId}:{}),...(loot.megaStoneId?{megaStoneId:loot.megaStoneId}:{})
     });
     if(!placed)return await rollback(client,{status:'invalid-inventory'});
     const fullQuote={...quote,loot};

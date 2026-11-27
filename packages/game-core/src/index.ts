@@ -224,3 +224,5 @@ export type {KantoMegaForm,KantoMegaFormId,KantoMegaStoneId} from './catalog/kan
 export {inspectMegaStoneStock} from './catalog/kantoMegaForms.js';
 export type {MegaStoneStock} from './catalog/kantoMegaForms.js';
 export {KANTO_MEGA_REQUIREMENTS,onlineMegaProjection,applyOnlineMegaEvolution} from './combat/serverMegaEvolution.js';
+
+export {MEGA_STONE_DROP_BPS,regionalMegaStoneRate,regionalMegaStonePool} from './inventory/megaStoneLoot.js';
