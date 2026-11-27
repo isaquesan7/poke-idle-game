@@ -26,10 +26,11 @@ interface Props {
   items:readonly InventorySlotItem[];
   capacity:number;
   onSelect?:(id:string)=>void;
+  selectable?:(item:InventorySlotItem)=>boolean;
   actionLabel?:(item:InventorySlotItem)=>string;
   emptyLabel?:string;
 }
-export function InventoryGrid({title,items,capacity,onSelect,actionLabel,emptyLabel='Espaço vazio'}:Props){
+export function InventoryGrid({title,items,capacity,onSelect,selectable,actionLabel,emptyLabel='Espaço vazio'}:Props){
   // Nunca ocultar itens caso um save legado já exceda o limite de exibição.
   const [selected,setSelected]=useState<string|null>(null);
   const total=Math.max(capacity,items.length);
@@ -51,7 +52,7 @@ export function InventoryGrid({title,items,capacity,onSelect,actionLabel,emptyLa
     <div className={styles.grid}>
       {slots.map((item,index)=>item
         ? <button key={item.id} type="button" data-testid={'inventory-item-'+item.id}
-          onClick={()=>{if(onSelect){setSelected(null);onSelect(item.id);}else setSelected(current=>current===item.id?null:item.id);}}
+          onClick={()=>{if(onSelect&&(!selectable||selectable(item))){setSelected(null);onSelect(item.id);}else setSelected(current=>current===item.id?null:item.id);}}
           className={selected===item.id?styles.slotSelected:styles.slotFilled}
           aria-label={actionLabel? actionLabel(item):item.name+', quantidade '+item.quantity+', '+item.description}
           title={item.name}>
