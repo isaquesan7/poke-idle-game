@@ -58,3 +58,50 @@ describe('MEGA06: server-owned sanctuary combat',()=>{
   expect(canonicalFrozenCombatants({...snapshot,activePokemon:{...snapshot.activePokemon,megaForm:command.formId}})).toBeNull();
  });
 });
+
+describe('MEGA09: reproducible difficulty matrix for all guardians',()=>{
+ // Each build uses the same legal budget and maximum family mastery. The
+ // seeds are fixed test inputs only; never used by the live server.
+ const cases=[
+  {formId:'venusaur-mega',species:3,family:1,primary:'sludge-bomb',secondary:'earthquake',tm:['tm36','tm26'],focus:'specialAttack'},
+  {formId:'charizard-mega-x',species:6,family:4,primary:'dragon-claw',secondary:'earthquake',tm:['tm02','tm26'],focus:'specialAttack'},
+  {formId:'charizard-mega-y',species:6,family:4,primary:'return',secondary:'aerial-ace',tm:['tm27','tm40'],focus:'attack'},
+  {formId:'blastoise-mega',species:9,family:7,primary:'earthquake',secondary:'return',tm:['tm26','tm27'],focus:'attack'}
+ ] as const;
+ for(const c of cases)it('samples legal weak and trained specimens against '+c.formId,()=>{
+  const make=(trained:boolean)=>{
+   const s=fixture();
+   const manual=trained?{...zeroStats(),[c.focus]:158,speed:40}:zeroStats();
+   const p={uid:1,pokemonId:c.species,level:100,xp:0,affinity:100,manual,
+    moveName:trained?c.primary:'tackle',
+    ...(trained?{equippedMoveNames:[c.primary,c.secondary],machineLessons:c.tm.map(tmId=>({tmId,speciesId:c.species})),upgrades:{[c.primary]:10,[c.secondary]:10}}:{})};
+   // Charizard does not learn Tackle natively. Use Scratch for that family.
+   if(!trained&&c.species===6)p.moveName='scratch';
+   return JSON.stringify({...s,seen:[c.family,c.family+1,c.species],research:{points:{[c.family]:100},favorites:[],totalSent:0,history:[]},
+    trainer:{...s.trainer,manual:{hp:40,attack:40,defense:19,specialAttack:40,specialDefense:19,speed:40}},roster:[p]});
+  };
+  function sample(raw:string){
+   const outcomes={win:0,loss:0,draw:0};
+   for(let i=0;i<32;i++){
+    let seed=(0x9e3779b9^Math.imul(i+1,0x85ebca6b))>>>0;
+    const next=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return seed>>>0;};
+    const result=resolveMegaTrialBattle(raw,{uid:1,formId:c.formId},next);
+    if(result.status!=='ok')throw Error(c.formId+': '+result.status);
+    outcomes[result.outcome]++;
+    expect(result.turns).toBeGreaterThan(0);
+    expect(result.log.length).toBe(result.frames.length);
+    expect(result.log.every(line=>/^T\d+ /.test(line))).toBe(true);
+   }
+   return outcomes;
+  }
+  const weak=sample(make(false)),trained=sample(make(true));
+  console.info('MEGA_BALANCE',JSON.stringify({form:c.formId,weak,trained}));
+  expect(weak.win+weak.loss+weak.draw).toBe(32);
+  expect(trained.win+trained.loss+trained.draw).toBe(32);
+  // A guardian must resist an untrained basic-move specimen, and a
+  // deliberately trained legal build must have a path to victory.
+  expect(weak.win).toBeLessThan(16);
+  expect(trained.win).toBeGreaterThan(0);
+  expect(trained.win).toBeGreaterThan(weak.win);
+ });
+});
