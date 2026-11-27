@@ -66,3 +66,17 @@ export function quoteKantoMegaChoice(pokemon:{uid:number;pokemonId:number;megaFo
  if(!form||form.speciesId!==pokemon.pokemonId)return {status:'incompatible'} as const;
  return {status:'ok',uid:pokemon.uid,speciesId:pokemon.pokemonId,formId:form.id,stoneId:form.stoneId} as const;
 }
+
+/** Independent pocket like TMs, one stack per stone; no initial grants. */
+export type MegaStoneStock=Partial<Record<KantoMegaStoneId,number>>;
+export function inspectMegaStoneStock(input:unknown):MegaStoneStock|null{
+ if(input===undefined)return {};
+ if(!input||typeof input!=='object'||Array.isArray(input))return null;
+ const stock:MegaStoneStock={};
+ for(const [id,n] of Object.entries(input)){
+  const stone=KANTO_MEGA_FORMS.find(f=>f.stoneId===id);
+  if(!stone||typeof n!=='number'||!Number.isSafeInteger(n)||n<0)return null;
+  if(n>0)stock[stone.stoneId]=n;
+ }
+ return stock;
+}

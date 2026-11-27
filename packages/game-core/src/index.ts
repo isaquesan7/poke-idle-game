@@ -220,3 +220,7 @@ export {machineRarity} from './inventory/machineLoot.js';
 // MEGA01 — permanent form identity/catalog only; no online writer yet.
 export {KANTO_MEGA_FORMS,kantoMegaForm,kantoMegaOptions,kantoPokemonFormProfile,quoteKantoMegaChoice} from './catalog/kantoMegaForms.js';
 export type {KantoMegaForm,KantoMegaFormId,KantoMegaStoneId} from './catalog/kantoMegaForms.js';
+
+export {inspectMegaStoneStock} from './catalog/kantoMegaForms.js';
+export type {MegaStoneStock} from './catalog/kantoMegaForms.js';
+export {KANTO_MEGA_REQUIREMENTS,onlineMegaProjection,applyOnlineMegaEvolution} from './combat/serverMegaEvolution.js';

@@ -2,6 +2,7 @@
  * No save mutation, external calls, randomness or client-supplied rewards.
  * The writer must source roster, team, favorites and points from its locked save.
  */
+import {kantoPokemonFormProfile} from '../catalog/kantoMegaForms.js';
 import {KANTO_POKEDEX,kantoSpecies} from '../catalog/kantoSpecies.js';
 import {KANTO_EVOLUTION_RULES} from '../catalog/kantoEvolution.js';
 
@@ -48,7 +49,7 @@ export function kantoResearchValue(speciesId:number):number|null{
  if(species.legendary)return 10;
  return Math.max(family.stage,species.captureRate<=45?3:1);
 }
-export interface ResearchPokemon {readonly uid:number;readonly pokemonId:number}
+export interface ResearchPokemon {readonly uid:number;readonly pokemonId:number;readonly megaForm?:unknown}
 export interface ResearchSnapshot {
  readonly roster:readonly ResearchPokemon[];
  readonly team:readonly number[];
@@ -61,7 +62,7 @@ function inspect(snapshot:ResearchSnapshot){
  !Array.isArray(snapshot.favorites)||!snapshot.points||typeof snapshot.points!=='object'||Array.isArray(snapshot.points)||typeof snapshot.busy!=='boolean')return null;
  const roster=new Map<number,ResearchPokemon>(),counts=new Map<number,number>();
  for(const p of snapshot.roster){
-  if(!p||!positive(p.uid)||roster.has(p.uid)||!kantoSpecies(p.pokemonId))return null;
+  if(!p||!positive(p.uid)||roster.has(p.uid)||!kantoPokemonFormProfile(p.pokemonId,p.megaForm))return null;
   roster.set(p.uid,p);counts.set(p.pokemonId,(counts.get(p.pokemonId)??0)+1);
  }
  const validUids=(ids:readonly number[])=>new Set(ids).size===ids.length&&ids.every(id=>positive(id)&&roster.has(id));
@@ -84,7 +85,7 @@ export function quoteKantoResearch(snapshot:ResearchSnapshot,selected:unknown){
  for(const uid of selected as number[]){
   const p=state.roster.get(uid);
   if(!p)return {status:'missing-pokemon'} as const;
-  if(state.protectedIds.has(uid))return {status:'protected'} as const;
+  if(state.protectedIds.has(uid)||p.megaForm!==undefined)return {status:'protected'} as const;
   const n=(removed.get(p.pokemonId)??0)+1;
   if(n>=(state.counts.get(p.pokemonId)??0))return {status:'last-specimen'} as const;
   removed.set(p.pokemonId,n);

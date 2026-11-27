@@ -23,7 +23,7 @@ describe('MEGA01 — permanent starter forms',()=>{
  it('keeps all 151 species, mastery, evolution and encounter identities intact',()=>{
   expect(KANTO_POKEDEX).toHaveLength(151);
   for(const f of KANTO_MEGA_FORMS){
-   expect(kantoSpecies(f.pokemonApiId)).toBeUndefined();
+   expect(kantoSpecies(f.pokemonApiId)).toBeNull();
    expect(kantoRegionForSpecies(f.pokemonApiId)).toBeUndefined();
    expect(kantoMasteryFamily(f.pokemonApiId)).toBeNull();
    expect(kantoEvolutionOptions(f.speciesId)).toEqual([]);
