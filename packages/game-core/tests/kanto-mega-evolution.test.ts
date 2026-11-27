@@ -1,43 +1,65 @@
 import {describe,it,expect} from 'vitest';
-import {applyOnlineMegaEvolution,onlineMegaProjection} from '../src/combat/serverMegaEvolution.js';
-import {inspectMegaStoneStock} from '../src/catalog/kantoMegaForms.js';
+import {applyOnlineMegaEvolution,onlineMegaProjection,quoteOnlineMegaTrial,applyCertifiedMegaTrialVictory} from '../src/combat/serverMegaEvolution.js';
 import {prepareRewardJournal} from '../src/legacy/rewardEvents.js';
 import {quoteKantoResearch} from '../src/progression/kantoMastery.js';
 import {KANTO_GYMS} from '../src/gyms/kantoGyms.js';
 const student={uid:1,pokemonId:6,level:100,xp:0,affinity:100,moveName:'ember',equippedMoveNames:['ember'],upgrades:{ember:5},machineLessons:[{tmId:'tm35',speciesId:6}],manual:{attack:10}};
-const fixture=()=>({version:1,mode:'normal',trainer:{level:100,xp:0},roster:[{...student},{...student,uid:2}],team:[1],badges:KANTO_GYMS.map(g=>g.id),coins:100,wins:90,losses:2,nextUid:3,expedition:null,research:{points:{'4':100},favorites:[],totalSent:0,history:[]},megaStoneStock:{'charizardite-x':2,'charizardite-y':1}});
-const command={uid:1,formId:'charizard-mega-x'};
-const run=(state:unknown,cmd:unknown=command)=>applyOnlineMegaEvolution(JSON.stringify(state),cmd);
-describe('MEGA02 — permanent transformation candidate',()=>{
- it('consumes one matching stone and changes only the individual form, not identity or progress',()=>{
-  const s=fixture(),before=JSON.stringify(s),res=run(s);
-  expect(res.status).toBe('ok');if(res.status!=='ok')throw Error('expected ok');
-  const after=JSON.parse(res.raw);
-  expect(after).toEqual({...s,roster:[{...s.roster[0],megaForm:'charizard-mega-x'},s.roster[1]],megaStoneStock:{'charizardite-x':1,'charizardite-y':1}});
-  expect(JSON.stringify(s)).toBe(before);
-  expect(run(after,{uid:1,formId:'charizard-mega-y'}).status).toBe('already-mega');
-  expect(onlineMegaProjection(res.raw)?.pokemon[0]).toMatchObject({uid:1,currentForm:'charizard-mega-x',options:[]});
-  expect(run(after,{uid:2,formId:'charizard-mega-y'}).status).toBe('ok');
- });
- it('requires each endgame condition, a compatible stone and idle account',()=>{
+const fixture=()=>({version:1,mode:'normal',trainer:{level:100,xp:0},roster:[{...student},{...student,uid:2}],team:[1],badges:KANTO_GYMS.map(g=>g.id),coins:100,wins:90,losses:2,nextUid:3,expedition:null,research:{points:{'4':100},favorites:[],totalSent:0,history:[]}});
+const x={uid:1,formId:'charizard-mega-x'},y={uid:1,formId:'charizard-mega-y'};
+const raw=(state:unknown)=>JSON.stringify(state);
+describe('Santuário Mega: shared mastery, one independent permanent pass',()=>{
+ it('unlocks only mastered families, not a low-level individual',()=>{
   const s=fixture();
-  expect(run({...s,roster:[{...student,level:99},s.roster[1]]}).status).toBe('requirements');
-  expect(run({...s,roster:[{...student,affinity:99},s.roster[1]]}).status).toBe('requirements');
-  expect(run({...s,research:{...s.research,points:{'4':99}}}).status).toBe('requirements');
-  expect(run({...s,badges:s.badges.slice(0,7)}).status).toBe('requirements');
-  expect(run({...s,megaStoneStock:{'charizardite-y':2}}).status).toBe('no-stock');
-  expect(run({...s,pendingRegionalLoot:{}}).status).toBe('busy');
-  expect(run(s,{uid:1,formId:'venusaur-mega'}).status).toBe('incompatible');
-  expect(run(s,{uid:9,formId:'charizard-mega-x'}).status).toBe('missing-pokemon');
-  expect(run(s,{...command,quantity:99}).status).toBe('invalid');
+  expect(onlineMegaProjection(raw({...s,research:{...s.research,points:{'4':99}}}))?.visible).toBe(false);
+  const view=onlineMegaProjection(raw({...s,roster:[student,{...student,uid:2,level:99}]}))!;
+  expect(view.visible).toBe(true);
+  expect(view.challenges.map(c=>c.unlocked)).toEqual([false,true,true,false]);
+  expect(view.pokemon.map(p=>p.pass)).toEqual(['available','locked']);
+  expect(view.stones).toEqual([]);
  });
- it('rejects malformed persisted forms or stock and protects Megas from research',()=>{
+ it('one certified victory consumes both X/Y options and binds the earned stone to UID',()=>{
+  const s=fixture(),before=raw(s);
+  expect(quoteOnlineMegaTrial(before,x).status).toBe('ok');
+  expect(quoteOnlineMegaTrial(before,y).status).toBe('ok');
+  expect(applyOnlineMegaEvolution(before,x).status).toBe('no-stock');
+  const earned=applyCertifiedMegaTrialVictory(before,x);
+  if(earned.status!=='ok')throw Error('expected victory transition');
+  expect(raw(s)).toBe(before);
+  expect(JSON.parse(earned.raw)).toEqual({...s,roster:[{...student,megaTrialForm:x.formId},s.roster[1]]});
+  expect(quoteOnlineMegaTrial(earned.raw,x).status).toBe('pass-consumed');
+  expect(quoteOnlineMegaTrial(earned.raw,y).status).toBe('pass-consumed');
+  expect(applyCertifiedMegaTrialVictory(earned.raw,y).status).toBe('pass-consumed');
+  expect(applyOnlineMegaEvolution(earned.raw,{...x,uid:2}).status).toBe('no-stock');
+  expect(applyOnlineMegaEvolution(earned.raw,y).status).toBe('no-stock');
+  const view=onlineMegaProjection(earned.raw)!;
+  expect(view.stones).toEqual([{id:'charizardite-x',formId:x.formId,uid:1,quantity:1}]);
+  expect(view.pokemon.map(p=>p.pass)).toEqual(['consumed','available']);
+  expect(view.pokemon[0]?.options.every(o=>!o.canChallenge)).toBe(true);
+  const evolved=applyOnlineMegaEvolution(earned.raw,x);
+  if(evolved.status!=='ok')throw Error('expected evolution');
+  expect(JSON.parse(evolved.raw)).toEqual({...s,roster:[{...student,megaTrialForm:x.formId,megaForm:x.formId},s.roster[1]]});
+  expect(onlineMegaProjection(evolved.raw)?.stones).toEqual([]);
+  expect(quoteOnlineMegaTrial(evolved.raw,y).status).toBe('already-mega');
+  const second=applyCertifiedMegaTrialVictory(evolved.raw,{...y,uid:2});
+  expect(second.status).toBe('ok');
+  if(second.status==='ok')expect(applyOnlineMegaEvolution(second.raw,{...y,uid:2}).status).toBe('ok');
+ });
+ it('rejects requirements, forged unbound stock and incompatible or missing UID',()=>{
   const s=fixture();
-  expect(inspectMegaStoneStock({'charizardite-x':-1})).toBeNull();
-  expect(inspectMegaStoneStock({'fire-stone':1})).toBeNull();
-  expect(prepareRewardJournal(JSON.stringify({...s,roster:[{...student,megaForm:'venusaur-mega'}]}))).toBeNull();
-  const roster=[{...student,megaForm:'charizard-mega-x'},{...student,uid:2}];
-  expect(quoteKantoResearch({roster,team:[2],favorites:[],points:{'4':0},busy:false},[1]).status).toBe('protected');
-  expect(onlineMegaProjection(JSON.stringify(s))?.pokemon[0]?.options.every(o=>o.available)).toBe(true);
+  for(const p of [{...student,level:99},{...student,affinity:99}]){
+   expect(quoteOnlineMegaTrial(raw({...s,roster:[p,s.roster[1]]}),x).status).toBe('requirements');
+  }
+  expect(quoteOnlineMegaTrial(raw({...s,badges:s.badges.slice(0,7)}),x).status).toBe('requirements');
+  expect(quoteOnlineMegaTrial(raw({...s,research:{...s.research,points:{'4':99}}}),x).status).toBe('requirements');
+  expect(quoteOnlineMegaTrial(raw({...s,pendingRegionalLoot:{}}),x).status).toBe('busy');
+  expect(quoteOnlineMegaTrial(raw(s),{uid:1,formId:'venusaur-mega'}).status).toBe('incompatible');
+  expect(quoteOnlineMegaTrial(raw(s),{...x,uid:9}).status).toBe('missing-pokemon');
+  expect(quoteOnlineMegaTrial(raw(s),{...x,outcome:'win'}).status).toBe('invalid');
+  expect(prepareRewardJournal(raw({...s,megaStoneStock:{'charizardite-x':1}}))).toBeNull();
+  for(const p of [{...student,megaForm:x.formId},{...student,megaTrialForm:'venusaur-mega'},{...student,megaTrialForm:x.formId,megaForm:y.formId}]){
+   expect(prepareRewardJournal(raw({...s,roster:[p,s.roster[1]]}))).toBeNull();
+  }
+  const roster=[{...student,megaTrialForm:x.formId},{...student,uid:2}];
+  expect(quoteKantoResearch({roster,team:[2],favorites:[],points:{'4':100},busy:false},[1]).status).toBe('protected');
  });
 });
