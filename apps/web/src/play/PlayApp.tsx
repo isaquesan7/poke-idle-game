@@ -909,6 +909,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                           'Faltam '+(pokemonXpMax-pokemonXpCurrent)+' XP para o nível '+(focused.level+1)+'.'}</small>
                       </div>
                       <div className={styles.pokemonChips}>
+                        {focusedSpecies?.types.map(type=><span key={type} data-testid={'pokemon-type-'+type}>{({normal:'Normal',fire:'Fogo',water:'Água',grass:'Planta',electric:'Elétrico',ice:'Gelo',fighting:'Lutador',poison:'Venenoso',ground:'Terrestre',flying:'Voador',psychic:'Psíquico',bug:'Inseto',rock:'Pedra',ghost:'Fantasma',dragon:'Dragão',dark:'Sombrio',steel:'Aço',fairy:'Fada'} as Record<string,string>)[type]??type}</span>)}
                         <span><i className="fa-solid fa-star" aria-hidden="true"/> Nível {focused.level}</span>
                         <span><i className="fa-solid fa-shield-heart" aria-hidden="true"/> Afinidade {focused.affinity}%</span>
                         <span><i className="fa-solid fa-users" aria-hidden="true"/> {data.team[0]===focused.uid?'Líder da equipe':data.team.includes(focused.uid)?'Na equipe':'Na coleção'}</span>
@@ -1545,9 +1546,9 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 }))}
                 selectedRegionId={expeditionArea}
                 onSelectRegion={setExpeditionArea}
-                leaderName={view.active.name}
+                leaderName={activeSpecies?.name??view.active.name}
                 leaderLevel={active.level}
-                leaderArt={<PokemonArt id={active.pokemonId} name={view.active.name} />}
+                leaderArt={<PokemonArt id={activeSpecies?.artId??active.pokemonId} name={activeSpecies?.name??view.active.name} />}
                 pending={online?(onlineViews?.expedition?.expedition?.preview?{cycles:onlineViews.expedition.expedition.preview.cycles,coins:onlineViews.expedition.expedition.preview.coins,trainerXp:onlineViews.expedition.expedition.preview.trainerXP,pokemonXpPerMember:onlineViews.expedition.expedition.preview.pokemonXP,ballDrops:{'poke-ball':onlineViews.expedition.expedition.preview.ballDrops?.['poke-ball']??0,'great-ball':onlineViews.expedition.expedition.preview.ballDrops?.['great-ball']??0,'ultra-ball':onlineViews.expedition.expedition.preview.ballDrops?.['ultra-ball']??0}}:null):pendingClaim??null}
                 ballStockCapped={pendingStockLimitReached}
                 ballProgress={expProgress}
