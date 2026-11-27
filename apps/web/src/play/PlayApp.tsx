@@ -27,6 +27,8 @@ import {OnlineBattle} from './OnlineBattle';
 import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
 import {MasteryScreen} from './MasteryScreen';
+import {MegaSanctuary,MegaEvolution,MegaBag} from './MegaScreen';
+import {kantoPokemonFormProfile} from '@kanto/game-core';
 import {MachineEvolution,MachineBag} from './MachineScreen';
 import {pokemonMasteryStats,kantoMasteryFamily} from '@kanto/game-core';
 import {OnlineNavigation} from './OnlineNavigation';
@@ -41,14 +43,14 @@ import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
 import { estimatedServerNow,formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
 
-type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'gyms' | 'expedition' | 'shop';
+type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'gyms' | 'expedition' | 'shop' | 'mega';
 type CollectionFilter = 'all' | 'team' | 'reserve';
 type CollectionSort = 'recent' | 'level' | 'affinity' | 'species';
 type PokemonSection = 'profile' | 'evolution' | 'moves';
 /** D-051: navegação consistente com o Font Awesome da tela do treinador. */
 const NAV_ICONS:Readonly<Record<Tab,string>>={
   overview:'fa-house',trainer:'fa-user',pokemon:'fa-dragon',collection:'fa-layer-group',
-  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',gyms:'fa-medal',expedition:'fa-compass',shop:'fa-store'
+  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',gyms:'fa-medal',expedition:'fa-compass',shop:'fa-store',mega:'fa-gem'
 };
 
 /** D-042: animações completas na Arena independentemente do sistema operacional. */
@@ -137,7 +139,7 @@ function regionBattleTitle(regionId:number,regionName:string):string {
 }
 
 function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', gyms:'Ginásios', expedition: 'Expedição', shop:'Loja' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', gyms:'Ginásios', expedition: 'Expedição', shop:'Loja',mega:'Santuário Mega' }[tab];
 }
 
 /**
@@ -288,7 +290,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     }catch{await refreshOnline();setFeedback('Não foi possível confirmar a ação no servidor.');return null;}
     finally{onlineLock.current=false;setBusy(false);}
   }
-  async function onlineExtra(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach',fields:Record<string,unknown>,expectedRevision?:number){
+  async function onlineExtra(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach'|'mega/challenge'|'mega/evolve',fields:Record<string,unknown>,expectedRevision?:number){
     if(!online||onlineLock.current||save.status!=='ready')return false;
     onlineLock.current=true;setBusy(true);setFeedback('');
     try{if(expectedRevision!==undefined&&expectedRevision!==save.snapshot.revision){setFeedback('O progresso mudou. Atualize e confirme novamente.');return false;}const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');return ok;}
@@ -462,7 +464,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     ? focused.upgrades as Record<string,number> : {};
   const moveLimits=focused?legacyMoveRankLimits(focused.level):null;
   const moveSpent=Object.values(moveRanks).reduce((sum,rank)=>sum+(Number.isSafeInteger(rank)?rank:0),0);
-  const focusedSpecies = focused ? KANTO_BATTLE_SPECIES[focused.pokemonId] : null;
+  const megaView=online?onlineViews?.mega:null;
+  const focusedSpecies=focused?kantoPokemonFormProfile(focused.pokemonId,online?focused.megaForm:undefined):null;
   const focusedEvolutions=focused?kantoEvolutionOptions(focused.pokemonId):[];
   const stoneStock=data?.evolutionStones&&typeof data.evolutionStones==='object'
     &&!Array.isArray(data.evolutionStones)
@@ -480,7 +483,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
         focusedSpecies.base, focused.level, pokemonManual, view.totals, focused.affinity
       ),masteryStatPercent(focused.pokemonId)) : null;
   const activeManual = manualValues(active?.manual);
-  const activeSpecies=active?KANTO_BATTLE_SPECIES[active.pokemonId]:null;
+  const activeSpecies=active?kantoPokemonFormProfile(active.pokemonId,online?active.megaForm:undefined):null;
   const activeStats=active&&activeSpecies&&view?pokemonMasteryStats(pokemonFinalStats(activeSpecies.base,active.level,activeManual,view.totals,active.affinity),masteryStatPercent(active.pokemonId)):null;
   const activeRemaining = active
     ? legacyPokemonManualBudget(active.level) -
@@ -495,7 +498,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     if (collectionFilter==='reserve'&&inTeam) return false;
     const query=collectionQuery.trim().toLocaleLowerCase('pt-BR');
     if (!query) return true;
-    return speciesName(p.pokemonId).toLocaleLowerCase('pt-BR').includes(query)
+    return (kantoPokemonFormProfile(p.pokemonId,online?p.megaForm:undefined)?.name??speciesName(p.pokemonId)).toLocaleLowerCase('pt-BR').includes(query)
       || String(p.uid)===query
       || String(p.pokemonId)===query.replace('#','');
   }).sort((a,b)=>{
@@ -746,7 +749,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
       <aside className={styles.sidebar}>
         <div className={styles.brand}><PokeballSymbol className={styles.brandBall}/>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
-        {online?<OnlineNavigation masteryAvailable={!!onlineViews?.mastery||trainerSection==='mastery'} tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
+        {online?<OnlineNavigation megaAvailable={!!megaView?.visible} masteryAvailable={!!onlineViews?.mastery||trainerSection==='mastery'} tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
           disabled={item=>item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition}
           onNavigate={item=>{if(onlineViews?.region?.encounter){setTab('battle');return;}if(onlineViews?.gym?.gym){setTab('gyms');return;}if(item.tab==='trainer')setTrainerSection(item.trainerSection??'profile');if(item.tab==='pokemon')setPokemonSection(item.pokemonSection??'profile');setTab(item.tab);setFeedback('');setBattlePlayback(null);}}/>:<nav className={styles.menu} aria-label="Navegação do jogo">
           {(['overview','trainer','pokemon','collection','pokedex','regions','gyms','expedition','shop'] as Tab[]).map(item => (
@@ -785,7 +788,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
         ) : (
           <>
             {tab==='overview'&&online&&<AdventureOverview view={view} speciesCount={caughtSpeciesCount} individualCount={data.roster.length}
-              leader={{id:active.pokemonId,name:speciesName(active.pokemonId),level:active.level,affinity:active.affinity,types:kantoSpecies(active.pokemonId)?.types??[],stats:activeStats,art:<PokemonArt id={active.pokemonId} name={speciesName(active.pokemonId)} large/>}}
+              leader={{id:active.pokemonId,name:activeSpecies?.name??speciesName(active.pokemonId),level:active.level,affinity:active.affinity,types:activeSpecies?.types??[],stats:activeStats,art:<PokemonArt id={activeSpecies?.artId??active.pokemonId} name={activeSpecies?.name??speciesName(active.pokemonId)} large/>}}
               expedition={onlineViews?.expedition?.expedition?{startedAt:onlineViews.expedition.expedition.startedAt,regionName:expeditionRegion?.name??'Kanto',cycles:onlineViews.expedition.expedition.preview?.cycles??0}:null}
               serverNow={expeditionNow} expeditionAvailable={!!onlineViews?.expedition} busy={busy||!!onlineViews?.expedition?.busy} pendingLoot={!!onlineViews?.expedition?.pendingLoot}
               onTrain={()=>openPokemon(active.uid)} onExpedition={()=>setTab('expedition')}
@@ -849,6 +852,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
             {tab==='trainer'&&trainerSection==='bag'&&machineView&&<section className={styles.panel}><MachineBag view={machineView}/></section>}
+            {tab==='trainer'&&trainerSection==='bag'&&megaView&&<MegaBag view={megaView} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>}
+            {tab==='mega'&&online&&(megaView?.visible?<MegaSanctuary view={megaView} roster={data.roster} busy={busy} onChallenge={(command,revision)=>onlineExtra('mega/challenge',{command},revision)} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>:<section className={styles.panel}>Santuário bloqueado ou indisponível. <button className={styles.secondary} onClick={()=>setTab('regions')}>Voltar às regiões</button></section>)}
             {tab === 'pokemon' && (
               <div className={styles.pokemonWorkspace}>
                 <header className={styles.pokemonHeading}>
@@ -881,12 +886,12 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                   <div className={styles.pokemonShowcase}>
                     <div className={styles.pokemonArtStage}>
                       <PokeballSymbol className={styles.pokemonArtHalo}/>
-                      <PokemonArt id={focused.pokemonId} name={speciesName(focused.pokemonId)} large />
+                      <PokemonArt id={focusedSpecies?.artId??focused.pokemonId} name={focusedSpecies?.name??speciesName(focused.pokemonId)} large />
                       <span className={styles.pokemonArtRing} aria-hidden="true"/>
                     </div>
                     <div className={styles.pokemonIdentity}>
                       <span className={styles.pokemonSpeciesNumber}># {String(focused.pokemonId).padStart(3,'0')} · UID {focused.uid}</span>
-                      <h2>{speciesName(focused.pokemonId)}</h2>
+                      <h2>{focusedSpecies?.name??speciesName(focused.pokemonId)}</h2>
                       {masteryFor(focused.pokemonId)?.current.rank===5&&<span className={styles.masteryEmblem} data-testid="mastery-profile-emblem"><i className="fa-solid fa-award" aria-hidden="true"/> Maestria V · Mestre</span>}
                       <div className={styles.pokemonExperience} data-testid="pokemon-xp">
                         <div className={styles.pokemonExperienceHeader}>
@@ -962,7 +967,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                   <h2><i className="fa-solid fa-dna" aria-hidden="true"/> Evolução</h2>
                   {focusedEvolutions.length>0&&<p>Treine seu Pokémon para que ele possa evoluir.</p>}
                   {focusedEvolutions.length===0
-                    ? <p>Nenhuma evolução disponível para este Pokémon.</p>
+                    ? <p>Nenhuma evolução natural disponível para este Pokémon.</p>
                     : <div className={styles.evolutionList}>
                         {focusedEvolutions.map(rule=>{
                           const target=speciesName(rule.to);
@@ -990,6 +995,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                       </div>}
 
                 </section>
+                {megaView&&<MegaEvolution key={focused.uid+':'+megaView.revision} view={megaView} uid={focused.uid} busy={busy} onEvolve={(command,revision)=>onlineExtra('mega/evolve',{command},revision)} onSanctuary={()=>setTab('mega')}/>}
                 {online&&!machineView&&<section className={styles.panel}><h3>Máquinas Técnicas (TMs)</h3><p>Não foi possível carregar as TMs deste Pokémon. Atualize a página para tentar novamente.</p></section>}
                 {machineView&&<MachineEvolution key={focused.uid+':'+machineView.revision} view={machineView} uid={focused.uid} revision={save.snapshot.revision} busy={busy} onTeach={(command,revision)=>onlineExtra('tm/teach',{command},revision)}/>}
                 {evolutionConfirm&&<RegionDialog title="Confirmar evolução" size="compact" onClose={()=>setEvolutionConfirm(null)}>
@@ -1152,8 +1158,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                         <article key={position} data-testid={'team-slot-'+position} className={pokemon?styles.teamSlot:styles.teamSlotEmpty}>
                           <span className={styles.slotCaption}><i className={'fa-solid '+(position===0?'fa-crown':'fa-shield')} aria-hidden="true"/> {position===0?'Líder · Regiões':'Slot '+(position+1)}</span>
                           {pokemon ? <>
-                            <PokemonArt id={pokemon.pokemonId} name={speciesName(pokemon.pokemonId)} />
-                            <strong>{speciesName(pokemon.pokemonId)}</strong>
+                            <PokemonArt id={kantoPokemonFormProfile(pokemon.pokemonId,online?pokemon.megaForm:undefined)?.artId??pokemon.pokemonId} name={kantoPokemonFormProfile(pokemon.pokemonId,online?pokemon.megaForm:undefined)?.name??speciesName(pokemon.pokemonId)} />
+                            <strong>{kantoPokemonFormProfile(pokemon.pokemonId,online?pokemon.megaForm:undefined)?.name??speciesName(pokemon.pokemonId)}</strong>
                             <small>UID #{pokemon.uid} · Nv. {pokemon.level}</small>
                             <small><i className="fa-solid fa-heart" aria-hidden="true"/> {pokemon.affinity}% afinidade</small>
                             <div className={styles.teamSlotActions}>
@@ -1215,7 +1221,8 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                     {rosterFiltered.map(pokemon=>{
                       const inTeam=data.team.includes(pokemon.uid);
                       const leader=data.team[0]===pokemon.uid;
-                      const dex=speciesName(pokemon.pokemonId);
+                      const formProfile=kantoPokemonFormProfile(pokemon.pokemonId,online?pokemon.megaForm:undefined);
+                      const dex=formProfile?.name??speciesName(pokemon.pokemonId);
                       return (
                         <article key={pokemon.uid} data-testid={'pokemon-uid-'+pokemon.uid}
                           className={(leader?styles.collectionCardLeader:styles.collectionCard)+(masteryFor(pokemon.pokemonId)?.current.rank===5?' '+styles.masteryMasterCard:'')}>
@@ -1225,7 +1232,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                               <i className={'fa-solid '+(leader?'fa-crown':inTeam?'fa-shield':'fa-box-archive')} aria-hidden="true"/>
                               {leader?'LÍDER':inTeam?'EQUIPE':'RESERVA'}</span>
                           </div>
-                          <div className={styles.collectionCardArt}><PokemonArt id={pokemon.pokemonId} name={dex} /></div>
+                          <div className={styles.collectionCardArt}><PokemonArt id={formProfile?.artId??pokemon.pokemonId} name={dex} /></div>
                           <strong>{dex}</strong>
                           {masteryFor(pokemon.pokemonId)?.current.rank===5&&<span className={styles.masteryEmblem}><i className="fa-solid fa-award" aria-hidden="true"/> Maestria V</span>}
                           <div className={styles.collectionAttributes}>
