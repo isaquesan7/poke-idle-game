@@ -85,6 +85,9 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
   const equipmentChoice=selectedEquipment
     ? (onlineInventory?onlineInventory.equipment.find(item=>item.id===selectedEquipment):LEGACY_ITEMS.find(item=>item.id===selectedEquipment)):undefined;
   const equipmentEquipped=equipmentChoice!==undefined&&equipped[equipmentChoice.slot]===equipmentChoice.id;
+  const onlineChoice=onlineInventory?.equipment.find(item=>item.id===equipmentChoice?.id);
+  const equipmentBlocked=busy||!!onlineInventory&&(equipmentEquipped?onlineInventory.bag.available===0:!onlineChoice?.canEquip);
+  const equippedInSlot=onlineInventory?.equipment.find(item=>item.id===equipped[equipmentChoice?.slot??'']);
   // Apenas stones no save. Cada stack ocupa um espaço, sem concessão.
   const bagEntries:InventorySlotItem[]=onlineInventory?[...onlineInventory.bag.stacks.map(item=>({id:item.id,name:item.name,quantity:item.quantity,description:item.kind==='ball'?'Pokébola':'Pedra de evolução',icon:item.kind==='ball'?'fa-circle':'fa-gem'})),...equipmentEntries.filter(item=>item.status!=='Equipado')]:Object.entries(stoneStock)
     .filter(([,qty])=>Number.isSafeInteger(qty)&&qty>0)
@@ -258,29 +261,6 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
         onSelect={setSelectedEquipment}
         actionLabel={item=>item.name+', '+item.status+'. Abrir detalhes'}
       />
-      {equipmentChoice&&<InventoryDialog title={equipmentChoice.name}
-        onClose={()=>setSelectedEquipment(null)}>
-        <div className={styles.detailItem}>
-          <span className={styles.detailIcon}><GearArt id={equipmentEntries.find(item=>item.id===equipmentChoice.id)?.gearTemplateId??equipmentChoice.id} rarity={equipmentEntries.find(item=>item.id===equipmentChoice.id)?.rarity} fallback={SLOT_ICONS[equipmentChoice.slot]}/></span>
-          <div><strong>{SLOT_NAMES[equipmentChoice.slot]}</strong>
-            <p>{onlineInventory?'Equipamento individual do servidor.':'Equipamento de '+SLOT_NAMES[equipmentChoice.slot]+' do catálogo de testes.'}</p></div>
-        </div>
-        <div className={styles.detailStats}>
-          <strong>Atributos</strong><p>{bonusLabel(equipmentChoice.stats)||'Sem bônus adicional'}</p>
-          <strong>Status</strong><p>{equipmentEquipped?'Equipado':'Não equipado'}</p>
-        </div>
-        <div className={styles.detailActions}>
-          <button type="button" className={styles.cancel} onClick={()=>setSelectedEquipment(null)}>Cancelar</button>
-          {onlineInventory&&!equipmentEquipped&&onDiscardGear&&<button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar definitivamente este equipamento?')){onDiscardGear(equipmentChoice.id);setSelectedEquipment(null);}}}>Descartar</button>}
-          <button type="button" className={styles.confirmButton} disabled={busy||!!onlineInventory&&(!equipmentEquipped&&!onlineInventory.equipment.find(item=>item.id===equipmentChoice.id)?.canEquip||equipmentEquipped&&onlineInventory.bag.available===0)}
-            onClick={()=>{
-              onEquip(equipmentChoice.slot,equipmentEquipped?'':equipmentChoice.id);
-              setSelectedEquipment(null);
-            }}>
-            <Fa name={equipmentEquipped?'fa-xmark':'fa-check'}/> {equipmentEquipped?'Remover':'Equipar'}
-          </button>
-        </div>
-      </InventoryDialog>}
     </section>}
 
     {section==='bag'&&<section className={styles.panel}>
@@ -292,11 +272,35 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
         {onlineInventory.pending&&<section className={styles.panel}><h3>Recompensas regionais pendentes</h3>{onlineInventory.pending.items.map(item=>{const itemId=item.kind==='gear'?item.gear.id:item.itemId;const name=item.kind==='gear'?(LEGACY_ITEMS.find(m=>m.id===item.gear.templateId)?.name??itemId):itemId;const fields={encounterId:onlineInventory.pending!.encounterId,itemId};return <div key={itemId} className={styles.detailActions}><strong>{item.kind==='ball'?<PokeballArt id={itemId}/>:item.kind==='gear'?<GearArt id={item.gear.templateId} rarity={item.gear.rarity} fallback="fa-shield-halved"/>:null} {name}</strong><button type="button" className={styles.confirmButton} disabled={busy} onClick={()=>onLoot({kind:'loot-store',...fields})}>Guardar</button><button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar este drop definitivamente?'))onLoot({kind:'loot-discard',...fields});}}>Descartar</button></div>;})}</section>}
         {onlineInventory.expeditionPending&&<section className={styles.panel}><h3>Recompensas da expedição pendentes</h3>{Object.entries(onlineInventory.expeditionPending.quantities).filter(([,n])=>Number(n)>0).map(([itemId,n])=>{const fields={claimAt:onlineInventory.expeditionPending!.claimAt,itemId};const blocked=lootBusy||!onlineInventory.canResolveExpeditionLoot;return <div key={itemId} className={styles.detailActions}><strong><PokeballArt id={itemId}/> {itemId} × {n}</strong><button type="button" className={styles.confirmButton} disabled={blocked} onClick={()=>onLoot({kind:'expedition-loot-store',...fields})}>Guardar</button><button type="button" className={styles.cancel} disabled={blocked} onClick={()=>{if(window.confirm('Descartar estas Pokébolas definitivamente?'))onLoot({kind:'expedition-loot-discard',...fields});}}>Descartar</button></div>;})}</section>}
       </>}
-      <InventoryGrid title="Mochila" items={bagEntries} capacity={bagCapacity}/>
+      <InventoryGrid title="Mochila" items={bagEntries} capacity={bagCapacity} onSelect={id=>{if(onlineInventory?.equipment.some(item=>item.id===id))setSelectedEquipment(id);}} selectable={item=>!!onlineInventory?.equipment.some(gear=>gear.id===item.id)}/>
       <p className={styles.hint}>{onlineInventory?'Capacidade e propriedade confirmadas pelo servidor.':'A expansão da mochila será desbloqueada por um item futuro.'}{!onlineInventory&&<>
         A capacidade é informativa até ser ligada às regras de aquisição e ao writer de itens.
         Pokébolas, cura e TMs aparecerão apenas quando forem adquiridos.</>}</p>
     </section>}
+      {equipmentChoice&&<InventoryDialog title={equipmentChoice.name}
+        onClose={()=>setSelectedEquipment(null)}>
+        <div className={styles.detailItem}>
+          <span className={styles.detailIcon}><GearArt id={equipmentEntries.find(item=>item.id===equipmentChoice.id)?.gearTemplateId??equipmentChoice.id} rarity={equipmentEntries.find(item=>item.id===equipmentChoice.id)?.rarity} fallback={SLOT_ICONS[equipmentChoice.slot]}/></span>
+          <div><strong>{SLOT_NAMES[equipmentChoice.slot]}</strong>
+            <p>{onlineInventory?'Equipamento individual do servidor.':'Equipamento de '+SLOT_NAMES[equipmentChoice.slot]+' do catálogo de testes.'}</p></div>
+        </div>
+        <div className={styles.detailStats}>
+          <strong>Atributos</strong><p>{bonusLabel(equipmentChoice.stats)||'Sem bônus adicional'}</p>
+          <strong>Status</strong><p>{equipmentEquipped?'Equipado':'Não equipado'}</p>
+          {onlineChoice&&<><strong>Nível exigido do treinador: {onlineChoice.requiredLevel}</strong><p>Seu nível: {view.level}</p>{!onlineChoice.canEquip&&<p role="status">Alcance o nível {onlineChoice.requiredLevel} do treinador para equipar este item.</p>}{onlineInventory?.busy&&<p role="status">Encerre a batalha ou expedição antes de alterar equipamentos.</p>}{equipmentEquipped&&onlineInventory?.bag.available===0&&<p role="status">Libere um espaço na mochila para remover este item.</p>}{!equipmentEquipped&&equippedInSlot&&<p>Substitui {equippedInSlot.name} no slot {SLOT_NAMES[equipmentChoice.slot]}; o item anterior volta à mochila.</p>}</>}
+        </div>
+        <div className={styles.detailActions}>
+          <button type="button" className={styles.cancel} onClick={()=>setSelectedEquipment(null)}>Cancelar</button>
+          {onlineInventory&&!equipmentEquipped&&onDiscardGear&&<button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar definitivamente este equipamento?')){onDiscardGear(equipmentChoice.id);setSelectedEquipment(null);}}}>Descartar</button>}
+          <button type="button" className={styles.confirmButton} disabled={equipmentBlocked}
+            onClick={()=>{
+              onEquip(equipmentChoice.slot,equipmentEquipped?'':equipmentChoice.id);
+              setSelectedEquipment(null);
+            }}>
+            <Fa name={equipmentEquipped?'fa-xmark':'fa-check'}/> {equipmentEquipped?'Remover':'Equipar'}
+          </button>
+        </div>
+      </InventoryDialog>}
   </section>;
 }
 function GearCard({slot,selected,onlineItem}:{slot:EquipmentSlot;selected:string|undefined;onlineItem?:InventoryView['equipment'][number]|undefined}){
