@@ -21,7 +21,7 @@ function TrialReplay({trial,onClose}:{trial:MegaTrial;onClose:()=>void}){
  const [visible,setVisible]=useState(1);
  const [done,setDone]=useState(false);
  const fighter=(f:MegaTrial['player'])=>({name:f.name,level:f.level,art:<PokemonArt id={kantoPokemonFormProfile(f.speciesId,f.megaForm)?.artId??f.speciesId} name={f.name} large/>});
- const frame=trial.frames[Math.max(0,Math.min(visible-1,trial.frames.length-1))]??null;
+ const frame=trial.frames[Math.max(0,Math.min((done?trial.frames.length:visible)-1,trial.frames.length-1))]??null;
  return <section className={styles.panel} aria-label="Batalha do Santuário" data-testid="mega-trial-replay">
   <h2>Desafio Mega · UID #{trial.uid}</h2>
   <BattleStage player={fighter(trial.player)} wild={fighter(trial.boss)} frame={frame} playerMaxHp={trial.player.maxHp} wildMaxHp={trial.boss.maxHp} playerMaxSp={trial.player.maxSp} wildMaxSp={trial.boss.maxSp} playing={!done} cue={trial.id+':'+visible} opponentLabel="Guardião Mega" vitals={{playerHp:trial.player.hp,wildHp:trial.boss.hp,playerSp:trial.player.sp,wildSp:trial.boss.sp}}/>
