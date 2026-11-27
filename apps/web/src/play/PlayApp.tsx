@@ -990,6 +990,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                       </div>}
 
                 </section>
+                {online&&!machineView&&<section className={styles.panel}><h3>Máquinas Técnicas (TMs)</h3><p>Não foi possível carregar as TMs deste Pokémon. Atualize a página para tentar novamente.</p></section>}
                 {machineView&&<MachineEvolution key={focused.uid+':'+machineView.revision} view={machineView} uid={focused.uid} revision={save.snapshot.revision} busy={busy} onTeach={(command,revision)=>onlineExtra('tm/teach',{command},revision)}/>}
                 {evolutionConfirm&&<RegionDialog title="Confirmar evolução" size="compact" onClose={()=>setEvolutionConfirm(null)}>
                   <div className={styles.evolutionConfirmScene}>

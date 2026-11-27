@@ -475,7 +475,8 @@ try{
   await page.locator('#region-open').waitFor();
   await page.waitForFunction(()=>document.activeElement?.id==='region-open');
   const afterCapture=await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId]);
-  assert.equal(JSON.parse(afterCapture.rows[0].state.journal.raw).ballPocket.quantities['poke-ball'],beforeBalls-1);
+  const earnedBall=capture.rewardSummary.loot.stored.some(item=>item.kind==='ball'&&item.itemId==='poke-ball')?1:0;
+  assert.equal(JSON.parse(afterCapture.rows[0].state.journal.raw).ballPocket.quantities['poke-ball'],beforeBalls-1+earnedBall,'capture spends old stock and releases the earned ball on finish');
   assert.equal((await readRegion()).encounter,null);
 
   checkpoint("second region");

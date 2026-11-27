@@ -98,7 +98,7 @@ export async function buildPersistedBattleSnapshot(save,encounter,tmLoot=machine
   return snapshot&&core.canonicalFrozenCombatants(snapshot)?snapshot:null;
 }
 /** All account/encounter identifiers originate from the server session/DB. */
-export async function prepareReservedBattle(pool,{accountId,encounterId}){
+export async function prepareReservedBattle(pool,{accountId,encounterId,tmLoot=machineHttpEnabled()}){
   if(typeof accountId!=='string'||!UUID.test(accountId)||
      typeof encounterId!=='string'||!UUID.test(encounterId))
     return {status:'invalid'};
@@ -136,7 +136,7 @@ export async function prepareReservedBattle(pool,{accountId,encounterId}){
       regionId:Number(encounter.region_id),
       speciesId:Number(encounter.species_id),
       level:Number(encounter.pokemon_level)
-    });
+    },tmLoot);
     if(!snapshot){
       await client.query('ROLLBACK');return {status:'invalid-save'};
     }

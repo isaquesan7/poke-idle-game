@@ -1932,8 +1932,7 @@ test('ONLINE-01C-21: verify every HMAC turn and pay exactly once (never auto-pre
     assert.deepEqual(after.badges,before.badges);
     assert.equal(after.roster.length,before.roster.length);
     assert.equal(after.ballPocket.quantities['poke-ball'],
-      before.ballPocket.quantities['poke-ball']+
-        (paid.ballDrop?.ballId==='poke-ball'?paid.ballDrop.quantity:0));
+      before.ballPocket.quantities['poke-ball'], 'ball from this encounter stays unavailable');
     const row=await pool.query(
       `SELECT status,battle_preview,battle_sealed_outcome,battle_reward_quote,
               battle_payout_action_id,battle_turn_payout_action_id,
@@ -2052,6 +2051,7 @@ test('ONLINE-01C-22: losing interactive battle can only skip, with receipt and n
     assert.equal((await reserveEncounter(pool,{
       accountId,actionId:'turn-finish-skip-next-early',
       expectedRevision:rev,regionId:1})).status,'busy');
+    assert.ok(paidRaw.seen.includes(4),'a loss must register the wild Pokémon as seen');
     const args={...finalize,expectedRevision:rev};
     assert.equal((await finishPaidWildTurnEncounter(pool,{
       ...args,choice:'poke-ball'})).status,'unavailable',
@@ -2269,8 +2269,8 @@ test('ONLINE-01C-22: winning turn encounter captures or fails exactly once',asyn
       assert.equal(Number(saved.rows[0].revision),rev+1);
       const after=JSON.parse(saved.rows[0].state.journal.raw);
       assert.equal(after.ballPocket.quantities['poke-ball'],
-        paidRaw.ballPocket.quantities['poke-ball']-1,
-        'exactly one ball must be spent even on a failed capture');
+        paidRaw.ballPocket.quantities['poke-ball']-1+(payout.paid.deferredBall?.itemId==='poke-ball'?1:0),
+        'one old ball is spent and the earned ball is released only after finish');
       assert.equal(after.coins,paidRaw.coins);
       assert.equal(after.trainer.xp,paidRaw.trainer.xp);
       assert.equal(after.roster[0].xp,paidRaw.roster[0].xp);

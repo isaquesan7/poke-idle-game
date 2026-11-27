@@ -58,7 +58,7 @@ export async function startReservedWildTurnSession(pool,{
     const fromSave=await buildPersistedBattleSnapshot(save,{
       regionId:Number(row.region_id),speciesId:Number(row.species_id),
       level:Number(row.pokemon_level)
-    });
+    },row.battle_snapshot?.tmLootVersion===1);
     if(!fromSave||!isDeepStrictEqual(fromSave,row.battle_snapshot))
       return await rollback(client,{status:'stale-snapshot'});
     const core=await loadCombatAdapter();
