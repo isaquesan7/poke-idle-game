@@ -1,6 +1,6 @@
 /** Canonical permanent lessons; no client permission list. Only already
  * executable player moves are eligible in this candidate. Unsupported new
- * techniques (including historical TM09) remain unavailable until implemented.
+ * techniques remain unavailable until implemented.
  */
 import type {KantoMove} from './kantoBattle.js';
 import {KANTO_MACHINES,kantoMachine,inspectMachineStock} from '../catalog/kantoMachines.js';

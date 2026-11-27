@@ -1,6 +1,7 @@
 /** Validate TM provenance independently of the evolution-chain validator. */
 import {KANTO_BATTLE_MOVES} from './kantoBattle.js';
 import type {KantoMove} from './kantoBattle.js';
+import {KANTO_TM09_COMBAT_MOVE} from '../catalog/kantoMachineCombatMoves.js';
 import {KANTO_SUPPORT_MOVES} from '../catalog/kantoSupportMoves.js';
 import {kantoMachine} from '../catalog/kantoMachines.js';
 import {compatibleMachineSpecies} from '../catalog/kantoMachineCompatibility.js';
@@ -9,6 +10,7 @@ import {compatibleMachineSpecies} from '../catalog/kantoMachineCompatibility.js'
  * current engine (accuracy 100, no evasion stages). No native learnset changes.
  */
 const MACHINE_ONLY_MOVES:Readonly<Record<string,KantoMove>>=Object.freeze({
+ 'bullet-seed':KANTO_TM09_COMBAT_MOVE,
  'rock-tomb':Object.freeze({name:'rock-tomb',type:'rock',category:'physical',power:50,accuracy:80,priority:0}),
  'shock-wave':Object.freeze({name:'shock-wave',type:'electric',category:'special',power:60,accuracy:100,priority:0})
 });

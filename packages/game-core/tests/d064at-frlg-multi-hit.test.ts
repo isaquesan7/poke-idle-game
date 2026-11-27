@@ -22,7 +22,7 @@ describe('D064AT — golpes com acertos múltiplos FRLG',()=>{
       'spike-cannon','barrage','fury-swipes','bonemerang','bone-rush',
       'icicle-spear','rock-blast','twineedle'
     ].sort();
-    expect(Object.keys(KANTO_MULTI_HIT_MOVES).sort()).toEqual(expected);
+    expect(Object.keys(KANTO_MULTI_HIT_MOVES).sort()).toEqual([...expected,'bullet-seed'].sort());
     for(const name of expected.filter(n=>n!=='double-kick')){
       const api=Object.values(KANTO_FRLG_MOVE_META).find(x=>x.name===name)!;
       const hit=KANTO_MULTI_HIT_MOVES[name]!;
@@ -38,7 +38,7 @@ describe('D064AT — golpes com acertos múltiplos FRLG',()=>{
       expect(kantoMoveSpCost(KANTO_BATTLE_MOVES[name]!)).toBeGreaterThan(0);
     }
     expect(KANTO_MULTI_HIT_MOVES['twineedle']).toEqual({minHits:2,maxHits:2});
-    expect(KANTO_MULTI_HIT_MOVES['bullet-seed']).toBeUndefined();
+    expect(KANTO_MULTI_HIT_MOVES['bullet-seed']).toEqual({minHits:2,maxHits:5});
     expect(kantoTmIsTeachEnabled('tm09',1)).toBe(false);
   });
 

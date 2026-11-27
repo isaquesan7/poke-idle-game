@@ -4,7 +4,7 @@
  * effectId 30: 2–5 golpes, distribuição GenIII 3/8, 3/8, 1/8, 1/8.
  * effectId 45: exatamente dois hits. D064AU: Twineedle (effect78)
  * tem dois impactos fixos e chance de poison por impacto válido.
- * Bullet Seed (TM09) permanece somente como prévia e sem ensino.
+ * TM09 usa a mesma distribuição histórica, sem entrar em learnsets por nível.
  */
 import {KANTO_FRLG_MOVE_META} from '../catalog/kantoFrlgLevelupSnapshot.js';
 
@@ -29,7 +29,8 @@ const FRLG_MULTI_HITS:Readonly<Record<string,KantoMultiHitRange>>=Object.fromEnt
 export const KANTO_MULTI_HIT_MOVES:Readonly<Record<string,KantoMultiHitRange>> =
   Object.freeze({
     'double-kick':Object.freeze({minHits:2,maxHits:2}),
-    ...FRLG_MULTI_HITS
+    ...FRLG_MULTI_HITS,
+    'bullet-seed':Object.freeze({minHits:2,maxHits:5})
   });
 
 /** Usado pelo cálculo legado de SP/dano esperado; não define os impactos. */

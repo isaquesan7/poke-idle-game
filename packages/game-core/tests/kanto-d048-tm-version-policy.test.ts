@@ -60,14 +60,14 @@ describe('D-048 — fontes FRLG explícitas e barreira de TMs ainda não liberad
     expect(()=>kantoTmPreviewMeanHits('tm00')).toThrow(RangeError);
   });
 
-  it('não muda a prévia moderna nem o elenco executável de 31 golpes',()=>{
+  it('preserva a prévia moderna e não concede TMs no catálogo de nível',()=>{
     expect(kantoPreviewMoveSpCost({
       name:'bullet-seed',pp:30,power:25,priority:0,
       damage_class:{name:'physical'},
       meta:{category:{name:'damage'},min_hits:2,max_hits:5}
     })).toBeGreaterThan(0);
     expect(KANTO_BATTLE_MOVES['bullet-seed']).toBeUndefined();
-    expect(KANTO_MULTI_HIT_MOVES['bullet-seed']).toBeUndefined();
+    expect(KANTO_MULTI_HIT_MOVES['bullet-seed']).toEqual({minHits:2,maxHits:5});
     expect(KANTO_BATTLE_MOVES['double-kick']).toMatchObject({
       power:30,category:'physical'
     });

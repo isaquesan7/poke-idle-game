@@ -19,7 +19,7 @@ describe('pinned FRLG compatibility and permanent lessons',()=>{
   expect(validatedMachineLessons(26,10,undefined,[{tmId:'tm24',speciesId:25}])).toBeNull();
   expect(validatedMachineLessons(26,10,[{from:25,to:26,level:10,moves:['thunder-shock']}],[{tmId:'tm24',speciesId:25}])?.has('thunderbolt')).toBe(true);
   expect(validatedMachineLessons(25,10,undefined,[{tmId:'tm24',speciesId:25},{tmId:'tm24',speciesId:25}])).toBeNull();
-  expect(validatedMachineLessons(1,10,undefined,[{tmId:'tm09',speciesId:1}])).toBeNull();
+  expect(validatedMachineLessons(4,10,undefined,[{tmId:'tm09',speciesId:4}])).toBeNull();
  });
 });
 
@@ -79,5 +79,62 @@ describe('first-region TM moves with existing combat effects',()=>{
    }
    expect(hit).toBe(true);
   }
+ });
+});
+
+import {kantoMovePp} from '../src/combat/kantoSkillEnergy.js';
+import {kantoMoveExpectedHits,kantoRollHitCount} from '../src/combat/kantoMultiHit.js';
+import {kantoTmPreviewHitCount} from '../src/catalog/kantoTmPreview.js';
+import {kantoLevelMoves} from '../src/catalog/kantoLevelMoves.js';
+import {simulateKantoBattle} from '../src/combat/kantoBattle.js';
+describe('TM09 historical Bullet Seed',()=>{
+ const lesson=[{tmId:'tm09',speciesId:1}];
+ const move=executableMachineMove('bullet-seed')!;
+ it('uses Gen III special damage, exact multi-hit distribution and no native permission',()=>{
+  expect(move).toEqual({name:'bullet-seed',type:'grass',category:'special',power:10,accuracy:100,priority:0});
+  expect(kantoMovePp(move.name)).toBe(30);
+  expect(kantoMoveExpectedHits(move.name)).toBe(3);
+  expect(kantoMoveSpCost(move)).toBe(12);
+  for(let i=0;i<800;i++){
+   const roll=(i+.5)/800;
+   expect(kantoRollHitCount(move.name,()=>roll)).toBe(kantoTmPreviewHitCount('tm09',roll));
+  }
+  expect(compatibleMachineSpecies('tm09')).toHaveLength(15);
+  expect(kantoLevelMoves(1,100).some(x=>x.move.name===move.name)).toBe(false);
+  expect(frozenValidatedEquippedMoves(1,10,[move.name])).toBeNull();
+  expect(frozenValidatedEquippedMoves(1,10,[move.name],undefined,lesson)).toEqual([move]);
+  expect(canonicalOnlineGymEquippedMoves(1,10,[move.name],undefined,lesson)).toEqual([move]);
+  expect(validatedOnlineMoveRanks(1,10,undefined,{[move.name]:1},lesson)).toEqual({[move.name]:1});
+  expect(validatedMachineLessons(2,16,[{from:1,to:2,level:16,moves:[move.name]}],lesson)?.get(move.name)).toEqual(move);
+  expect(regionalMachinePool(2,'uncommon')).toEqual([]);
+  expect(regionalMachinePool(3,'uncommon').map(x=>x.id)).toContain('tm09');
+ });
+ it('resolves all hit counts in shared Gym/region turn engine with a single SP cost',()=>{
+  const stats={hp:1000,attack:15,defense:50,specialAttack:60,specialDefense:50,speed:90};
+  const player:Combatant={speciesId:1,name:'Player',level:30,types:['grass','poison'],stats,move,rank:0};
+  const foe:Combatant={speciesId:7,name:'Opponent',level:30,types:['water'],stats:{...stats,speed:10},move:KANTO_BATTLE_MOVES.tackle!,rank:0};
+  const state=createGymBattleState([{uid:1,combatant:player},{uid:2,combatant:player},{uid:3,combatant:player}],[foe,foe,foe]);
+  const counts=new Set<number>();
+  for(let i=0;i<64;i++){
+   const seed=Math.imul(i+1,0x9e3779b9)>>>0;
+   const actions=[{kind:'move',moveName:move.name},{kind:'basic'}] as const;
+   const result=resolveGymTurn(state,actions[0],actions[1],seed);
+   expect(result).toEqual(resolveGymTurn(state,actions[0],actions[1],seed));
+   expect(result.status).toBe('applied');
+   if(result.status!=='applied')throw Error('turn rejected');
+   const frames=result.frames.filter(f=>f.moveName===move.name&&f.hitIndex!==undefined);
+   expect(frames.length).toBeGreaterThanOrEqual(2);
+   expect(frames.length).toBeLessThanOrEqual(5);
+   expect(frames.map(f=>f.hitIndex)).toEqual(Array.from({length:frames.length},(_,j)=>j+1));
+   expect(frames.every(f=>f.hitTotal===frames.length)).toBe(true);
+   counts.add(frames.length);
+   expect(result.state.player.fighters[0].sp).toBe(state.player.fighters[0].sp-12);
+  }
+  expect([...counts].sort()).toEqual([2,3,4,5]);
+  const bad={...player,move:{...move,power:25,category:'physical' as const}};
+  expect(()=>simulateKantoBattle(bad,foe,1)).toThrow();
+  const replay=simulateKantoBattle(player,foe,12345);
+  expect(replay).toEqual(simulateKantoBattle(player,foe,12345));
+  expect(replay.frames.some(f=>f.moveName===move.name&&f.hitTotal!==undefined)).toBe(true);
  });
 });

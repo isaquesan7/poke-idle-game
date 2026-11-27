@@ -122,7 +122,7 @@ export function kantoMoveSpCost(move:KantoMove):number{
 /**
  * D-039: prévia de custo para metadados /move/{id} da PokéAPI (NÃO equipa
  * por si só). D-045 habilitou Recover em catálogo+motor SEPARADOS; Bullet
- * Seed continua só prévia. A ausência de power
+ * Seed possui ficha histórica separada; esta função continua só prévia. A ausência de power
  * em suportes/cura da API é null; NÃO converter em NaN nem dano fictício.
  * Este tipo é um recorte explícito de /move e NÃO é o KantoMove canônico.
  */

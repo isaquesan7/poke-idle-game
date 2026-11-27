@@ -17,7 +17,8 @@ export const KANTO_MOVE_PP:Readonly<Record<string,number>>={
   ...Object.fromEntries(Object.values(KANTO_FRLG_MOVE_META)
     .filter(meta=>meta.pp!==null&&meta.pp>0)
     .map(meta=>[meta.name,meta.pp!])),
-  // NPC signature moves, FRLG historical PP; not learned or taught to players.
+  // Historical TM and NPC signature PP. Eligibility is defined separately.
+  'bullet-seed':30,
   'toxic':10,
   'calm-mind':20,
   'rock-tomb':10,

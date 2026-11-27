@@ -17,6 +17,7 @@ import { KANTO_LEVELUP_DAMAGE_MOVES } from '../catalog/kantoLevelMoves.js';
 import { kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect } from './kantoStatusEffects.js';
 import {GYM_NPC_SUPPORT_MOVES} from '../gyms/gymNpcSupportMoves.js';
 import {KANTO_SUPPORT_MOVES,kantoSupportEffect} from '../catalog/kantoSupportMoves.js';
+import {KANTO_TM09_COMBAT_MOVE} from '../catalog/kantoMachineCombatMoves.js';
 import {KANTO_MULTI_HIT_MOVES,kantoMoveExpectedHits,kantoRollHitCount} from './kantoMultiHit.js';
 import type { KantoBattleStatus } from './kantoStatusEffects.js';
 import {
@@ -228,7 +229,7 @@ function validMove(m:KantoMove|undefined,allowNpcSupport=false):boolean{
   }
   // D064AT: bloquear alteração de poder/tipo/precisão de TODOS os multi-hit.
   if(Object.hasOwn(KANTO_MULTI_HIT_MOVES,m.name)){
-    const fixed=KANTO_BATTLE_MOVES[m.name];
+    const fixed=m.name===KANTO_TM09_COMBAT_MOVE.name?KANTO_TM09_COMBAT_MOVE:KANTO_BATTLE_MOVES[m.name];
     return !!fixed&&m.type===fixed.type&&m.category===fixed.category
       &&m.power===fixed.power&&m.accuracy===fixed.accuracy
       &&m.priority===fixed.priority;
