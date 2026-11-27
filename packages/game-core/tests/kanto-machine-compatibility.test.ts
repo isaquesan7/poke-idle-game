@@ -51,7 +51,7 @@ describe('first-region TM moves with existing combat effects',()=>{
  it('uses the exact published FRLG gym stats and does not grant native moves',()=>{
   expect(executableMachineMove('rock-tomb')).toEqual(gymSignatureTm('boulder',95)?.move);
   expect(executableMachineMove('shock-wave')).toEqual(gymSignatureTm('thunder',25)?.move);
-  expect(regionalMachinePool(1,'common').map(m=>m.id)).toEqual(['tm34','tm39']);
+  expect(regionalMachinePool(1,'common').map(m=>m.id)).toEqual(['tm03','tm34','tm39']);
   expect(frozenValidatedEquippedMoves(25,10,['shock-wave'])).toBeNull();
   expect(frozenValidatedEquippedMoves(25,10,['shock-wave'],undefined,[{tmId:'tm34',speciesId:25}])?.[0]?.name).toBe('shock-wave');
   expect(canonicalOnlineGymEquippedMoves(25,10,['shock-wave'],undefined,[{tmId:'tm34',speciesId:25}])?.[0]?.name).toBe('shock-wave');
@@ -136,5 +136,67 @@ describe('TM09 historical Bullet Seed',()=>{
   const replay=simulateKantoBattle(player,foe,12345);
   expect(replay).toEqual(simulateKantoBattle(player,foe,12345));
   expect(replay.frames.some(f=>f.moveName===move.name&&f.hitTotal!==undefined)).toBe(true);
+ });
+});
+
+describe('TM05 — executable historical attacks in the shared online engine',()=>{
+ const moves=[
+  ['tm02','dragon-claw','dragon','special',80,100,15],
+  ['tm03','water-pulse','water','special',60,100,20],
+  ['tm23','iron-tail','steel','physical',100,75,15],
+  ['tm26','earthquake','ground','physical',100,100,10],
+  ['tm29','psychic','psychic','special',90,100,10],
+  ['tm30','shadow-ball','ghost','physical',80,100,15]
+ ] as const;
+ it('admits only compatible lessons and retains historical metadata and PP',()=>{
+  for(const [id,name,type,category,power,accuracy,pp] of moves){
+   const species=compatibleMachineSpecies(id)[0]!;
+   const move=executableMachineMove(name)!;
+   expect(move).toEqual({name,type,category,power,accuracy,priority:0});
+   expect(kantoMovePp(name)).toBe(pp);
+   expect(kantoMoveSpCost(move)).toBeGreaterThan(0);
+   expect(frozenValidatedEquippedMoves(species,10,[name],undefined,[{tmId:id,speciesId:species}])).toEqual([move]);
+   expect(canonicalOnlineGymEquippedMoves(species,10,[name],undefined,[{tmId:id,speciesId:species}])).toEqual([move]);
+   const incompatible=Array.from({length:151},(_,i)=>i+1).find(i=>!compatibleMachineSpecies(id).includes(i))!;
+   expect(validatedMachineLessons(incompatible,10,undefined,[{tmId:id,speciesId:incompatible}])).toBeNull();
+  }
+  expect(executableMachineMove('water-pulse')).toEqual(gymSignatureTm('cascade',120)?.move);
+  expect(executableMachineMove('earthquake')).toEqual(gymSignatureTm('earth',51)?.move);
+ });
+ it('resolves damage, confusion and defense stage drops, with one charge per attack',()=>{
+  const stats={hp:1000,attack:60,defense:50,specialAttack:60,specialDefense:50,speed:90};
+  for(const [,name] of moves){
+   const move=executableMachineMove(name)!;
+   const player:Combatant={speciesId:1,name:'Player',level:30,types:['grass','poison'],stats,move,rank:0};
+   const foe:Combatant={speciesId:7,name:'Opponent',level:30,types:['water'],stats:{...stats,speed:10},move:KANTO_BATTLE_MOVES.tackle!,rank:0};
+   const state=createGymBattleState([{uid:1,combatant:player},{uid:2,combatant:player},{uid:3,combatant:player}],[foe,foe,foe]);
+   let hits=0,effects=0;
+   for(let i=0;i<128;i++){
+    const result=resolveGymTurn(state,{kind:'move',moveName:name},{kind:'basic'},Math.imul(i+1,0x9e3779b9)>>>0);
+    expect(result.status).toBe('applied');
+    if(result.status!=='applied')throw Error('turn rejected');
+    expect(result.state.player.fighters[0].sp).toBe(state.player.fighters[0].sp-kantoMoveSpCost(move));
+    const target=result.state.leader.fighters[0];
+    if(target.hp<foe.stats.hp)hits++;
+    if(name==='water-pulse'&&result.log.some(x=>x.includes('ficou confuso')))effects++;
+    if(name==='iron-tail'&&target.effects?.defenseDrops===1)effects++;
+    if((name==='shadow-ball'||name==='psychic')&&target.effects?.specialDefenseDrops===1)effects++;
+   }
+   expect(hits).toBeGreaterThan(0);
+   if(['water-pulse','iron-tail','shadow-ball','psychic'].includes(name))expect(effects).toBeGreaterThan(0);
+  }
+ });
+ it('never applies Shadow Ball secondary against Normal immunity',()=>{
+  const stats={hp:1000,attack:60,defense:50,specialAttack:60,specialDefense:50,speed:90};
+  const move=executableMachineMove('shadow-ball')!;
+  const player:Combatant={speciesId:92,name:'Player',level:30,types:['ghost','poison'],stats,move,rank:0};
+  const foe:Combatant={speciesId:19,name:'Opponent',level:30,types:['normal'],stats:{...stats,speed:10},move:KANTO_BATTLE_MOVES.tackle!,rank:0};
+  const state=createGymBattleState([{uid:1,combatant:player},{uid:2,combatant:player},{uid:3,combatant:player}],[foe,foe,foe]);
+  for(let i=0;i<64;i++){
+   const result=resolveGymTurn(state,{kind:'move',moveName:move.name},{kind:'basic'},Math.imul(i+1,0x9e3779b9)>>>0);
+   if(result.status!=='applied')throw Error('turn rejected');
+   expect(result.state.leader.fighters[0].hp).toBe(foe.stats.hp);
+   expect(result.state.leader.fighters[0].effects?.specialDefenseDrops).toBe(0);
+  }
  });
 });

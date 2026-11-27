@@ -113,7 +113,7 @@ export function kantoMoveSpCost(move:KantoMove):number{
     ||!Number.isFinite(move.power)||move.power<=0||move.power>250)
     throw new RangeError('Golpe ofensivo inválido.');
   // Efeito por acerto usa o mesmo adicional fixo de secundário, uma vez.
-  const secondary=(kantoMoveSecondaryEffect(move.name)||move.name==='twineedle')?4:0;
+  const secondary=(kantoMoveSecondaryEffect(move.name)||['twineedle','shadow-ball','iron-tail'].includes(move.name))?4:0;
   const priority=move.priority>0?3:0;
   return clamp(KANTO_SP_BALANCE.minMoveSpCost,KANTO_SP_BALANCE.maxMoveSpCost,
     Math.round(scarcity+.18*move.power*kantoMoveExpectedHits(move.name)+secondary+priority));

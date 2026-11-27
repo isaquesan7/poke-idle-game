@@ -386,7 +386,16 @@ export function resolveGymTurn(
         state=gymDropStat(state,defendingSide,'speedDrops');
         record(defendingSide+' perdeu velocidade.');
       }
-      const psychic=move.name==='water-pulse'?{kind:'confusion' as const,chance:20}:gymPsychicSecondary(move.name);
+      // TM-only effects reuse the existing stage machinery, with no extra
+      // roll against an immune target. Keep existing signature RNG unchanged.
+      const effective=kantoTypeMultiplier(move.type,target.combatant.types)>0;
+      if(effective&&move.name==='iron-tail'&&roll()*100<30){
+        state=gymDropStat(state,defendingSide,'defenseDrops');
+        record(defendingSide+' perdeu Defense.');
+      }
+      const psychic=move.name==='shadow-ball'
+        ?(effective?{kind:'special-defense-drop' as const,chance:20}:null)
+        :move.name==='water-pulse'?{kind:'confusion' as const,chance:20}:gymPsychicSecondary(move.name);
       if(psychic&&roll()*100<psychic.chance){
         if(psychic.kind==='confusion'){
           const duration=2+Math.floor(roll()*4);

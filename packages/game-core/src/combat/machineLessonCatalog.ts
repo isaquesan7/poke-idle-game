@@ -11,6 +11,15 @@ import {compatibleMachineSpecies} from '../catalog/kantoMachineCompatibility.js'
  */
 const MACHINE_ONLY_MOVES:Readonly<Record<string,KantoMove>>=Object.freeze({
  'bullet-seed':KANTO_TM09_COMBAT_MOVE,
+ // GYM04 signatures retain the exact published combat values.
+ 'water-pulse':Object.freeze({name:'water-pulse',type:'water',category:'special',power:60,accuracy:100,priority:0}),
+ 'earthquake':Object.freeze({name:'earthquake',type:'ground',category:'physical',power:100,accuracy:100,priority:0}),
+ 'psychic':Object.freeze({name:'psychic',type:'psychic',category:'special',power:90,accuracy:100,priority:0}),
+ // New TMs use the explicit historical Gen III category, not modern CSV category.
+ // https://pokemondb.net/move/dragon-claw and /move/shadow-ball
+ 'dragon-claw':Object.freeze({name:'dragon-claw',type:'dragon',category:'special',power:80,accuracy:100,priority:0}),
+ 'shadow-ball':Object.freeze({name:'shadow-ball',type:'ghost',category:'physical',power:80,accuracy:100,priority:0}),
+ 'iron-tail':Object.freeze({name:'iron-tail',type:'steel',category:'physical',power:100,accuracy:75,priority:0}),
  'rock-tomb':Object.freeze({name:'rock-tomb',type:'rock',category:'physical',power:50,accuracy:80,priority:0}),
  'shock-wave':Object.freeze({name:'shock-wave',type:'electric',category:'special',power:60,accuracy:100,priority:0})
 });
