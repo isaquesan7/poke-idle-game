@@ -70,7 +70,7 @@ export async function readRegionalEncounter(pool,accountId,expanded=false){
   log:Array.isArray(state?.log)?state.log:[],frames:Array.isArray(state?.frames)?state.frames:[]
  }:null};
 }
-export async function runRegionalCommand(pool,accountId,command,data,entropyKey,expanded=false){
+export async function runRegionalCommand(pool,accountId,command,data,entropyKey,expanded=false,tmLoot=undefined){
  if(!Object.hasOwn(shapes,command)||!data||Object.keys(data).sort().join(',')!==shapes[command]||
     !Number.isSafeInteger(data.expectedRevision)||data.expectedRevision<0||
     (command!=='reserve'&&(typeof data.encounterId!=='string'||!UUID.test(data.encounterId)))||
@@ -93,7 +93,7 @@ export async function runRegionalCommand(pool,accountId,command,data,entropyKey,
   if(pending.revision!==data.expectedRevision)return {status:'stale'};
   const materialized=await materializeReservedEncounter(pool,{accountId,encounterId:data.encounterId,entropyKey});
   if(!['materialized','replay'].includes(materialized.status))return {status:materialized.status};
-  const prepared=await prepareReservedBattle(pool,{accountId,encounterId:data.encounterId});
+  const prepared=await prepareReservedBattle(pool,{accountId,encounterId:data.encounterId,tmLoot});
   if(!['prepared','replay'].includes(prepared.status))return {status:prepared.status};
   result=await startReservedWildTurnSession(pool,params);
  }else if(command==='turn')result=await applyReservedWildTurn(pool,{...params,entropyKey});
