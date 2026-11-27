@@ -12,6 +12,7 @@ import {KANTO_GYMS,kantoNextGym} from '../gyms/kantoGyms.js';
 import {prepareGymOpponent,prepareGymLeader} from '../gyms/gymTactics.js';
 import {createGymBattleState} from '../gyms/gymBattleState.js';
 import {validatedOnlineMoveRanks,equippedOnlineRanks} from './serverMoveRanks.js';
+import {validatedMachineLessons} from './serverMachineLessons.js';
 import {inheritedOnlineMoves,regionalNativeMoves} from './serverInheritedMoves.js';
 import {gymPsychicLevelMoves} from '../gyms/gymPsychicMoves.js';
 import {LEGACY_TITLES,legacyTitleIsUnlocked}
@@ -54,7 +55,7 @@ function manualStats(value:unknown,level:number,maxPerStat=40):StatValues|null{
  * That permission is Gym-only, not a leak into Region 1v1 move lists.
  */
 export function canonicalOnlineGymEquippedMoves(
-  speciesId:number,level:number,moveNames:unknown,history?:unknown
+  speciesId:number,level:number,moveNames:unknown,history?:unknown,lessons?:unknown
 ):readonly KantoMove[]|null{
   if(!integer(speciesId,1,151)||!integer(level,1,100)||
      !Array.isArray(moveNames)||moveNames.length<1||moveNames.length>4||
@@ -62,8 +63,9 @@ export function canonicalOnlineGymEquippedMoves(
      new Set(moveNames).size!==moveNames.length)return null;
   const species=KANTO_BATTLE_SPECIES[speciesId];
   if(!species)return null;
-  const inherited=inheritedOnlineMoves(speciesId,level,history);
-  if(!inherited)return null;
+  const inherited=inheritedOnlineMoves(speciesId,level,history,lessons);
+  const machine=validatedMachineLessons(speciesId,level,history,lessons);
+  if(!inherited||!machine)return null;
   // The Collection/Region contract determines fallback eligibility.
   // Gym-only psychic effects must never suppress a legal shared attack.
   // Preserve the existing Gym-only level-up allowance, but shared moves
@@ -72,6 +74,7 @@ export function canonicalOnlineGymEquippedMoves(
     gymPsychicLevelMoves(speciesId,level).map(entry=>[entry.move.name,entry.move]));
   for(const [name,move] of inherited)legal.set(name,move);
   for(const [name,move] of regionalNativeMoves(speciesId,level))legal.set(name,move);
+  for(const [name,move] of machine)legal.set(name,move);
   const result=moveNames.map(name=>legal.get(name));
   return result.every((move):move is KantoMove=>!!move)?
     result as KantoMove[]:null;
@@ -182,9 +185,9 @@ export function canonicalOnlineGymPreparation(source:unknown):
     const names=p.equippedMoveNames===undefined?
       [p.moveName]:p.equippedMoveNames;
     if(!Array.isArray(names)||names[0]!==p.moveName)return null;
-    const moves=canonicalOnlineGymEquippedMoves(p.pokemonId,p.level,names,p.evolutionHistory);
+    const moves=canonicalOnlineGymEquippedMoves(p.pokemonId,p.level,names,p.evolutionHistory,p.machineLessons);
     if(!moves)return null;
-    const validated=validatedOnlineMoveRanks(p.pokemonId,p.level,p.evolutionHistory,p.upgrades);
+    const validated=validatedOnlineMoveRanks(p.pokemonId,p.level,p.evolutionHistory,p.upgrades,p.machineLessons);
     if(!validated)return null;
     const ranks=Object.keys(validated).length?equippedOnlineRanks(moves,validated):{};
     const species=KANTO_BATTLE_SPECIES[p.pokemonId];

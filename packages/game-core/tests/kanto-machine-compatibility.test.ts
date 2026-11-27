@@ -22,3 +22,20 @@ describe('pinned FRLG compatibility and permanent lessons',()=>{
   expect(validatedMachineLessons(1,10,undefined,[{tmId:'tm09',speciesId:1}])).toBeNull();
  });
 });
+
+import {frozenValidatedEquippedMoves} from '../src/combat/serverFrozenBattle.js';
+import {canonicalOnlineGymEquippedMoves} from '../src/combat/serverGymPreparation.js';
+import {validatedOnlineMoveRanks} from '../src/combat/serverMoveRanks.js';
+describe('TM move permission across combat and evolution',()=>{
+ it('permits an early move only with a valid lesson and preserves it after evolution',()=>{
+  const lessons=[{tmId:'tm24',speciesId:25}];
+  expect(frozenValidatedEquippedMoves(25,10,['thunderbolt'])).toBeNull();
+  expect(frozenValidatedEquippedMoves(25,10,['thunderbolt'],undefined,lessons)?.[0]?.name).toBe('thunderbolt');
+  expect(canonicalOnlineGymEquippedMoves(25,10,['thunderbolt'],undefined,lessons)?.[0]?.name).toBe('thunderbolt');
+  expect(validatedOnlineMoveRanks(25,10,undefined,{thunderbolt:1},lessons)).toEqual({thunderbolt:1});
+  expect(validatedOnlineMoveRanks(25,10,undefined,{thunderbolt:1})).toBeNull();
+  const history=[{from:25,to:26,level:10,moves:['thunderbolt']}];
+  expect(frozenValidatedEquippedMoves(26,10,['thunderbolt'],history,lessons)?.[0]?.name).toBe('thunderbolt');
+  expect(frozenValidatedEquippedMoves(7,10,['thunderbolt'],undefined,lessons)).toBeNull();
+ });
+});
