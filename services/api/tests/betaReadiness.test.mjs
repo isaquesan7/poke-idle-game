@@ -254,7 +254,7 @@ test('release activation rejects stale evidence, unsafe environment and unapplie
 test('release Web allows all reviewed game routes only with production opt-in',()=>{
  const env={NODE_ENV:'production',ONLINE_RELEASE_MODE:'reviewed',ONLINE_PUBLIC_SAVES_ENABLED:'true',ONLINE_GATEWAY_FORWARD_MODE:'reviewed'};
  for(const route of ONLINE_ROUTES){
-  assert.equal(webOnlineRoute(route.path,env),route.group==='tm'?null:route);
+  assert.equal(webOnlineRoute(route.path,env),route);
   if(route.group!=='base'){
    for(const key of ['ONLINE_RELEASE_MODE','ONLINE_PUBLIC_SAVES_ENABLED','ONLINE_GATEWAY_FORWARD_MODE'])
     assert.equal(webOnlineRoute(route.path,{...env,[key]:undefined}),null);
