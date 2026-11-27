@@ -9,7 +9,7 @@ import type {Combatant,KantoMove,KantoBattleVisualFrame} from '../combat/kantoBa
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
-  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt,gymPendingAction,gymRestSleep} from './gymEffects.js';
+  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop,gymBarrierActive,gymSetBarrier,gymBreakScreens,gymProtectedDamage,gymProtectAttempt,gymPendingAction,gymRestSleep,gymTaunt,gymTickTaunt,gymDoubleTeam,gymAccuracyAfterEvasion,gymThaw} from './gymEffects.js';
 import {gymWeatherMove,gymActiveWeather,gymSetWeather,gymWeatherAccuracy,gymWeatherDamage,gymWeatherResidual} from './gymWeather.js';
 import {gymSignatureSupport} from './gymSignatureTms.js';
 import {gymPsychicSecondary} from './gymPsychicMoves.js';
@@ -123,6 +123,7 @@ function validateAction(
   if(!move||move.name===KANTO_BASIC_ATTACK.name
     ||kantoMoveSpCost(move)>active.sp)return null;
   if(move.category==='status'){
+    if((active.tauntActions??0)>0)return null;
     const support=kantoSupportEffect(move.name);
     if(!support&&!gymSignatureSupport(move.name))return null;
     if(support?.kind==='heal'&&active.hp===active.combatant.stats.hp)return null;
@@ -251,12 +252,18 @@ export function resolveGymTurn(
     const active=state[side].fighters[state[side].activeIndex]!;
     if(active.hp<=0)continue;
     const pending=active.pendingAction;
+    const taunted=(active.tauntActions??0)>0;
+    if(taunted)state=gymTickTaunt(state,side);
     if(pending){
       state=gymPendingAction(state,side,undefined);
       if(pending==='recharge'){
         record(side+' recarregou após hyper-beam.');
         continue;
       }
+    }
+    if(active.status==='freeze'){
+      if(roll()>=.2){record(side+' está congelado e perdeu a ação.');continue;}
+      state=gymThaw(state,side);record(side+' descongelou.');
     }
     // Sono: 1–3 ações próprias; recolhimento congela a duração.
     if(active.status==='sleep'){
@@ -300,6 +307,7 @@ export function resolveGymTurn(
     if(state[defendingSide].needsReplacement)break;
     const target=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
     const move=chosen.move!;
+    if(taunted&&move.category==='status'){record(side+' não pôde usar '+move.name+' devido a Taunt.');continue;}
     const cost=pending?0:kantoMoveSpCost(move);
     state=spendGymSp(state,side,cost);
     if(!pending&&(move.name==='dig'||move.name==='solar-beam'&&gymActiveWeather(state)!=='sunny-day')){
@@ -307,12 +315,13 @@ export function resolveGymTurn(
       record(side+' preparou '+move.name+' (-'+cost+' SP).');
       continue;
     }
-    if(roll()*100>=gymWeatherAccuracy(gymActiveWeather(state),move)){
+    const supportEffect=kantoSupportEffect(move.name);
+    const selfDirected=!!gymWeatherMove(move.name)||supportEffect?.kind==='heal'||['bulk-up','calm-mind','reflect','light-screen','safeguard','protect','rest','double-team'].includes(move.name);
+    const accuracy=gymWeatherAccuracy(gymActiveWeather(state),move);
+    if(roll()*100>=(selfDirected?accuracy:gymAccuracyAfterEvasion(move.name,accuracy,target.effects?.evasionBoosts??0))){
       record(side+' errou '+move.name+' (-'+cost+' SP).');
       continue;
     }
-    const supportEffect=kantoSupportEffect(move.name);
-    const selfDirected=!!gymWeatherMove(move.name)||supportEffect?.kind==='heal'||['bulk-up','calm-mind','reflect','light-screen','safeguard','protect','rest'].includes(move.name);
     if(!selfDirected&&protectedSides.has(defendingSide)){
       record(defendingSide+' bloqueou '+move.name+' com Protect (-'+cost+' SP).');
       continue;
@@ -330,6 +339,17 @@ export function resolveGymTurn(
         const next=gymSetWeather(state,weather);
         record(side+' usou '+move.name+(next===state?': clima já ativo.':' por cinco turnos.'));
         state=next;
+        continue;
+      }
+      if(signature==='taunt'){
+        const next=gymTaunt(state,defendingSide);
+        state=next;
+        record(side+' usou taunt: alvo impedido de usar suporte por duas ações.');
+        continue;
+      }
+      if(signature==='double-team'){
+        state=gymDoubleTeam(state,side);
+        record(side+' usou double-team e elevou evasão.');
         continue;
       }
       if(signature==='rest'){
@@ -452,7 +472,14 @@ export function resolveGymTurn(
     if(state[defendingSide].needsReplacement){
       record(defendingSide+' sofreu KO: aguarda substituição grátis.');
     }else if(state.outcome==='ongoing'){
-      const effect=move.name==='thunder'&&kantoTypeMultiplier(move.type,target.combatant.types)>0?{kind:'status' as const,status:'paralysis' as const,chance:30}:kantoMoveSecondaryEffect(move.name);
+      const hitTarget=state[defendingSide].fighters[state[defendingSide].activeIndex]!;
+      const landed=hitTarget.hp<target.hp;
+      if(landed&&move.type==='fire'&&hitTarget.status==='freeze'){
+        state=gymThaw(state,defendingSide);record(defendingSide+' descongelou pelo ataque de fogo.');
+      }
+      const effect=move.name==='thunder'?(landed?{kind:'status' as const,status:'paralysis' as const,chance:30}:null)
+        :['ice-beam','blizzard'].includes(move.name)?(landed&&gymActiveWeather(state)!=='sunny-day'?{kind:'status' as const,status:'freeze' as const,chance:10}:null)
+        :kantoMoveSecondaryEffect(move.name);
       if(effect?.kind==='drain'){
         const afterHp=state[defendingSide].fighters[state[defendingSide].activeIndex]!.hp;
         const inflicted=target.hp-afterHp;

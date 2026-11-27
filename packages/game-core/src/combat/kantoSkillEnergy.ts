@@ -98,7 +98,7 @@ export function kantoMoveSpCost(move:KantoMove):number{
       toxic:18,'calm-mind':14,'bulk-up':14,
       reflect:14,'light-screen':14,safeguard:14,protect:14,
       'sunny-day':14,'rain-dance':14,sandstorm:14,hail:14,
-      recover:18,rest:22
+      recover:18,rest:22,taunt:14,'double-team':14
     };
     const weight=weights[move.name];
     if(weight===undefined)throw new RangeError('Suporte sem custo catalogado.');
@@ -115,7 +115,7 @@ export function kantoMoveSpCost(move:KantoMove):number{
     ||!Number.isFinite(move.power)||move.power<=0||move.power>250)
     throw new RangeError('Golpe ofensivo inválido.');
   // Efeito por acerto usa o mesmo adicional fixo de secundário, uma vez.
-  const secondary=(kantoMoveSecondaryEffect(move.name)||['twineedle','shadow-ball','iron-tail','steel-wing','thunder'].includes(move.name))?4:0;
+  const secondary=(kantoMoveSecondaryEffect(move.name)||['twineedle','shadow-ball','iron-tail','steel-wing','thunder','ice-beam','blizzard'].includes(move.name))?4:0;
   const priority=move.priority>0?3:0;
   return clamp(KANTO_SP_BALANCE.minMoveSpCost,KANTO_SP_BALANCE.maxMoveSpCost,
     Math.round(scarcity+.18*move.power*kantoMoveExpectedHits(move.name)+secondary+priority));

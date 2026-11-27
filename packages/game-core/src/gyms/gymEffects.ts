@@ -14,6 +14,7 @@ export interface GymEffects {
   readonly defenseDrops:number;
   readonly speedDrops:number;
   readonly specialDefenseDrops:number;
+  readonly evasionBoosts?:number;
   readonly attackBoosts?:number;
   readonly defenseBoosts?:number;
   readonly specialAttackDrops?:number;
@@ -25,6 +26,7 @@ export const GYM_EMPTY_EFFECTS:GymEffects=Object.freeze({
 });
 
 export function gymStatusAllowed(status:KantoBattleStatus,types:readonly string[]):boolean{
+  if(status==='freeze')return !types.includes('ice');
   if(status==='burn')return !types.includes('fire');
   if(status==='poison')return !types.includes('poison')&&!types.includes('steel');
   return true;
@@ -87,6 +89,25 @@ export function gymRestSleep(state:GymBattleState,side:GymSide):GymBattleState{
   const {toxicStage,...rest}=old;
   return {...rest,status:'sleep',sleepActions:2};
  });
+}
+export function gymTaunt(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>(old.tauntActions??0)>0?old:{...old,tauntActions:2});
+}
+export function gymTickTaunt(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>({...old,tauntActions:Math.max(0,(old.tauntActions??0)-1)}));
+}
+export function gymDoubleTeam(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>{
+  const e=old.effects??GYM_EMPTY_EFFECTS;
+  return {...old,effects:{...e,evasionBoosts:Math.min(6,(e.evasionBoosts??0)+1)}};
+ });
+}
+export function gymAccuracyAfterEvasion(name:string,accuracy:number,evasion:number):number{
+ if(['shock-wave','aerial-ace','swift','feint-attack','faint-attack','magical-leaf'].includes(name))return 100;
+ return accuracy*3/(3+Math.max(0,Math.min(6,evasion)));
+}
+export function gymThaw(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>old.status==='freeze'?{...old,status:null}:old);
 }
 export function gymApplyStatus(
   state:GymBattleState,side:GymSide,status:KantoBattleStatus

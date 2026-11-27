@@ -32,6 +32,7 @@ export interface GymFighterState {
   readonly toxicStage?:number;
   readonly effects?:GymEffects;
   readonly confusionTurns?:number;
+  readonly tauntActions?:number;
   /** Forced next action; not a new move slot or a second SP payment. */
   readonly pendingAction?:'solar-beam'|'dig'|'recharge';
   readonly retreatRecoveriesUsed:number;
@@ -121,6 +122,7 @@ function checkFighter(f:GymFighterState):void{
     ||(f.toxicStage!==undefined&&(!Number.isSafeInteger(f.toxicStage)||f.toxicStage<1||f.toxicStage>15||f.status!=='poison'))
     ||!Number.isSafeInteger(f.confusionTurns??0)||(f.confusionTurns??0)<0
     ||(f.confusionTurns??0)>5
+    ||!Number.isSafeInteger(f.tauntActions??0)||(f.tauntActions??0)<0||(f.tauntActions??0)>2
     ||!Number.isSafeInteger(f.focusUses)||f.focusUses<0
     ||f.focusUses>KANTO_SP_BALANCE.maxFocusUses
     ||!Number.isSafeInteger(f.lastFocusTurn))
