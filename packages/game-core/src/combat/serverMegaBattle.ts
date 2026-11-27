@@ -72,7 +72,7 @@ export function resolveMegaTrialBattle(raw:string,command:unknown,seedForTurn:(t
   const turn=resolveGymTurn(state,player,boss,seed);
   if(turn.status!=='applied'||turn.state.turn<=state.turn)return {status:'invalid-turn'} as const;
   state=turn.state;
-  log.push(...turn.log.map(line=>line.replace(/^player\b/,prepared.battle.player.fighters[0].combatant.name).replace(/^leader\b/,prepared.battle.leader.fighters[0].combatant.name)));
+  log.push(...turn.log.map(line=>'T'+state.turn+' '+line.replace(/^player\b/,prepared.battle.player.fighters[0].combatant.name).replace(/^leader\b/,prepared.battle.leader.fighters[0].combatant.name)));
   frames.push(...turn.frames);
  }
  return {status:'ok',uid:prepared.uid,formId:prepared.formId,stoneId:prepared.stoneId,
