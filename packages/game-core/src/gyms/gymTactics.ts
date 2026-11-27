@@ -232,6 +232,7 @@ export function gymAiDecision(args:{
   readonly allowConcentrate?:boolean;
   readonly defenderStatus?:string|null;
   readonly calmMindStage?:number;
+  readonly bulkUpStage?:number;
 }):GymAiDecision{
   const {actor,defender,actorHp,actorSp,bench}=args;
   const maxSp=kantoMaxSp(actor.level,actor.speciesId);
@@ -257,6 +258,7 @@ export function gymAiDecision(args:{
       const signature=gymSignatureSupport(move.name);
       if(signature){
         const score=signature==='toxic'?(args.defenderStatus||defender.types.includes('poison')||defender.types.includes('steel')?-100:36)
+          :signature==='bulk-up'?((args.bulkUpStage??0)>=6||actorHp/actor.stats.hp<.35?-100:(args.bulkUpStage??0)===0?35:15)
           :((args.calmMindStage??0)>=6||!moves.some(m=>m.category==='special'&&m.power>0)||actorHp/actor.stats.hp<.35?-100:(args.calmMindStage??0)===0?40:18);
         decisions.push({action:'move',moveName:move.name,score});continue;
       }

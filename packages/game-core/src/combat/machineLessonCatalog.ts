@@ -15,6 +15,10 @@ const MACHINE_ONLY_MOVES:Readonly<Record<string,KantoMove>>=Object.freeze({
  // Same status definitions and SP costs used by GYM04B. No native grant.
  'toxic':GYM_NPC_SUPPORT_MOVES.toxic!,
  'calm-mind':GYM_NPC_SUPPORT_MOVES['calm-mind']!,
+ 'bulk-up':GYM_NPC_SUPPORT_MOVES['bulk-up']!,
+ // Gen III: https://pokemondb.net/move/steel-wing and /move/overheat.
+ 'steel-wing':Object.freeze({name:'steel-wing',type:'steel',category:'physical',power:70,accuracy:90,priority:0}),
+ 'overheat':Object.freeze({name:'overheat',type:'fire',category:'special',power:140,accuracy:90,priority:0}),
  // GYM04 signatures retain the exact published combat values.
  'water-pulse':Object.freeze({name:'water-pulse',type:'water',category:'special',power:60,accuracy:100,priority:0}),
  'earthquake':Object.freeze({name:'earthquake',type:'ground',category:'physical',power:100,accuracy:100,priority:0}),

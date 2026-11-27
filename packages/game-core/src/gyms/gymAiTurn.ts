@@ -57,9 +57,9 @@ export function gymChooseAiAction(
     hp:party.fighters[a.toIndex]!.hp
   }]:[]);
   const proposed=gymAiDecision({
-    actor:{...actor.combatant,moves:permittedMoves,stats:{...actor.combatant.stats,specialAttack:gymSpecialStat(actor.combatant.stats.specialAttack,actor.effects?.specialAttackBoosts??0)}},
-    defender:{...enemy.combatant,stats:{...enemy.combatant.stats,specialDefense:gymSpecialStat(enemy.combatant.stats.specialDefense,enemy.effects?.specialDefenseBoosts??0)}},actorHp:actor.hp,actorSp:actor.sp,
-    defenderStatus:enemy.status,calmMindStage:actor.effects?.specialAttackBoosts??0,
+    actor:{...actor.combatant,moves:permittedMoves,stats:{...actor.combatant.stats,attack:gymSpecialStat(actor.combatant.stats.attack,actor.effects?.attackBoosts??0),specialAttack:gymSpecialStat(actor.combatant.stats.specialAttack,actor.effects?.specialAttackBoosts??0,actor.effects?.specialAttackDrops??0)}},
+    defender:{...enemy.combatant,stats:{...enemy.combatant.stats,defense:gymSpecialStat(enemy.combatant.stats.defense,enemy.effects?.defenseBoosts??0),specialDefense:gymSpecialStat(enemy.combatant.stats.specialDefense,enemy.effects?.specialDefenseBoosts??0)}},actorHp:actor.hp,actorSp:actor.sp,
+    defenderStatus:enemy.status,calmMindStage:actor.effects?.specialAttackBoosts??0,bulkUpStage:Math.min(actor.effects?.attackBoosts??0,actor.effects?.defenseBoosts??0),
     bench,consecutiveSwitches:bench.length?0:1,
     allowConcentrate:legal.some(a=>a.kind==='focus')
   });

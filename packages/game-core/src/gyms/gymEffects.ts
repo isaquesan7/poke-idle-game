@@ -14,6 +14,9 @@ export interface GymEffects {
   readonly defenseDrops:number;
   readonly speedDrops:number;
   readonly specialDefenseDrops:number;
+  readonly attackBoosts?:number;
+  readonly defenseBoosts?:number;
+  readonly specialAttackDrops?:number;
   readonly specialAttackBoosts?:number;
   readonly specialDefenseBoosts?:number;
 }
@@ -67,6 +70,25 @@ export function gymCalmMind(state:GymBattleState,side:GymSide):GymBattleState{
   const effects=old.effects??GYM_EMPTY_EFFECTS;
   const a=effects.specialAttackBoosts??0,d=effects.specialDefenseBoosts??0;
   return a>=6&&d>=6?old:{...old,effects:{...effects,specialAttackBoosts:Math.min(6,a+1),specialDefenseBoosts:Math.min(6,d+1)}};
+ });
+}
+/** Same individual stages/caps as Calm Mind; no permanent training change. */
+export function gymBulkUp(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>{
+  const e=old.effects??GYM_EMPTY_EFFECTS;
+  return {...old,effects:{...e,attackBoosts:Math.min(6,(e.attackBoosts??0)+1),defenseBoosts:Math.min(6,(e.defenseBoosts??0)+1)}};
+ });
+}
+export function gymSteelWingBoost(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>{
+  const e=old.effects??GYM_EMPTY_EFFECTS;
+  return {...old,effects:{...e,defenseBoosts:Math.min(6,(e.defenseBoosts??0)+1)}};
+ });
+}
+export function gymOverheatDrop(state:GymBattleState,side:GymSide):GymBattleState{
+ return gymReplaceFighter(state,side,old=>{
+  const e=old.effects??GYM_EMPTY_EFFECTS;
+  return {...old,effects:{...e,specialAttackDrops:Math.min(6,(e.specialAttackDrops??0)+2)}};
  });
 }
 export function gymSpecialStat(value:number,boosts:number,drops=0):number{

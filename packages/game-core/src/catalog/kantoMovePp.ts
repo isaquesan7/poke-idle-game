@@ -20,6 +20,9 @@ export const KANTO_MOVE_PP:Readonly<Record<string,number>>={
   // Historical TM and NPC signature PP. Eligibility is defined separately.
   'bullet-seed':30,
   'dragon-claw':15,
+  'bulk-up':20,
+  'steel-wing':25,
+  'overheat':5,
   'toxic':10,
   'calm-mind':20,
   'rock-tomb':10,

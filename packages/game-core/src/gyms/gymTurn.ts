@@ -9,7 +9,7 @@ import type {Combatant,KantoMove,KantoBattleVisualFrame} from '../combat/kantoBa
 import {kantoDamage,kantoTypeMultiplier} from '../combat/kantoBattle.js';
 import {gymApplyStatus,gymDropStat,gymDamageStat,GYM_EMPTY_EFFECTS,
   gymApplyConfusion,gymTickConfusion,gymConfusionSelfDamage,
-  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat} from './gymEffects.js';
+  gymApplySleep,gymTickSleep,gymApplyToxic,gymTickToxic,gymCalmMind,gymSpecialStat,gymBulkUp,gymSteelWingBoost,gymOverheatDrop} from './gymEffects.js';
 import {gymSignatureSupport} from './gymSignatureTms.js';
 import {gymPsychicSecondary} from './gymPsychicMoves.js';
 import {kantoMoveSecondaryEffect,kantoPerHitSecondaryEffect} from '../combat/kantoStatusEffects.js';
@@ -260,8 +260,8 @@ export function resolveGymTurn(
         const drops=active.effects??GYM_EMPTY_EFFECTS;
         const damage=gymConfusionSelfDamage({
           level:active.combatant.level,
-          attack:gymDamageStat(active.combatant.stats.attack,drops.attackDrops),
-          defense:gymDamageStat(active.combatant.stats.defense,drops.defenseDrops)
+          attack:gymSpecialStat(active.combatant.stats.attack,drops.attackBoosts??0,drops.attackDrops),
+          defense:gymSpecialStat(active.combatant.stats.defense,drops.defenseBoosts??0,drops.defenseDrops)
         });
         state=applyGymDamage(state,side,damage);
         record(side+' se feriu na confusão: '+damage+' HP.');
@@ -293,6 +293,11 @@ export function resolveGymTurn(
         const applied=next!==state;
         state=next;
         record(side+' usou toxic'+(applied?' e aplicou veneno crescente.':': sem efeito.'));
+        continue;
+      }
+      if(signature==='bulk-up'){
+        state=gymBulkUp(state,side);
+        record(side+' usou bulk-up e elevou Ataque e Defesa.');
         continue;
       }
       if(signature==='calm-mind'){
@@ -327,10 +332,10 @@ export function resolveGymTurn(
     const foeDrops=target.effects??GYM_EMPTY_EFFECTS;
     const cleanAttacker=combatantUsing(active,move);
     const attacker={...cleanAttacker,stats:{...cleanAttacker.stats,
-      attack:gymDamageStat(cleanAttacker.stats.attack,ownDrops.attackDrops),
-      specialAttack:gymSpecialStat(cleanAttacker.stats.specialAttack,ownDrops.specialAttackBoosts??0)}};
+      attack:gymSpecialStat(cleanAttacker.stats.attack,ownDrops.attackBoosts??0,ownDrops.attackDrops),
+      specialAttack:gymSpecialStat(cleanAttacker.stats.specialAttack,ownDrops.specialAttackBoosts??0,ownDrops.specialAttackDrops??0)}};
     const defender={...target.combatant,stats:{...target.combatant.stats,
-      defense:gymDamageStat(target.combatant.stats.defense,foeDrops.defenseDrops),
+      defense:gymSpecialStat(target.combatant.stats.defense,foeDrops.defenseBoosts??0,foeDrops.defenseDrops),
       specialDefense:gymSpecialStat(target.combatant.stats.specialDefense,
         foeDrops.specialDefenseBoosts??0,foeDrops.specialDefenseDrops??0)}};
     const hits=kantoRollHitCount(move.name,roll);
@@ -360,6 +365,17 @@ export function resolveGymTurn(
             ' pelo impacto '+hit+'/'+hits+' de '+move.name+'.');
       }
       if(damage.damage===0)break;
+    }
+    // Self effects occur even if this attack KOs a target with reserves.
+    if(state.outcome==='ongoing'&&state[defendingSide].fighters[state[defendingSide].activeIndex]!.hp<target.hp){
+      if(move.name==='overheat'){
+        state=gymOverheatDrop(state,side);
+        record(side+' perdeu dois estágios de Ataque Especial.');
+      }
+      if(move.name==='steel-wing'&&roll()*100<10){
+        state=gymSteelWingBoost(state,side);
+        record(side+' elevou Defesa.');
+      }
     }
     if(state[defendingSide].needsReplacement){
       record(defendingSide+' sofreu KO: aguarda substituição grátis.');
