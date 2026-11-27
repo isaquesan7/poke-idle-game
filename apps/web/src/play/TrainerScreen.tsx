@@ -72,7 +72,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
   const bagCapacity=onlineInventory?.bag.capacity??(ownership.status==='valid'?BASE_BAG_SLOTS+ownership.inventory.extraBagSlots:BASE_BAG_SLOTS);
   // O catálogo legado ainda NÃO é inventário de propriedade; os equipamentos
   // seguem selecionáveis no laboratório, sem alegar que foram conquistados.
-  const equipmentEntries:InventorySlotItem[]=onlineInventory?onlineInventory.equipment.map(item=>({id:item.id,gearTemplateId:item.templateId,rarity:item.rarity,name:item.name,description:item.rarity+' · Nv. '+item.requiredLevel,icon:SLOT_ICONS[item.slot],quantity:1,detail:bonusLabel(item.stats),status:item.equipped?'Equipado':'Não equipado'})):LEGACY_ITEMS
+  const equipmentEntries:InventorySlotItem[]=onlineInventory?onlineInventory.equipment.map(item=>({id:item.id,gearTemplateId:item.templateId,rarity:item.rarity,name:item.name,description:item.rarity+' · Nível exigido: '+item.requiredLevel,requiredLevel:item.requiredLevel,levelLocked:!item.canEquip,icon:SLOT_ICONS[item.slot],quantity:1,detail:bonusLabel(item.stats),status:item.equipped?'Equipado':'Não equipado'})):LEGACY_ITEMS
     .filter(item=>legacyCatalog||ownership.status==='valid'&&(ownership.inventory.ownedEquipment[item.id]??0)>0)
     .map(item=>({
     id:item.id,gearTemplateId:item.id,name:item.name,description:'Equipamento de '+SLOT_NAMES[item.slot]+' do catálogo de testes.',
@@ -86,7 +86,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
     ? (onlineInventory?onlineInventory.equipment.find(item=>item.id===selectedEquipment):LEGACY_ITEMS.find(item=>item.id===selectedEquipment)):undefined;
   const equipmentEquipped=equipmentChoice!==undefined&&equipped[equipmentChoice.slot]===equipmentChoice.id;
   const onlineChoice=onlineInventory?.equipment.find(item=>item.id===equipmentChoice?.id);
-  const equipmentBlocked=busy||!!onlineInventory&&(equipmentEquipped?onlineInventory.bag.available===0:!onlineChoice?.canEquip);
+  const equipmentBlocked=busy||!!onlineInventory&&(onlineInventory.busy||(equipmentEquipped?onlineInventory.bag.available===0:!onlineChoice?.canEquip));
   const equippedInSlot=onlineInventory?.equipment.find(item=>item.id===equipped[equipmentChoice?.slot??'']);
   // Apenas stones no save. Cada stack ocupa um espaço, sem concessão.
   const bagEntries:InventorySlotItem[]=onlineInventory?[...onlineInventory.bag.stacks.map(item=>({id:item.id,name:item.name,quantity:item.quantity,description:item.kind==='ball'?'Pokébola':'Pedra de evolução',icon:item.kind==='ball'?'fa-circle':'fa-gem'})),...equipmentEntries.filter(item=>item.status!=='Equipado')]:Object.entries(stoneStock)
@@ -287,7 +287,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
         <div className={styles.detailStats}>
           <strong>Atributos</strong><p>{bonusLabel(equipmentChoice.stats)||'Sem bônus adicional'}</p>
           <strong>Status</strong><p>{equipmentEquipped?'Equipado':'Não equipado'}</p>
-          {onlineChoice&&<><strong>Nível exigido do treinador: {onlineChoice.requiredLevel}</strong><p>Seu nível: {view.level}</p>{!onlineChoice.canEquip&&<p role="status">Alcance o nível {onlineChoice.requiredLevel} do treinador para equipar este item.</p>}{onlineInventory?.busy&&<p role="status">Encerre a batalha ou expedição antes de alterar equipamentos.</p>}{equipmentEquipped&&onlineInventory?.bag.available===0&&<p role="status">Libere um espaço na mochila para remover este item.</p>}{!equipmentEquipped&&equippedInSlot&&<p>Substitui {equippedInSlot.name} no slot {SLOT_NAMES[equipmentChoice.slot]}; o item anterior volta à mochila.</p>}</>}
+          {onlineChoice&&<><div className={styles.gearRequirement} data-locked={!onlineChoice.canEquip}><strong>Nível exigido do treinador: {onlineChoice.requiredLevel}</strong><p>Seu nível: {view.level}</p>{!onlineChoice.canEquip?<p role="status"><i className="fa-solid fa-lock" aria-hidden="true"/> Bloqueado por nível. Faltam {Math.max(0,onlineChoice.requiredLevel-view.level)} níveis para equipar.</p>:<p><i className="fa-solid fa-check" aria-hidden="true"/> Requisito de nível atendido.</p>}</div>{onlineInventory?.busy&&<p role="status">Encerre a batalha ou expedição antes de alterar equipamentos.</p>}{equipmentEquipped&&onlineInventory?.bag.available===0&&<p role="status">Libere um espaço na mochila para remover este item.</p>}{!equipmentEquipped&&equippedInSlot&&<p>Substitui {equippedInSlot.name} no slot {SLOT_NAMES[equipmentChoice.slot]}; o item anterior volta à mochila.</p>}</>}
         </div>
         <div className={styles.detailActions}>
           <button type="button" className={styles.cancel} onClick={()=>setSelectedEquipment(null)}>Cancelar</button>
