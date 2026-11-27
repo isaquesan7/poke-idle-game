@@ -214,12 +214,24 @@ export async function payCertifiedWildTurns(pool,{
       outcome:quote.outcome,gear:loot.gear,stone:loot.stone,ballId:quote.ballDropId,...(loot.tmId?{tmId:loot.tmId}:{})
     });
     if(!placed)return await rollback(client,{status:'invalid-inventory'});
+    // Keep the certified ball in escrow until the capture/skip transaction.
+    // Other loot retains its existing capacity handling; no second RNG roll.
+    const finalState=JSON.parse(placed.raw);
+    const deferredBall=placed.stored.find(item=>item.kind==='ball')??null;
+    if(deferredBall){
+      const old=finalState.ballPocket.quantities[deferredBall.itemId];
+      if(!Number.isSafeInteger(old)||old<1)return await rollback(client,{status:'invalid-inventory'});
+      finalState.ballPocket.quantities[deferredBall.itemId]=old-1;
+    }
+    // Recover only encounters actually started by this account, never undiscovered species.
+    const discovered=await client.query(`SELECT DISTINCT species_id FROM game_encounter_reservations WHERE account_id=$1 AND battle_turn_state IS NOT NULL AND species_id BETWEEN 1 AND 151`,[accountId]);
+    finalState.seen=[...new Set([...finalState.seen,...discovered.rows.map(row=>Number(row.species_id))])];
     const fullQuote={...quote,loot};
     const paid={...candidate.paid,ballDrop:candidate.paid.ballDrop?{...candidate.paid.ballDrop,quantity:placed.ballQuantity}:null,
-      loot:{stored:placed.stored,pending:placed.pending}};
+      loot:{stored:placed.stored,pending:placed.pending},deferredBall};
     const nextRevision=revision+1;
     const next={...save,revision:nextRevision,
-      journal:{...save.journal,raw:placed.raw,revision:nextRevision}};
+      journal:{...save.journal,raw:JSON.stringify(finalState),revision:nextRevision}};
     await client.query(
       `UPDATE game_encounter_reservations
           SET battle_turn_payout_action_id=$3,
