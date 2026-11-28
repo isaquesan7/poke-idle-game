@@ -1275,6 +1275,7 @@ try{
   assert.ok(await megaPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
   await megaPage.close();
 
+  {
   checkpoint("Arena authenticated desktop and mobile journey");
   const arenaPage=await context.newPage();
   await arenaPage.goto(origin+'/online',{waitUntil:'domcontentloaded'});
@@ -1338,6 +1339,7 @@ try{
   await responseFor(arenaPage,'/api/v1/arena/abandon',()=>arenaPage.getByRole('dialog',{name:'Abandonar tentativa?'}).getByRole('button',{name:'Confirmar',exact:true}).click());
   assert.equal((await arenaRead()).run,null);
   await arenaPage.close();
+  }
 
   checkpoint("password recovery and logout");
   // Recovery is requested using the actual browser form, never a real inbox.
