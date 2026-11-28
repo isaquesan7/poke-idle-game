@@ -9,7 +9,7 @@ export function EvolutionPresentation({from,to,confirmed,onClose}:{from:number;t
  const [phase,setPhase]=useState<'charging'|'white'|'reveal'|'done'>('charging');
  useEffect(()=>{
   if(!confirmed)return;
-  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){setPhase('done');return;}
+  // D-042: the game always uses full visual effects, regardless of OS preference.
   const timers=[window.setTimeout(()=>setPhase('white'),650),window.setTimeout(()=>setPhase('reveal'),1250),window.setTimeout(()=>setPhase('done'),2350)];
   return()=>timers.forEach(t=>window.clearTimeout(t));
  },[confirmed]);

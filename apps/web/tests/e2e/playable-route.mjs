@@ -930,8 +930,19 @@ async function exercise(browser, label, viewport) {
   await evolutionDialog.getByRole('button',{name:'Cancelar',exact:true}).click();
   await evolutionDialog.waitFor({state:'hidden'});
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),SAVE),beforeConfirmation,'Cancelar evolução não pode alterar o save');
+  // Reproduce the Windows/Edge reduced-motion preference without changing game settings.
+  await page.emulateMedia({reducedMotion:'reduce'});
   await evolveButton.click();
   await evolutionDialog.getByRole('button',{name:'Confirmar evolução',exact:true}).click();
+  const charging=page.locator('[data-testid="evolution-presentation"][data-phase="charging"]');
+  await charging.waitFor();
+  assert.ok(await charging.evaluate(el=>Array.from(el.querySelectorAll('*')).some(node=>getComputedStyle(node).animationName!=='none'&&getComputedStyle(node).animationDuration!=='0s')),'Evolution charging effects must animate with reducedMotion:reduce');
+  const white=page.locator('[data-testid="evolution-presentation"][data-phase="white"]');
+  await white.waitFor();
+  assert.equal(await white.locator('img').getAttribute('src'),'/assets/pokemon-gifs/poke_17.gif');
+  const reveal=page.locator('[data-testid="evolution-presentation"][data-phase="reveal"]');
+  await reveal.waitFor();
+  assert.ok(await reveal.evaluate(el=>Array.from(el.querySelectorAll('*')).some(node=>getComputedStyle(node).animationName!=='none'&&getComputedStyle(node).animationDuration!=='0s')),'Evolution reveal must animate with reducedMotion:reduce');
   await evolutionDialog.waitFor({state:'hidden'});
   await page.waitForFunction(({key,revision})=>
     JSON.parse(localStorage.getItem(key))?.revision===revision,
@@ -947,6 +958,7 @@ async function exercise(browser, label, viewport) {
   assert.equal(await evolutionPresentation.locator('img').getAttribute('src'),'/assets/pokemon-gifs/poke_17.gif');
   await page.getByRole('dialog',{name:'Evolução concluída!'}).getByRole('button',{name:'Continuar',exact:true}).click();
   await evolutionPresentation.waitFor({state:'hidden'});
+  await page.emulateMedia({reducedMotion:'no-preference'});
   await page.getByRole('button',{name:'Pokédex',exact:true}).click();
   await page.getByRole('button',{name:'Capturados',exact:true}).click();
   assert.equal(await page.getByTestId('pokedex-16').count(),1);

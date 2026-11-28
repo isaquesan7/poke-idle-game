@@ -72,12 +72,11 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
    if(!active.current)return;
    if(!ok){setAuto(false);setSearchPhase('idle');return;}
    if(mode==='region'){
-    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // D-042: identical reveal on desktop and mobile.
     searchTimer.current=window.setTimeout(()=>{
-     if(reduced){setSearchPhase('idle');searchTimer.current=null;return;}
      setSearchPhase('reveal');
      searchTimer.current=window.setTimeout(()=>{setSearchPhase('idle');searchTimer.current=null;},360);
-    },reduced?0:Math.max(0,1080-(performance.now()-searchStarted.current)));
+    },Math.max(0,1080-(performance.now()-searchStarted.current)));
    }
   });
  }
