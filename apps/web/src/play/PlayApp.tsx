@@ -27,6 +27,7 @@ import {OnlineBattle} from './OnlineBattle';
 import { BallShopPreview } from './BallShopPreview';
 import { TrainerScreen } from './TrainerScreen';
 import {MasteryScreen} from './MasteryScreen';
+import {ArenaScreen} from './ArenaScreen';
 import {MegaSanctuary,MegaEvolution,MegaBag} from './MegaScreen';
 import {kantoPokemonFormProfile} from '@kanto/game-core';
 import {MachineEvolution,MachineBag} from './MachineScreen';
@@ -43,14 +44,14 @@ import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
 import { estimatedServerNow,formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
 
-type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'gyms' | 'expedition' | 'shop' | 'mega';
+type Tab = 'overview' | 'trainer' | 'pokemon' | 'collection' | 'pokedex' | 'regions' | 'battle' | 'gyms' | 'expedition' | 'shop' | 'mega' | 'arena';
 type CollectionFilter = 'all' | 'team' | 'reserve';
 type CollectionSort = 'recent' | 'level' | 'affinity' | 'species';
 type PokemonSection = 'profile' | 'evolution' | 'moves';
 /** D-051: navegação consistente com o Font Awesome da tela do treinador. */
 const NAV_ICONS:Readonly<Record<Tab,string>>={
   overview:'fa-house',trainer:'fa-user',pokemon:'fa-dragon',collection:'fa-layer-group',
-  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',gyms:'fa-medal',expedition:'fa-compass',shop:'fa-store',mega:'fa-gem'
+  pokedex:'fa-book-open',regions:'fa-map-location-dot',battle:'fa-khanda',gyms:'fa-medal',expedition:'fa-compass',shop:'fa-store',mega:'fa-gem',arena:'fa-trophy'
 };
 
 /** D-042: animações completas na Arena independentemente do sistema operacional. */
@@ -139,7 +140,7 @@ function regionBattleTitle(regionId:number,regionName:string):string {
 }
 
 function sectionName(tab: Tab): string {
-  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', gyms:'Ginásios', expedition: 'Expedição', shop:'Loja',mega:'Santuário Mega' }[tab];
+  return { overview: 'Visão geral', trainer: 'Treinador', pokemon: 'Pokémon', collection: 'Coleção', pokedex: 'Pokédex', regions: 'Regiões', battle: 'Batalha regional', gyms:'Ginásios', expedition: 'Expedição', shop:'Loja',mega:'Santuário Mega',arena:'Arena semanal' }[tab];
 }
 
 /**
@@ -290,7 +291,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     }catch{await refreshOnline();setFeedback('Não foi possível confirmar a ação no servidor.');return null;}
     finally{onlineLock.current=false;setBusy(false);}
   }
-  async function onlineExtra(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach'|'mega/challenge'|'mega/evolve',fields:Record<string,unknown>,expectedRevision?:number){
+  async function onlineExtra(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach'|'mega/challenge'|'mega/evolve'|'arena/start'|'arena/challenge'|'arena/abandon',fields:Record<string,unknown>,expectedRevision?:number){
     if(!online||onlineLock.current||save.status!=='ready')return false;
     onlineLock.current=true;setBusy(true);setFeedback('');
     try{if(expectedRevision!==undefined&&expectedRevision!==save.snapshot.revision){setFeedback('O progresso mudou. Atualize e confirme novamente.');return false;}const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');return ok;}
@@ -749,9 +750,9 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
       <aside className={styles.sidebar}>
         <div className={styles.brand}><PokeballSymbol className={styles.brandBall}/>KANTO <strong>IDLE</strong><span className={styles.alpha}>ALPHA</span></div>
         <div className={styles.sidebarCaption}>SUA JORNADA</div>
-        {online?<OnlineNavigation megaAvailable={true} masteryAvailable={!!onlineViews?.mastery||trainerSection==='mastery'} tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
+        {online?<OnlineNavigation arenaAvailable={!!onlineViews?.arena||tab==='arena'} megaAvailable={true} masteryAvailable={!!onlineViews?.mastery||trainerSection==='mastery'} tab={tab} trainerSection={trainerSection} pokemonSection={pokemonSection}
           disabled={item=>item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition}
-          onNavigate={item=>{if(onlineViews?.region?.encounter){setTab('battle');return;}if(onlineViews?.gym?.gym){setTab('gyms');return;}if(item.tab==='trainer')setTrainerSection(item.trainerSection??'profile');if(item.tab==='pokemon')setPokemonSection(item.pokemonSection??'profile');setTab(item.tab);setFeedback('');setBattlePlayback(null);}}/>:<nav className={styles.menu} aria-label="Navegação do jogo">
+          onNavigate={item=>{if(onlineViews?.region?.encounter){setTab('battle');return;}if(onlineViews?.gym?.gym){setTab('gyms');return;}if(onlineViews?.arena?.run&&item.tab!=='arena'){setTab('arena');setFeedback('Encerre a tentativa da Arena antes de navegar.');return;}if(item.tab==='trainer')setTrainerSection(item.trainerSection??'profile');if(item.tab==='pokemon')setPokemonSection(item.pokemonSection??'profile');setTab(item.tab);setFeedback('');setBattlePlayback(null);}}/>:<nav className={styles.menu} aria-label="Navegação do jogo">
           {(['overview','trainer','pokemon','collection','pokedex','regions','gyms','expedition','shop'] as Tab[]).map(item => (
             <button type="button" key={item} disabled={online&&(item==='gyms'&&!onlineViews?.gym||item==='trainer'&&!inventory||item==='shop'&&!onlineViews?.shop||item==='expedition'&&!onlineViews?.expedition)} aria-current={tab === item ? 'page' : undefined}
               className={tab === item ? styles.menuActive : styles.menuItem}
@@ -853,6 +854,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
             {tab==='trainer'&&trainerSection==='bag'&&machineView&&<section className={styles.panel}><MachineBag view={machineView}/></section>}
             {tab==='trainer'&&trainerSection==='bag'&&megaView&&<MegaBag view={megaView} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>}
+            {tab==='arena'&&online&&(onlineViews?.arena?<ArenaScreen view={onlineViews.arena} busy={busy} onAction={(command,revision)=>onlineExtra(command.type==='start'?'arena/start':command.type==='challenge'?'arena/challenge':'arena/abandon',{command},revision)} onRefresh={()=>void refreshOnline()} onCollection={()=>setTab('collection')}/>:<section className={styles.panel}>Arena indisponível. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button></section>)}
             {tab==='mega'&&online&&(megaView?<MegaSanctuary view={megaView} roster={data.roster} busy={busy} onChallenge={(command,revision)=>onlineExtra('mega/challenge',{command},revision)} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>:<section className={styles.panel}>Não foi possível carregar os requisitos do Santuário Mega. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button> <button className={styles.secondary} onClick={()=>setTab('regions')}>Voltar às regiões</button></section>)}
             {tab === 'pokemon' && (
               <div className={styles.pokemonWorkspace}>

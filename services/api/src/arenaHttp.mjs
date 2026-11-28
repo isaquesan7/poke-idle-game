@@ -1,4 +1,6 @@
-/** Read-only private projection. No HTTP route is mounted yet. */
+/** Read-only private projection. Authenticated route adapter, CI-only until complete release. */
+import {ciOnlineFeatureEnabled} from './onlineFeatureGate.mjs';
+export function arenaHttpEnabled(env=process.env){return ciOnlineFeatureEnabled('ONLINE_ARENA_CI_ONLY',env);}
 import {loadCombatAdapter} from './battlePreview.mjs';
 export async function readArena(pool,accountId){
  const q=await pool.query(`SELECT s.revision,s.state,
@@ -13,6 +15,6 @@ export async function readArena(pool,accountId){
  const core=await loadCombatAdapter(),view=core.onlineArenaPublicProjection(save.journal.raw,Number(row.ms));
  if(!view)return {status:'invalid-save'};
  const last=JSON.parse(save.journal.raw).lastArenaAction;
- return {status:'ok',revision,...view,busy:row.busy||view.busy,
+ return {status:'ok',revision,serverNowMs:Number(row.ms),...view,busy:row.busy||view.busy,
   lastDuel:last?.result?.duel?.weekStartMs===view.startMs?last.result.duel:null};
 }

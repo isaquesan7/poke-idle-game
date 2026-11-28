@@ -28,6 +28,8 @@ import {pokemonTrainingHttpEnabled,readPokemonTraining} from './pokemonTrainingH
 import {trainPokemon} from './pokemonTrainingWriter.mjs';
 import {masteryHttpEnabled,readMastery} from './masteryHttp.mjs';
 import {writeMastery} from './masteryWriter.mjs';
+import {arenaHttpEnabled,readArena} from './arenaHttp.mjs';
+import {writeArenaAction} from './arenaWriter.mjs';
 import {megaHttpEnabled,readMega} from './megaHttp.mjs';
 import {challengePokemonMega,evolvePokemonMega} from './megaWriter.mjs';
 import {machineHttpEnabled,readMachines} from './machineHttp.mjs';
@@ -460,6 +462,31 @@ const server=createServer(async(req,res)=>{
         try{key=loadGymEntropyKeyringFromEnv().active().key;}catch{return json(res,503,{error:'Santuário Mega online em preparação'});}
         result=await challengePokemonMega(pool,{accountId:account.id,...data,entropyKey:key});
       }else result=await evolvePokemonMega(pool,{accountId:account.id,...data});
+      return json(res,['applied','replay'].includes(result.status)?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
+    }
+    if(onlineRouteGroup(pathname,'arena')){
+      // CI only until the complete Arena/Shop release is reviewed.
+      if(!enabled||!arenaHttpEnabled())return json(res,503,{error:'Arena online em preparação'});
+      const read=pathname.endsWith('/current');
+      if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
+      if(!read)requireSameOrigin(req);
+      const account=await accountForSession(req);
+      if(!account)return json(res,401,{error:'Não autenticado'});
+      if(!account.email_verified_at)return json(res,403,{error:'E-mail não verificado'});
+      if(read){
+        const result=await readArena(pool,account.id);
+        return json(res,result.status==='ok'?200:result.status==='missing-save'?404:409,result);
+      }
+      if(!await enforceThrottle(req,res,{scope:'arena-account',identifier:account.id,limit:90}))return;
+      const data=await readJson(req);
+      if(Object.keys(data).sort().join(',')!=='actionId,command,expectedRevision'||
+         data.command?.type!==pathname.split('/').at(-1))return json(res,400,{error:'Ação inválida'});
+      let entropy={};
+      if(data.command.type==='challenge'){
+        try{entropy={entropyKey:loadGymEntropyKeyringFromEnv().active().key};}
+        catch{return json(res,503,{error:'Arena online em preparação'});}
+      }
+      const result=await writeArenaAction(pool,{accountId:account.id,...data,...entropy});
       return json(res,['applied','replay'].includes(result.status)?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(onlineRouteGroup(pathname,'mastery')){

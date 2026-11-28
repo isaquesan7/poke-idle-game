@@ -4,7 +4,7 @@ import {ONLINE_ROUTES,CI_FEATURE_FLAGS,onlineRoute,webOnlineRoute,signedOnlineRo
 import {ciOnlineFeatureEnabled} from '../services/api/src/onlineFeatureGate.mjs';
 test('D6J: manifest preserves exact production and CI route boundaries',()=>{
  const base=['status','me','save','auth/register','auth/verify','auth/login','auth/logout','auth/request-reset','auth/confirm-reset','adventure/start','trainer/invest'].map(p=>'/api/v1/'+p);
- const extra=['collection/team','region/current','region/reserve','region/start','region/turn','region/certify','region/settle','region/finish','expedition/current','expedition/start','expedition/claim','expedition/stop','shop/current','shop/purchase','moves/current','moves/equip','moves/upgrade','evolution/current','evolution/evolve','pokemon-training/current','pokemon-training/train','pokedex/current','inventory/current','inventory/loadout','tm/current','tm/teach','mega/current','mega/challenge','mega/evolve','mastery/current','mastery/research','gym/current','gym/reserve','gym/start','gym/turn','gym/certify','gym/settle'].map(p=>'/api/v1/'+p);
+ const extra=['collection/team','region/current','region/reserve','region/start','region/turn','region/certify','region/settle','region/finish','expedition/current','expedition/start','expedition/claim','expedition/stop','shop/current','shop/purchase','moves/current','moves/equip','moves/upgrade','evolution/current','evolution/evolve','pokemon-training/current','pokemon-training/train','pokedex/current','inventory/current','inventory/loadout','tm/current','tm/teach','mega/current','mega/challenge','mega/evolve','arena/current','arena/start','arena/challenge','arena/abandon','mastery/current','mastery/research','gym/current','gym/reserve','gym/start','gym/turn','gym/certify','gym/settle'].map(p=>'/api/v1/'+p);
  const flags=Object.fromEntries(CI_FEATURE_FLAGS.map(f=>[f,'true']));
  const paths=ONLINE_ROUTES.map(r=>r.path);
  assert.deepEqual([...paths].sort(),[...base,...extra].sort());
@@ -21,7 +21,7 @@ test('D6J: manifest preserves exact production and CI route boundaries',()=>{
   }
  }
  assert.deepEqual(paths.filter(signedOnlineRoute).sort(),['register','verify','login','request-reset','confirm-reset'].map(s=>'/api/v1/auth/'+s).sort());
- for(const path of ['/api/v1/account/export','/api/v1/admin','/api/v1/region/seed','/api/v1/mega/grant','/api/v1/mega/victory','/api/v1/save/','/api/v1/status?x=1','__proto__']){
+ for(const path of ['/api/v1/account/export','/api/v1/admin','/api/v1/region/seed','/api/v1/mega/grant','/api/v1/mega/victory','/api/v1/arena/grant','/api/v1/arena/settle','/api/v1/save/','/api/v1/status?x=1','__proto__']){
   assert.equal(onlineRoute(path),null);assert.equal(webOnlineRoute(path,{NODE_ENV:'test',...flags}),null);
  }
 });
