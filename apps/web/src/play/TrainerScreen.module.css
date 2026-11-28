@@ -355,3 +355,5 @@
 
 .reforgeBox{display:grid;gap:8px;padding:12px;border:1px solid #b7791f80;border-radius:10px;background:color-mix(in srgb,#b7791f 8%,transparent);margin:12px 0;min-width:0}
 .reforgeBox h3,.reforgeBox p{margin:0;line-height:1.4}.reforgeBalance{padding:8px 12px;border:1px solid #b7791f80;border-radius:8px;margin:8px 0}.reforgeActions{display:flex;flex-wrap:wrap;gap:8px}.reforgeActions button{flex:1 1 auto}
+
+.gearStars{position:absolute;left:0;right:0;bottom:2px;display:flex;justify-content:center;pointer-events:none}.gearStars span{font-size:.54rem}.reforgeResult{font-weight:700;color:var(--color-text)}

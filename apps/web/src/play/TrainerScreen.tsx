@@ -53,6 +53,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
   const [localSection,setSection]=useState<Section>('profile');
   const section=controlledSection??localSection;
   const [selectedEquipment,setSelectedEquipment]=useState<string|null>(null);
+  const [reforgeResult,setReforgeResult]=useState<{itemId:string;message:string}|null>(null);
   const [reforgeConfirm,setReforgeConfirm]=useState<{kind:'upgrade'|'salvage';itemId:string;revision:number}|null>(null);
   const [equipmentFilter,setEquipmentFilter]=useState<'all'|'equipped'>('all');
   const [draft,setDraft]=useState<Draft>({});
@@ -94,10 +95,11 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
   const confirmation=reforgeConfirm?.itemId===equipmentChoice?.id&&reforgeConfirm?.revision===revision?reforgeConfirm:null;
   async function confirmReforge(kind:'upgrade'|'salvage'){
     if(!onReforge||!reforgeItem||reforgeBlocked)return;
-    if(confirmation?.kind!==kind){setReforgeConfirm({kind,itemId:reforgeItem.id,revision});return;}
+    if(confirmation?.kind!==kind){setReforgeResult(null);setReforgeConfirm({kind,itemId:reforgeItem.id,revision});return;}
     setReforgeConfirm(null);
     const result=await onReforge({kind,itemId:reforgeItem.id},revision);
     if(result?.kind==='salvage')setSelectedEquipment(null);
+    else if(result?.kind==='upgrade')setReforgeResult({itemId:result.itemId,message:(result.outcome==='success'?'Sucesso!':result.outcome==='stay'?'Nível mantido.':'Regressão.')+' Resultado: +'+result.rank+' · '+result.cost+' fragmentos consumidos.'});
   }
   const equipmentBlocked=busy||!!onlineInventory&&(onlineInventory.busy||(equipmentEquipped?onlineInventory.bag.available===0:!onlineChoice?.canEquip));
   const equippedInSlot=onlineInventory?.equipment.find(item=>item.id===equipped[equipmentChoice?.slot??'']);
@@ -307,7 +309,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
           {onlineChoice&&<><div className={styles.gearRequirement} data-locked={!onlineChoice.canEquip}><strong>Nível exigido do treinador: {onlineChoice.requiredLevel}</strong><p>Seu nível: {view.level}</p>{!onlineChoice.canEquip?<p role="status"><i className="fa-solid fa-lock" aria-hidden="true"/> Bloqueado por nível. Faltam {Math.max(0,onlineChoice.requiredLevel-view.level)} níveis para equipar.</p>:<p><i className="fa-solid fa-check" aria-hidden="true"/> Requisito de nível atendido.</p>}</div>{onlineInventory?.busy&&<p role="status">Encerre a batalha ou expedição antes de alterar equipamentos.</p>}{equipmentEquipped&&onlineInventory?.bag.available===0&&<p role="status">Libere um espaço na mochila para remover este item.</p>}{!equipmentEquipped&&equippedInSlot&&<p>Substitui {equippedInSlot.name} no slot {SLOT_NAMES[equipmentChoice.slot]}; o item anterior volta à mochila.</p>}</>}
         </div>
         {reforge&&reforgeItem&&onReforge&&<section className={styles.reforgeBox} aria-label="Reforja">
-          <h3>Reforja · +{reforgeItem.rank}</h3><p>Fragmentos disponíveis: <strong>{reforge.fragments}</strong></p>
+          <h3>Reforja · +{reforgeItem.rank}</h3>{reforgeResult?.itemId===reforgeItem.id&&<p role="status" className={styles.reforgeResult}>{reforgeResult.message}</p>}<p>Fragmentos disponíveis: <strong>{reforge.fragments}</strong></p>
           {reforgeItem.next?<><p>Próximo nível: +{reforgeItem.next.target} · Custo: <strong>{reforgeItem.next.cost} fragmentos</strong></p>
           <p>Sucesso {reforgeItem.next.success}% · Permanência {reforgeItem.next.stay}% · Regressão {reforgeItem.next.regress}%</p>
           <p>Prévia em caso de sucesso: {bonusLabel(reforgeItem.nextStats??reforgeItem.effectiveStats)}</p><p>O custo é consumido em qualquer resultado. O equipamento nunca é destruído pela tentativa.</p></>:<p>Nível máximo de aprimoramento.</p>}
@@ -342,7 +344,7 @@ function GearCard({slot,selected,onlineItem}:{slot:EquipmentSlot;selected:string
     aria-label={description}>
     <span className={styles.gearIcon}>{item?<GearArt id={onlineItem?.templateId??item.id} rarity={onlineItem?.rarity} fallback={SLOT_ICONS[slot]}/>:<Fa name={SLOT_ICONS[slot]}/>}</span>
     <span className={styles.gearName}>{item?.name??SLOT_NAMES[slot]}</span>
-    {!!onlineItem?.enhancement&&<GearStars rank={onlineItem.enhancement}/>}
+    {!!onlineItem?.enhancement&&<span className={styles.gearStars}><GearStars rank={onlineItem.enhancement}/></span>}
     <span className={styles.tooltip} aria-hidden="true">{item?bonusLabel(effective??item.stats):'Sem equipamento'}</span>
   </button>;
 }

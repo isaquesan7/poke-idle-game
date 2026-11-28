@@ -1066,6 +1066,10 @@ try{
   const upgraded=await responseFor(ringsPage,'/api/v1/inventory/reforge',()=>forgeModal.getByRole('button',{name:'Confirmar aprimoramento'}).click());
   assert.equal(upgraded.reforge.rank,1);assert.equal(upgraded.reforge.outcome,'success');
   await forgeModal.getByRole('img',{name:'Aprimoramento +1'}).waitFor();
+  await forgeModal.getByText(/Sucesso! Resultado: \+1/).waitFor();
+  await ringsPage.setViewportSize({width:390,height:844});
+  assert.equal(await forgeModal.evaluate(el=>el.scrollWidth<=el.clientWidth+1),true);
+  await ringsPage.setViewportSize({width:1365,height:768});
   const reforged=await inventoryRead();assert.equal(reforged.reforge.fragments,0);assert.equal(reforged.equipment.find(x=>x.id==='gear-ring1-ci').enhancement,1);
   await forgeModal.getByRole('button',{name:'Cancelar',exact:true}).click();
   // Reproduce the owner's Nv.22 vs Nv.28 report in the disposable DB only.
