@@ -21,6 +21,8 @@ import {inspectOnlineInventory,onlineGearForSlot} from '../inventory/onlineOwner
 import {KANTO_BATTLE_SPECIES} from './kantoBattle.js';
 import {kantoPokemonFormProfile,validKantoMegaEntitlement} from '../catalog/kantoMegaForms.js';
 import {trainerTotals} from '../stats/trainer.js';
+import {reforgeStats} from '../inventory/reforgeRules.js';
+import {arenaSetProjection,applyArenaSetStats} from '../stats/arenaSet.js';
 import {masteryBonusFromSave} from '../progression/kantoMastery.js';
 import {pokemonMasteryStats,pokemonFinalStats} from '../stats/pokemon.js';
 import {STATS,zeroStats} from '../stats/types.js';
@@ -87,6 +89,7 @@ export interface OnlineGymTrainerBonuses {
   readonly activeTitle:string;
   readonly badges:readonly string[];
   readonly totals:Readonly<StatValues>;
+  readonly arenaSet:NonNullable<ReturnType<typeof arenaSetProjection>>;
 }
 /** Pure quote: never fabricate item ownership from equipped item IDs.
  * A legacy-untracked inventory is NOT evidence of possession.
@@ -119,7 +122,7 @@ export function canonicalOnlineGymTrainerBonuses(source:unknown):
     if(typeof itemId!=='string')return null;
     const item=onlineGearForSlot(inventory,itemId,slot,trainer.level);
     if(!item)return null;
-    items.push({slot,itemId,stats:item.stats});
+    items.push({slot,itemId,stats:reforgeStats(item.stats,item.enhancement??0)});
   }
   const badgeDefs=KANTO_GYMS.slice(0,source.badges.length);
   const title=LEGACY_TITLES.find(t=>t.id===trainer.title);
@@ -132,8 +135,11 @@ export function canonicalOnlineGymTrainerBonuses(source:unknown):
     activeTitle:title.stats,
     badges:badgeDefs.map(b=>({id:b.id,stats:b.badgeStats}))
   });
+  const equipment=items.map(({slot,itemId})=>({slot,itemId}));
+  const arenaSet=arenaSetProjection(inventory,equipment,trainer.level);
+  if(!arenaSet)return null;
   return {
-    manual,equipment:items.map(({slot,itemId})=>({slot,itemId})),
+    manual,equipment,arenaSet,
     activeTitle:title.id,badges:badgeDefs.map(g=>g.id),totals
   };
 }
@@ -162,8 +168,9 @@ export function canonicalOnlineOwnedCombatant(source:RecordValue,p:unknown,bonus
       types:species.types,
       ...(species.formId?{megaForm:species.formId}:{}),
       ...(moves.some(m=>m.name==='return'||m.name==='frustration')?{affinity:p.affinity}:{}),
-      stats:pokemonMasteryStats(pokemonFinalStats(species.base,p.level,pokemonManual,
-        bonuses.totals,p.affinity),mastery.statPercent),
+      stats:applyArenaSetStats(pokemonMasteryStats(pokemonFinalStats(species.base,p.level,pokemonManual,
+        bonuses.totals,p.affinity),mastery.statPercent),bonuses.arenaSet.bonus,
+        Array.isArray(source.team)&&integer(p.uid,1,Number.MAX_SAFE_INTEGER)&&source.team[0]===p.uid),
       move:moves[0]!,moves,rank:ranks[moves[0]!.name]??0,ranks
     };
     return combatant;

@@ -32,7 +32,7 @@ import {ArenaScreen} from './ArenaScreen';
 import {MegaSanctuary,MegaEvolution,MegaBag} from './MegaScreen';
 import {kantoPokemonFormProfile} from '@kanto/game-core';
 import {MachineEvolution,MachineBag} from './MachineScreen';
-import {pokemonMasteryStats,kantoMasteryFamily} from '@kanto/game-core';
+import {pokemonMasteryStats,kantoMasteryFamily,applyArenaSetStats} from '@kanto/game-core';
 import {OnlineNavigation} from './OnlineNavigation';
 import {AdventureOverview,AdventureTopbar} from './AdventureOverview';
 import {kantoSpecies} from '@kanto/game-core';
@@ -481,13 +481,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   const masteryFor=(speciesId:number)=>online?onlineViews?.mastery?.families.find(f=>f.id===kantoMasteryFamily(speciesId)?.id):undefined;
   const masteryStatPercent=(speciesId:number)=>masteryFor(speciesId)?.current.statPercent??0;
   const masteredSpecies=onlineViews?.mastery?.families.filter(f=>f.current.rank===5).flatMap(f=>f.speciesIds)??[];
+  const arenaSetBonus=online?inventory?.arenaSet?.bonus??0:0;
   const focusedStats = focused && focusedSpecies && view
-    ? pokemonMasteryStats(pokemonFinalStats(
+    ? applyArenaSetStats(pokemonMasteryStats(pokemonFinalStats(
         focusedSpecies.base, focused.level, pokemonManual, view.totals, focused.affinity
-      ),masteryStatPercent(focused.pokemonId)) : null;
+      ),masteryStatPercent(focused.pokemonId)),arenaSetBonus,focused.uid===data?.team[0]) : null;
   const activeManual = manualValues(active?.manual);
   const activeSpecies=active?kantoPokemonFormProfile(active.pokemonId,online?active.megaForm:undefined):null;
-  const activeStats=active&&activeSpecies&&view?pokemonMasteryStats(pokemonFinalStats(activeSpecies.base,active.level,activeManual,view.totals,active.affinity),masteryStatPercent(active.pokemonId)):null;
+  const activeStats=active&&activeSpecies&&view?applyArenaSetStats(pokemonMasteryStats(pokemonFinalStats(activeSpecies.base,active.level,activeManual,view.totals,active.affinity),masteryStatPercent(active.pokemonId)),arenaSetBonus,active.uid===data?.team[0]):null;
   const activeRemaining = active
     ? legacyPokemonManualBudget(active.level) -
       STATS.reduce((total,stat)=>total+activeManual[stat],0)
@@ -957,7 +958,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                     if(!focusedSpecies||!view)return null;
                     const previewManual={...pokemonManual};
                     for(const stat of STATS)previewManual[stat]+=(increments[stat]??0);
-                    return pokemonMasteryStats(pokemonFinalStats(focusedSpecies.base,focused.level,previewManual,view.totals,focused.affinity),masteryStatPercent(focused.pokemonId));
+                    return applyArenaSetStats(pokemonMasteryStats(pokemonFinalStats(focusedSpecies.base,focused.level,previewManual,view.totals,focused.affinity),masteryStatPercent(focused.pokemonId)),arenaSetBonus,focused.uid===data?.team[0]);
                   }}
                   onConfirm={investPokemonBatch}
                   onReset={()=>{

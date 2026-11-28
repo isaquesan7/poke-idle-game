@@ -72,7 +72,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
   const bagCapacity=onlineInventory?.bag.capacity??(ownership.status==='valid'?BASE_BAG_SLOTS+ownership.inventory.extraBagSlots:BASE_BAG_SLOTS);
   // O catálogo legado ainda NÃO é inventário de propriedade; os equipamentos
   // seguem selecionáveis no laboratório, sem alegar que foram conquistados.
-  const equipmentEntries:InventorySlotItem[]=onlineInventory?onlineInventory.equipment.map(item=>({id:item.id,gearTemplateId:item.templateId,rarity:item.rarity,name:item.name,description:item.rarity+' · Nível exigido: '+item.requiredLevel,requiredLevel:item.requiredLevel,levelLocked:!item.canEquip,icon:SLOT_ICONS[item.slot],quantity:1,detail:bonusLabel(item.stats),status:item.equipped?'Equipado':'Não equipado'})):LEGACY_ITEMS
+  const equipmentEntries:InventorySlotItem[]=onlineInventory?onlineInventory.equipment.map(item=>({id:item.id,gearTemplateId:item.templateId,rarity:item.rarity,name:item.name,description:item.rarity+' · Nível exigido: '+item.requiredLevel,requiredLevel:item.requiredLevel,levelLocked:!item.canEquip,icon:SLOT_ICONS[item.slot],quantity:1,detail:bonusLabel(item.effectiveStats??item.stats),status:item.equipped?'Equipado':'Não equipado'})):LEGACY_ITEMS
     .filter(item=>legacyCatalog||ownership.status==='valid'&&(ownership.inventory.ownedEquipment[item.id]??0)>0)
     .map(item=>({
     id:item.id,gearTemplateId:item.id,name:item.name,description:'Equipamento de '+SLOT_NAMES[item.slot]+' do catálogo de testes.',
@@ -285,7 +285,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
             <p>{onlineInventory?'Equipamento individual do servidor.':'Equipamento de '+SLOT_NAMES[equipmentChoice.slot]+' do catálogo de testes.'}</p></div>
         </div>
         <div className={styles.detailStats}>
-          <strong>Atributos</strong><p>{bonusLabel(equipmentChoice.stats)||'Sem bônus adicional'}</p>
+          <strong>Atributos</strong><p>{bonusLabel(onlineChoice?.effectiveStats??equipmentChoice.stats)||'Sem bônus adicional'}</p>
           <strong>Status</strong><p>{equipmentEquipped?'Equipado':'Não equipado'}</p>
           {onlineChoice&&<><div className={styles.gearRequirement} data-locked={!onlineChoice.canEquip}><strong>Nível exigido do treinador: {onlineChoice.requiredLevel}</strong><p>Seu nível: {view.level}</p>{!onlineChoice.canEquip?<p role="status"><i className="fa-solid fa-lock" aria-hidden="true"/> Bloqueado por nível. Faltam {Math.max(0,onlineChoice.requiredLevel-view.level)} níveis para equipar.</p>:<p><i className="fa-solid fa-check" aria-hidden="true"/> Requisito de nível atendido.</p>}</div>{onlineInventory?.busy&&<p role="status">Encerre a batalha ou expedição antes de alterar equipamentos.</p>}{equipmentEquipped&&onlineInventory?.bag.available===0&&<p role="status">Libere um espaço na mochila para remover este item.</p>}{!equipmentEquipped&&equippedInSlot&&<p>Substitui {equippedInSlot.name} no slot {SLOT_NAMES[equipmentChoice.slot]}; o item anterior volta à mochila.</p>}</>}
         </div>
@@ -305,11 +305,12 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
 }
 function GearCard({slot,selected,onlineItem}:{slot:EquipmentSlot;selected:string|undefined;onlineItem?:InventoryView['equipment'][number]|undefined}){
   const item=onlineItem??LEGACY_ITEMS.find(x=>x.slot===slot&&x.id===selected);
-  const description=item?item.name+' · '+bonusLabel(item.stats):SLOT_NAMES[slot]+' · Vazio';
+  const effective=onlineItem?.effectiveStats??item?.stats;
+  const description=item?item.name+' · '+bonusLabel(effective??item.stats):SLOT_NAMES[slot]+' · Vazio';
   return <button type="button" className={styles.gear} title={description}
     aria-label={description}>
     <span className={styles.gearIcon}>{item?<GearArt id={onlineItem?.templateId??item.id} rarity={onlineItem?.rarity} fallback={SLOT_ICONS[slot]}/>:<Fa name={SLOT_ICONS[slot]}/>}</span>
     <span className={styles.gearName}>{item?.name??SLOT_NAMES[slot]}</span>
-    <span className={styles.tooltip} aria-hidden="true">{item?bonusLabel(item.stats):'Sem equipamento'}</span>
+    <span className={styles.tooltip} aria-hidden="true">{item?bonusLabel(effective??item.stats):'Sem equipamento'}</span>
   </button>;
 }
