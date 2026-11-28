@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** Private PostgreSQL rank writer: one point, one UID, one receipt. */
 import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
@@ -24,6 +25,7 @@ export async function upgradePokemonMove(pool,params){
   const busy=await c.query(`SELECT EXISTS(SELECT 1 FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved')
    OR EXISTS(SELECT 1 FROM game_gym_reservations WHERE account_id=$1 AND status='reserved') AS busy`,[accountId]);
   if(busy.rows[0].busy)return await rollback(c,{status:'busy'});
+  if(await arenaActivityBlocks(c,save.journal.raw))return await rollback(c,{status:'busy'});
   const core=await loadCombatAdapter();
   const result=core.applyOnlineMoveRank(save.journal.raw,pokemonUid,moveName);
   if(result.status!=='ok')return await rollback(c,{status:result.status});

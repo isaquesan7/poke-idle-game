@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** Atomic Mega Stone consumption and permanent form; private until gated HTTP. */
 import {randomUUID} from 'node:crypto';
 import {createPrivateBattleRandom} from './battleEntropy.mjs';
@@ -23,6 +24,7 @@ export async function evolvePokemonMega(pool,params){
   const busy=await c.query(`SELECT EXISTS(SELECT 1 FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved')
    OR EXISTS(SELECT 1 FROM game_gym_reservations WHERE account_id=$1 AND status='reserved') AS busy`,[accountId]);
   if(busy.rows[0].busy)return await rollback(c,{status:'busy'});
+  if(await arenaActivityBlocks(c,save.journal.raw))return await rollback(c,{status:'busy'});
   const core=await loadCombatAdapter();
   const result=core.applyOnlineMegaEvolution(save.journal.raw,command);
   if(result.status!=='ok')return await rollback(c,{status:result.status});
@@ -71,6 +73,7 @@ export async function challengePokemonMega(pool,params){
   const busy=await c.query(`SELECT EXISTS(SELECT 1 FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved')
    OR EXISTS(SELECT 1 FROM game_gym_reservations WHERE account_id=$1 AND status='reserved') AS busy`,[accountId]);
   if(busy.rows[0].busy)return await rollback(c,{status:'busy'});
+  if(await arenaActivityBlocks(c,save.journal.raw))return await rollback(c,{status:'busy'});
   const core=await loadCombatAdapter();
   const eligibility=core.quoteOnlineMegaTrial(save.journal.raw,command);
   if(eligibility.status!=='ok')return await rollback(c,{status:eligibility.status});

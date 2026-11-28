@@ -941,6 +941,12 @@ async function exercise(browser, label, viewport) {
   assert.equal(evolved.roster.find(p=>p.uid===firstUid).upgrades.tackle,1);
   assert.equal(evolved.team[0],firstUid);
   assert.ok(evolved.caughtSpecies.includes(16)&&evolved.caughtSpecies.includes(17));
+  const evolutionPresentation=page.getByTestId('evolution-presentation');
+  await evolutionPresentation.waitFor();
+  await page.locator('[data-testid="evolution-presentation"][data-phase="done"]').waitFor();
+  assert.equal(await evolutionPresentation.locator('img').getAttribute('src'),'/assets/pokemon-gifs/poke_17.gif');
+  await page.getByRole('dialog',{name:'Evolução concluída!'}).getByRole('button',{name:'Continuar',exact:true}).click();
+  await evolutionPresentation.waitFor({state:'hidden'});
   await page.getByRole('button',{name:'Pokédex',exact:true}).click();
   await page.getByRole('button',{name:'Capturados',exact:true}).click();
   assert.equal(await page.getByTestId('pokedex-16').count(),1);

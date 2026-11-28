@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** ONLINE-01C-8. INTERNAL reservation only; not an HTTP route.
  * Server obtains account ID from a verified session and fixes region policy
  * before calling this. NO Pokémon/loot/stats, no RNG or battle outcome yet.
@@ -48,6 +49,7 @@ export async function reserveEncounter(pool,{accountId,actionId,expectedRevision
     let raw;
     try{raw=JSON.parse(snap.journal.raw);}catch{return await rollback(client,{status:'invalid'});}
     if(raw?.expedition!=null||raw?.pendingRegionalLoot!=null||raw?.pendingExpeditionLoot!=null)return await rollback(client,{status:'busy'});
+    if(await arenaActivityBlocks(client,snap.journal.raw))return await rollback(client,{status:'busy'});
     if(regionId!==1){
       const core=await loadCombatAdapter();
       if(!core.serverRegionalAccess(regionId,raw?.trainer?.level))

@@ -1,3 +1,5 @@
+import {arenaLegendaryTemplate} from '../shop/arenaGearCatalog.js';
+import {arenaGearOffer,arenaGearStats,arenaShopOffer} from '../shop/arenaShopCatalog.js';
 import {basicGearOffer} from '../shop/basicGearCatalog.js';
 /** D4B: online-only individual gear. Local /play inventory is a different contract. */
 import {LEGACY_ITEMS} from '../legacy/catalog.js';
@@ -8,7 +10,7 @@ import type {StatBonus} from '../stats/types.js';
 import {BASE_BAG_SLOTS} from './ownership.js';
 export interface OnlineGearInstance extends ProceduralGearRoll {
  readonly id:string;
- readonly source:'drop'|'shop';
+ readonly source:'drop'|'shop'|'arena';
 }
 export interface OnlineInventory {
  readonly version:1;
@@ -19,10 +21,13 @@ const rec=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Ar
 const int=(v:unknown,min:number,max:number):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=min&&v<=max;
 export function inspectOnlineGear(v:unknown):OnlineGearInstance|null{
  if(!rec(v)||Object.keys(v).sort().join(',')!=='id,rarity,regionId,requiredLevel,slot,source,stats,templateId'||
-  typeof v.id!=='string'||!/^gear-[a-z0-9-]{1,64}$/.test(v.id)||!['drop','shop'].includes(String(v.source))||!int(v.regionId,1,10)||
+  typeof v.id!=='string'||!/^gear-[a-z0-9-]{1,64}$/.test(v.id)||!['drop','shop','arena'].includes(String(v.source))||!int(v.regionId,1,10)||
   typeof v.templateId!=='string'||typeof v.rarity!=='string'||!LOOT_RARITIES.includes(v.rarity as LootRarity)||!rec(v.stats))return null;
- const model=LEGACY_ITEMS.find(i=>i.id===v.templateId&&i.slot===v.slot),policy=regionalLootPolicy(v.regionId),rarity=v.rarity as LootRarity;
- if(!model||!policy||!policy.weights[LOOT_RARITIES.indexOf(rarity)]||!int(v.requiredLevel,policy.requiredMin,policy.requiredMax))return null;
+ const rarity=v.rarity as LootRarity,exclusive=arenaLegendaryTemplate(v.templateId);
+ if(exclusive&&(v.source!=='arena'||rarity!=='legendary'))return null;
+ if(v.source==='arena'&&rarity==='legendary'&&!exclusive)return null;
+ const model=exclusive??LEGACY_ITEMS.find(i=>i.id===v.templateId&&i.slot===v.slot),policy=regionalLootPolicy(v.regionId);
+ if(!model||model.slot!==v.slot||!policy||!policy.weights[LOOT_RARITIES.indexOf(rarity)]||!int(v.requiredLevel,policy.requiredMin,policy.requiredMax))return null;
  if(v.source==='shop'){
   const offer=basicGearOffer(model.id);
   if(!offer||!/^gear-shop-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(v.id)||
@@ -30,7 +35,15 @@ export function inspectOnlineGear(v:unknown):OnlineGearInstance|null{
    Object.keys(v.stats).length!==1||Object.entries(offer.stats).some(([stat,n])=>v.stats&& (v.stats as Record<string,unknown>)[stat]!==n))return null;
   return {id:v.id,source:'shop',templateId:model.id,slot:model.slot,rarity,regionId:1,requiredLevel:1,stats:{...offer.stats}};
  }
- if(v.id.startsWith('gear-shop-'))return null;
+ if(v.source==='arena'){
+  const offer=arenaGearOffer(model.id,rarity);
+  if(!offer||offer.kind!=='gear'||!/^gear-arena-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(v.id)||
+   v.regionId!==offer.gear.regionId||v.requiredLevel!==offer.gear.requiredLevel)return null;
+  const stats=arenaGearStats(offer,offer.attributeSelection?Object.keys(v.stats):undefined);
+  if(!stats||Object.keys(v.stats).length!==Object.keys(stats).length||Object.entries(stats).some(([k,n])=>(v.stats as Record<string,unknown>)[k]!==n))return null;
+  return {...offer.gear,stats,id:v.id,source:'arena'};
+ }
+ if(v.id.startsWith('gear-shop-')||v.id.startsWith('gear-arena-'))return null;
  const min=Math.min(policy.maxBonus,policy.minBonus+(rarity==='common'?0:1));
  const entries=Object.entries(v.stats);
  if(entries.length!==LOOT_AFFIX_COUNT[rarity]||entries.some(([k,n])=>!(STATS as readonly string[]).includes(k)||!int(n,min,policy.maxBonus)))return null;
@@ -54,4 +67,11 @@ export function createOnlineDropGear(encounterId:string,roll:ProceduralGearRoll)
 export function createOnlineShopGear(serverId:string,templateId:string){
  const offer=basicGearOffer(templateId);if(!offer||typeof serverId!=='string'||!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(serverId))return null;
  return inspectOnlineGear({id:'gear-shop-'+serverId.toLowerCase(),source:'shop',templateId:offer.id,slot:offer.slot,rarity:offer.rarity,regionId:offer.regionId,requiredLevel:offer.requiredLevel,stats:offer.stats});
+}
+
+export function createOnlineArenaGear(serverId:string,offerId:string,attributes?:unknown){
+ const offer=arenaShopOffer(offerId);
+ if(!offer||offer.kind!=='gear'||typeof serverId!=='string'||!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(serverId))return null;
+ const stats=arenaGearStats(offer,attributes);if(!stats)return null;
+ return inspectOnlineGear({...offer.gear,stats,id:'gear-arena-'+serverId.toLowerCase(),source:'arena'});
 }

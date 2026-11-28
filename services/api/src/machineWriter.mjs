@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** Atomic TM consumption and permanent lesson; private until gated HTTP. */
 import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
@@ -21,6 +22,7 @@ export async function teachPokemonMachine(pool,params){
   const busy=await c.query(`SELECT EXISTS(SELECT 1 FROM game_encounter_reservations WHERE account_id=$1 AND status='reserved')
    OR EXISTS(SELECT 1 FROM game_gym_reservations WHERE account_id=$1 AND status='reserved') AS busy`,[accountId]);
   if(busy.rows[0].busy)return await rollback(c,{status:'busy'});
+  if(await arenaActivityBlocks(c,save.journal.raw))return await rollback(c,{status:'busy'});
   const core=await loadCombatAdapter();
   const result=core.applyOnlineMachineTeaching(save.journal.raw,command);
   if(result.status!=='ok')return await rollback(c,{status:result.status});

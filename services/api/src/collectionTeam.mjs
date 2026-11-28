@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** ONLINE-01C-23B2A — PRIVATE Collection team composer.
  *
  * This writer only orders 1–3 owned Pokémon UIDs in the server save.
@@ -103,6 +104,8 @@ export async function setCollectionTeam(pool,{
        (raw.pendingBattle!==undefined&&raw.pendingBattle!==null)||
        raw.lastBattle?.captureStatus==='available')
       return await rollback(client,{status:'busy'});
+
+    if(await arenaActivityBlocks(client,save.journal.raw))return await rollback(client,{status:'busy'});
 
     // The one—and only—gameplay modification: ordered Collection team.
     const nextRevision=revision+1;
