@@ -53,7 +53,7 @@ describe('REF01 reinforcement and exclusive Arena set',()=>{
  });
  it('counts distinct equipped exclusive pieces only and adds the tier only to the leader',()=>{
   const equipped=gear.map(g=>({itemId:g.id,slot:g.slot}));
-  for(const [count,bonus] of [[0,0],[2,0],[3,5],[5,5],[6,10],[8,10],[9,20]] as const){
+  for(const [count,bonus] of [[0,0],[1,0],[2,0],[3,3],[4,3],[5,3],[6,6],[7,6],[8,6],[9,10]] as const){
    const set=arenaSetProjection(inventory,equipped.slice(0,count),100);
    expect(set).toMatchObject({count,bonus});
    expect(STATS.every(s=>applyArenaSetStats(zeroStats(),set!.bonus,true)[s]===bonus)).toBe(true);
