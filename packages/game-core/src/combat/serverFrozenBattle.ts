@@ -17,6 +17,7 @@ import type {OnlineEvolutionStep} from './serverInheritedMoves.js';
 import {kantoWildMoveLoadout} from '../catalog/kantoWildMoves.js';
 import {pokemonMasteryStats,pokemonFinalStats,pokemonOwnStats} from '../stats/pokemon.js';
 import {canonicalOnlineGymTrainerBonuses} from './serverGymPreparation.js';
+import {applyArenaSetStats} from '../stats/arenaSet.js';
 import {inspectOnlineInventory} from '../inventory/onlineOwnership.js';
 import type {OnlineInventory} from '../inventory/onlineOwnership.js';
 import type {EquipmentSlot} from '../stats/trainer.js';
@@ -147,8 +148,9 @@ export function canonicalFrozenCombatants(snapshot:unknown):
     speciesId:own.speciesId,name:own.name,types:own.types,level:player.level,
     ...(own.formId?{megaForm:own.formId}:{}),
     ...(equipped.some(m=>m.name==='return'||m.name==='frustration')?{affinity:player.affinity}:{}),
-    stats:pokemonMasteryStats(pokemonFinalStats(own.base,player.level,player.manual,
-      trainerStats,player.affinity),mastery.statPercent),
+    // A regional snapshot always freezes team[0] from the server-owned save.
+    stats:applyArenaSetStats(pokemonMasteryStats(pokemonFinalStats(own.base,player.level,player.manual,
+      trainerStats,player.affinity),mastery.statPercent),bonuses.arenaSet.bonus,true),
     move:selected,moves:equipped,rank:equippedRanks[selected.name]??0,
     ...(Object.keys(ranks).length?{ranks:equippedRanks}:{})
   };

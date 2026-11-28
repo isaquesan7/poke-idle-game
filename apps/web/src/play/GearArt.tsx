@@ -8,3 +8,7 @@ export function GearArt({id,rarity,fallback}:{id:string;rarity?:string|undefined
   {IDS.has(id)&&failed!==id?<img src={'/assets/gear-'+id+'.webp'} alt="" onError={()=>setFailed(id)}/>:<i className={'fa-solid '+fallback}/>}
  </span>;
 }
+
+export function GearStars({rank}:{rank:number}){
+ return <span className={styles.stars} role="img" aria-label={'Aprimoramento +'+rank} data-testid="gear-stars">{rank===0?' +0':Array.from({length:rank},(_,i)=><span key={i} className={i===5?styles.redStar:undefined}>★</span>)}</span>;
+}

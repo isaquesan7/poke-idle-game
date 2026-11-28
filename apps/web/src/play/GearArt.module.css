@@ -10,3 +10,7 @@
 
 /* Provisional exclusive treatment until owner-supplied Arena artwork arrives. */
 .art[data-arena="true"]{border:2px solid #f4cb63;background:linear-gradient(145deg,#6b421a55,#eab30825);box-shadow:0 0 4px #fff0a8,0 0 11px #eab30870}
+
+.stars{display:inline-flex;justify-content:center;align-items:center;gap:1px;color:#eab308;font-size:.74rem;line-height:1.2;white-space:nowrap;text-shadow:0 0 4px #b7791f70}
+.redStar{color:#ff394f;animation:reforgePulse 1.2s ease-in-out infinite;text-shadow:0 0 7px #ff394f}
+@keyframes reforgePulse{0%,100%{opacity:.75;text-shadow:0 0 3px #ff394f}50%{opacity:1;text-shadow:0 0 12px #ff394f}}

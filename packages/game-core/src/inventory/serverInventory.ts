@@ -3,6 +3,8 @@
  */
 import {BASE_BAG_SLOTS,inventorySlotsUsed,inventorySlotsAvailable} from './ownership.js';
 import {inspectOnlineInventory,onlineGearForSlot} from './onlineOwnership.js';
+import {applyReforgeInventory,reforgeInventoryProjection} from './serverReforge.js';
+import {reforgeStats} from './reforgeRules.js';
 import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
 import {KANTO_BALLS} from '../capture/kantoBalls.js';
 import {KANTO_EVOLUTION_STONES} from '../catalog/kantoEvolution.js';
@@ -35,11 +37,12 @@ export function onlineInventoryProjection(raw:string){
  const equippedIds=new Set(bonuses.equipment.map(e=>e.itemId));
  const used=inventorySlotsUsed(Object.fromEntries(stacks.map(s=>[s.id,s.quantity])))+inventory.gear.filter(i=>!equippedIds.has(i.id)).length;
  return {busy,bag:{capacity:BASE_BAG_SLOTS+inventory.extraBagSlots,used,available:inventorySlotsAvailable(used,inventory.extraBagSlots),stacks},
-  equipment:inventory.gear.map(i=>({...i,name:(arenaLegendaryTemplate(i.templateId)??LEGACY_ITEMS.find(m=>m.id===i.templateId))!.name,quantity:1,equipped:equippedIds.has(i.id),canEquip:i.requiredLevel<=state.trainer.level})),
+  equipment:inventory.gear.map(i=>({...i,effectiveStats:reforgeStats(i.stats,i.enhancement??0),name:(arenaLegendaryTemplate(i.templateId)??LEGACY_ITEMS.find(m=>m.id===i.templateId))!.name,quantity:1,equipped:equippedIds.has(i.id),canEquip:i.requiredLevel<=state.trainer.level})),
   slots:SLOTS.map(slot=>({slot,itemId:bonuses.equipment.find(e=>e.slot===slot)?.itemId??null})),
   titles:LEGACY_TITLES.map(t=>({...t,unlocked:legacyTitleIsUnlocked(t.id,state.wins,state.seen.length,state.badges.length),active:t.id===bonuses.activeTitle})),
   badges:KANTO_GYMS.map(g=>({id:g.id,name:g.name,stats:g.badgeStats,earned:bonuses.badges.includes(g.id)})),
-  totals:bonuses.totals};
+  totals:bonuses.totals,arenaSet:bonuses.arenaSet,
+  reforge:{...reforgeInventoryProjection(inventory,[...equippedIds])!,busy}};
 }
 export function applyOnlineTrainerLoadout(raw:string,command:unknown){
  if(!record(command)||typeof command.kind!=='string')return {status:'invalid'} as const;
@@ -73,4 +76,23 @@ export function applyOnlineTrainerLoadout(raw:string,command:unknown){
  const next=JSON.stringify(state),projection=onlineInventoryProjection(next);
  if(!projection)return {status:'invalid-save'} as const;
  return {status:'ok',raw:next,totals:projection.totals} as const;
+}
+
+/** REF02: private save adapter. Derive ownership and equipped IDs from the
+ * validated authoritative save; callers cannot supply inventory or equipment. */
+export function onlineReforgeProjection(raw:string){
+ const c=checked(raw);if(!c)return null;
+ const view=reforgeInventoryProjection(c.inventory,c.bonuses.equipment.map(e=>e.itemId));
+ return view?{...view,busy:c.busy}:null;
+}
+export function applyOnlineReforge(raw:string,command:unknown,privateRoll?:number){
+ const c=checked(raw);if(!c)return {status:'invalid-save'} as const;
+ if(c.busy)return {status:'busy'} as const;
+ const result=applyReforgeInventory(c.inventory,c.bonuses.equipment.map(e=>e.itemId),command,privateRoll);
+ if(result.status!=='ok')return result;
+ c.state.inventory=result.inventory;
+ const next=JSON.stringify(c.state);
+ if(!onlineInventoryProjection(next))return {status:'invalid-save'} as const;
+ const {inventory,status,...details}=result;
+ return {status:'ok',raw:next,details} as const;
 }

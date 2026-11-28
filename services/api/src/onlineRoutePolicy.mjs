@@ -9,7 +9,7 @@ const groups=[
  ['evolution','ONLINE_EVOLUTION_CI_ONLY',['GET evolution/current','POST evolution/evolve']],
  ['pokemon-training','ONLINE_POKEMON_TRAINING_CI_ONLY',['GET pokemon-training/current','POST pokemon-training/train']],
  ['pokedex','ONLINE_POKEDEX_CI_ONLY',['GET pokedex/current']],
- ['inventory','ONLINE_TRAINER_LOADOUT_CI_ONLY',['GET inventory/current','POST inventory/loadout']],
+ ['inventory','ONLINE_TRAINER_LOADOUT_CI_ONLY',['GET inventory/current','POST inventory/loadout','POST inventory/reforge']],
  ['tm','ONLINE_TM_CI_ONLY',['GET tm/current','POST tm/teach']],
  ['mega','ONLINE_MEGA_CI_ONLY',['GET mega/current','POST mega/challenge','POST mega/evolve']],
  ['arena','ONLINE_ARENA_CI_ONLY',['GET arena/current','POST arena/start','POST arena/challenge','POST arena/abandon','POST arena/purchase']],

@@ -37,7 +37,7 @@ import {teachPokemonMachine} from './machineWriter.mjs';
 import {evolutionHttpEnabled,readEvolution} from './evolutionHttp.mjs';
 import {evolvePokemon} from './evolutionWriter.mjs';
 import {trainerLoadoutHttpEnabled,readTrainerLoadout} from './trainerLoadoutHttp.mjs';
-import {changeTrainerLoadout} from './trainerLoadoutWriter.mjs';
+import {changeTrainerLoadout,changeOnlineReforge} from './trainerLoadoutWriter.mjs';
 import {pokedexHttpEnabled,readPokedex} from './pokedexHttp.mjs';
 import {movesHttpEnabled,readMoves} from './movesHttp.mjs';
 import {upgradePokemonMove} from './pokemonMoveRankWriter.mjs';
@@ -558,7 +558,8 @@ const server=createServer(async(req,res)=>{
       if(!await enforceThrottle(req,res,{scope:'trainer-loadout-account',identifier:account.id,limit:60}))return;
       const data=await readJson(req);
       if(Object.keys(data).sort().join(',')!=='actionId,command,expectedRevision')return json(res,400,{error:'Ação inválida'});
-      const result=await changeTrainerLoadout(pool,{accountId:account.id,...data});
+      const writer=pathname==='/api/v1/inventory/reforge'?changeOnlineReforge:changeTrainerLoadout;
+      const result=await writer(pool,{accountId:account.id,...data});
       return json(res,result.status==='applied'?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(pathname==='/api/v1/pokedex/current'){

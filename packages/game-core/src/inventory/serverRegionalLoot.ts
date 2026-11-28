@@ -146,6 +146,7 @@ export function discardOnlineGear(raw:string,command:unknown){
  // During an expedition only free a bag slot for an existing overflow; never alter equipped gear or team.
  if(projection.busy&&!(current.expedition&&current.pendingExpeditionLoot&&current.pendingBattle==null&&current.gymSession==null&&current.lastBattle?.captureStatus!=='available'))return {status:'busy'} as const;
  const item=projection.equipment.find(i=>i.id===command.itemId&&!i.equipped);if(!item)return {status:'unavailable'} as const;
+ if(item.favorite)return {status:'protected'} as const;
  const state=JSON.parse(raw);state.inventory.gear=state.inventory.gear.filter((i:OnlineGearInstance)=>i.id!==item.id);
  const next=JSON.stringify(state),view=onlineInventoryProjection(next);
  return view?{status:'ok',raw:next,totals:view.totals} as const:{status:'invalid-save'} as const;

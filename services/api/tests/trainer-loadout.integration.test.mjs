@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import pg from 'pg';
 import {firstSave} from '../src/initialAdventure.mjs';
-import {changeTrainerLoadout} from '../src/trainerLoadoutWriter.mjs';
+import {changeTrainerLoadout,changeOnlineReforge} from '../src/trainerLoadoutWriter.mjs';
 import {loadCombatAdapter} from '../src/battlePreview.mjs';
 import {buildPersistedBattleSnapshot} from '../src/battlePreparation.mjs';
 import {reserveEncounter} from '../src/encounterReservation.mjs';
@@ -125,5 +125,44 @@ test('D4C1: full bag retains certified drops; resolve once under the save lock',
   assert.equal(after.pendingRegionalLoot,undefined);assert.equal(after.inventory.gear.filter(i=>i.id===pendingGear.id).length,1);
   assert.equal(after.ballPocket.quantities['poke-ball'],13);assert.deepEqual(after.evolutionStones,{});assert.equal(after.coins,0);
   assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:3})).status,'reserved');
+ }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
+});
+
+test('REF02: private reforge save lock, material balance, favorite and one receipt',async()=>{
+ const db=new URL(process.env.DATABASE_URL);assert.equal(db.hostname,'127.0.0.1');assert.equal(db.port,'55432');assert.equal(db.pathname,'/kanto_ci');assert.equal(db.username,'kanto_ci');
+ const pool=new pg.Pool({connectionString:db.href});let id;
+ try{
+  id=(await pool.query("INSERT INTO game_accounts(email,password_hash,email_verified_at) VALUES($1,$2,now()) RETURNING id",['reforge-'+randomUUID()+'@example.test','x'.repeat(48)])).rows[0].id;
+  const save=firstSave('Reforge CI',4,1740000000000),core=await loadCombatAdapter();
+  const raw=JSON.parse(save.journal.raw),gear={source:'drop',templateId:'cap',slot:'hat',rarity:'common',regionId:1,requiredLevel:1,stats:{hp:2}};
+  raw.inventory.gear=[{...gear,id:'gear-reforge-1'},{...gear,id:'gear-reforge-2'},{...gear,id:'gear-reforge-3'}];raw.inventory.reforgeFragments=10;
+  raw.trainer.equipped={hat:'gear-reforge-1'};
+  save.journal.raw=JSON.stringify(raw);
+  await pool.query('INSERT INTO game_saves(account_id,schema_version,revision,state) VALUES($1,2,0,$2::jsonb)',[id,JSON.stringify(save)]);
+  const cmd=(kind,itemId,extra={})=>({kind,itemId,...extra});
+  const apply=(command,expectedRevision,actionId=randomUUID())=>changeOnlineReforge(pool,{accountId:id,actionId,expectedRevision,command});
+  const legacy=(command,expectedRevision)=>changeTrainerLoadout(pool,{accountId:id,actionId:randomUUID(),expectedRevision,command});
+  const read=async()=>{const row=(await pool.query('SELECT revision,state FROM game_saves WHERE account_id=$1',[id])).rows[0];return {revision:Number(row.revision),state:JSON.parse(row.state.journal.raw),view:core.onlineReforgeProjection(row.state.journal.raw)};};
+  assert.equal((await apply(cmd('salvage','gear-reforge-1'),0)).status,'protected');
+  assert.equal((await apply(cmd('upgrade','gear-reforge-1',{roll:0}),0)).status,'invalid');
+  assert.equal((await apply(cmd('upgrade','gear-foreign'),0)).status,'unavailable');
+  assert.equal((await legacy(cmd('upgrade','gear-reforge-1'),0)).status,'invalid');
+  const actionId=randomUUID(),upgrade=cmd('upgrade','gear-reforge-1');
+  const race=await Promise.all([apply(upgrade,0,actionId),apply(upgrade,0,actionId)]);
+  assert.deepEqual(race.map(x=>x.status).sort(),['applied','duplicate']);
+  assert.equal(race.find(x=>x.status==='applied').reforge.rank,1);
+  assert.equal((await read()).view.fragments,0);
+  assert.equal((await apply(upgrade,1)).status,'insufficient-fragments');
+  assert.equal((await apply(cmd('favorite','gear-reforge-2',{favorite:true}),1)).status,'applied');
+  assert.equal((await apply(cmd('salvage','gear-reforge-2'),2)).status,'protected');
+  assert.equal((await legacy(cmd('discard-gear','gear-reforge-2'),2)).status,'protected');
+  assert.equal((await apply(cmd('salvage','gear-reforge-3'),2)).status,'applied');
+  const after=await read();assert.equal(after.revision,3);assert.equal(after.view.fragments,5);
+  assert.equal(after.view.gear.length,2);assert.equal(after.view.gear.find(g=>g.id==='gear-reforge-1').rank,1);
+  assert.deepEqual(after.state.inventory.gear[0].stats,gear.stats);assert.deepEqual(after.state.trainer,raw.trainer);
+  assert.equal(after.state.coins,raw.coins);assert.deepEqual(after.state.ballPocket,raw.ballPocket);
+  const receipts=await pool.query('SELECT count(*)::int AS n FROM game_action_receipts WHERE account_id=$1',[id]);assert.equal(receipts.rows[0].n,3);
+  assert.equal((await reserveEncounter(pool,{accountId:id,actionId:randomUUID(),regionId:1,expectedRevision:3})).status,'reserved');
+  assert.equal((await apply(cmd('favorite','gear-reforge-2',{favorite:false}),4)).status,'busy');
  }finally{if(id)await pool.query('DELETE FROM game_accounts WHERE id=$1',[id]);await pool.end();}
 });

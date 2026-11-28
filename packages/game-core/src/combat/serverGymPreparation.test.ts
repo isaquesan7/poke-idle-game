@@ -2,10 +2,15 @@ import type {OnlineInventory} from '../inventory/onlineOwnership.js';
 import {describe,expect,it} from 'vitest';
 import {
   canonicalOnlineGymTrainerBonuses,canonicalOnlineGymEquippedMoves,
-  canonicalOnlineGymPreparation,canonicalOnlineGymOpeningState
+  canonicalOnlineGymPreparation,canonicalOnlineGymOpeningState,canonicalOnlineOwnedCombatant
 } from './serverGymPreparation.js';
 import {regionalNativeMoves} from './serverInheritedMoves.js';
-import {frozenValidatedEquippedMoves} from './serverFrozenBattle.js';
+import {createOnlineArenaGear} from '../inventory/onlineOwnership.js';
+import {ARENA_LEGENDARY_TEMPLATES} from '../shop/arenaGearCatalog.js';
+import {pokemonFinalStats,pokemonMasteryStats} from '../stats/pokemon.js';
+import {kantoPokemonFormProfile} from '../catalog/kantoMegaForms.js';
+import {STATS} from '../stats/types.js';
+import {canonicalFrozenCombatants,frozenValidatedEquippedMoves} from './serverFrozenBattle.js';
 import {gymPsychicLevelMoves} from '../gyms/gymPsychicMoves.js';
 import {resolveGymTurn} from '../gyms/gymTurn.js';
 import {KANTO_GYMS,KANTO_GYM_MASTER_TITLE_STATS} from '../gyms/kantoGyms.js';
@@ -259,4 +264,37 @@ it('mastery affects only members of the mastered family, not Gym NPCs',()=>{
  expect(boosted.player[0].combatant.stats).toEqual(Object.fromEntries(Object.entries(plain.player[0].combatant.stats).map(([k,v])=>[k,Math.floor(v*1.03)])));
  expect(boosted.player.slice(1)).toEqual(plain.player.slice(1));
  expect(boosted.leaderTeam).toEqual(plain.leaderTeam);
+});
+
+describe('REF02B canonical reinforcement and Arena set combat parity',()=>{
+ it('uses effective affixes once, applies a flat tier only to the selected leader, and agrees with frozen Region stats',()=>{
+  const source=fixture();source.trainer.level=100;
+  const gear=ARENA_LEGENDARY_TEMPLATES.map((t,i)=>createOnlineArenaGear('01234567-89ab-4cde-8fab-'+String(i+1).padStart(12,'0'),'arena-legendary-'+t.slot,['hp','attack','defense','speed'])!);
+  source.inventory={version:1,extraBagSlots:10,gear:gear.map((g,i)=>i===0?{...g,enhancement:6}:g)};
+  for(const count of [3,6,9]){
+   source.trainer.equipped=Object.fromEntries(gear.slice(0,count).map(g=>[g.slot,g.id]));
+   const b=canonicalOnlineGymTrainerBonuses(source)!;
+   const tier=count===3?3:count===6?6:10;
+   expect(b.arenaSet).toMatchObject({count,bonus:tier});
+   expect(b.totals.hp).toBe(1+15*count+9);
+   const gym=canonicalOnlineGymPreparation(source)!;
+   for(const [index,p] of source.roster.entries()){
+    const base=pokemonMasteryStats(pokemonFinalStats(kantoPokemonFormProfile(p.pokemonId,undefined)!.base,p.level,p.manual,b.totals,p.affinity),0);
+    const fighter=canonicalOnlineOwnedCombatant({...source},p,b)!;
+    for(const s of STATS)expect(fighter.stats[s]).toBe(base[s]+(index===0?tier:0));
+    expect(gym.player[index]?.combatant.stats).toEqual(fighter.stats);
+   }
+   const p=source.roster[0]!;
+   const snap={version:2,regionId:1,opponent:{speciesId:10,level:2},trainer:{...source.trainer,wins:source.wins,seen:source.seen,badges:source.badges,inventory:source.inventory},activePokemon:{uid:p.uid,speciesId:p.pokemonId,level:p.level,affinity:p.affinity,manual:p.manual,moveName:p.moveName,moveNames:p.equippedMoveNames,upgrades:p.upgrades}};
+   expect(canonicalFrozenCombatants(snap)?.player.stats).toEqual(gym.player[0].combatant.stats);
+   source.team=[2,1,3];
+   const moved=canonicalOnlineGymPreparation(source)!;
+   for(const s of STATS){
+    expect(moved.player[0].combatant.stats[s]).toBe(gym.player[1].combatant.stats[s]+tier);
+    expect(moved.player[1].combatant.stats[s]).toBe(gym.player[0].combatant.stats[s]-tier);
+   }
+   source.team=[1,2,3];
+  }
+  expect(source.inventory.gear[0]?.stats.hp).toBe(15);
+ });
 });

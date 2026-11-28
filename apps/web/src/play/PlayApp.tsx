@@ -32,15 +32,15 @@ import {ArenaScreen} from './ArenaScreen';
 import {MegaSanctuary,MegaEvolution,MegaBag} from './MegaScreen';
 import {kantoPokemonFormProfile} from '@kanto/game-core';
 import {MachineEvolution,MachineBag} from './MachineScreen';
-import {pokemonMasteryStats,kantoMasteryFamily} from '@kanto/game-core';
+import {pokemonMasteryStats,kantoMasteryFamily,applyArenaSetStats} from '@kanto/game-core';
 import {OnlineNavigation} from './OnlineNavigation';
 import {AdventureOverview,AdventureTopbar} from './AdventureOverview';
 import {kantoSpecies} from '@kanto/game-core';
 import type {TrainerSection} from './OnlineNavigation';
 import { GymScreen } from './GymScreen';
 import { PokemonTraining } from './PokemonTraining';
-import type {OnlineViews,RegionalReward} from './onlinePlay';
-import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand,onlineBattleCommand,onlineMoveSlots} from './onlinePlay';
+import type {OnlineViews,RegionalReward,ReforgeCommand} from './onlinePlay';
+import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand,sendReforgeCommand,onlineBattleCommand,onlineMoveSlots} from './onlinePlay';
 import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
 import { estimatedServerNow,formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
@@ -300,6 +300,18 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     catch{await refreshOnline();setFeedback('Ação não confirmada. Confira o progresso.');return false;}
     finally{onlineLock.current=false;setBusy(false);}
   }
+  async function onlineReforge(command:ReforgeCommand,revision:number){
+    if(!online||onlineLock.current||save.status!=='ready'||save.snapshot.revision!==revision)return null;
+    onlineLock.current=true;setBusy(true);setFeedback('');
+    try{
+      const result=await sendReforgeCommand(command,revision);
+      await refreshOnline();
+      if(!result){setFeedback('Reforja recusada pelo servidor. Confira seu inventário.');return null;}
+      setFeedback(result.kind==='salvage'?'Desmontagem concluída: +'+result.gain+' fragmentos.':result.kind==='favorite'?'Proteção atualizada.':(result.outcome==='success'?'Aprimoramento bem-sucedido':result.outcome==='stay'?'Aprimoramento mantido':'Aprimoramento regrediu')+' · +'+result.rank+' · '+result.cost+' fragmentos consumidos.');
+      return result;
+    }catch{await refreshOnline();setFeedback('Reforja não confirmada. Confira o inventário antes de tentar novamente.');return null;}
+    finally{onlineLock.current=false;setBusy(false);}
+  }
   async function runOnlineBattle(mode:'region'|'gym',command:'open'|'turn'|'reward'|'finish',choice?:string){
     const current=mode==='region'?onlineViews?.region:onlineViews?.gym;
     if(!online||onlineLock.current||save.status!=='ready'||!current||current.revision!==save.snapshot.revision)return false;
@@ -481,13 +493,14 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   const masteryFor=(speciesId:number)=>online?onlineViews?.mastery?.families.find(f=>f.id===kantoMasteryFamily(speciesId)?.id):undefined;
   const masteryStatPercent=(speciesId:number)=>masteryFor(speciesId)?.current.statPercent??0;
   const masteredSpecies=onlineViews?.mastery?.families.filter(f=>f.current.rank===5).flatMap(f=>f.speciesIds)??[];
+  const arenaSetBonus=online?inventory?.arenaSet?.bonus??0:0;
   const focusedStats = focused && focusedSpecies && view
-    ? pokemonMasteryStats(pokemonFinalStats(
+    ? applyArenaSetStats(pokemonMasteryStats(pokemonFinalStats(
         focusedSpecies.base, focused.level, pokemonManual, view.totals, focused.affinity
-      ),masteryStatPercent(focused.pokemonId)) : null;
+      ),masteryStatPercent(focused.pokemonId)),arenaSetBonus,focused.uid===data?.team[0]) : null;
   const activeManual = manualValues(active?.manual);
   const activeSpecies=active?kantoPokemonFormProfile(active.pokemonId,online?active.megaForm:undefined):null;
-  const activeStats=active&&activeSpecies&&view?pokemonMasteryStats(pokemonFinalStats(activeSpecies.base,active.level,activeManual,view.totals,active.affinity),masteryStatPercent(active.pokemonId)):null;
+  const activeStats=active&&activeSpecies&&view?applyArenaSetStats(pokemonMasteryStats(pokemonFinalStats(activeSpecies.base,active.level,activeManual,view.totals,active.affinity),masteryStatPercent(active.pokemonId)),arenaSetBonus,active.uid===data?.team[0]):null;
   const activeRemaining = active
     ? legacyPokemonManualBudget(active.level) -
       STATS.reduce((total,stat)=>total+activeManual[stat],0)
@@ -850,7 +863,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
             {tab==='trainer'&&online&&trainerSection==='mastery'&&(onlineViews?.mastery?<MasteryScreen key={onlineViews.mastery.revision} view={onlineViews.mastery} busy={busy} onCommand={(command,revision)=>onlineExtra('mastery/research',{command},revision)}/>:<section className={styles.panel}>Centro de Pesquisa indisponível. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button></section>)}
             {tab === 'trainer' && trainerSection!=='mastery' && <TrainerScreen view={view} data={data} {...(online?{controlledSection:trainerSection}:{})}
               revision={save.snapshot.revision} busy={busy||!!inventory?.busy}
-              {...(inventory?{onlineInventory:inventory,onDiscardGear:(id:string)=>void onlineExtra('inventory/loadout',{command:{kind:'discard-gear',itemId:id}}),onLoot:(command:Record<string,unknown>)=>void onlineExtra('inventory/loadout',{command}),lootBusy:busy}:{})}
+              {...(inventory?{onlineInventory:inventory,onReforge:onlineReforge,onDiscardGear:(id:string)=>void onlineExtra('inventory/loadout',{command:{kind:'discard-gear',itemId:id}}),onLoot:(command:Record<string,unknown>)=>void onlineExtra('inventory/loadout',{command}),lootBusy:busy}:{})}
               onInvest={investTrainerBatch}
               onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
@@ -957,7 +970,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                     if(!focusedSpecies||!view)return null;
                     const previewManual={...pokemonManual};
                     for(const stat of STATS)previewManual[stat]+=(increments[stat]??0);
-                    return pokemonMasteryStats(pokemonFinalStats(focusedSpecies.base,focused.level,previewManual,view.totals,focused.affinity),masteryStatPercent(focused.pokemonId));
+                    return applyArenaSetStats(pokemonMasteryStats(pokemonFinalStats(focusedSpecies.base,focused.level,previewManual,view.totals,focused.affinity),masteryStatPercent(focused.pokemonId)),arenaSetBonus,focused.uid===data?.team[0]);
                   }}
                   onConfirm={investPokemonBatch}
                   onReset={()=>{

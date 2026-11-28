@@ -224,3 +224,5 @@ export type {KantoMegaForm,KantoMegaFormId,KantoMegaStoneId} from './catalog/kan
 export {validKantoMegaEntitlement} from './catalog/kantoMegaForms.js';
 export {KANTO_MEGA_REQUIREMENTS,onlineMegaProjection,quoteOnlineMegaTrial,applyOnlineMegaEvolution} from './combat/serverMegaEvolution.js';
 
+
+export {applyArenaSetStats,ARENA_SET_TIERS} from './stats/arenaSet.js';

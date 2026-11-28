@@ -1,3 +1,4 @@
+import {validReforgeRank,reforgeArenaExclusive,REFORGE_FRAGMENT_CAP} from './reforgeRules.js';
 import {arenaLegendaryTemplate} from '../shop/arenaGearCatalog.js';
 import {arenaGearOffer,arenaGearStats,arenaShopOffer} from '../shop/arenaShopCatalog.js';
 import {basicGearOffer} from '../shop/basicGearCatalog.js';
@@ -11,19 +12,24 @@ import {BASE_BAG_SLOTS} from './ownership.js';
 export interface OnlineGearInstance extends ProceduralGearRoll {
  readonly id:string;
  readonly source:'drop'|'shop'|'arena';
+ readonly enhancement?:number;
+ readonly favorite?:boolean;
 }
 export interface OnlineInventory {
  readonly version:1;
  readonly gear:readonly OnlineGearInstance[];
  readonly extraBagSlots:number;
+ readonly reforgeFragments?:number;
 }
 const rec=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const int=(v:unknown,min:number,max:number):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>=min&&v<=max;
 export function inspectOnlineGear(v:unknown):OnlineGearInstance|null{
- if(!rec(v)||Object.keys(v).sort().join(',')!=='id,rarity,regionId,requiredLevel,slot,source,stats,templateId'||
+ if(!rec(v)||Object.keys(v).filter(k=>k!=='enhancement'&&k!=='favorite').sort().join(',')!=='id,rarity,regionId,requiredLevel,slot,source,stats,templateId'||
   typeof v.id!=='string'||!/^gear-[a-z0-9-]{1,64}$/.test(v.id)||!['drop','shop','arena'].includes(String(v.source))||!int(v.regionId,1,10)||
   typeof v.templateId!=='string'||typeof v.rarity!=='string'||!LOOT_RARITIES.includes(v.rarity as LootRarity)||!rec(v.stats))return null;
  const rarity=v.rarity as LootRarity,exclusive=arenaLegendaryTemplate(v.templateId);
+ if(('enhancement' in v&&!validReforgeRank(rarity,v.enhancement,reforgeArenaExclusive({rarity,source:v.source,templateId:v.templateId})))||('favorite' in v&&typeof v.favorite!=='boolean'))return null;
+ const metadata={...(typeof v.enhancement==='number'?{enhancement:v.enhancement}:{}),...(typeof v.favorite==='boolean'?{favorite:v.favorite}:{})};
  if(exclusive&&(v.source!=='arena'||rarity!=='legendary'))return null;
  if(v.source==='arena'&&rarity==='legendary'&&!exclusive)return null;
  const model=exclusive??LEGACY_ITEMS.find(i=>i.id===v.templateId&&i.slot===v.slot),policy=regionalLootPolicy(v.regionId);
@@ -33,7 +39,7 @@ export function inspectOnlineGear(v:unknown):OnlineGearInstance|null{
   if(!offer||!/^gear-shop-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(v.id)||
    rarity!=='common'||v.regionId!==1||v.requiredLevel!==offer.requiredLevel||
    Object.keys(v.stats).length!==1||Object.entries(offer.stats).some(([stat,n])=>v.stats&& (v.stats as Record<string,unknown>)[stat]!==n))return null;
-  return {id:v.id,source:'shop',templateId:model.id,slot:model.slot,rarity,regionId:1,requiredLevel:1,stats:{...offer.stats}};
+  return {...metadata,id:v.id,source:'shop',templateId:model.id,slot:model.slot,rarity,regionId:1,requiredLevel:1,stats:{...offer.stats}};
  }
  if(v.source==='arena'){
   const offer=arenaGearOffer(model.id,rarity);
@@ -41,19 +47,20 @@ export function inspectOnlineGear(v:unknown):OnlineGearInstance|null{
    v.regionId!==offer.gear.regionId||v.requiredLevel!==offer.gear.requiredLevel)return null;
   const stats=arenaGearStats(offer,offer.attributeSelection?Object.keys(v.stats):undefined);
   if(!stats||Object.keys(v.stats).length!==Object.keys(stats).length||Object.entries(stats).some(([k,n])=>(v.stats as Record<string,unknown>)[k]!==n))return null;
-  return {...offer.gear,stats,id:v.id,source:'arena'};
+  return {...offer.gear,...metadata,stats,id:v.id,source:'arena'};
  }
  if(v.id.startsWith('gear-shop-')||v.id.startsWith('gear-arena-'))return null;
  const min=Math.min(policy.maxBonus,policy.minBonus+(rarity==='common'?0:1));
  const entries=Object.entries(v.stats);
  if(entries.length!==LOOT_AFFIX_COUNT[rarity]||entries.some(([k,n])=>!(STATS as readonly string[]).includes(k)||!int(n,min,policy.maxBonus)))return null;
- return {id:v.id,source:'drop',templateId:model.id,slot:model.slot,rarity,regionId:v.regionId,requiredLevel:v.requiredLevel,stats:Object.fromEntries(entries) as StatBonus};
+ return {...metadata,id:v.id,source:'drop',templateId:model.id,slot:model.slot,rarity,regionId:v.regionId,requiredLevel:v.requiredLevel,stats:Object.fromEntries(entries) as StatBonus};
 }
 export function inspectOnlineInventory(v:unknown):OnlineInventory|null{
- if(!rec(v)||Object.keys(v).sort().join(',')!=='extraBagSlots,gear,version'||v.version!==1||!int(v.extraBagSlots,0,1000)||!Array.isArray(v.gear)||v.gear.length>BASE_BAG_SLOTS+v.extraBagSlots+9)return null;
+ if(!rec(v)||Object.keys(v).filter(k=>k!=='reforgeFragments').sort().join(',')!=='extraBagSlots,gear,version'||v.version!==1||!int(v.extraBagSlots,0,1000)||!Array.isArray(v.gear)||v.gear.length>BASE_BAG_SLOTS+v.extraBagSlots+9)return null;
+ if('reforgeFragments' in v&&!int(v.reforgeFragments,0,REFORGE_FRAGMENT_CAP))return null;
  const gear:OnlineGearInstance[]=[],ids=new Set<string>();
  for(const raw of v.gear){const item=inspectOnlineGear(raw);if(!item||ids.has(item.id))return null;ids.add(item.id);gear.push(item);}
- return {version:1,extraBagSlots:v.extraBagSlots,gear};
+ return {version:1,extraBagSlots:v.extraBagSlots,gear,...(typeof v.reforgeFragments==='number'?{reforgeFragments:v.reforgeFragments}:{})};
 }
 export function onlineGearForSlot(inventory:OnlineInventory,itemId:string,slot:string,trainerLevel:number){
  return inventory.gear.find(i=>i.id===itemId&&i.slot===slot&&i.requiredLevel<=trainerLevel)??null;
