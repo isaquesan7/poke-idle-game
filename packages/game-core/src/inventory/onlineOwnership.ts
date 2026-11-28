@@ -1,4 +1,4 @@
-import {validReforgeRank,REFORGE_FRAGMENT_CAP} from './reforgeRules.js';
+import {validReforgeRank,reforgeArenaExclusive,REFORGE_FRAGMENT_CAP} from './reforgeRules.js';
 import {arenaLegendaryTemplate} from '../shop/arenaGearCatalog.js';
 import {arenaGearOffer,arenaGearStats,arenaShopOffer} from '../shop/arenaShopCatalog.js';
 import {basicGearOffer} from '../shop/basicGearCatalog.js';
@@ -28,7 +28,7 @@ export function inspectOnlineGear(v:unknown):OnlineGearInstance|null{
   typeof v.id!=='string'||!/^gear-[a-z0-9-]{1,64}$/.test(v.id)||!['drop','shop','arena'].includes(String(v.source))||!int(v.regionId,1,10)||
   typeof v.templateId!=='string'||typeof v.rarity!=='string'||!LOOT_RARITIES.includes(v.rarity as LootRarity)||!rec(v.stats))return null;
  const rarity=v.rarity as LootRarity,exclusive=arenaLegendaryTemplate(v.templateId);
- if(('enhancement' in v&&!validReforgeRank(rarity,v.enhancement))||('favorite' in v&&typeof v.favorite!=='boolean'))return null;
+ if(('enhancement' in v&&!validReforgeRank(rarity,v.enhancement,reforgeArenaExclusive({rarity,source:v.source,templateId:v.templateId})))||('favorite' in v&&typeof v.favorite!=='boolean'))return null;
  const metadata={...(typeof v.enhancement==='number'?{enhancement:v.enhancement}:{}),...(typeof v.favorite==='boolean'?{favorite:v.favorite}:{})};
  if(exclusive&&(v.source!=='arena'||rarity!=='legendary'))return null;
  if(v.source==='arena'&&rarity==='legendary'&&!exclusive)return null;

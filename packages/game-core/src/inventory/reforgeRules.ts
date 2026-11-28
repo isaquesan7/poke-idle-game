@@ -1,4 +1,5 @@
 /** REF01: approved material costs, independent of gold and base affixes. */
+import {arenaLegendaryTemplate} from '../shop/arenaGearCatalog.js';
 import type {LootRarity} from './regionalLoot.js';
 import type {StatBonus} from '../stats/types.js';
 export const REFORGE_SALVAGE:Readonly<Record<LootRarity,number>>=Object.freeze({common:5,uncommon:10,rare:25,epic:60,legendary:150});
@@ -7,12 +8,16 @@ const CHANCES=[
  [100,0,0],[85,15,0],[65,25,10],[40,40,20],[20,45,35],[10,40,50]
 ] as const;
 export const REFORGE_FRAGMENT_CAP=1_000_000_000;
-export function reforgeMaxRank(rarity:LootRarity){return rarity==='legendary'?6:5;}
-export function validReforgeRank(rarity:LootRarity,rank:unknown):rank is number{
- return typeof rank==='number'&&Number.isSafeInteger(rank)&&rank>=0&&rank<=reforgeMaxRank(rarity);
+/** The sixth rank requires a genuine exclusive Arena template and source. */
+export function reforgeArenaExclusive(item:{rarity:unknown;source:unknown;templateId:unknown}){
+ return item.rarity==='legendary'&&item.source==='arena'&&arenaLegendaryTemplate(item.templateId)!==null;
 }
-export function reforgeQuote(rarity:LootRarity,rank:number){
- if(!validReforgeRank(rarity,rank)||rank===reforgeMaxRank(rarity))return null;
+export function reforgeMaxRank(rarity:LootRarity,arenaExclusive=false){return rarity==='legendary'&&arenaExclusive?6:5;}
+export function validReforgeRank(rarity:LootRarity,rank:unknown,arenaExclusive=false):rank is number{
+ return typeof rank==='number'&&Number.isSafeInteger(rank)&&rank>=0&&rank<=reforgeMaxRank(rarity,arenaExclusive);
+}
+export function reforgeQuote(rarity:LootRarity,rank:number,arenaExclusive=false){
+ if(!validReforgeRank(rarity,rank,arenaExclusive)||rank===reforgeMaxRank(rarity,arenaExclusive))return null;
  const [success,stay,regress]=CHANCES[rank]!;
  return {rank,target:rank+1,cost:FIRST_COST[rarity]*2**rank,success,stay,regress,bonusPercent:(rank+1)*10};
 }
@@ -22,12 +27,12 @@ export function reforgeStats(base:Readonly<StatBonus>,rank:number):StatBonus{
  return Object.fromEntries(Object.entries(base).map(([key,value])=>[key,Math.floor(value*(100+10*rank)/100)])) as StatBonus;
 }
 /** Additional salvage scales with achieved rank, not the amount ever spent. */
-export function reforgeSalvage(rarity:LootRarity,rank:number){
- if(!validReforgeRank(rarity,rank))return null;
+export function reforgeSalvage(rarity:LootRarity,rank:number,arenaExclusive=false){
+ if(!validReforgeRank(rarity,rank,arenaExclusive))return null;
  return Math.floor(REFORGE_SALVAGE[rarity]*(100+10*rank)/100);
 }
-export function reforgeRoll(rarity:LootRarity,rank:number,roll:number){
- const q=reforgeQuote(rarity,rank);
+export function reforgeRoll(rarity:LootRarity,rank:number,roll:number,arenaExclusive=false){
+ const q=reforgeQuote(rarity,rank,arenaExclusive);
  if(!q||!Number.isSafeInteger(roll)||roll<0||roll>=10000)return null;
  if(roll<q.success*100)return {outcome:'success',rank:rank+1} as const;
  if(roll<(q.success+q.stay)*100)return {outcome:'stay',rank} as const;
