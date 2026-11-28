@@ -70,3 +70,5 @@ export {onlineArenaPublicProjection,onlineArenaProgress,startOnlineArenaRun,aban
 export {prepareArenaFloorBattle,resolvePreparedArenaDuel} from './serverArenaBattle.js';
 
 export {onlineArenaShopProjection,applyOnlineArenaPurchase} from '../shop/serverArenaShop.js';
+
+export {onlineReforgeProjection,applyOnlineReforge} from '../inventory/serverInventory.js';

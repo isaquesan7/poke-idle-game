@@ -1,10 +1,14 @@
+import {randomInt} from 'node:crypto';
 import {arenaActivityBlocks} from './arenaActivity.mjs';
 /** Private writer only. Do not expose via HTTP until regional and Gym bonuses agree. */
 import {loadCombatAdapter} from './battlePreview.mjs';
 const UUID=/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
 const ACTION=/^[A-Za-z0-9_-]{12,96}$/;
 const rollback=async(c,result)=>{await c.query('ROLLBACK');return result;};
-export async function changeTrainerLoadout(pool,params){
+export async function changeTrainerLoadout(pool,params){return changeLoadout(pool,params,false);}
+/** Private entry only; existing HTTP equipment route cannot select this mode. */
+export async function changeOnlineReforge(pool,params){return changeLoadout(pool,params,true);}
+async function changeLoadout(pool,params,reforge){
  if(!params||Object.keys(params).sort().join(',')!=='accountId,actionId,command,expectedRevision'||
   typeof params.accountId!=='string'||!UUID.test(params.accountId)||typeof params.actionId!=='string'||!ACTION.test(params.actionId)||
   !Number.isSafeInteger(params.expectedRevision)||params.expectedRevision<0||!params.command||typeof params.command!=='object'||Array.isArray(params.command))return {status:'invalid'};
@@ -25,12 +29,13 @@ export async function changeTrainerLoadout(pool,params){
   const core=await loadCombatAdapter();
   const lootAction=['loot-store','loot-discard'].includes(command.kind);
   const expeditionLootAction=['expedition-loot-store','expedition-loot-discard'].includes(command.kind);
-  const result=expeditionLootAction?core.resolvePendingExpeditionLoot(save.journal.raw,command):lootAction?core.resolvePendingRegionalLoot(save.journal.raw,command):command.kind==='discard-gear'?core.discardOnlineGear(save.journal.raw,command):core.applyOnlineTrainerLoadout(save.journal.raw,command);
+  const result=reforge?core.applyOnlineReforge(save.journal.raw,command,command.kind==='upgrade'?randomInt(10000):undefined):expeditionLootAction?core.resolvePendingExpeditionLoot(save.journal.raw,command):lootAction?core.resolvePendingRegionalLoot(save.journal.raw,command):command.kind==='discard-gear'?core.discardOnlineGear(save.journal.raw,command):core.applyOnlineTrainerLoadout(save.journal.raw,command);
   if(result.status!=='ok')return await rollback(c,{status:result.status});
-  const nextRevision=revision+1,next={...save,revision:nextRevision,journal:{...save.journal,revision:nextRevision,raw:result.raw}};
+  const nextRevision=revision+1;if(!Number.isSafeInteger(nextRevision))return await rollback(c,{status:'invalid-save'});
+  const next={...save,revision:nextRevision,journal:{...save.journal,revision:nextRevision,raw:result.raw}};
   await c.query('UPDATE game_saves SET revision=$3,state=$2::jsonb,updated_at=now() WHERE account_id=$1',[accountId,JSON.stringify(next),nextRevision]);
-  await c.query('INSERT INTO game_action_receipts(account_id,action_id,kind,save_revision) VALUES($1,$2,$3,$4)',[accountId,actionId,command.kind==='title'?'trainer-title':(lootAction||expeditionLootAction)?'inventory-loot':'trainer-equipment',nextRevision]);
+  await c.query('INSERT INTO game_action_receipts(account_id,action_id,kind,save_revision) VALUES($1,$2,$3,$4)',[accountId,actionId,reforge?'trainer-equipment':command.kind==='title'?'trainer-title':(lootAction||expeditionLootAction)?'inventory-loot':'trainer-equipment',nextRevision]);
   await c.query('COMMIT');
-  return {status:'applied',revision:nextRevision,totals:result.totals};
+  return reforge?{status:'applied',revision:nextRevision,reforge:result.details}:{status:'applied',revision:nextRevision,totals:result.totals};
  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
 }
