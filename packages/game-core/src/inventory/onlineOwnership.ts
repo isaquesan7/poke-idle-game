@@ -1,4 +1,5 @@
-import {arenaGearStats,arenaShopOffer} from '../shop/arenaShopCatalog.js';
+import {arenaLegendaryTemplate} from '../shop/arenaGearCatalog.js';
+import {arenaGearOffer,arenaGearStats,arenaShopOffer} from '../shop/arenaShopCatalog.js';
 import {basicGearOffer} from '../shop/basicGearCatalog.js';
 /** D4B: online-only individual gear. Local /play inventory is a different contract. */
 import {LEGACY_ITEMS} from '../legacy/catalog.js';
@@ -22,8 +23,11 @@ export function inspectOnlineGear(v:unknown):OnlineGearInstance|null{
  if(!rec(v)||Object.keys(v).sort().join(',')!=='id,rarity,regionId,requiredLevel,slot,source,stats,templateId'||
   typeof v.id!=='string'||!/^gear-[a-z0-9-]{1,64}$/.test(v.id)||!['drop','shop','arena'].includes(String(v.source))||!int(v.regionId,1,10)||
   typeof v.templateId!=='string'||typeof v.rarity!=='string'||!LOOT_RARITIES.includes(v.rarity as LootRarity)||!rec(v.stats))return null;
- const model=LEGACY_ITEMS.find(i=>i.id===v.templateId&&i.slot===v.slot),policy=regionalLootPolicy(v.regionId),rarity=v.rarity as LootRarity;
- if(!model||!policy||!policy.weights[LOOT_RARITIES.indexOf(rarity)]||!int(v.requiredLevel,policy.requiredMin,policy.requiredMax))return null;
+ const rarity=v.rarity as LootRarity,exclusive=arenaLegendaryTemplate(v.templateId);
+ if(exclusive&&(v.source!=='arena'||rarity!=='legendary'))return null;
+ if(v.source==='arena'&&rarity==='legendary'&&!exclusive)return null;
+ const model=exclusive??LEGACY_ITEMS.find(i=>i.id===v.templateId&&i.slot===v.slot),policy=regionalLootPolicy(v.regionId);
+ if(!model||model.slot!==v.slot||!policy||!policy.weights[LOOT_RARITIES.indexOf(rarity)]||!int(v.requiredLevel,policy.requiredMin,policy.requiredMax))return null;
  if(v.source==='shop'){
   const offer=basicGearOffer(model.id);
   if(!offer||!/^gear-shop-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(v.id)||
@@ -32,7 +36,7 @@ export function inspectOnlineGear(v:unknown):OnlineGearInstance|null{
   return {id:v.id,source:'shop',templateId:model.id,slot:model.slot,rarity,regionId:1,requiredLevel:1,stats:{...offer.stats}};
  }
  if(v.source==='arena'){
-  const offer=arenaShopOffer('arena-'+rarity+'-'+model.id);
+  const offer=arenaGearOffer(model.id,rarity);
   if(!offer||offer.kind!=='gear'||!/^gear-arena-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(v.id)||
    v.regionId!==offer.gear.regionId||v.requiredLevel!==offer.gear.requiredLevel)return null;
   const stats=arenaGearStats(offer,offer.attributeSelection?Object.keys(v.stats):undefined);

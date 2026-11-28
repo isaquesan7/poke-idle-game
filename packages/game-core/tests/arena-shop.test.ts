@@ -1,7 +1,10 @@
 import {describe,it,expect} from 'vitest';
+import {ARENA_LEGENDARY_TEMPLATES} from '../src/shop/arenaGearCatalog.js';
+import {LEGACY_ITEMS} from '../src/legacy/catalog.js';
+import {onlineInventoryProjection,applyOnlineTrainerLoadout} from '../src/inventory/serverInventory.js';
 import {arenaShopCatalog} from '../src/shop/arenaShopCatalog.js';
 import {onlineArenaShopProjection,applyOnlineArenaPurchase} from '../src/shop/serverArenaShop.js';
-import {inspectOnlineGear,createOnlineArenaGear} from '../src/inventory/onlineOwnership.js';
+import {inspectOnlineGear,createOnlineArenaGear,createOnlineDropGear,createOnlineShopGear} from '../src/inventory/onlineOwnership.js';
 import {executableMachineMove} from '../src/combat/machineLessonCatalog.js';
 import {kantoMachine} from '../src/catalog/kantoMachines.js';
 import {ARENA_WEEK_MS} from '../src/progression/weeklyArena.js';
@@ -24,6 +27,21 @@ describe('ARENA05 private catalog and checkout',()=>{
    }
   }
  });
+ it('reserves nine exclusive identities for Arena purchases only',()=>{
+  const offers=arenaShopCatalog().filter(o=>o.kind==='gear'&&o.rarity==='legendary');
+  expect(offers).toHaveLength(9);
+  expect(new Set(ARENA_LEGENDARY_TEMPLATES.map(t=>t.slot)).size).toBe(9);
+  for(const offer of offers){
+   if(offer.kind!=='gear')throw Error('not gear');
+   expect(LEGACY_ITEMS.some(m=>m.id===offer.itemId)).toBe(false);
+   const instance=createOnlineArenaGear(id,offer.id,['hp','attack','defense','speed'])!;
+   expect(instance).not.toBeNull();
+   expect(createOnlineDropGear(id,{...offer.gear,stats:instance.stats})).toBeNull();
+   expect(createOnlineShopGear(id,offer.itemId)).toBeNull();
+   expect(inspectOnlineGear({...instance,id:'gear-'+id,source:'drop'})).toBeNull();
+   expect(inspectOnlineGear({...instance,templateId:'cap'})).toBeNull();
+  }
+ });
  it('spends points only, preserves gold, limits premium purchases across templates and renews stock',()=>{
   const before=fixture(),raw=JSON.stringify(before);
   const stone=ok(applyOnlineArenaPurchase(raw,now,'fire-stone',id));
@@ -31,15 +49,17 @@ describe('ARENA05 private catalog and checkout',()=>{
   const tm=ok(applyOnlineArenaPurchase(stone.raw,now,'tm26',id));
   expect(tm.balance).toBe(460);expect(JSON.parse(tm.raw).machineStock.tm26).toBe(1);
   expect(applyOnlineArenaPurchase(tm.raw,now,'tm26',id).status).toBe('weekly-limit');
-  const gear=ok(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-cap',id,['attack','defense','specialDefense','speed']));
+  const gear=ok(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-hat',id,['attack','defense','specialDefense','speed']));
   expect(gear.balance).toBe(160);
   expect(JSON.parse(gear.raw).inventory.gear[0].stats).toEqual({attack:10,defense:10,specialDefense:10,speed:10});
-  expect(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-cap',id).status).toBe('invalid');
-  expect(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-cap',id,['hp','hp','speed','attack']).status).toBe('invalid');
-  expect(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-cap',id,['hp','speed','attack','luck']).status).toBe('invalid');
+  expect(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-hat',id).status).toBe('invalid');
+  expect(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-hat',id,['hp','hp','speed','attack']).status).toBe('invalid');
+  expect(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-hat',id,['hp','speed','attack','luck']).status).toBe('invalid');
   expect(applyOnlineArenaPurchase(tm.raw,now,'fire-stone',id,['hp','speed','attack','defense']).status).toBe('invalid');
   expect(JSON.parse(gear.raw).coins).toBe(before.coins);
   expect(JSON.parse(gear.raw).inventory.gear[0].source).toBe('arena');
+  expect(onlineInventoryProjection(gear.raw)?.equipment[0]).toMatchObject({name:'Boné da Arena',templateId:'arena-hat'});
+  expect(applyOnlineTrainerLoadout(gear.raw,{kind:'equipment',slot:'hat',itemId:JSON.parse(gear.raw).inventory.gear[0].id}).status).toBe('ok');
   expect(applyOnlineArenaPurchase(gear.raw,now,'arena-rare-coat',id).status).toBe('weekly-limit');
   const next=onlineArenaShopProjection(gear.raw,now+ARENA_WEEK_MS);
   expect(next).toMatchObject({balance:160,gearRemaining:1});
@@ -49,7 +69,7 @@ describe('ARENA05 private catalog and checkout',()=>{
   expect(applyOnlineArenaPurchase(JSON.stringify(fixture(0)),now,'fire-stone',id).status).toBe('insufficient-points');
   expect(applyOnlineArenaPurchase(JSON.stringify(fixture()),now,'master-ball',id).status).toBe('invalid');
   const low=fixture();low.trainer.level=1;
-  expect(applyOnlineArenaPurchase(JSON.stringify(low),now,'arena-legendary-cap',id).status).toBe('level');
+  expect(applyOnlineArenaPurchase(JSON.stringify(low),now,'arena-legendary-hat',id).status).toBe('level');
   const full=fixture();full.inventory.gear=Array.from({length:9},(_,i)=>createOnlineArenaGear('01234567-89ab-4cde-8fab-0123456789a'+i,'arena-rare-cap'));
   expect(applyOnlineArenaPurchase(JSON.stringify(full),now,'fire-stone',id).status).toBe('bag-full');
   expect(applyOnlineArenaPurchase(JSON.stringify(full),now,'tm26',id).status).toBe('ok');

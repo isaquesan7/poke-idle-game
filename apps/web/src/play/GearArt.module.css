@@ -7,3 +7,6 @@
 .art[data-rarity="rare"]{--gear-rarity:#3b82f6}
 .art[data-rarity="epic"]{--gear-rarity:#a855f7}
 .art[data-rarity="legendary"]{--gear-rarity:#eab308}
+
+/* Provisional exclusive treatment until owner-supplied Arena artwork arrives. */
+.art[data-arena="true"]{border:2px solid #f4cb63;background:linear-gradient(145deg,#6b421a55,#eab30825);box-shadow:0 0 4px #fff0a8,0 0 11px #eab30870}

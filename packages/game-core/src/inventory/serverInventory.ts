@@ -6,6 +6,7 @@ import {inspectOnlineInventory,onlineGearForSlot} from './onlineOwnership.js';
 import {inspectKantoBallPocket} from '../capture/kantoBallPocket.js';
 import {KANTO_BALLS} from '../capture/kantoBalls.js';
 import {KANTO_EVOLUTION_STONES} from '../catalog/kantoEvolution.js';
+import {arenaLegendaryTemplate} from '../shop/arenaGearCatalog.js';
 import {LEGACY_ITEMS,LEGACY_TITLES,legacyTitleIsUnlocked} from '../legacy/catalog.js';
 import {KANTO_GYMS} from '../gyms/kantoGyms.js';
 import {canonicalOnlineGymTrainerBonuses} from '../combat/serverGymPreparation.js';
@@ -34,7 +35,7 @@ export function onlineInventoryProjection(raw:string){
  const equippedIds=new Set(bonuses.equipment.map(e=>e.itemId));
  const used=inventorySlotsUsed(Object.fromEntries(stacks.map(s=>[s.id,s.quantity])))+inventory.gear.filter(i=>!equippedIds.has(i.id)).length;
  return {busy,bag:{capacity:BASE_BAG_SLOTS+inventory.extraBagSlots,used,available:inventorySlotsAvailable(used,inventory.extraBagSlots),stacks},
-  equipment:inventory.gear.map(i=>({...i,name:LEGACY_ITEMS.find(m=>m.id===i.templateId)!.name,quantity:1,equipped:equippedIds.has(i.id),canEquip:i.requiredLevel<=state.trainer.level})),
+  equipment:inventory.gear.map(i=>({...i,name:(arenaLegendaryTemplate(i.templateId)??LEGACY_ITEMS.find(m=>m.id===i.templateId))!.name,quantity:1,equipped:equippedIds.has(i.id),canEquip:i.requiredLevel<=state.trainer.level})),
   slots:SLOTS.map(slot=>({slot,itemId:bonuses.equipment.find(e=>e.slot===slot)?.itemId??null})),
   titles:LEGACY_TITLES.map(t=>({...t,unlocked:legacyTitleIsUnlocked(t.id,state.wins,state.seen.length,state.badges.length),active:t.id===bonuses.activeTitle})),
   badges:KANTO_GYMS.map(g=>({id:g.id,name:g.name,stats:g.badgeStats,earned:bonuses.badges.includes(g.id)})),
