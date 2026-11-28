@@ -71,5 +71,20 @@ test('Arena private PostgreSQL writer: frozen trio, real duel, receipt and singl
   for(const k of ['coins','wins','losses','trainer','roster','badges','inventory','ballPocket'])assert.deepEqual(final.raw[k],raw[k]);
   assert.equal((await writeArenaAction(pool,same)).status,'duplicate');
   assert.equal(Number((await pool.query("SELECT count(*) AS n FROM game_action_receipts WHERE account_id=$1 AND kind LIKE 'arena-%'",[accountId])).rows[0].n),5);
+  // Fund only this disposable fixture; actual point earnings were proved above.
+  const funded=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[accountId])).rows[0].state;
+  const fundedRaw=JSON.parse(funded.journal.raw);fundedRaw.weeklyArena.balance=100;fundedRaw.weeklyArena.progress.run=null;
+  funded.journal.raw=JSON.stringify(fundedRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[accountId,JSON.stringify(funded)]);
+  const purchase=request({type:'purchase',offerId:'tm26'},5);
+  assert.equal((await writeArenaAction(pool,{...purchase,command:{...purchase.command,cost:1}})).status,'invalid');
+  const bought=await Promise.all([writeArenaAction(pool,purchase),writeArenaAction(pool,purchase)]);
+  assert.deepEqual(bought.map(x=>x.status).sort(),['applied','replay']);
+  assert.deepEqual(bought[0].result,bought[1].result);
+  const boughtState=await read();
+  assert.equal(boughtState.revision,6);assert.equal(boughtState.raw.weeklyArena.balance,40);
+  assert.equal(boughtState.raw.machineStock.tm26,1);
+  assert.equal(boughtState.raw.coins,raw.coins);
+  assert.equal((await apply({type:'purchase',offerId:'tm26'},6)).status,'weekly-limit');
  }finally{if(accountId)await pool.query('DELETE FROM game_accounts WHERE id=$1',[accountId]);await pool.end();}
 });

@@ -68,3 +68,5 @@ export {prepareMegaTrialBattle,resolveMegaTrialBattle} from './serverMegaBattle.
 
 export {onlineArenaPublicProjection,onlineArenaProgress,startOnlineArenaRun,abandonOnlineArenaRun,applyCertifiedOnlineArenaResult} from '../progression/serverArenaProgress.js';
 export {prepareArenaFloorBattle,resolvePreparedArenaDuel} from './serverArenaBattle.js';
+
+export {onlineArenaShopProjection,applyOnlineArenaPurchase} from '../shop/serverArenaShop.js';

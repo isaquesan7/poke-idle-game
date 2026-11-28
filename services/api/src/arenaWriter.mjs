@@ -18,6 +18,7 @@ const fighter=f=>({uid:f.uid,speciesId:f.combatant.speciesId,
  level:f.combatant.level,hp:f.hp,maxHp:f.combatant.stats.hp,sp:f.sp,maxSp:f.maxSp});
 function validCommand(command){
  if(!object(command))return false;
+ if(command.type==='purchase')return keys(command)==='offerId,type'&&typeof command.offerId==='string'&&command.offerId.length<=96;
  if(command.type==='start')return keys(command)==='type';
  if(command.type==='abandon')return keys(command)==='runId,type'&&id(command.runId);
  return command.type==='challenge'&&keys(command)==='floor,runId,type,uid,weekStartMs'&&id(command.runId)&&
@@ -66,6 +67,8 @@ export async function writeArenaAction(pool,params){
   let transition,duel=null;
   if(command.type==='start'){
    transition=core.startOnlineArenaRun(save.journal.raw,nowMs,randomUUID());
+  }else if(command.type==='purchase'){
+   transition=core.applyOnlineArenaPurchase(save.journal.raw,nowMs,command.offerId,randomUUID());
   }else if(command.type==='abandon'){
    transition=core.abandonOnlineArenaRun(save.journal.raw,nowMs,command.runId);
   }else{

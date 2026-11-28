@@ -16,13 +16,13 @@ export type ArenaOffer=
  | {id:string;kind:'tm';itemId:string;name:string;rarity:LootRarity;cost:number;weeklyLimit:number}
  | {id:string;kind:'stone';itemId:string;name:string;cost:number;weeklyLimit:number}
  | {id:string;kind:'gear';itemId:string;name:string;rarity:LootRarity;cost:number;weeklyLimit:number;gear:ProceduralGearRoll};
-const tms:ArenaOffer[]=KANTO_MACHINES.flatMap(tm=>{
+const tms:ArenaOffer[]=KANTO_MACHINES.flatMap<ArenaOffer>(tm=>{
  const rarity=machineRarity(tm.id);
  if(!rarity||!executableMachineMove(tm.moveName))return [];
  return [{id:tm.id,kind:'tm',itemId:tm.id,name:tm.id.toUpperCase()+' · '+tm.moveName,rarity,cost:TM_PRICE[rarity],weeklyLimit:rarity==='epic'||rarity==='legendary'?1:3}];
 });
 const stones:ArenaOffer[]=KANTO_EVOLUTION_STONES.map(s=>({id:s.id,kind:'stone',itemId:s.id,name:s.name,cost:20,weeklyLimit:3}));
-const gear:ArenaOffer[]=GEAR_TIERS.flatMap(t=>LEGACY_ITEMS.map(model=>{
+const gear:ArenaOffer[]=GEAR_TIERS.flatMap<ArenaOffer>(t=>LEGACY_ITEMS.map(model=>{
  const policy=regionalLootPolicy(t.regionId)!;
  const order=[...new Set([...Object.keys(model.stats),...STATS])].slice(0,LOOT_AFFIX_COUNT[t.rarity]);
  const value=Math.min(policy.maxBonus,policy.minBonus+1);
