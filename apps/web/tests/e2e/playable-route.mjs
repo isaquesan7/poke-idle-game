@@ -936,12 +936,18 @@ async function exercise(browser, label, viewport) {
   await evolutionDialog.getByRole('button',{name:'Confirmar evolução',exact:true}).click();
   const charging=page.locator('[data-testid="evolution-presentation"][data-phase="charging"]');
   await charging.waitFor();
+  assert.equal(await charging.locator('img').getAttribute('src'),'/assets/pokemon-gifs/poke_16.gif');
+  assert.equal(await charging.locator('img').evaluate(img=>getComputedStyle(img).transform),'none');
+  assert.equal(await charging.locator('img').evaluate(img=>getComputedStyle(img).opacity),'1');
   assert.ok(await charging.evaluate(el=>Array.from(el.querySelectorAll('*')).some(node=>getComputedStyle(node).animationName!=='none'&&getComputedStyle(node).animationDuration!=='0s')),'Evolution charging effects must animate with reducedMotion:reduce');
   const white=page.locator('[data-testid="evolution-presentation"][data-phase="white"]');
   await white.waitFor();
   assert.equal(await white.locator('img').getAttribute('src'),'/assets/pokemon-gifs/poke_17.gif');
+  assert.match(await white.locator('img').evaluate(img=>getComputedStyle(img).filter),/brightness\(0\)/);
+  assert.equal(await white.locator('img').evaluate(img=>getComputedStyle(img).opacity),'1');
   const reveal=page.locator('[data-testid="evolution-presentation"][data-phase="reveal"]');
   await reveal.waitFor();
+  assert.equal(await reveal.locator('img').evaluate(img=>getComputedStyle(img).transform),'none');
   assert.ok(await reveal.evaluate(el=>Array.from(el.querySelectorAll('*')).some(node=>getComputedStyle(node).animationName!=='none'&&getComputedStyle(node).animationDuration!=='0s')),'Evolution reveal must animate with reducedMotion:reduce');
   await evolutionDialog.waitFor({state:'hidden'});
   await page.waitForFunction(({key,revision})=>
