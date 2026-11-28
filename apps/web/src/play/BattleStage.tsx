@@ -2,11 +2,14 @@ import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode, Ref } from 'react';
 import type { KantoBattleVisualFrame } from '@kanto/game-core';
 import styles from './PlayApp.module.css';
+import presentation from './PokemonPresentation.module.css';
+import {PokeballSymbol} from './PokeballArt';
 
 interface FighterPanel {
   readonly name:string;
   readonly level:number;
   readonly art:ReactNode;
+  readonly caught?:boolean;
 }
 interface BattleStageProps {
   readonly player:FighterPanel;
@@ -160,6 +163,7 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLab
         </span>}
       </div>
       <strong>{fighter.name} · Nv. {fighter.level}</strong>
+      {side==='wild'&&fighter.caught&&<span className={presentation.caught} data-testid="wild-caught"><PokeballSymbol/> Na coleção</span>}
       <small>{side==='player'?'Seu parceiro':opponentLabel}</small>
       {hp!==undefined&&maxHp!==null&&maxHp>0&&(
         <HealthMeter side={side} hp={hp} max={maxHp} opponentLabel={opponentLabel} />

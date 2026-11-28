@@ -519,6 +519,9 @@ try{
   assert.ok((await summary.textContent()).includes('+'+closedRegion.rewardSummary.coins));
   await summary.getByRole('button',{name:'Continuar'}).click();
   await rewardAlpha.getByTestId('online-battle-start').waitFor();
+  const bush=rewardAlpha.getByTestId('encounter-presentation');
+  await bush.waitFor();assert.equal(await bush.getAttribute('data-phase'),'idle');
+  assert.equal(await rewardAlpha.getByTestId('wild-caught').count(),0);
   await rewardAlpha.close();
   await page.locator('#online-refresh').click();
   await page.locator('#region-open').waitFor();

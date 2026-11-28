@@ -5,6 +5,7 @@ import {useEffect,useRef,useState} from 'react';
 import {kantoPokemonFormProfile,KANTO_BATTLE_SPECIES,KANTO_GYMS,kantoNextGym,xpThreshold,LEGACY_ITEMS,kantoMachine,machineRarity} from '@kanto/game-core';
 import type {LegacySave} from '../storage/legacySave';
 import type {Actor,Party,RegionView,GymView,RegionalReward} from './onlinePlay';
+import presentation from './PokemonPresentation.module.css';
 import {EncounterPresentation} from './EncounterPresentation';
 import {BattleStage} from './BattleStage';
 import {BattlePlayback} from './BattlePlayback';
@@ -32,9 +33,13 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  const g=mode==='gym'?gym?.gym:null;
  const w=mode==='region'?region?.encounter:null;
  const [auto,setAuto]=useState(false);
- const [searching,setSearching]=useState(false);
+ const [searchPhase,setSearchPhase]=useState<'idle'|'searching'|'reveal'>('idle');
+ const searching=searchPhase!=='idle';
+ const [revealedId,setRevealedId]=useState<string|null>(null);
  const searchTimer=useRef<number|null>(null);
- useEffect(()=>()=>{if(searchTimer.current!==null)window.clearTimeout(searchTimer.current);},[]);
+ const searchStarted=useRef(0);
+ const active=useRef(true);
+ useEffect(()=>{active.current=true;return()=>{active.current=false;if(searchTimer.current!==null)window.clearTimeout(searchTimer.current);};},[]);
  const [shown,setShown]=useState({key:'',length:0});
  const stageRef=useRef<HTMLDivElement>(null);
  const captureRef=useRef<HTMLDivElement>(null);
@@ -58,9 +63,25 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
   const timer=window.setTimeout(()=>{sent.current=token;void onCommandRef.current(e.phase==='await-player'?'turn':'reward').then(ok=>{if(!ok)setAuto(false);});},180);
   return()=>window.clearTimeout(timer);
  },[e?.id,e?.phase,e?.log.length,auto,busy,blocked,playing,searching]);
- useEffect(()=>{if(!e){focusedEncounter.current='';return;}if(busy||reward||!stageRef.current)return;if(focusedEncounter.current!==e.id){focusedEncounter.current=e.id;stageRef.current.focus({preventScroll:true});stageRef.current.scrollIntoView({block:'center'});}},[e?.id,busy,reward]);
- useEffect(()=>{if(busy||playing||reward)return;const target=levelUp?stageRef.current:w?.phase==='paid'?captureRef.current:e?stageRef.current:startRef.current;target?.focus({preventScroll:true});target?.scrollIntoView({block:levelUp?'center':'nearest'});},[e?.id,e?.phase,busy,playing,reward,levelUp]);
- function launch(){if(searching)return;sent.current='';setAuto(true);if(mode==='region')setSearching(true);void onCommand('open').then(ok=>{if(!ok){setAuto(false);setSearching(false);return;}if(mode==='region')searchTimer.current=window.setTimeout(()=>{setSearching(false);searchTimer.current=null;},window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:1350);});}
+ useEffect(()=>{if(!e){focusedEncounter.current='';return;}if(busy||searching||reward||!stageRef.current)return;if(focusedEncounter.current!==e.id){focusedEncounter.current=e.id;stageRef.current.focus({preventScroll:true});stageRef.current.scrollIntoView({block:'center'});}},[e?.id,busy,reward,searching]);
+ useEffect(()=>{if(busy||searching||playing||reward)return;const target=levelUp?stageRef.current:w?.phase==='paid'?captureRef.current:e?stageRef.current:startRef.current;target?.focus({preventScroll:true});target?.scrollIntoView({block:levelUp?'center':'nearest'});},[e?.id,e?.phase,busy,playing,reward,levelUp,searching]);
+ function launch(){
+  if(searching)return;sent.current='';setAuto(true);
+  if(mode==='region'){setSearchPhase('searching');searchStarted.current=performance.now();setRevealedId(null);}
+  void onCommand('open').then(ok=>{
+   if(!active.current)return;
+   if(!ok){setAuto(false);setSearchPhase('idle');return;}
+   if(mode==='region'){
+    const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    searchTimer.current=window.setTimeout(()=>{
+     if(reduced){setSearchPhase('idle');searchTimer.current=null;return;}
+     setSearchPhase('reveal');
+     searchTimer.current=window.setTimeout(()=>{setSearchPhase('idle');searchTimer.current=null;},360);
+    },reduced?0:Math.max(0,1080-(performance.now()-searchStarted.current)));
+   }
+  });
+ }
+ useEffect(()=>{if(searchPhase==='reveal'&&w?.id)setRevealedId(w.id);},[searchPhase,w?.id]);
  const lead=data.roster.find(p=>p.uid===data.team[0]);
  const xpMax=lead&&lead.level<100?xpThreshold('pokemon',lead.level):null;
  const xp=typeof lead?.xp==='number'&&xpMax!==null?Math.min(xpMax,Math.max(0,lead.xp)):0;
@@ -96,7 +117,7 @@ export function OnlineBattle({mode,region,gym,data,regionId,regionName,busy,bloc
  {e&&!searching&&e.phase!=='reserved'&&<p>Turno {e.turn} · {playing?'Apresentando diário':e.phase==='await-player'?'Combate em andamento':e.outcome==='win'||e.outcome==='player-win'?'Vitória!':e.outcome==='draw'?'Empate':'Derrota'}</p>}
  {!searching&&e?.phase==='await-player'&&<div className={gymStyles.actions}><button className={styles.primary} disabled={busy||auto||blocked} onClick={()=>{sent.current='';setAuto(true);}}>Continuar batalha automática</button><button className={styles.secondary} disabled={!auto} onClick={()=>setAuto(false)}>Pausar após a rodada</button></div>}
  </div>
- {lead&&(mode==='region'||!!g?.player&&!!g.opponent)&&<div className={styles.battleArenaColumn}>{masteredSpecies.includes(a?.speciesId??lead.pokemonId)&&<span className={styles.masteryEmblem}><i className="fa-solid fa-award" aria-hidden="true"/> {name(a?.speciesId??lead.pokemonId,a?a.megaForm:lead.megaForm)} · Maestria V</span>}<BattleStage stageRef={stageRef} levelUp={levelUp} player={{name:name(a?.speciesId??lead.pokemonId,a?a.megaForm:lead.megaForm),level:w?.phase==='paid'?lead.level:a?.level??w?.playerLevel??lead.level,art:<PokemonArt id={art(a?.speciesId??lead.pokemonId,a?a.megaForm:lead.megaForm)} name={name(a?.speciesId??lead.pokemonId,a?a.megaForm:lead.megaForm)} large/>}} wild={!searching&&z?{name:name(z.speciesId,z.megaForm),level:z.level??w?.level??1,art:<PokemonArt id={art(z.speciesId,z.megaForm)} name={name(z.speciesId,z.megaForm)} large/>}:null} encounterPresentation={searching?<EncounterPresentation regionId={regionId}/>:undefined} frame={searching?null:frame} playerMaxHp={a?.maxHp??null} wildMaxHp={z?.maxHp??null} playerMaxSp={a?.maxSp??null} wildMaxSp={z?.maxSp??null} playing={playing&&!!frame} cue={key+':'+visible} {...(!searching&&a&&z?{vitals:{playerHp:a.hp,wildHp:z.hp,playerSp:a.sp,wildSp:z.sp}}:{})} opponentLabel={g?'Pokémon de '+g.leader:'Pokémon selvagem'}/>
+ {lead&&(mode==='region'||!!g?.player&&!!g.opponent)&&<div className={styles.battleArenaColumn}>{masteredSpecies.includes(a?.speciesId??lead.pokemonId)&&<span className={styles.masteryEmblem}><i className="fa-solid fa-award" aria-hidden="true"/> {name(a?.speciesId??lead.pokemonId,a?a.megaForm:lead.megaForm)} · Maestria V</span>}<BattleStage stageRef={stageRef} levelUp={levelUp} player={{name:name(a?.speciesId??lead.pokemonId,a?a.megaForm:lead.megaForm),level:w?.phase==='paid'?lead.level:a?.level??w?.playerLevel??lead.level,art:<PokemonArt id={art(a?.speciesId??lead.pokemonId,a?a.megaForm:lead.megaForm)} name={name(a?.speciesId??lead.pokemonId,a?a.megaForm:lead.megaForm)} large/>}} wild={!searching&&z?{name:name(z.speciesId,z.megaForm),level:z.level??w?.level??1,caught:mode==='region'&&(data.roster.some(p=>p.pokemonId===z.speciesId)||(Array.isArray(data.caughtSpecies)&&data.caughtSpecies.includes(z.speciesId))),art:<span className={w?.id&&revealedId===w.id?presentation.wildReveal:undefined}><PokemonArt id={art(z.speciesId,z.megaForm)} name={name(z.speciesId,z.megaForm)} large/></span>}:null} encounterPresentation={mode==='region'?<EncounterPresentation phase={searchPhase}/>:undefined} frame={searching?null:frame} playerMaxHp={a?.maxHp??null} wildMaxHp={z?.maxHp??null} playerMaxSp={a?.maxSp??null} wildMaxSp={z?.maxSp??null} playing={playing&&!!frame} cue={key+':'+visible} {...(!searching&&a&&z?{vitals:{playerHp:a.hp,wildHp:z.hp,playerSp:a.sp,wildSp:z.sp}}:{})} opponentLabel={g?'Pokémon de '+g.leader:'Pokémon selvagem'}/>
  {!searching&&pendingActors.length>0&&<div className={gymStyles.pendingActions} aria-live="polite" aria-label="Preparação e recarga">{pendingActors.map(p=><div key={p.side} className={gymStyles.pendingAction} data-testid={'battle-pending-'+p.side}><i className={'fa-solid '+p.icon} aria-hidden="true"/><div><strong>{name(p.speciesId)} · {p.title}</strong><small>{p.detail}</small></div></div>)}</div>}
  {w?.phase==='paid'&&!playing&&!levelUp&&<div className={styles.battleCapturePlacement} ref={captureRef} tabIndex={-1}><div className={styles.captureDecision}><h3>{w.outcome==='win'?'Tentar capturar '+name(w.wild?.speciesId??0)+'?':'Encerrar batalha'}</h3>{w.captureChoices.map(ball=><button key={ball.ballId} className={styles.primary} disabled={busy||ball.quantity<1} onClick={()=>void onCommand('finish',ball.ballId)}><PokeballArt id={ball.ballId}/> {balls[ball.ballId]??ball.ballId} · {ball.quantity}</button>)}<button className={styles.secondary} disabled={busy} onClick={()=>void onCommand('finish','skip')}>Seguir sem capturar</button></div></div>}
  </div>}
