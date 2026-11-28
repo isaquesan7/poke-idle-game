@@ -25,6 +25,7 @@ interface BattleStageProps {
   readonly levelUp?:boolean;
   /** Rótulo contextual: selvagem na região, adversário oficial no Ginásio. */
   readonly opponentLabel?:string;
+  readonly encounterPresentation?:ReactNode;
   readonly vitals?:{playerHp:number;wildHp:number;playerSp:number;wildSp:number};
 }
 type Side='player'|'wild';
@@ -178,7 +179,7 @@ function Fighter({side,fighter,frame,maxHp,maxSp,cue,playing,levelUp,opponentLab
  */
 export function BattleStage({player,wild,frame,playerMaxHp,wildMaxHp,
   playerMaxSp,wildMaxSp,cue,playing,stageRef,levelUp=false,
-  opponentLabel='Pokémon selvagem',vitals}:BattleStageProps) {
+  opponentLabel='Pokémon selvagem',vitals,encounterPresentation}:BattleStageProps) {
   return (
     <div className={styles.battleScene} data-testid="battle-stage"
       ref={stageRef} tabIndex={-1} role="region" aria-label="Área do combate">
@@ -188,8 +189,8 @@ export function BattleStage({player,wild,frame,playerMaxHp,wildMaxHp,
       {wild&&<Fighter side="wild" fighter={wild} frame={frame} maxHp={wildMaxHp}
         maxSp={wildMaxSp} cue={cue} playing={playing} levelUp={false} opponentLabel={opponentLabel} vitals={vitals}/>}
       {!wild&&<div className={styles.battleFighter}>
-        <span className={styles.unknownEnemy}>?</span>
-        <strong>Encontro surpresa</strong><small>Pokémon selvagem</small>
+        {encounterPresentation??<><span className={styles.unknownEnemy}>?</span>
+        <strong>Encontro surpresa</strong><small>Pokémon selvagem</small></>}
       </div>}
       {wild&&!frame&&!vitals&&(
         <p className={styles.battleOldReplayNote}>

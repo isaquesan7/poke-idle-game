@@ -22,6 +22,7 @@ import type { PlayAction, PlayRead, PlayWrite } from './playSave';
 import styles from './PlayApp.module.css';
 import { PokedexPanel } from './PokedexPanel';
 import { BattlePlayback } from './BattlePlayback';
+import {EvolutionPresentation} from './EvolutionPresentation';
 import { BattleStage } from './BattleStage';
 import {OnlineBattle} from './OnlineBattle';
 import { BallShopPreview } from './BallShopPreview';
@@ -171,6 +172,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
   const [busy, setBusy] = useState(false);
   const [selectedUid, setSelectedUid] = useState<number | null>(null);
   const [evolutionConfirm,setEvolutionConfirm]=useState<{uid:number;from:number;to:number;requirement:string;stone:boolean;revision:number}|null>(null);
+  const [evolutionScene,setEvolutionScene]=useState<{uid:number;from:number;to:number;confirmed:boolean}|null>(null);
   /** Apenas navegação local: não grava no save nem altera o Pokémon ativo. */
   const [pokemonSection,setPokemonSection]=useState<PokemonSection>('profile');
   const [trainerSection,setTrainerSection]=useState<TrainerSection>('profile');
@@ -1001,6 +1003,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                 {megaView&&<MegaEvolution key={focused.uid+':'+megaView.revision} view={megaView} uid={focused.uid} busy={busy} onEvolve={(command,revision)=>onlineExtra('mega/evolve',{command},revision)} onSanctuary={()=>setTab('mega')}/>}
                 {online&&!machineView&&<section className={styles.panel}><h3>Máquinas Técnicas (TMs)</h3><p>Não foi possível carregar as TMs deste Pokémon. Atualize a página para tentar novamente.</p></section>}
                 {machineView&&<MachineEvolution key={focused.uid+':'+machineView.revision} view={machineView} uid={focused.uid} revision={save.snapshot.revision} busy={busy} onTeach={(command,revision)=>onlineExtra('tm/teach',{command},revision)}/>}
+                {evolutionScene&&<EvolutionPresentation from={evolutionScene.from} to={evolutionScene.to} confirmed={evolutionScene.confirmed} onClose={()=>setEvolutionScene(null)}/>}
                 {evolutionConfirm&&<RegionDialog title="Confirmar evolução" size="compact" onClose={()=>setEvolutionConfirm(null)}>
                   <div className={styles.evolutionConfirmScene}>
                     <div><PokemonArt id={evolutionConfirm.from} name={speciesName(evolutionConfirm.from)} large/><strong>{speciesName(evolutionConfirm.from)}</strong></div>
@@ -1014,7 +1017,17 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
                     <button type="button" className={styles.secondary} onClick={()=>setEvolutionConfirm(null)}>Cancelar</button>
                     <button type="button" className={styles.primary} disabled={busy||Boolean(expedition)||evolutionConfirm.revision!==save.snapshot.revision||focused.uid!==evolutionConfirm.uid||focused.pokemonId!==evolutionConfirm.from||!!onlineViews?.region?.encounter||!!onlineViews?.gym?.gym} onClick={()=>{
                       const choice=evolutionConfirm;setEvolutionConfirm(null);
-                      dispatch({type:'evolution',uid:choice.uid,targetSpeciesId:choice.to});
+                      setEvolutionScene({uid:choice.uid,from:choice.from,to:choice.to,confirmed:false});
+                      const action:PlayAction={type:'evolution',uid:choice.uid,targetSpeciesId:choice.to};
+                      void (online?onlineTransaction(action,choice.revision):transact(()=>updatePlaySave(window.localStorage,choice.revision,action))).then(result=>{
+                        if(result?.status==='ok'){
+                          const parsed=parseLegacySave(result.snapshot.journal.raw);
+                          if(parsed.status==='valid'&&parsed.save.roster.some(p=>p.uid===choice.uid&&p.pokemonId===choice.to)){
+                            setEvolutionScene({uid:choice.uid,from:choice.from,to:choice.to,confirmed:true});return;
+                          }
+                        }
+                        setEvolutionScene(null);
+                      });
                     }}><i className="fa-solid fa-dna" aria-hidden="true"/> Confirmar evolução</button>
                   </div>
                 </RegionDialog>}
