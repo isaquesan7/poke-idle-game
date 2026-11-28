@@ -93,9 +93,11 @@ export async function writeArenaAction(pool,params){
   if(!challenge)await c.query('INSERT INTO game_action_receipts(account_id,action_id,kind,save_revision) VALUES($1,$2,$3,$4)',
    [accountId,actionId,kind,nextRevision]);
   const {raw,status,...details}=transition;
+  if(duel)Object.assign(duel,{points:details.points,rewardEligible:details.rewardEligible,reward:details.reward});
   const result={...details,...(duel?{duel}:{})};
   const updated=JSON.parse(raw);
   updated.lastArenaAction={actionId,command,revision:nextRevision,result};
+  if(duel)updated.lastArenaDuel=duel;
   const next={...save,revision:nextRevision,journal:{...save.journal,revision:nextRevision,raw:JSON.stringify(updated)}};
   await c.query('UPDATE game_saves SET revision=$3,state=$2::jsonb,updated_at=now() WHERE account_id=$1',
    [accountId,JSON.stringify(next),nextRevision]);

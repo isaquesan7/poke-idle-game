@@ -89,11 +89,11 @@ try{
   const api=launch(process.execPath,['services/api/src/server.mjs'],{
     NODE_ENV:'test',ONLINE_REGISTRATION_ENABLED:'true',
     ACCOUNT_MAIL_MODE:'off',PORT:String(apiPort),APP_ORIGIN:origin,
-    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MEGA_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',
+    WILD_CI_ENTROPY_HEX:'42'.repeat(32),ONLINE_REGIONAL_EXPANSION_CI_ONLY:'true',ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MEGA_CI_ONLY:'true',ONLINE_ARENA_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',
     GYM_HMAC_ACTIVE_KEY_ID:'browser-ci',GYM_HMAC_KEYRING_JSON:JSON.stringify({'browser-ci':Buffer.alloc(32,91).toString('base64')})
   });
   const web=launch(process.execPath,['server.mjs'],{
-    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MEGA_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
+    PORT:String(webPort),ONLINE_GYM_PORTAL_CI_ONLY:'true',ONLINE_EXPEDITION_CI_ONLY:'true',ONLINE_SHOP_CI_ONLY:'true',ONLINE_MOVES_CI_ONLY:'true',ONLINE_POKEDEX_CI_ONLY:'true',ONLINE_TRAINER_LOADOUT_CI_ONLY:'true',ONLINE_EVOLUTION_CI_ONLY:'true',ONLINE_POKEMON_TRAINING_CI_ONLY:'true',ONLINE_TM_CI_ONLY:'true',ONLINE_MEGA_CI_ONLY:'true',ONLINE_ARENA_CI_ONLY:'true',ONLINE_MASTERY_CI_ONLY:'true',ONLINE_API_INTERNAL_URL:'http://127.0.0.1:'+apiPort+'/'
   });
   const closed=launch(process.execPath,['server.mjs'],{
     PORT:String(closedPort),ONLINE_API_INTERNAL_URL:''
@@ -1274,6 +1274,70 @@ try{
   await megaPage.setViewportSize({width:390,height:844});
   assert.ok(await megaPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
   await megaPage.close();
+
+  checkpoint("Arena authenticated desktop and mobile journey");
+  const arenaPage=await context.newPage();
+  await arenaPage.goto(origin+'/online',{waitUntil:'domcontentloaded'});
+  await arenaPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();
+  const arenaNav=arenaPage.getByRole('navigation',{name:'Navegação do jogo'});
+  const arenaRead=async()=>{const q=await arenaPage.request.get(origin+'/api/v1/arena/current');assert.equal(q.status(),200);return q.json();};
+  const openArena=async()=>{await expand(arenaPage,'Abrir mapa');await arenaNav.getByRole('button',{name:'Arena semanal',exact:true}).click();await arenaPage.getByTestId('arena-screen').waitFor();};
+  await openArena();
+  assert.equal((await arenaRead()).teamEligible,false);
+  assert.equal(await arenaPage.getByRole('button',{name:'Iniciar tentativa',exact:true}).isDisabled(),true);
+  // Only the disposable CI account receives the two additional trained members.
+  const arenaSave=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const arenaRaw=JSON.parse(arenaSave.journal.raw);
+  const arenaUids=[megaUid];
+  for(let i=0;i<2;i++){
+    const p=structuredClone(arenaRaw.roster.find(p=>p.uid===megaUid));
+    p.uid=arenaRaw.nextUid++;delete p.megaForm;delete p.megaTrialForm;
+    arenaRaw.roster.push(p);arenaUids.push(p.uid);
+  }
+  arenaRaw.team=arenaUids;arenaSave.journal.raw=JSON.stringify(arenaRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(arenaSave)]);
+  await arenaPage.reload({waitUntil:'domcontentloaded'});
+  await arenaPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();await openArena();
+  const initial=await arenaRead();assert.equal(initial.teamEligible,true);
+  assert.equal(await arenaPage.getByTestId(/^arena-floor-/).count(),40);
+  assert.equal(await arenaPage.getByTestId(/^arena-member-/).count(),3);
+  const start=await responseFor(arenaPage,'/api/v1/arena/start',()=>arenaPage.getByRole('button',{name:'Iniciar tentativa',exact:true}).click());
+  assert.equal(start.status,'applied');assert.deepEqual(start.result.progress.run.team,arenaUids);
+  const challenge=arenaPage.getByRole('button',{name:'Desafiar andar 1',exact:true});
+  await challenge.waitFor();
+  const state=await arenaRead(),runId=state.run.id;
+  const bad=await arenaPage.request.post(origin+'/api/v1/arena/challenge',{headers:{Origin:origin},data:{actionId:'browser-arena-forged-01',expectedRevision:state.revision,command:{type:'challenge',runId,weekStartMs:state.startMs,floor:1,uid:arenaUids[1],outcome:'win'}}});
+  assert.equal(bad.status(),400);
+  await arenaPage.getByTestId('arena-member-'+arenaUids[1]).click();
+  const won=await responseFor(arenaPage,'/api/v1/arena/challenge',()=>challenge.click());
+  assert.equal(won.result.duel.outcome,'win');assert.equal(won.result.duel.uid,arenaUids[1]);assert.equal(won.result.points,1);
+  const finishReplay=async()=>{
+    const replay=arenaPage.getByTestId('arena-replay');await replay.waitFor();
+    const skip=replay.getByRole('button',{name:'Pular apresentação',exact:true});if(await skip.isEnabled())await skip.click();
+    await replay.getByTestId('arena-reward').waitFor();
+    await replay.getByRole('button',{name:'Voltar à Arena'}).click();
+  };
+  await finishReplay();
+  await arenaPage.getByRole('button',{name:'Desafiar andar 2',exact:true}).waitFor();
+  assert.equal((await arenaRead()).balance,1);
+  await arenaPage.setViewportSize({width:390,height:844});
+  assert.ok(await arenaPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
+  await arenaPage.getByRole('button',{name:'Abandonar tentativa',exact:true}).click();
+  const abandon=await responseFor(arenaPage,'/api/v1/arena/abandon',()=>arenaPage.getByRole('dialog',{name:'Abandonar tentativa?'}).getByRole('button',{name:'Confirmar',exact:true}).click());
+  assert.equal(abandon.result.balance,1);
+  await arenaPage.getByRole('button',{name:'Iniciar tentativa',exact:true}).waitFor();
+  assert.equal((await arenaRead()).lastDuel.id,won.result.duel.id);
+  const restart=await responseFor(arenaPage,'/api/v1/arena/start',()=>arenaPage.getByRole('button',{name:'Iniciar tentativa',exact:true}).click());
+  assert.notEqual(restart.result.progress.run.id,runId);
+  await challenge.waitFor();await arenaPage.getByTestId('arena-member-'+arenaUids[2]).click();
+  const repeat=await responseFor(arenaPage,'/api/v1/arena/challenge',()=>challenge.click());
+  assert.equal(repeat.result.duel.outcome,'win');assert.equal(repeat.result.points,0);assert.equal(repeat.result.balance,1);
+  assert.deepEqual(repeat.result.reward,{coins:0,trainerXp:0,pokemonXp:0});
+  await finishReplay();
+  await arenaPage.getByRole('button',{name:'Abandonar tentativa',exact:true}).click();
+  await responseFor(arenaPage,'/api/v1/arena/abandon',()=>arenaPage.getByRole('dialog',{name:'Abandonar tentativa?'}).getByRole('button',{name:'Confirmar',exact:true}).click());
+  assert.equal((await arenaRead()).run,null);
+  await arenaPage.close();
 
   checkpoint("password recovery and logout");
   // Recovery is requested using the actual browser form, never a real inbox.

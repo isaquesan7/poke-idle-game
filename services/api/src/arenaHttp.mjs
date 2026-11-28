@@ -14,7 +14,8 @@ export async function readArena(pool,accountId){
   save.journal?.revision!==revision||typeof save.journal.raw!=='string')return {status:'invalid-save'};
  const core=await loadCombatAdapter(),view=core.onlineArenaPublicProjection(save.journal.raw,Number(row.ms));
  if(!view)return {status:'invalid-save'};
- const last=JSON.parse(save.journal.raw).lastArenaAction;
+ const state=JSON.parse(save.journal.raw);
+ const last=state.lastArenaDuel??state.lastArenaAction?.result?.duel;
  return {status:'ok',revision,serverNowMs:Number(row.ms),...view,busy:row.busy||view.busy,
-  lastDuel:last?.result?.duel?.weekStartMs===view.startMs?last.result.duel:null};
+  lastDuel:last?.weekStartMs===view.startMs?last:null};
 }
