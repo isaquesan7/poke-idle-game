@@ -1,10 +1,10 @@
 /** Arena-exclusive legendary identities. Never include these templates in
  * LEGACY_ITEMS: ordinary drops and the coin shop use that separate catalog.
- * Art IDs are stable; final images will be supplied by the owner.
+ * Art IDs are stable; final images supplied by the owner; use matching gear-*.webp.
  */
 import type {EquipmentSlot} from '../stats/trainer.js';
 export const ARENA_LEGENDARY_TEMPLATES:readonly {id:string;name:string;slot:EquipmentSlot}[]=[
- {id:'arena-hat',name:'Boné da Arena',slot:'hat'},
+ {id:'arena-hat',name:'Óculos da Arena',slot:'hat'},
  {id:'arena-jacket',name:'Jaqueta da Arena',slot:'jacket'},
  {id:'arena-gloves',name:'Luvas da Arena',slot:'gloves'},
  {id:'arena-pants',name:'Calça da Arena',slot:'pants'},

@@ -36,6 +36,8 @@ describe('ARENA05 private catalog and checkout',()=>{
    expect(LEGACY_ITEMS.some(m=>m.id===offer.itemId)).toBe(false);
    const instance=createOnlineArenaGear(id,offer.id,['hp','attack','defense','speed'])!;
    expect(instance).not.toBeNull();
+   expect(Object.values(instance.stats)).toEqual([15,15,15,15]);
+   expect(inspectOnlineGear({...instance,stats:{...instance.stats,hp:16}})).toBeNull();
    expect(createOnlineDropGear(id,{...offer.gear,stats:instance.stats})).toBeNull();
    expect(createOnlineShopGear(id,offer.itemId)).toBeNull();
    expect(inspectOnlineGear({...instance,id:'gear-'+id,source:'drop'})).toBeNull();
@@ -51,14 +53,14 @@ describe('ARENA05 private catalog and checkout',()=>{
   expect(applyOnlineArenaPurchase(tm.raw,now,'tm26',id).status).toBe('weekly-limit');
   const gear=ok(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-hat',id,['attack','defense','specialDefense','speed']));
   expect(gear.balance).toBe(160);
-  expect(JSON.parse(gear.raw).inventory.gear[0].stats).toEqual({attack:10,defense:10,specialDefense:10,speed:10});
+  expect(JSON.parse(gear.raw).inventory.gear[0].stats).toEqual({attack:15,defense:15,specialDefense:15,speed:15});
   expect(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-hat',id).status).toBe('invalid');
   expect(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-hat',id,['hp','hp','speed','attack']).status).toBe('invalid');
   expect(applyOnlineArenaPurchase(tm.raw,now,'arena-legendary-hat',id,['hp','speed','attack','luck']).status).toBe('invalid');
   expect(applyOnlineArenaPurchase(tm.raw,now,'fire-stone',id,['hp','speed','attack','defense']).status).toBe('invalid');
   expect(JSON.parse(gear.raw).coins).toBe(before.coins);
   expect(JSON.parse(gear.raw).inventory.gear[0].source).toBe('arena');
-  expect(onlineInventoryProjection(gear.raw)?.equipment[0]).toMatchObject({name:'Boné da Arena',templateId:'arena-hat'});
+  expect(onlineInventoryProjection(gear.raw)?.equipment[0]).toMatchObject({name:'Óculos da Arena',templateId:'arena-hat'});
   expect(applyOnlineTrainerLoadout(gear.raw,{kind:'equipment',slot:'hat',itemId:JSON.parse(gear.raw).inventory.gear[0].id}).status).toBe('ok');
   expect(applyOnlineArenaPurchase(gear.raw,now,'arena-rare-coat',id).status).toBe('weekly-limit');
   const next=onlineArenaShopProjection(gear.raw,now+ARENA_WEEK_MS);

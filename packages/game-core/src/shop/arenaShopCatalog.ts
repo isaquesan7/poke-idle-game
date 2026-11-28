@@ -27,7 +27,7 @@ const stones:ArenaOffer[]=KANTO_EVOLUTION_STONES.map(s=>({id:s.id,kind:'stone',i
 const gear:ArenaOffer[]=GEAR_TIERS.flatMap<ArenaOffer>(t=>(t.rarity==='legendary'?ARENA_LEGENDARY_TEMPLATES.map(m=>({...m,stats:{}})):LEGACY_ITEMS).map(model=>{
  const policy=regionalLootPolicy(t.regionId)!;
  const order=[...new Set([...Object.keys(model.stats),...STATS])].slice(0,LOOT_AFFIX_COUNT[t.rarity]);
- const value=t.rarity==='legendary'?policy.maxBonus:Math.min(policy.maxBonus,policy.minBonus+1);
+ const value=t.rarity==='legendary'?15:Math.min(policy.maxBonus,policy.minBonus+1);
  const roll:ProceduralGearRoll={templateId:model.id,slot:model.slot,rarity:t.rarity,regionId:t.regionId,requiredLevel:policy.requiredMin,stats:Object.fromEntries(order.map(k=>[k,value]))};
  return {id:'arena-'+t.rarity+'-'+(t.rarity==='legendary'?model.slot:model.id),kind:'gear',itemId:model.id,name:model.name,rarity:t.rarity,cost:t.cost,weeklyLimit:1,gear:roll,attributeSelection:t.rarity==='legendary'?{count:4,options:[...STATS],bonus:value}:null};
 }));
