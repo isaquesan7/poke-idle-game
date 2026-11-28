@@ -1,4 +1,4 @@
-import {arenaShopOffer} from '../shop/arenaShopCatalog.js';
+import {arenaGearStats,arenaShopOffer} from '../shop/arenaShopCatalog.js';
 import {basicGearOffer} from '../shop/basicGearCatalog.js';
 /** D4B: online-only individual gear. Local /play inventory is a different contract. */
 import {LEGACY_ITEMS} from '../legacy/catalog.js';
@@ -34,10 +34,10 @@ export function inspectOnlineGear(v:unknown):OnlineGearInstance|null{
  if(v.source==='arena'){
   const offer=arenaShopOffer('arena-'+rarity+'-'+model.id);
   if(!offer||offer.kind!=='gear'||!/^gear-arena-[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/.test(v.id)||
-   v.regionId!==offer.gear.regionId||v.requiredLevel!==offer.gear.requiredLevel||
-   Object.keys(v.stats).length!==Object.keys(offer.gear.stats).length||
-   Object.entries(offer.gear.stats).some(([k,n])=>(v.stats as Record<string,unknown>)[k]!==n))return null;
-  return {...offer.gear,id:v.id,source:'arena'};
+   v.regionId!==offer.gear.regionId||v.requiredLevel!==offer.gear.requiredLevel)return null;
+  const stats=arenaGearStats(offer,offer.attributeSelection?Object.keys(v.stats):undefined);
+  if(!stats||Object.keys(v.stats).length!==Object.keys(stats).length||Object.entries(stats).some(([k,n])=>(v.stats as Record<string,unknown>)[k]!==n))return null;
+  return {...offer.gear,stats,id:v.id,source:'arena'};
  }
  if(v.id.startsWith('gear-shop-')||v.id.startsWith('gear-arena-'))return null;
  const min=Math.min(policy.maxBonus,policy.minBonus+(rarity==='common'?0:1));
@@ -65,8 +65,9 @@ export function createOnlineShopGear(serverId:string,templateId:string){
  return inspectOnlineGear({id:'gear-shop-'+serverId.toLowerCase(),source:'shop',templateId:offer.id,slot:offer.slot,rarity:offer.rarity,regionId:offer.regionId,requiredLevel:offer.requiredLevel,stats:offer.stats});
 }
 
-export function createOnlineArenaGear(serverId:string,offerId:string){
+export function createOnlineArenaGear(serverId:string,offerId:string,attributes?:unknown){
  const offer=arenaShopOffer(offerId);
  if(!offer||offer.kind!=='gear'||typeof serverId!=='string'||!/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(serverId))return null;
- return inspectOnlineGear({...offer.gear,id:'gear-arena-'+serverId.toLowerCase(),source:'arena'});
+ const stats=arenaGearStats(offer,attributes);if(!stats)return null;
+ return inspectOnlineGear({...offer.gear,stats,id:'gear-arena-'+serverId.toLowerCase(),source:'arena'});
 }

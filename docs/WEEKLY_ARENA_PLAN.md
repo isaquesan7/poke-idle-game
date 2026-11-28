@@ -17,3 +17,6 @@
 3. ARENA03 estado persistente, writer atômico e idempotente sob lock de conta, revisão e recibos; certificado de resultado servidor, pontos e XP/ouro, exclusão mútua com atividades, reset e proteção contra duplicata/múltiplas abas. Projetar apenas dados públicos. Testes PG descartável.
 4. ARENA04 interface Mapas > Arena com progresso/diário/recompensas, rotas autenticadas com gates atuais; testes browser e mobile.
 5. ARENA05 catálogo e política da loja, compra transacional com preço servidor, inventário/pilhas/gear, testes de saldo, limite e concorrência. Publicação completa após CI e revisão Gateway no mesmo patch. Cadastro continua fechado.
+
+## Revisão de economia — ARENA05C
+Decisão do proprietário: progressão de longo prazo, equipamento lendário com atributos escolhidos e custo de pelo menos duas semanas perfeitas. Proposta implementada: 300 PA/lendário (3 semanas completas); 180 épico, 100 raro; TMs 30/50/75/100/150; pedras 40. Quatro atributos distintos escolhidos entre seis, +10 fixo cada, sem RNG, sem escolher intensidade. Nove slots lendários custam 2700 PA (27 semanas perfeitas sem outros gastos). Interface deve explicar seleção e mostrar atributos finais antes de confirmar. Valores candidatos sujeitos a revisão; saldo acumulável, 1 equipamento por semana, sem dinheiro real.

@@ -33,7 +33,7 @@ function checked(raw:string,nowMs:number){
   const tm=o.kind==='tm'?kantoMachine(o.itemId):null;
   const owned=o.kind==='tm'?(tm?stock[tm.id]??0:0):o.kind==='stone'?(state.evolutionStones[o.itemId]??0):inventory.equipment.filter(g=>g.templateId===o.itemId&&g.rarity===o.rarity).length;
   const remaining=Math.min(o.weeklyLimit-(counts[o.id]??0),o.kind==='gear'?ARENA_GEAR_WEEKLY_LIMIT-gearBought:o.weeklyLimit);
-  const bagOk=o.kind==='tm'||(o.kind==='stone'&&owned>0)||inventory.bag.available>0;
+  const bagOk=o.kind==='tm'||(o.kind==='stone'&&owned>0)||(inventory.bag.available??0)>0;
   const levelOk=o.kind!=='gear'||state.trainer.level>=o.gear.requiredLevel;
   const stackOk=o.kind==='gear'||owned<100000;
   const reason=busy?'busy':remaining<=0?'weekly-limit':!levelOk?'level':!bagOk?'bag-full':!stackOk?'stack-full':arena.balance<o.cost?'insufficient-points':null;
@@ -45,15 +45,17 @@ export function onlineArenaShopProjection(raw:string,nowMs:number){
  const c=checked(raw,nowMs);return c?{version:ARENA_SHOP_VERSION,balance:c.arena.balance,weekStartMs:c.arena.startMs,busy:c.busy,
   gearRemaining:ARENA_GEAR_WEEKLY_LIMIT-c.gearBought,offers:c.offers}:null;
 }
-export function applyOnlineArenaPurchase(raw:string,nowMs:number,offerId:string,serverId:string){
+export function applyOnlineArenaPurchase(raw:string,nowMs:number,offerId:string,serverId:string,attributes?:unknown){
  const c=checked(raw,nowMs);if(!c)return {status:'invalid-save'} as const;
  const o=c.offers.find(o=>o.id===offerId);if(!o)return {status:'invalid'} as const;
+ if(o.kind!=='gear'&&attributes!==undefined)return {status:'invalid'} as const;
  if(!o.canBuy)return {status:o.reason??'unavailable'} as const;
  const state=c.state;let instanceId:string|null=null;
+ let gear=null;
  if(o.kind==='gear'){
-  const item=createOnlineArenaGear(serverId,o.id);
+  const item=createOnlineArenaGear(serverId,o.id,attributes);
   if(!item||state.inventory.gear.some((g:{id:string})=>g.id===item.id))return {status:'invalid'} as const;
-  state.inventory.gear.push(item);instanceId=item.id;
+  state.inventory.gear.push(item);instanceId=item.id;gear=item;
  }else if(o.kind==='tm'){
   const tm=kantoMachine(o.itemId);if(!tm)return {status:'invalid'} as const;
   state.machineStock={...c.stock,[tm.id]:(c.stock[tm.id]??0)+1};
@@ -62,5 +64,5 @@ export function applyOnlineArenaPurchase(raw:string,nowMs:number,offerId:string,
  state.arenaShop={version:1,weekStartMs:c.arena.startMs,counts:{...c.counts,[o.id]:(c.counts[o.id]??0)+1}};
  const next=JSON.stringify(state);
  if(!onlineArenaShopProjection(next,nowMs))return {status:'invalid-save'} as const;
- return {status:'ok',raw:next,balance:state.weeklyArena.balance,purchase:{offerId:o.id,itemId:o.itemId,kind:o.kind,quantity:1,cost:o.cost,instanceId}} as const;
+ return {status:'ok',raw:next,balance:state.weeklyArena.balance,purchase:{offerId:o.id,itemId:o.itemId,kind:o.kind,quantity:1,cost:o.cost,instanceId,...(gear?{gear}:{})}} as const;
 }
