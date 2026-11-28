@@ -1,4 +1,4 @@
-import {GearArt} from './GearArt';
+import {GearArt,GearStars} from './GearArt';
 import {PokeballArt,isBallArtId} from './PokeballArt';
 /**
  * D-052 · Cubos reutilizáveis do inventário de interface.
@@ -18,6 +18,8 @@ export interface InventorySlotItem {
   readonly quantity:number;
   readonly gearTemplateId?:string;
   readonly rarity?:string;
+  readonly enhancement?:number;
+  readonly favorite?:boolean;
   readonly detail?:string;
   readonly status?:string;
   readonly requiredLevel?:number;
@@ -59,6 +61,8 @@ export function InventoryGrid({title,items,capacity,onSelect,selectable,actionLa
           aria-label={actionLabel? actionLabel(item):item.name+', quantidade '+item.quantity+', '+item.description+(item.levelLocked?', bloqueado por nível':'')}
           title={item.name}>
             <span className={styles.itemIcon}>{item.gearTemplateId?<GearArt id={item.gearTemplateId} rarity={item.rarity} fallback={item.icon}/>:isBallArtId(item.id)?<PokeballArt id={item.id}/>:<i className={'fa-solid '+item.icon} aria-hidden="true"/>}</span>
+            {!!item.enhancement&&<GearStars rank={item.enhancement}/>}
+            {item.favorite&&<span aria-label="Favorito" title="Protegido"><i className="fa-solid fa-heart"/></span>}
             {item.requiredLevel!==undefined&&<span className={styles.levelTag} data-locked={!!item.levelLocked} data-testid={'gear-level-'+item.id}>{item.levelLocked&&<i className="fa-solid fa-lock" aria-hidden="true"/>} Nv. {item.requiredLevel}</span>}
             {item.status==='Equipado'&&<span className={styles.equippedMarker} aria-hidden="true"><i className="fa-solid fa-circle-check"/></span>}
             <span className={styles.tooltip} aria-hidden="true">

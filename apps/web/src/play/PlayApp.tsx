@@ -39,8 +39,8 @@ import {kantoSpecies} from '@kanto/game-core';
 import type {TrainerSection} from './OnlineNavigation';
 import { GymScreen } from './GymScreen';
 import { PokemonTraining } from './PokemonTraining';
-import type {OnlineViews,RegionalReward} from './onlinePlay';
-import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand,onlineBattleCommand,onlineMoveSlots} from './onlinePlay';
+import type {OnlineViews,RegionalReward,ReforgeCommand} from './onlinePlay';
+import {readOnlineAccount,startOnline,logoutOnline,sendOnlineAction,readOnlineViews,sendOnlineCommand,sendReforgeCommand,onlineBattleCommand,onlineMoveSlots} from './onlinePlay';
 import { RegionsScreen } from '../regions/RegionsScreen';
 import { ExpeditionScreen } from './ExpeditionScreen';
 import { estimatedServerNow,formatExpeditionDuration,timeUntilAffinityLoss } from './expeditionDisplay';
@@ -298,6 +298,18 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     onlineLock.current=true;setBusy(true);setFeedback('');
     try{if(expectedRevision!==undefined&&expectedRevision!==save.snapshot.revision){setFeedback('O progresso mudou. Atualize e confirme novamente.');return false;}const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');return ok;}
     catch{await refreshOnline();setFeedback('Ação não confirmada. Confira o progresso.');return false;}
+    finally{onlineLock.current=false;setBusy(false);}
+  }
+  async function onlineReforge(command:ReforgeCommand,revision:number){
+    if(!online||onlineLock.current||save.status!=='ready'||save.snapshot.revision!==revision)return null;
+    onlineLock.current=true;setBusy(true);setFeedback('');
+    try{
+      const result=await sendReforgeCommand(command,revision);
+      await refreshOnline();
+      if(!result){setFeedback('Reforja recusada pelo servidor. Confira seu inventário.');return null;}
+      setFeedback(result.kind==='salvage'?'Desmontagem concluída: +'+result.gain+' fragmentos.':result.kind==='favorite'?'Proteção atualizada.':(result.outcome==='success'?'Aprimoramento bem-sucedido':result.outcome==='stay'?'Aprimoramento mantido':'Aprimoramento regrediu')+' · +'+result.rank+' · '+result.cost+' fragmentos consumidos.');
+      return result;
+    }catch{await refreshOnline();setFeedback('Reforja não confirmada. Confira o inventário antes de tentar novamente.');return null;}
     finally{onlineLock.current=false;setBusy(false);}
   }
   async function runOnlineBattle(mode:'region'|'gym',command:'open'|'turn'|'reward'|'finish',choice?:string){
@@ -851,7 +863,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
             {tab==='trainer'&&online&&trainerSection==='mastery'&&(onlineViews?.mastery?<MasteryScreen key={onlineViews.mastery.revision} view={onlineViews.mastery} busy={busy} onCommand={(command,revision)=>onlineExtra('mastery/research',{command},revision)}/>:<section className={styles.panel}>Centro de Pesquisa indisponível. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button></section>)}
             {tab === 'trainer' && trainerSection!=='mastery' && <TrainerScreen view={view} data={data} {...(online?{controlledSection:trainerSection}:{})}
               revision={save.snapshot.revision} busy={busy||!!inventory?.busy}
-              {...(inventory?{onlineInventory:inventory,onDiscardGear:(id:string)=>void onlineExtra('inventory/loadout',{command:{kind:'discard-gear',itemId:id}}),onLoot:(command:Record<string,unknown>)=>void onlineExtra('inventory/loadout',{command}),lootBusy:busy}:{})}
+              {...(inventory?{onlineInventory:inventory,onReforge:onlineReforge,onDiscardGear:(id:string)=>void onlineExtra('inventory/loadout',{command:{kind:'discard-gear',itemId:id}}),onLoot:(command:Record<string,unknown>)=>void onlineExtra('inventory/loadout',{command}),lootBusy:busy}:{})}
               onInvest={investTrainerBatch}
               onEquip={(slot,itemId)=>dispatch({type:'trainer',value:{type:'equip',slot,itemId}})}
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }

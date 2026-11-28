@@ -24,6 +24,14 @@ type RegionalDrop={kind:'ball'|'stone'|'tm';itemId:string;quantity:number}|{kind
 import type {onlineInventoryProjection,onlineShopProjection,onlineExpeditionProjection} from '@kanto/game-core';
 import type {PendingRegionalLoot,PendingExpeditionLoot} from '@kanto/game-core';
 export type InventoryView=NonNullable<ReturnType<typeof onlineInventoryProjection>> & {revision:number;pending:PendingRegionalLoot|null;expeditionPending:PendingExpeditionLoot|null;canResolveExpeditionLoot:boolean};
+export type ReforgeCommand={kind:'upgrade'|'salvage';itemId:string}|{kind:'favorite';itemId:string;favorite:boolean};
+export type ReforgeReceipt={kind:'upgrade';itemId:string;rank:number;previousRank:number;outcome:'success'|'stay'|'regress';cost:number}|{kind:'salvage';itemId:string;gain:number}|{kind:'favorite';itemId:string};
+export async function sendReforgeCommand(command:ReforgeCommand,revision:number):Promise<ReforgeReceipt|null>{
+ const r=await post('inventory/reforge',{command,actionId:crypto.randomUUID(),expectedRevision:revision});
+ const receipt=await r.json();
+ if(!r.ok||receipt?.status!=='applied'||receipt.revision!==revision+1||receipt.reforge?.kind!==command.kind||receipt.reforge?.itemId!==command.itemId)return null;
+ return receipt.reforge as ReforgeReceipt;
+}
 export type ShopView=NonNullable<ReturnType<typeof onlineShopProjection>> & {revision:number};
 export type ExpeditionView=NonNullable<ReturnType<typeof onlineExpeditionProjection>> & {revision:number;busy:boolean};
 import type {onlineMasteryProjection} from '@kanto/game-core';

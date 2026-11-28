@@ -352,3 +352,6 @@
 .gearRequirement[data-locked=true]{border-color:var(--color-danger)}
 .gearRequirement[data-locked=true]>strong,.gearRequirement[data-locked=true] p[role=status]{color:var(--color-danger)}
 .gearRequirement[data-locked=false] p:last-child{color:var(--color-success)}
+
+.reforgeBox{display:grid;gap:8px;padding:12px;border:1px solid #b7791f80;border-radius:10px;background:color-mix(in srgb,#b7791f 8%,transparent);margin:12px 0;min-width:0}
+.reforgeBox h3,.reforgeBox p{margin:0;line-height:1.4}.reforgeBalance{padding:8px 12px;border:1px solid #b7791f80;border-radius:8px;margin:8px 0}.reforgeActions{display:flex;flex-wrap:wrap;gap:8px}.reforgeActions button{flex:1 1 auto}

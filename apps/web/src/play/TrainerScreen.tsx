@@ -1,4 +1,4 @@
-import {GearArt} from './GearArt';
+import {GearArt,GearStars} from './GearArt';
 import {BadgeArt} from './BadgeArt';
 import {PokeballArt} from './PokeballArt';
 /**
@@ -18,7 +18,7 @@ import styles from './TrainerScreen.module.css';
 import {InventoryGrid,InventoryDialog} from './InventoryGrid';
 import {TitlePicker} from './TitlePicker';
 import type {InventorySlotItem} from './InventoryGrid';
-import type {InventoryView} from './onlinePlay';
+import type {InventoryView,ReforgeCommand,ReforgeReceipt} from './onlinePlay';
 
 type Section='profile'|'equipment'|'bag';
 type Draft=Partial<Record<Stat,number>>;
@@ -44,14 +44,16 @@ export interface TrainerScreenProps{
   onTitle:(titleId:string)=>void;
   onlineInventory?:InventoryView;
   onDiscardGear?:(id:string)=>void;
+  onReforge?:(command:ReforgeCommand,revision:number)=>Promise<ReforgeReceipt|null>;
   onLoot?:(command:Record<string,unknown>)=>void;
   lootBusy?:boolean;
   controlledSection?:Section;
 }
-export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,onlineInventory,onDiscardGear,onLoot,lootBusy=false,controlledSection}:TrainerScreenProps){
+export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,onlineInventory,onDiscardGear,onReforge,onLoot,lootBusy=false,controlledSection}:TrainerScreenProps){
   const [localSection,setSection]=useState<Section>('profile');
   const section=controlledSection??localSection;
   const [selectedEquipment,setSelectedEquipment]=useState<string|null>(null);
+  const [reforgeConfirm,setReforgeConfirm]=useState<{kind:'upgrade'|'salvage';itemId:string;revision:number}|null>(null);
   const [equipmentFilter,setEquipmentFilter]=useState<'all'|'equipped'>('all');
   const [draft,setDraft]=useState<Draft>({});
   const [draftRevision,setDraftRevision]=useState(revision);
@@ -72,7 +74,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
   const bagCapacity=onlineInventory?.bag.capacity??(ownership.status==='valid'?BASE_BAG_SLOTS+ownership.inventory.extraBagSlots:BASE_BAG_SLOTS);
   // O catálogo legado ainda NÃO é inventário de propriedade; os equipamentos
   // seguem selecionáveis no laboratório, sem alegar que foram conquistados.
-  const equipmentEntries:InventorySlotItem[]=onlineInventory?onlineInventory.equipment.map(item=>({id:item.id,gearTemplateId:item.templateId,rarity:item.rarity,name:item.name,description:item.rarity+' · Nível exigido: '+item.requiredLevel,requiredLevel:item.requiredLevel,levelLocked:!item.canEquip,icon:SLOT_ICONS[item.slot],quantity:1,detail:bonusLabel(item.effectiveStats??item.stats),status:item.equipped?'Equipado':'Não equipado'})):LEGACY_ITEMS
+  const equipmentEntries:InventorySlotItem[]=onlineInventory?onlineInventory.equipment.map(item=>({id:item.id,gearTemplateId:item.templateId,rarity:item.rarity,enhancement:item.enhancement??0,favorite:item.favorite??false,name:item.name,description:item.rarity+' · Nível exigido: '+item.requiredLevel,requiredLevel:item.requiredLevel,levelLocked:!item.canEquip,icon:SLOT_ICONS[item.slot],quantity:1,detail:bonusLabel(item.effectiveStats??item.stats),status:item.equipped?'Equipado':'Não equipado'})):LEGACY_ITEMS
     .filter(item=>legacyCatalog||ownership.status==='valid'&&(ownership.inventory.ownedEquipment[item.id]??0)>0)
     .map(item=>({
     id:item.id,gearTemplateId:item.id,name:item.name,description:'Equipamento de '+SLOT_NAMES[item.slot]+' do catálogo de testes.',
@@ -86,6 +88,17 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
     ? (onlineInventory?onlineInventory.equipment.find(item=>item.id===selectedEquipment):LEGACY_ITEMS.find(item=>item.id===selectedEquipment)):undefined;
   const equipmentEquipped=equipmentChoice!==undefined&&equipped[equipmentChoice.slot]===equipmentChoice.id;
   const onlineChoice=onlineInventory?.equipment.find(item=>item.id===equipmentChoice?.id);
+  const reforge=onlineInventory?.reforge;
+  const reforgeItem=reforge?.gear.find(item=>item.id===equipmentChoice?.id);
+  const reforgeBlocked=busy||!!reforge?.busy;
+  const confirmation=reforgeConfirm?.itemId===equipmentChoice?.id&&reforgeConfirm?.revision===revision?reforgeConfirm:null;
+  async function confirmReforge(kind:'upgrade'|'salvage'){
+    if(!onReforge||!reforgeItem||reforgeBlocked)return;
+    if(confirmation?.kind!==kind){setReforgeConfirm({kind,itemId:reforgeItem.id,revision});return;}
+    setReforgeConfirm(null);
+    const result=await onReforge({kind,itemId:reforgeItem.id},revision);
+    if(result?.kind==='salvage')setSelectedEquipment(null);
+  }
   const equipmentBlocked=busy||!!onlineInventory&&(onlineInventory.busy||(equipmentEquipped?onlineInventory.bag.available===0:!onlineChoice?.canEquip));
   const equippedInSlot=onlineInventory?.equipment.find(item=>item.id===equipped[equipmentChoice?.slot??'']);
   // Apenas stones no save. Cada stack ocupa um espaço, sem concessão.
@@ -172,6 +185,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
                 <GearCard key={slot} slot={slot} selected={equipped[slot]} onlineItem={onlineInventory?.equipment.find(item=>item.id===equipped[slot])}/>)}
             </div>
           </div>
+          {onlineInventory?.arenaSet&&<section className={styles.reforgeBox}><strong>Conjunto lendário da Arena · {onlineInventory.arenaSet.count}/9</strong><p>+{onlineInventory.arenaSet.bonus} em cada atributo final do Pokémon principal.</p><p>3 peças: +3 · 6 peças: +6 · 9 peças: +10</p></section>}
           <p className={styles.hint}>Passe o mouse, toque ou navegue com Tab para ver os detalhes dos equipamentos. Para trocar, abra Equipamentos.</p>
         </section>
       </div>
@@ -245,7 +259,8 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
       <div className={styles.sectionHeader}><h3><Fa name="fa-layer-group"/> Equipamentos</h3>
         <span className={styles.smallTag}>{equippedIds.size} equipados</span>
       </div>
-      <p className={styles.hint}>Clique ou toque em um cubo para conferir atributos e equipar/remover.
+      {reforge&&<p className={styles.reforgeBalance} data-testid="reforge-fragments">Fragmentos de Reforja: <strong>{reforge.fragments}</strong></p>}
+       <p className={styles.hint}>Clique ou toque em um cubo para conferir atributos e equipar/remover.
         {onlineInventory?' Equipamentos individuais do servidor.':legacyCatalog?' No save atual, o catálogo permanece disponível como laboratório até a migração de propriedade.':' Exibindo somente os equipamentos registrados no inventário versionado.'}</p>
       {!onlineInventory&&ownership.status==='invalid'&&<p className={styles.staleNotice} role="alert">Dados de propriedade inválidos. Equipamentos bloqueados por segurança.</p>}
       <div className={styles.inventoryFilters} role="group" aria-label="Filtrar equipamentos">
@@ -266,7 +281,8 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
     {section==='bag'&&<section className={styles.panel}>
       <div className={styles.sectionHeader}><h3><Fa name="fa-bag-shopping"/> Mochila</h3>
         <span className={styles.smallTag}>Capacidade: {bagCapacity}</span></div>
-      <p className={styles.hint}>Cada tipo de item empilhado ocupa um cubo, independentemente da quantidade.
+      {reforge&&<p className={styles.reforgeBalance} data-testid="reforge-fragments">Fragmentos de Reforja: <strong>{reforge.fragments}</strong></p>}
+       <p className={styles.hint}>Cada tipo de item empilhado ocupa um cubo, independentemente da quantidade.
         Passe o mouse ou use o foco do teclado para ver detalhes. No celular, toque no cubo.</p>
       {onlineInventory&&onLoot&&<>
         {onlineInventory.pending&&<section className={styles.panel}><h3>Recompensas regionais pendentes</h3>{onlineInventory.pending.items.map(item=>{const itemId=item.kind==='gear'?item.gear.id:item.itemId;const name=item.kind==='gear'?(LEGACY_ITEMS.find(m=>m.id===item.gear.templateId)?.name??itemId):itemId;const fields={encounterId:onlineInventory.pending!.encounterId,itemId};return <div key={itemId} className={styles.detailActions}><strong>{item.kind==='ball'?<PokeballArt id={itemId}/>:item.kind==='gear'?<GearArt id={item.gear.templateId} rarity={item.gear.rarity} fallback="fa-shield-halved"/>:null} {name}</strong><button type="button" className={styles.confirmButton} disabled={busy} onClick={()=>onLoot({kind:'loot-store',...fields})}>Guardar</button><button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar este drop definitivamente?'))onLoot({kind:'loot-discard',...fields});}}>Descartar</button></div>;})}</section>}
@@ -278,7 +294,7 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
         Pokébolas, cura e TMs aparecerão apenas quando forem adquiridos.</>}</p>
     </section>}
       {equipmentChoice&&<InventoryDialog title={equipmentChoice.name}
-        onClose={()=>setSelectedEquipment(null)}>
+        onClose={()=>{setSelectedEquipment(null);setReforgeConfirm(null);}}>
         <div className={styles.detailItem}>
           <span className={styles.detailIcon}><GearArt id={equipmentEntries.find(item=>item.id===equipmentChoice.id)?.gearTemplateId??equipmentChoice.id} rarity={equipmentEntries.find(item=>item.id===equipmentChoice.id)?.rarity} fallback={SLOT_ICONS[equipmentChoice.slot]}/></span>
           <div><strong>{SLOT_NAMES[equipmentChoice.slot]}</strong>
@@ -286,12 +302,27 @@ export function TrainerScreen({view,data,revision,busy,onInvest,onEquip,onTitle,
         </div>
         <div className={styles.detailStats}>
           <strong>Atributos</strong><p>{bonusLabel(onlineChoice?.effectiveStats??equipmentChoice.stats)||'Sem bônus adicional'}</p>
+          {reforgeItem&&<GearStars rank={reforgeItem.rank}/>}
           <strong>Status</strong><p>{equipmentEquipped?'Equipado':'Não equipado'}</p>
           {onlineChoice&&<><div className={styles.gearRequirement} data-locked={!onlineChoice.canEquip}><strong>Nível exigido do treinador: {onlineChoice.requiredLevel}</strong><p>Seu nível: {view.level}</p>{!onlineChoice.canEquip?<p role="status"><i className="fa-solid fa-lock" aria-hidden="true"/> Bloqueado por nível. Faltam {Math.max(0,onlineChoice.requiredLevel-view.level)} níveis para equipar.</p>:<p><i className="fa-solid fa-check" aria-hidden="true"/> Requisito de nível atendido.</p>}</div>{onlineInventory?.busy&&<p role="status">Encerre a batalha ou expedição antes de alterar equipamentos.</p>}{equipmentEquipped&&onlineInventory?.bag.available===0&&<p role="status">Libere um espaço na mochila para remover este item.</p>}{!equipmentEquipped&&equippedInSlot&&<p>Substitui {equippedInSlot.name} no slot {SLOT_NAMES[equipmentChoice.slot]}; o item anterior volta à mochila.</p>}</>}
         </div>
+        {reforge&&reforgeItem&&onReforge&&<section className={styles.reforgeBox} aria-label="Reforja">
+          <h3>Reforja · +{reforgeItem.rank}</h3><p>Fragmentos disponíveis: <strong>{reforge.fragments}</strong></p>
+          {reforgeItem.next?<><p>Próximo nível: +{reforgeItem.next.target} · Custo: <strong>{reforgeItem.next.cost} fragmentos</strong></p>
+          <p>Sucesso {reforgeItem.next.success}% · Permanência {reforgeItem.next.stay}% · Regressão {reforgeItem.next.regress}%</p>
+          <p>Prévia em caso de sucesso: {bonusLabel(reforgeItem.nextStats??reforgeItem.effectiveStats)}</p><p>O custo é consumido em qualquer resultado. O equipamento nunca é destruído pela tentativa.</p></>:<p>Nível máximo de aprimoramento.</p>}
+          <div className={styles.reforgeActions}>
+            <button type="button" className={styles.cancel} disabled={reforgeBlocked} onClick={()=>{setReforgeConfirm(null);void onReforge({kind:'favorite',itemId:reforgeItem.id,favorite:!reforgeItem.favorite},revision)}}>{reforgeItem.favorite?'Remover dos favoritos':'Favoritar'}</button>
+            <button type="button" className={styles.confirmButton} disabled={reforgeBlocked||!reforgeItem.next||reforge.fragments<reforgeItem.next.cost} onClick={()=>void confirmReforge('upgrade')}>{confirmation?.kind==='upgrade'?'Confirmar aprimoramento':'Aprimorar'}</button>
+            <button type="button" className={styles.cancel} disabled={reforgeBlocked||!reforgeItem.canSalvage} onClick={()=>void confirmReforge('salvage')}>{confirmation?.kind==='salvage'?'Confirmar desmontagem':'Desmontar'}</button>
+          </div>
+          <p>Desmontagem: +{reforgeItem.salvage} fragmentos. {reforgeItem.equipped?'Remova o equipamento antes de desmontar.':reforgeItem.favorite?'Equipamento protegido como favorito.':'A desmontagem é definitiva.'}</p>
+          {confirmation&&<p role="status">{confirmation.kind==='salvage'?'Confirme a desmontagem definitiva deste item.':'Confirme a tentativa e o consumo de fragmentos.'} <button type="button" className={styles.cancel} onClick={()=>setReforgeConfirm(null)}>Voltar</button></p>}
+          {reforgeBlocked&&<p role="status">Encerre a atividade atual para usar a Reforja.</p>}
+        </section>}
         <div className={styles.detailActions}>
-          <button type="button" className={styles.cancel} onClick={()=>setSelectedEquipment(null)}>Cancelar</button>
-          {onlineInventory&&!equipmentEquipped&&onDiscardGear&&<button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar definitivamente este equipamento?')){onDiscardGear(equipmentChoice.id);setSelectedEquipment(null);}}}>Descartar</button>}
+          <button type="button" className={styles.cancel} onClick={()=>{setSelectedEquipment(null);setReforgeConfirm(null);}}>Cancelar</button>
+          {onlineInventory&&!equipmentEquipped&&onDiscardGear&&(!reforge||!!onlineInventory.expeditionPending)&&!onlineChoice?.favorite&&<button type="button" className={styles.cancel} disabled={busy} onClick={()=>{if(window.confirm('Descartar definitivamente este equipamento?')){onDiscardGear(equipmentChoice.id);setSelectedEquipment(null);}}}>Descartar</button>}
           <button type="button" className={styles.confirmButton} disabled={equipmentBlocked}
             onClick={()=>{
               onEquip(equipmentChoice.slot,equipmentEquipped?'':equipmentChoice.id);
@@ -311,6 +342,7 @@ function GearCard({slot,selected,onlineItem}:{slot:EquipmentSlot;selected:string
     aria-label={description}>
     <span className={styles.gearIcon}>{item?<GearArt id={onlineItem?.templateId??item.id} rarity={onlineItem?.rarity} fallback={SLOT_ICONS[slot]}/>:<Fa name={SLOT_ICONS[slot]}/>}</span>
     <span className={styles.gearName}>{item?.name??SLOT_NAMES[slot]}</span>
+    {!!onlineItem?.enhancement&&<GearStars rank={onlineItem.enhancement}/>}
     <span className={styles.tooltip} aria-hidden="true">{item?bonusLabel(effective??item.stats):'Sem equipamento'}</span>
   </button>;
 }

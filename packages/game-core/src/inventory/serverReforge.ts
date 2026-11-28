@@ -9,7 +9,7 @@ export function reforgeInventoryProjection(raw:unknown,equippedIds:readonly stri
  const equipped=new Set(equippedIds);
  return {fragments:inventory.reforgeFragments??0,gear:inventory.gear.map(item=>({
   ...item,rank:item.enhancement??0,effectiveStats:reforgeStats(item.stats,item.enhancement??0),
-  next:reforgeQuote(item.rarity,item.enhancement??0),salvage:reforgeSalvage(item.rarity,item.enhancement??0),
+  next:reforgeQuote(item.rarity,item.enhancement??0),nextStats:reforgeQuote(item.rarity,item.enhancement??0)?reforgeStats(item.stats,(item.enhancement??0)+1):null,salvage:reforgeSalvage(item.rarity,item.enhancement??0),
   equipped:equipped.has(item.id),canSalvage:!equipped.has(item.id)&&!item.favorite
  }))};
 }

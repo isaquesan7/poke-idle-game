@@ -41,7 +41,8 @@ export function onlineInventoryProjection(raw:string){
   slots:SLOTS.map(slot=>({slot,itemId:bonuses.equipment.find(e=>e.slot===slot)?.itemId??null})),
   titles:LEGACY_TITLES.map(t=>({...t,unlocked:legacyTitleIsUnlocked(t.id,state.wins,state.seen.length,state.badges.length),active:t.id===bonuses.activeTitle})),
   badges:KANTO_GYMS.map(g=>({id:g.id,name:g.name,stats:g.badgeStats,earned:bonuses.badges.includes(g.id)})),
-  totals:bonuses.totals,arenaSet:bonuses.arenaSet};
+  totals:bonuses.totals,arenaSet:bonuses.arenaSet,
+  reforge:{...reforgeInventoryProjection(inventory,[...equippedIds])!,busy}};
 }
 export function applyOnlineTrainerLoadout(raw:string,command:unknown){
  if(!record(command)||typeof command.kind!=='string')return {status:'invalid'} as const;

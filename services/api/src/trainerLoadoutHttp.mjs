@@ -1,3 +1,4 @@
+import {arenaActivityBlocks} from './arenaActivity.mjs';
 import {loadCombatAdapter} from './battlePreview.mjs';
 import {ciOnlineFeatureEnabled} from './onlineFeatureGate.mjs';
 export function trainerLoadoutHttpEnabled(env=process.env){
@@ -18,5 +19,6 @@ export async function readTrainerLoadout(pool,accountId){
  if(raw.pendingRegionalLoot!=null&&!pending)return {status:'invalid-save'};
  const expeditionPending=raw.pendingExpeditionLoot==null?null:core.inspectPendingExpeditionLoot(raw.pendingExpeditionLoot);
  if(raw.pendingExpeditionLoot!=null&&!expeditionPending)return {status:'invalid-save'};
- return {status:'ok',revision:Number(row.revision),...projection,pending,expeditionPending,canResolveExpeditionLoot:!!expeditionPending&&!row.busy&&raw.pendingBattle==null&&raw.gymSession==null&&raw.lastBattle?.captureStatus!=='available',busy:row.busy||projection.busy};
+ const reforgeBusy=row.busy||projection.busy||await arenaActivityBlocks(pool,row.state.journal.raw);
+ return {status:'ok',revision:Number(row.revision),...projection,reforge:{...projection.reforge,busy:reforgeBusy},pending,expeditionPending,canResolveExpeditionLoot:!!expeditionPending&&!row.busy&&raw.pendingBattle==null&&raw.gymSession==null&&raw.lastBattle?.captureStatus!=='available',busy:row.busy||projection.busy};
 }
