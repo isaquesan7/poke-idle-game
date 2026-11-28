@@ -521,6 +521,10 @@ try{
   await rewardAlpha.getByTestId('online-battle-start').waitFor();
   const bush=rewardAlpha.getByTestId('encounter-presentation');
   await bush.waitFor();assert.equal(await bush.getAttribute('data-phase'),'idle');
+  await rewardAlpha.emulateMedia({reducedMotion:'reduce'});
+  await rewardAlpha.waitForFunction(()=>{const img=document.querySelector('[data-testid="encounter-presentation"] img');return img?.complete&&img.naturalWidth>0;});
+  assert.equal(await bush.locator('img').getAttribute('src'),'/assets/encounter-bush.webp');
+  await rewardAlpha.emulateMedia({reducedMotion:'no-preference'});
   assert.equal(await rewardAlpha.getByTestId('wild-caught').count(),0);
   await rewardAlpha.close();
   await page.locator('#online-refresh').click();

@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {weeklyArenaRotation,arenaOpponentLevel,ARENA_ROTATION_VERSION} from '../src/progression/weeklyArenaRotation.js';
+import {weeklyArenaRotation,arenaOpponentLevel,arenaTrainingFraction,ARENA_ROTATION_VERSION} from '../src/progression/weeklyArenaRotation.js';
 import {ARENA_WEEK_MS} from '../src/progression/weeklyArena.js';
 import {compatibleMachineSpecies} from '../src/catalog/kantoMachineCompatibility.js';
 import {kantoMachine} from '../src/catalog/kantoMachines.js';
@@ -20,7 +20,7 @@ describe('ARENA02: weekly deterministic legal opponent schedule',()=>{
   expect(arenaOpponentLevel(41)).toBeNull();
  });
  it('builds 40 increasing opponents across eight weeks, using only legal attacks and existing compatible TM effects',()=>{
-  for(let week=0;week<8;week++){
+  for(let week=0;week<16;week++){
    const schedule=weeklyArenaRotation(monday+week*ARENA_WEEK_MS);
    if(!schedule)throw Error('missing schedule week '+week);
    expect(schedule.version).toBe(ARENA_ROTATION_VERSION);
@@ -28,6 +28,16 @@ describe('ARENA02: weekly deterministic legal opponent schedule',()=>{
    expect(schedule.opponents.filter(x=>x.guardian).map(x=>x.floor)).toEqual([10,20,30,40]);
    expect(schedule.opponents[0]?.level).toBe(5);
    expect(schedule.opponents[39]?.level).toBe(100);
+   expect(new Set(schedule.opponents.map(p=>p.speciesId)).size).toBe(40);
+   expect(schedule.opponents.slice(0,5).every(p=>kantoSpecies(p.speciesId)?.evolvesFrom===null)).toBe(true);
+   const strength=schedule.opponents.slice(0,35).map(p=>Object.values(kantoSpecies(p.speciesId)!.base).reduce((a,b)=>a+b,0));
+   expect(strength).toEqual([...strength].sort((a,b)=>a-b));
+   expect(schedule.opponents.slice(15,35).every(p=>!([69,43,16,4,1,7,10,13].includes(p.speciesId)))).toBe(true);
+   expect(schedule.opponents[34]?.speciesId).toBe(149);
+   expect(schedule.opponents.slice(35,38).map(p=>p.speciesId).sort((a,b)=>a-b)).toEqual([144,145,146]);
+   expect(schedule.opponents.slice(38).map(p=>p.speciesId)).toEqual([151,150]);
+   expect(schedule.opponents.slice(0,35).every(p=>!kantoSpecies(p.speciesId)?.legendary&&!kantoSpecies(p.speciesId)?.mythical)).toBe(true);
+   expect(arenaTrainingFraction(40)).toBe(1);
    for(const [index,p] of schedule.opponents.entries()){
     expect(p.floor).toBe(index+1);
     expect(p.level).toBe(arenaOpponentLevel(p.floor));

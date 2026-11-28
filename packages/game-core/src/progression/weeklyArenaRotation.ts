@@ -13,7 +13,9 @@ import {gymTrainedMoves,gymOpponentRanks} from '../gyms/gymTactics.js';
 import type {KantoMove} from '../combat/kantoBattle.js';
 import {STATS} from '../stats/types.js';
 
-export const ARENA_ROTATION_VERSION=1;
+export const ARENA_ROTATION_VERSION=2;
+/** Legal training grows continuously; all endgame enemies use the full budget. */
+export function arenaTrainingFraction(floor:number){return Math.min(1,Math.max(0,(floor-1)/29));}
 const ranges:readonly (readonly [number,number])[]=[[5,25],[26,50],[51,75],[76,100]];
 const finalIds=new Set(KANTO_POKEDEX.filter(p=>!KANTO_POKEDEX.some(child=>child.evolvesFrom===p.id)).map(p=>p.id));
 const totalBase=(p:KantoCatalogSpecies)=>STATS.reduce((n,s)=>n+p.base[s],0);
@@ -28,13 +30,26 @@ export function arenaOpponentLevel(floor:number){
  const [min,max]=ranges[Math.floor((floor-1)/10)]!;
  return min+Math.floor(((floor-1)%10)*(max-min)/9);
 }
-function eligibleSpecies(p:KantoCatalogSpecies,floor:number,level:number){
+/** Non-overlapping strength bands: basic forms first, then developed forms,
+ * fully evolved and powerful standalone species. The last five are reserved
+ * for Kanto's three legendary birds and two mythical/legendary bosses. */
+const bands=[
+ {first:1,last:5,min:195,max:309,stage:'basic'},
+ {first:6,last:10,min:310,max:389,stage:'early'},
+ {first:11,last:15,min:390,max:449,stage:'developed'},
+ {first:16,last:20,min:450,max:489,stage:'final'},
+ {first:21,last:25,min:490,max:514,stage:'final'},
+ {first:26,last:30,min:515,max:530,stage:'final'},
+ {first:31,last:34,min:534,max:555,stage:'final'},
+] as const;
+function eligibleSpecies(p:KantoCatalogSpecies,band:typeof bands[number],level:number){
  if(p.legendary||p.mythical||kantoCaptureStartingLevel(p.id)>level)return false;
  const total=totalBase(p);
- if(floor<=10)return total<=390&&(floor>5||p.evolvesFrom===null);
- if(floor<=20)return total>=280&&total<=470;
- if(floor<=30)return total>=390&&finalIds.has(p.id);
- return total>=(floor===40?500:470)&&finalIds.has(p.id);
+ if(total<band.min||total>band.max)return false;
+ if(band.stage==='basic')return p.evolvesFrom===null;
+ if(band.stage==='developed')return p.evolvesFrom!==null||finalIds.has(p.id);
+ if(band.stage==='final')return finalIds.has(p.id);
+ return true;
 }
 type Lesson={id:KantoMachineId;move:KantoMove};
 function loadout(speciesId:number,level:number,floor:number,seed:number){
@@ -50,11 +65,12 @@ function loadout(speciesId:number,level:number,floor:number,seed:number){
   return move&&!excluded.has(tm.moveName)&&!native.some(m=>m.name===move.name)?[{id:tm.id,move}]:[];
  });
  const chosen:Lesson[]=[];
- const budget=floor>=40?3:floor>=31?2:floor>=21?1:0;
+ const budget=floor>=36?3:floor>=31?2:floor>=21?1:0;
  for(let i=0;i<budget;i++){
   const remaining=compatible.filter(x=>!chosen.some(y=>y.move.name===x.move.name));
-  const preferred=remaining.filter(x=>i===0?x.move.category==='status':offensive(x.move));
-  const tm=pick(preferred.length?preferred:remaining,seed+i*101);
+  const preferred=remaining.filter(x=>i===0?x.move.category==='status':offensive(x.move)&&x.move.power>=60);
+  const offensiveFallback=remaining.filter(x=>offensive(x.move));
+  const tm=pick(preferred.length?preferred:offensiveFallback.length?offensiveFallback:remaining,seed+i*101);
   if(!tm)break;
   chosen.push(tm);
  }
@@ -65,26 +81,42 @@ function loadout(speciesId:number,level:number,floor:number,seed:number){
   moves[moves.length-1]=attack;
  }
  const maxRanks=gymOpponentRanks(speciesId,level,moves);
- const scale=floor<=10?0:floor<=20?.5:floor<=30?.75:1;
+ const scale=arenaTrainingFraction(floor);
  const ranks=Object.fromEntries(Object.entries(maxRanks).map(([name,rank])=>[name,Math.floor(rank*scale)]));
  return {moves,tmIds:chosen.filter(x=>moves.some(m=>m.name===x.move.name)).map(x=>x.id),ranks};
 }
 export function weeklyArenaRotation(weekStartMs:number){
  if(arenaWeek(weekStartMs)?.startMs!==weekStartMs)return null;
- const week=Math.floor(weekStartMs/ARENA_WEEK_MS),used=new Set<number>();
+ const week=Math.floor(weekStartMs/ARENA_WEEK_MS);
+ const seedFor=(floor:number)=>mix(week^Math.imul(floor,0x9e3779b9)^ARENA_ROTATION_VERSION);
  const schedule=[];
- for(let floor=1;floor<=ARENA_FLOORS;floor++){
-  const level=arenaOpponentLevel(floor)!;
-  const seed=mix(week^Math.imul(floor,0x9e3779b9)^ARENA_ROTATION_VERSION);
-  const options=KANTO_POKEDEX.filter(p=>eligibleSpecies(p,floor,level)).flatMap(p=>{
-   const kit=loadout(p.id,level,floor,mix(seed^p.id));
-   return kit?[{speciesId:p.id,name:p.name,types:p.types,...kit}]:[];
-  });
-  const fresh=options.filter(p=>!used.has(p.speciesId));
-  const selected=pick(fresh.length?fresh:options,seed);
-  if(!selected)return null;
-  used.add(selected.speciesId);
-  schedule.push({floor,level,guardian:floor%10===0,...selected});
+ // Choose the week's species within each band, then order by their base
+ // strength. Validate the kit at every possible assigned level in that band,
+ // avoiding a random weak basic species late in the rotation.
+ for(const band of bands){
+  const count=band.last-band.first+1;
+  const pool=KANTO_POKEDEX.filter(p=>eligibleSpecies(p,band,arenaOpponentLevel(band.first)!))
+   .filter(p=>Array.from({length:count},(_,i)=>band.first+i).every(floor=>!!loadout(p.id,arenaOpponentLevel(floor)!,floor,mix(seedFor(floor)^p.id))));
+  const choices=[...pool].sort((x,y)=>mix(seedFor(band.first)^x.id)-mix(seedFor(band.first)^y.id)||x.id-y.id).slice(0,count)
+   .sort((x,y)=>totalBase(x)-totalBase(y)||mix(seedFor(band.last)^x.id)-mix(seedFor(band.last)^y.id)||x.id-y.id);
+  if(choices.length!==count)return null;
+  for(const [index,p] of choices.entries()){
+   const floor=band.first+index,level=arenaOpponentLevel(floor)!;
+   const kit=loadout(p.id,level,floor,mix(seedFor(floor)^p.id));
+   if(!kit)return null;
+   schedule.push({floor,level,guardian:floor%10===0,speciesId:p.id,name:p.name,types:p.types,...kit});
+  }
+ }
+ // Dragonite is the strongest ordinary Kanto species; the legendary birds
+ // rotate in 36–38. Mew and Mewtwo anchor the two hardest, fully trained floors.
+ const birds=[144,145,146].sort((x,y)=>mix(seedFor(36)^x)-mix(seedFor(36)^y)||x-y);
+ const end=[149,...birds,151,150];
+ for(const [index,id] of end.entries()){
+  const floor=35+index,level=arenaOpponentLevel(floor)!;
+  const p=KANTO_POKEDEX.find(x=>x.id===id);
+  const kit=loadout(id,level,floor,mix(seedFor(floor)^id));
+  if(!p||!kit||kantoCaptureStartingLevel(id)>level)return null;
+  schedule.push({floor,level,guardian:floor%10===0,speciesId:id,name:p.name,types:p.types,...kit});
  }
  return {version:ARENA_ROTATION_VERSION,weekStartMs,opponents:schedule};
 }

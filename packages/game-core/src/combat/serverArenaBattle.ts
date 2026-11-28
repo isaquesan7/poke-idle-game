@@ -4,7 +4,7 @@
  */
 import {quoteArenaFloor} from '../progression/weeklyArena.js';
 import type {ArenaWeeklyProgress} from '../progression/weeklyArena.js';
-import {weeklyArenaRotation} from '../progression/weeklyArenaRotation.js';
+import {weeklyArenaRotation,arenaTrainingFraction} from '../progression/weeklyArenaRotation.js';
 import {kantoSpecies} from '../catalog/kantoSpecies.js';
 import {canonicalOnlineGymTrainerBonuses,canonicalOnlineOwnedCombatant} from './serverGymPreparation.js';
 import {gymPokemonTraining} from '../gyms/gymTactics.js';
@@ -20,14 +20,14 @@ const record=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&
 const positiveUid=(v:unknown):v is number=>typeof v==='number'&&Number.isSafeInteger(v)&&v>0;
 type Opponent=NonNullable<ReturnType<typeof weeklyArenaRotation>>['opponents'][number];
 /** Candidate legal NPC build: progressively invest its own training budget.
- * Guardians get a stronger investment, not a hidden multiplier or terrain.
+ * Training grows continuously to the full legal budget for endgame floors.
  * No NPC equipment/title bonuses in this initial proposal.
  */
 function opponentCombatant(p:Opponent):Combatant|null{
  const species=kantoSpecies(p.speciesId);
  if(!species||!p.moves[0])return null;
  const training=gymPokemonTraining(p.speciesId,p.level,p.moves);
- const fraction=Math.min(1,(p.floor<=10?0:p.floor<=20?.5:p.floor<=30?.75:1)+(p.guardian?.25:0));
+ const fraction=arenaTrainingFraction(p.floor);
  for(const stat of STATS)training[stat]=Math.floor(training[stat]*fraction);
  return {speciesId:p.speciesId,name:species.name,level:p.level,types:species.types,
   stats:pokemonFinalStats(species.base,p.level,training,zeroStats(),100),
