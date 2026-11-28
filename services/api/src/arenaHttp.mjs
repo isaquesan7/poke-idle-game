@@ -14,8 +14,11 @@ export async function readArena(pool,accountId){
   save.journal?.revision!==revision||typeof save.journal.raw!=='string')return {status:'invalid-save'};
  const core=await loadCombatAdapter(),view=core.onlineArenaPublicProjection(save.journal.raw,Number(row.ms));
  if(!view)return {status:'invalid-save'};
+ const shop=core.onlineArenaShopProjection(save.journal.raw,Number(row.ms));
+ if(!shop)return {status:'invalid-save'};
  const state=JSON.parse(save.journal.raw);
  const last=state.lastArenaDuel??state.lastArenaAction?.result?.duel;
  return {status:'ok',revision,serverNowMs:Number(row.ms),...view,busy:row.busy||view.busy,
+  shop:{...shop,busy:row.busy||shop.busy,offers:shop.offers.map(o=>row.busy?{...o,canBuy:false,reason:'busy'}:o)},
   lastDuel:last?.weekStartMs===view.startMs?last:null};
 }

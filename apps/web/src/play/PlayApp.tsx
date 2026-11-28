@@ -291,7 +291,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
     }catch{await refreshOnline();setFeedback('Não foi possível confirmar a ação no servidor.');return null;}
     finally{onlineLock.current=false;setBusy(false);}
   }
-  async function onlineExtra(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach'|'mega/challenge'|'mega/evolve'|'arena/start'|'arena/challenge'|'arena/abandon',fields:Record<string,unknown>,expectedRevision?:number){
+  async function onlineExtra(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach'|'mega/challenge'|'mega/evolve'|'arena/start'|'arena/challenge'|'arena/abandon'|'arena/purchase',fields:Record<string,unknown>,expectedRevision?:number){
     if(!online||onlineLock.current||save.status!=='ready')return false;
     onlineLock.current=true;setBusy(true);setFeedback('');
     try{if(expectedRevision!==undefined&&expectedRevision!==save.snapshot.revision){setFeedback('O progresso mudou. Atualize e confirme novamente.');return false;}const ok=await sendOnlineCommand(path,fields,save.snapshot.revision);await refreshOnline();if(!ok)setFeedback('Ação recusada pelo servidor. Confira o progresso.');return ok;}
@@ -854,7 +854,7 @@ export function PlayApp({initialTab='overview',online=false}:{readonly initialTa
               onTitle={titleId=>dispatch({type:'trainer',value:{type:'title',titleId}})}/> }
             {tab==='trainer'&&trainerSection==='bag'&&machineView&&<section className={styles.panel}><MachineBag view={machineView}/></section>}
             {tab==='trainer'&&trainerSection==='bag'&&megaView&&<MegaBag view={megaView} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>}
-            {tab==='arena'&&online&&(onlineViews?.arena?<ArenaScreen view={onlineViews.arena} busy={busy} onAction={(command,revision)=>onlineExtra(command.type==='start'?'arena/start':command.type==='challenge'?'arena/challenge':'arena/abandon',{command},revision)} onRefresh={()=>void refreshOnline()} onCollection={()=>setTab('collection')}/>:<section className={styles.panel}>Arena indisponível. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button></section>)}
+            {tab==='arena'&&online&&(onlineViews?.arena?<ArenaScreen view={onlineViews.arena} busy={busy} onAction={(command,revision)=>onlineExtra(command.type==='start'?'arena/start':command.type==='challenge'?'arena/challenge':command.type==='purchase'?'arena/purchase':'arena/abandon',{command},revision)} onRefresh={()=>void refreshOnline()} onCollection={()=>setTab('collection')}/>:<section className={styles.panel}>Arena indisponível. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button></section>)}
             {tab==='mega'&&online&&(megaView?<MegaSanctuary view={megaView} roster={data.roster} busy={busy} onChallenge={(command,revision)=>onlineExtra('mega/challenge',{command},revision)} onEvolution={uid=>{openPokemon(uid);setPokemonSection('evolution')}}/>:<section className={styles.panel}>Não foi possível carregar os requisitos do Santuário Mega. <button className={styles.secondary} onClick={()=>void refreshOnline()}>Atualizar</button> <button className={styles.secondary} onClick={()=>setTab('regions')}>Voltar às regiões</button></section>)}
             {tab === 'pokemon' && (
               <div className={styles.pokemonWorkspace}>

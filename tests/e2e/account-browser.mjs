@@ -1338,6 +1338,35 @@ try{
   await arenaPage.getByRole('button',{name:'Abandonar tentativa',exact:true}).click();
   await responseFor(arenaPage,'/api/v1/arena/abandon',()=>arenaPage.getByRole('dialog',{name:'Abandonar tentativa?'}).getByRole('button',{name:'Confirmar',exact:true}).click());
   assert.equal((await arenaRead()).run,null);
+  // CI-only accumulated points fixture; production balance always earned by duels.
+  const funded=(await pool.query('SELECT state FROM game_saves WHERE account_id=$1',[registeredId])).rows[0].state;
+  const fundedRaw=JSON.parse(funded.journal.raw);fundedRaw.weeklyArena.balance=400;
+  fundedRaw.inventory.extraBagSlots=Math.max(fundedRaw.inventory.extraBagSlots,20);
+  funded.journal.raw=JSON.stringify(fundedRaw);
+  await pool.query('UPDATE game_saves SET state=$2::jsonb WHERE account_id=$1',[registeredId,JSON.stringify(funded)]);
+  await arenaPage.setViewportSize({width:1365,height:768});
+  await arenaPage.reload({waitUntil:'domcontentloaded'});
+  await arenaPage.getByRole('heading',{name:'Seu centro de comando'}).waitFor();await openArena();
+  await arenaPage.getByRole('button',{name:'Loja da Arena',exact:true}).click();
+  const shop=arenaPage.getByTestId('arena-shop');await shop.waitFor();
+  assert.equal(await shop.getByTestId(/^arena-offer-/).count(),9);
+  for(const slot of ['hat','jacket','gloves','pants','shoes','necklace','ring1','ring2','earrings']){
+   const img=shop.locator('img[src="/assets/gear-arena-'+slot+'.webp"]');
+   await img.waitFor();await arenaPage.waitForFunction(src=>{const image=document.querySelector('img[src="'+src+'"]');return image?.complete&&image.naturalWidth>0;},'/assets/gear-arena-'+slot+'.webp');
+  }
+  await shop.getByTestId('arena-offer-arena-legendary-hat').getByRole('button',{name:'Personalizar'}).click();
+  const modal=arenaPage.getByRole('dialog',{name:'Óculos da Arena'});
+  const confirmPurchase=modal.getByRole('button',{name:'Confirmar compra'});
+  assert.equal(await confirmPurchase.isDisabled(),true);
+  for(const label of ['HP +15','Ataque +15','Defesa +15','Velocidade +15'])await modal.getByLabel(label,{exact:true}).check();
+  assert.equal(await modal.getByLabel('Ataque Especial +15',{exact:true}).isDisabled(),true);
+  const purchase=await responseFor(arenaPage,'/api/v1/arena/purchase',()=>confirmPurchase.click());
+  assert.equal(purchase.result.balance,100);
+  assert.deepEqual(purchase.result.purchase.gear.stats,{hp:15,attack:15,defense:15,speed:15});
+  await shop.getByText('Óculos da Arena adquirido com sucesso!',{exact:true}).waitFor();
+  assert.equal((await arenaRead()).shop.gearRemaining,0);
+  await arenaPage.setViewportSize({width:390,height:844});
+  assert.ok(await arenaPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1));
   await arenaPage.close();
   }
 

@@ -1,6 +1,7 @@
 import {useEffect,useState} from 'react';
 import {kantoPokemonFormProfile,kantoMachine} from '@kanto/game-core';
 import type {ArenaCommand,ArenaDuel,ArenaView} from './onlinePlay';
+import {ArenaShop} from './ArenaShop';
 import {PokemonArt} from './JourneyShell';
 import {BattleStage} from './BattleStage';
 import {BattlePlayback} from './BattlePlayback';
@@ -21,6 +22,7 @@ function Replay({duel,onClose}:{duel:ArenaDuel;onClose:()=>void}){
 }
 export function ArenaScreen({view,busy,onAction,onRefresh,onCollection}:{view:ArenaView;busy:boolean;onAction:Mutate;onRefresh:()=>void;onCollection:()=>void}){
  const [uid,setUid]=useState<number|null>(null),[confirm,setConfirm]=useState(false),[show,setShow]=useState(false);
+ const [shopOpen,setShopOpen]=useState(false);
  const [remaining,setRemaining]=useState(Math.max(0,view.endMs-view.serverNowMs));
  useEffect(()=>{const sampled=performance.now();const tick=()=>setRemaining(Math.max(0,view.endMs-view.serverNowMs-(performance.now()-sampled)));tick();const t=window.setInterval(tick,1000);return()=>clearInterval(t);},[view.serverNowMs,view.endMs]);
  const hours=Math.floor(remaining/3600000),minutes=Math.floor(remaining/60000)%60;
@@ -28,10 +30,11 @@ export function ArenaScreen({view,busy,onAction,onRefresh,onCollection}:{view:Ar
  const selected=view.team.find(p=>p.uid===uid)??view.team[0];
  const blocked=busy||view.busy||remaining===0;
  const duel=view.lastDuel;
+ if(shopOpen&&view.shop)return <ArenaShop view={view.shop} revision={view.revision} busy={busy||remaining===0} onAction={onAction} onBack={()=>setShopOpen(false)} onRefresh={onRefresh}/>;
  if(show&&duel)return <Replay key={duel.id} duel={duel} onClose={()=>setShow(false)}/>;
  return <div className={css.workspace} data-testid="arena-screen">
   <section className={styles.hero}><div><div className={styles.kicker}>DESAFIO SEMANAL · KANTO</div><h2>Arena semanal</h2><p>Enfrente 40 andares com a equipe definida na Coleção. Escolha um dos seus três Pokémon para cada duelo automático.</p><small>HP e SP completos · Sem captura · Derrota ou empate encerra a tentativa.</small></div><i className={'fa-solid fa-trophy '+css.trophy} aria-hidden="true"/></section>
-  <section className={styles.panel}><div className={css.summary}><div><small>Saldo de Pontos de Arena</small><strong>{view.balance}</strong></div><div><small>Ganhos nesta semana</small><strong>{view.earned} / {view.cap}</strong></div><div><small>Recorde semanal</small><strong>{view.paidThrough} / 40</strong></div><div><small>Reinício em</small><strong>{Math.floor(hours/24)}d {hours%24}h {minutes}min</strong></div></div><progress className={css.progress} value={view.earned} max={view.cap}/>{remaining===0&&<button className={styles.secondary} onClick={onRefresh}>Atualizar semana</button>}</section>
+  <section className={styles.panel}><div className={css.summary}><div><small>Saldo de Pontos de Arena</small><strong>{view.balance}</strong></div><div><small>Ganhos nesta semana</small><strong>{view.earned} / {view.cap}</strong></div><div><small>Recorde semanal</small><strong>{view.paidThrough} / 40</strong></div><div><small>Reinício em</small><strong>{Math.floor(hours/24)}d {hours%24}h {minutes}min</strong></div></div>{view.shop&&<button className={styles.secondary} type="button" onClick={()=>setShopOpen(true)}><i className="fa-solid fa-store" aria-hidden="true"/> Loja da Arena</button>}<progress className={css.progress} value={view.earned} max={view.cap}/>{remaining===0&&<button className={styles.secondary} onClick={onRefresh}>Atualizar semana</button>}</section>
   <section className={styles.panel}><h2>{view.complete?'Semana concluída':view.run?'Próximo adversário':'Preparar tentativa'}</h2>
    {view.complete?<p>Você conquistou todas as recompensas semanais. Volte após o reinício.</p>:<>
     {opponent&&<div className={css.opponent}><PokemonArt id={opponent.speciesId} name={opponent.name} large/><div><small>Andar {opponent.floor}{opponent.guardian?' · Guardião':''}</small><h3>{opponent.name} · Nv. {opponent.level}</h3><p>{opponent.types.map(t=>types[t]??t).join(' / ')}</p><p>{opponent.paid?'Recompensa já recebida nesta semana':opponent.points+' Pontos de Arena + XP e ouro elegíveis'}</p>{opponent.tmIds.length>0&&<small>TMs: {opponent.tmIds.map(t=>kantoMachine(t)?.moveName??t).join(' · ')}</small>}</div></div>}

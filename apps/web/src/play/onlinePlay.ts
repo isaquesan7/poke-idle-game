@@ -34,9 +34,11 @@ import type {onlineMegaProjection,KantoMegaFormId,KantoMegaStoneId} from '@kanto
 export type MegaFighter={uid:number|null;speciesId:number;megaForm?:KantoMegaFormId;name:string;level:number;hp:number;maxHp:number;sp:number;maxSp:number};
 export type MegaTrial={id:string;uid:number;formId:KantoMegaFormId;outcome:'win'|'loss'|'draw';stoneId:KantoMegaStoneId|null;turns:number;player:MegaFighter;boss:MegaFighter;log:string[];frames:KantoBattleVisualFrame[]};
 export type MegaView=NonNullable<ReturnType<typeof onlineMegaProjection>>&{revision:number;lastTrial:MegaTrial|null};
-export type ArenaCommand={type:'start'}|{type:'abandon';runId:string}|{type:'challenge';weekStartMs:number;runId:string;floor:number;uid:number};
+export type ArenaCommand={type:'purchase';offerId:string;attributes?:string[]}|{type:'start'}|{type:'abandon';runId:string}|{type:'challenge';weekStartMs:number;runId:string;floor:number;uid:number};
 export type ArenaDuel={id:string;weekStartMs:number;runId:string;floor:number;uid:number;outcome:'win'|'loss'|'draw';turns:number;player:MegaFighter;opponent:MegaFighter;points?:number;rewardEligible?:boolean;reward?:{coins:number;trainerXp:number;pokemonXp:number};log:string[];frames:KantoBattleVisualFrame[]};
-export type ArenaView={revision:number;serverNowMs:number;startMs:number;endMs:number;balance:number;earned:number;cap:number;paidThrough:number;nextFloor:number|null;complete:boolean;busy:boolean;teamEligible:boolean;run:{id:string;team:number[];cleared:number}|null;team:{uid:number;speciesId:number;level:number;megaForm?:KantoMegaFormId}[];opponents:{floor:number;speciesId:number;name:string;level:number;guardian:boolean;types:string[];tmIds:string[];points:number;paid:boolean}[];lastDuel:ArenaDuel|null};
+export type ArenaOffer={id:string;kind:'tm'|'stone'|'gear';itemId:string;name:string;rarity?:string;cost:number;weeklyLimit:number;owned:number;remaining:number;canBuy:boolean;reason:string|null;gear?:{slot:string;requiredLevel:number;stats:Record<string,number>};attributeSelection?:{count:number;options:readonly string[];bonus:number}|null};
+export type ArenaShopView={balance:number;busy:boolean;gearRemaining:number;offers:ArenaOffer[]};
+export type ArenaView={shop?:ArenaShopView;revision:number;serverNowMs:number;startMs:number;endMs:number;balance:number;earned:number;cap:number;paidThrough:number;nextFloor:number|null;complete:boolean;busy:boolean;teamEligible:boolean;run:{id:string;team:number[];cleared:number}|null;team:{uid:number;speciesId:number;level:number;megaForm?:KantoMegaFormId}[];opponents:{floor:number;speciesId:number;name:string;level:number;guardian:boolean;types:string[];tmIds:string[];points:number;paid:boolean}[];lastDuel:ArenaDuel|null};
 export interface OnlineViews {arena?:ArenaView|null;mega?:MegaView|null;machines?:MachineView|null;mastery?:MasteryView|null;inventory:InventoryView|null;shop:ShopView|null;expedition:ExpeditionView|null;expeditionClock:ServerClockSample|null;region:RegionView|null;gym:GymView|null}
 export async function readOnlineViews(revision:number):Promise<OnlineViews>{
  async function load<T>(path:string):Promise<T|null>{try{const r=await get(path);if(!r.ok)return null;const v=await r.json();return v?.status==='ok'&&v.revision===revision?v as T:null;}catch{return null;}}
@@ -44,7 +46,7 @@ export async function readOnlineViews(revision:number):Promise<OnlineViews>{
  const [inventory,shop,expeditionResult,region,gym,mastery,machines,mega,arena]=await Promise.all([load<InventoryView>('inventory/current'),load<ShopView>('shop/current'),expeditionRequest,load<RegionView>('region/current'),load<GymView>('gym/current'),load<MasteryView>('mastery/current'),load<MachineView>('tm/current'),load<MegaView>('mega/current'),load<ArenaView>('arena/current')]);
  return {inventory,shop,...expeditionResult,region,gym,mastery,machines,mega,arena};
 }
-export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach'|'mega/challenge'|'mega/evolve'|'arena/start'|'arena/challenge'|'arena/abandon',fields:Record<string,unknown>,revision:number){
+export async function sendOnlineCommand(path:'inventory/loadout'|'shop/purchase'|'mastery/research'|'tm/teach'|'mega/challenge'|'mega/evolve'|'arena/start'|'arena/challenge'|'arena/abandon'|'arena/purchase',fields:Record<string,unknown>,revision:number){
  const r=await post(path,{...fields,actionId:crypto.randomUUID(),expectedRevision:revision});
  // Consume the complete server receipt before triggering a new refresh.
  const receipt=await r.json();
