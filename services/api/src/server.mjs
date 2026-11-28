@@ -465,8 +465,8 @@ const server=createServer(async(req,res)=>{
       return json(res,['applied','replay'].includes(result.status)?200:result.status==='invalid'?400:result.status==='missing-save'?404:409,result);
     }
     if(onlineRouteGroup(pathname,'arena')){
-      // CI only until the complete Arena/Shop release is reviewed.
-      if(!enabled||!arenaHttpEnabled())return json(res,503,{error:'Arena online em preparação'});
+      // Same reviewed private homologation/release gate as other gameplay routes.
+      if(!enabled||(!release.savesEnabled&&!arenaHttpEnabled()))return json(res,503,{error:'Arena online em preparação'});
       const read=pathname.endsWith('/current');
       if(req.method!==(read?'GET':'POST')||req.url!==pathname)return json(res,400,{error:'Requisição inválida'});
       if(!read)requireSameOrigin(req);
