@@ -280,7 +280,7 @@ describe('REF02B canonical reinforcement and Arena set combat parity',()=>{
    const gym=canonicalOnlineGymPreparation(source)!;
    for(const [index,p] of source.roster.entries()){
     const base=pokemonMasteryStats(pokemonFinalStats(kantoPokemonFormProfile(p.pokemonId,undefined)!.base,p.level,p.manual,b.totals,p.affinity),0);
-    const fighter=canonicalOnlineOwnedCombatant(source,p,b)!;
+    const fighter=canonicalOnlineOwnedCombatant({...source},p,b)!;
     for(const s of STATS)expect(fighter.stats[s]).toBe(base[s]+(index===0?tier:0));
     expect(gym.player[index]?.combatant.stats).toEqual(fighter.stats);
    }
